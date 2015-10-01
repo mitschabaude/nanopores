@@ -212,12 +212,15 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
     del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
+    ps_Fluid = PhysicalSurface(surfs_Fluid,'2') #Physical Surface Fluid
     surfs_Fluid_aHem = surfs[1][:]
     for index in range(apdiff):
         del surfs_Fluid_aHem[ap1::n_e_i[1]-index]  # deletes membrane
     [surfs_Fluid.append(s) for s in surfs_Fluid_aHem]
     [surfs_Fluid.append(s) for s in surfs[2]]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
+
+    ps_aHem = PhysicalSurface(surfs_Fluid_aHem,'0') #Physical Surface aHem
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -228,6 +231,10 @@ def get_geo(x0 = None, crosssections = True, **params):
     [surfs_Membrane.append(s) for s in surfs[2]]
     sl_Membrane = SurfaceLoop(surfs_Membrane)
     vol_Membrane = Volume(sl_Membrane)
+    
+    surfs_Membrane_ps = surfs[2]
+    ps_Membrane = PhysicalSurface(surfs_Membrane_ps,'1') #Physical Surface Membrane
+
 
     if x0 is None:
         vol_Fluid = Volume(sl_Fluid)
