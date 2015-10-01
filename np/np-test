@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# this tests an installed package
+# every commit has to pass this test
+
+# run with np-test after installing package
+# TODO: maybe add adaptivity, fenics development version, ...
+
+# name of the package
+P=nanopores
+
+if [ "$1" = "-local" -o "$1" = "-l" ]; then
+    bash np-test-local $2
+    exit
+fi
+
+echo Testing globally installed package.
+
+# change directory until no $P folder is found (to find installed testsuite)
+while [ -d $P ]; do
+    cd $P
+done
+
+# get $P install dir
+dir=$(python -c "try:
+    import $P
+    print $P.INSTALLDIR
+except ImportError:
+    print '000'")
+
+if [ $dir = "000" ]; then
+    echo "ERROR: Apparently, '$P' is currently not installed."
+    exit
+fi
+
+echo "Importing $P from:
+$dir
+ "
+
+for file in $dir/testsuite/test*.py; do
+    echo Executing $file
+    python $file
+    echo
+done
+echo Tests completed.

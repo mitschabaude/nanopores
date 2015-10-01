@@ -1,0 +1,33 @@
+#!/bin/bash
+# open terminal n times and execute simulation script
+# usage: runN [nproc [nmol]]
+
+# default # of processes
+nproc=1
+# default # of vertices per process
+nmol=10
+
+# change to directory
+repo=~/git/nanopores
+cd $repo/np-sim
+
+# parse user input for nproc
+if [ ! -z "$1" ]; then
+    nproc=$1
+fi
+
+# parse user input for nmol
+if [ ! -z "$2" ]; then
+    nmol=$2
+fi
+
+# start script in $nproc different terminals
+for i in $(seq 1 $nproc); do
+    # this will start different shells:
+    x-terminal-emulator -e python simulation_script.py -N $nmol
+    # this would do all in the same shell:
+    #python simulation_script.py -N $nmol &
+    # wait 2 seconds so the different processes don't get in each others way in data file
+    sleep 2
+done
+

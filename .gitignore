@@ -1,0 +1,20 @@
+# ignore emacs backups
+*~
+
+# ignore python compiled files
+*.pyc
+
+# ignore ffc headers
+ffc_form*.h
+
+# ignore mesh files
+*mesh.xml
+*.mesh
+*.msh
+*.pos
+
+# ignore numpy saves
+*.npy
+
+# ignore np/build
+np/build

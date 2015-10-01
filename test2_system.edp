@@ -1,0 +1,140 @@
+real r0=2,r1=3,l=10;
+real rad=100;
+real n=50;
+real DNAlength=15;
+real DNAwidth=.7;
+
+
+
+border C1(t=0,1){x=r1/2+(rad-r1)/2*t;y=-l/2;};
+border C2(t=0,1){x=rad/2;y=-l/2+l*t;};
+border C3(t=0,1){x=rad/2+(r0-rad)/2*t;y=l/2;};
+border C4(t=0,1){x=r0/2+(r1-r0)/2*t;y=l/2-l*t;};
+
+border C5(t=0,1){x=-rad/2+(-r1+rad)/2*t;y=-l/2;};
+border C6(t=0,1){x=-r1/2+(-r0+r1)/2*t;y=-l/2+l*t;};
+border C7(t=0,1){x=-r0/2+(-rad+r0)/2*t;y=l/2;};
+border C8(t=0,1){x=-rad/2;y=l/2-l*t;};
+
+border C9(t=0,1){x=rad/2*cos(pi+pi*t);y=-l/2+rad/2*sin(pi+pi*t);};
+border C10(t=0,1){x=rad/2*cos(pi*t);y=l/2+rad/2*sin(pi*t);};
+
+border DNA1(t=0,1){x=DNAwidth*(-.5+t);y=-DNAlength*.5;};
+border DNA2(t=0,1){x=DNAwidth*.5;y=DNAlength*(-.5+t);};
+border DNA3(t=0,1){x=DNAwidth*(.5-t);y=DNAlength*.5;};
+border DNA4(t=0,1){x=-DNAwidth*.5;y=DNAlength*(.5-t);};
+
+
+mesh Th=buildmesh(C9(n)+C1(-n)+C4(-n)+C3(-n)+C10(n)+C7(-n)+C6(-n)+C5(-n)+DNA1(-10)+DNA2(-n)+DNA3(-10)+DNA4(-n));
+mesh Th2=buildmesh(C1(n)+C2(n)+C3(n)+C4(n)+C5(n)+C6(n)+C7(n)+C8(n)+C9(n)+C10(n)+DNA1(10)+DNA2(n)+DNA3(10)+DNA4(n));
+
+plot(Th);
+plot(Th2);
+func f=1-(((y>=-l/2)&&(y<=l/2)&&(y>=2*l/(r0-r1)*x-l*(r0+r1)/2/(r0-r1))&&(x<=rad/2))||
+((y>=-l/2)&&(y<=l/2)&&(y>=2*l/(r1-r0)*x-l*(r0+r1)/2/(r0-r1))&&(x>=-rad/2))||
+((x>=-DNAwidth*.5)&&(x<=DNAwidth*.5)&&(y>=-DNAlength*.5)&&(y<=DNAlength*.5)));
+
+//real qq=1.602e-19;
+//real mol=6.022e23*1e3*1e-27;
+//real D=1.9e-9;
+//real mu=73e-9;
+//real eta= 1e-3;
+
+
+//func A=(80.2+(7-80.2)*f)*8.854e-12*1e-27;
+real qq=1,mol=1,D=1,mu=1,eta=1;
+func A=3000-1200*f;
+
+load "Element_P3";
+fespace Vh(Th,P3);
+fespace Qh(Th,P2);
+fespace Vh2(Th2,P3);
+
+Vh2 fh=f;
+Vh2 Ah=A;
+plot(Ah,fill=true,dim=3);
+Vh2 V,cold1,cmold1,psi;
+
+Vh c,cm,phi,Vold,cold2,cmold2;
+Vh v1,v2,phi1,phi2,v1old,v2old;
+Qh p,q,pold,qold;
+
+
+
+problem poisson(V,psi)=int2d(Th2)(A*dx(V)*dx(psi)+A*dy(V)*dy(psi))
+-int2d(Th2)(qq*mol*(cold1-cmold1)*psi)
++on(C9,V=-.1)+on(C10,V=0)//+int1d(Th2,DNA1,DNA2,DNA3,DNA4)(1e-1*psi)
+;
+
+problem dd1(c,phi)=int2d(Th)(mol*qq*D*dx(c)*dx(phi)+mol*qq*D*dy(c)*dy(phi))
++int2d(Th)(mol*mu*c*dx(Vold)*dx(phi)+mol*mu*c*dy(Vold)*dy(phi))
++int2d(Th)(mol*c*v1old*dx(phi)+mol*c*v2old*dy(phi))
++on(C9,c=1*mol)+on(C10,c=1*mol)
+;
+
+problem dd2(cm,phi)=-int2d(Th)(mol*qq*D*dx(cm)*dx(phi)+mol*qq*D*dy(cm)*dy(phi))
++int2d(Th)(mol*mu*cm*dx(Vold)*dx(phi)+mol*mu*cm*dy(Vold)*dy(phi))
+-int2d(Th)(mol*cm*v1old*dx(phi)+mol*cm*v2old*dy(phi))
++on(C9,cm=1*mol)+on(C10,cm=1*mol)
+;
+
+problem stokes(v1,v2,p,phi1,phi2,q)=
+int2d(Th)(dx(v1)*dx(phi1)+dy(v1)*dy(phi1)
++dx(v2)*dx(phi2)+dy(v2)*dy(phi2))
+-int2d(Th)(p*(dx(phi1)+dy(phi2)))
++int2d(Th)((cold2-cmold2)*(dx(Vold)*phi1+dy(Vold)*phi2))
+-int2d(Th)(q*(dx(v1)+dy(v2)))
++on(C9,C10,p=0)+on(C1,C3,C4,C5,C6,C7,v1=0,v2=0)+on(DNA1,DNA2,DNA3,DNA4,v1=0,v2=0)
+;
+
+
+V=0;
+c=0;
+cm=0;
+v1=0;
+v2=0;
+cold1=c*f;
+cold2=c;
+cmold1=cm*f;
+cmold2=cm;
+
+for(int i=0;i<10;i++){
+v1old=v1;
+v2old=v2;
+poisson;
+Vold=V;
+//plot(Vold,fill=true,dim=3,cmm="Vold");
+//plot(V,fill=true,dim=3);
+dd1;
+cold1=c*f;
+cold2=c;
+dd2;
+cmold1=cm*f;
+cmold2=cm;
+stokes;
+}
+
+
+plot(V,fill=true,dim=3);
+plot(c,fill=true,dim=3);
+plot(cm,fill=true,dim=3);
+plot(v1,fill=true,dim=3,cmm="v1");
+plot(v2,fill=true,dim=3,cmm="v2");
+plot(p,fill=true,dim=3);
+plot([v1,v2],fill=true);
+
+{ofstream fff("sol_dd.txt");
+fff<<Th.nv<<" "<<Th.nt<<" "<<3<<endl;
+for (int i=0;i<Th.nv;i++){
+fff<<Th(i).x<<" "<<Th(i).y<<endl;
+}
+for (int i=0;i<Th.nt;i++){
+	fff<<Th[i][0]+1<<" "<<Th[i][1]+1<<" "<<Th[i][2]+1<<endl;
+}
+
+for (int i=0;i<Th.nt;i++){
+	for (int j=0;j<3;j++){
+		fff<<Th[i][j]+1<<" "<<" "<<c[][Vh(i,j)]<<" "<<v1[][Vh(i,j)]<<" "<<v2[][Vh(i,j)]<<endl;
+	}
+}
+}

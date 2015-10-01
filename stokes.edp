@@ -1,0 +1,134 @@
+// stokes test example ('driven cavity') with adaptive mesh refinement
+// conforming taylor-hood (P2-P1) or mini (P1b-P1) elements
+// adaptivity based on residual-H1 or residual-L2 estimator
+
+verbosity =0;
+// macro the get the current mesh size 
+// parameter 
+//  in:  Th the mesh
+//       Vh  P1 fespace on Th
+//  out : 
+// h: the Vh finite element finite set to the current mesh size 
+macro  MeshSizecomputation(Th,Vh,h)
+{  /* Th mesh
+	 Vh  P1 finite element space 
+	 h   the P1 mesh size value */
+	real[int]  count(Th.nv);
+	/* mesh size  (lenEdge = $\int_e 1$)  */
+	varf vmeshsizen(u,v)=intalledges(Th,qfnbpE=1)(v); 
+	/* number of edge / par vertex */ 
+	varf vedgecount(u,v)=intalledges(Th,qfnbpE=1)(v/lenEdge); 
+   /*
+	  computation of the mesh size
+	  ----------------------------- */ 
+	count=vedgecount(0,Vh);
+	h[]=0.;
+	h[]=vmeshsizen(0,Vh);
+	/*cout << " count min = "<< count.min << " " << count.max << endl;*/
+	h[]=h[]./count;
+    /*cout << " -- bound meshsize = " <<h[].min << " " << h[].max << endl;*/
+} // end of macro MeshSizecomputation
+
+// macro to remesh according the de residual indicator 
+// in: 
+//     Th the mesh
+//     Ph  P0 fespace on Th
+//     Vh  P1 fespace on Th
+//     vindicator the varf of to evaluate the indicator to ^2
+//     coef on etameam ..
+// ------
+macro  ReMeshIndicator(Th,Ph,Vh,vindicator,coef)
+{
+	Vh h=0;
+	/*evalutate the mesh size  */
+	MeshSizecomputation(Th,Vh,h); 
+	Ph etak;  
+	etak[]=vindicator(0,Ph);
+	cout << " global  Eta  : " << sqrt(etak[].sum) << "  ......... " <<  Th.nv<< endl;
+	etak[]=sqrt(etak[]); 
+    /*    plot(etak,ps="arei-etak.eps",fill=1,value=1);*/
+	real etastar= coef*(etak[].sum/etak[].n);
+	/* cout << " etastar = " << etastar << " sum=" << etak[].sum << " " << endl; */
+
+	/* here etaK is discontinous 
+	   we use the P1 L2 projection with mass lumping . */
+	
+	Vh fn,sigma;
+	varf veta(unused,v)=int2d(Th)(etak*v);
+	varf vun(unused,v)=int2d(Th)(1*v);
+	fn[]  = veta(0,Vh);
+	sigma[]= vun(0,Vh);
+	fn[]= fn[]./ sigma[];
+	fn =  max(min(fn/etastar,3.),0.3333) ; 
+	
+	/* new mesh size */ 
+	h = h / fn ; 
+	/* plot(h,wait=1); */
+	Th=adaptmesh(Th,IsMetric=1,h,splitpbedge=1,nbvx=1e+7);
+}
+
+// the classical  L space problem. 
+
+int n=30;
+mesh Th=square(n,n);
+
+// FE space definition ---
+//fespace Uh(Th,P2); Uh u1,u2,v1,v2;
+fespace Uh(Th,P1b); Uh u1,u2,v1,v2;
+fespace Sh(Th,P1); Sh p,q;
+fespace Ph(Th,P0); // for the indicator
+
+real hinit=0.01; // 
+Uh   h=hinit; // the FE fonction  for the mesh size 
+// to build a mesh with a given mesh size  : meshsize
+Th=adaptmesh(Th,h,IsMetric=1,splitpbedge=1,nbvx=5e+6);
+//plot(Th,wait=1);
+
+func r = sqrt((x-0.5)^2 + (y-0.5)^2);
+func f1 = 0;//100*r*(r-0.5)*(r-sqrt(2)/2);
+func f2 = 0;
+
+Ph hT = hTriangle;
+
+problem stokes([u1,u2,p],[v1,v2,q]) =
+int2d(Th)( dx(u1)*dx(v1) + dy(u1)*dy(v1) + dx(u2)*dx(v2) + dy(u2)*dy(v2)
++ p*(dx(v1)+dy(v2)) + q*(dx(u1)+dy(u2)) + p*q*1e-10)
++ on(1,2,4,u1=0,u2=0) + on(3,u1=1,u2=0);
+
+
+varf indicatorH1(unused,chiK) = 
+     intalledges(Th)( chiK*0.5*lenEdge*(
+     square(jump(N.x*dx(u1)+N.y*dy(u1) - N.x*p)) + square(jump(N.x*dx(u2)+N.y*dy(u2) - N.y*p)) ))
+
+   + int2d(Th)(chiK*hTriangle^2*(
+     square(f1 + dxx(u1) + dyy(u1) - dx(p)) + square(f2 + dxx(u2) + dyy(u2) - dy(p)) )
+   + chiK*square(dx(u1) + dy(u2)));
+
+
+varf indicatorL2(unused,chiK) = 
+     intalledges(Th)( chiK*0.5*lenEdge^3*(
+     square(jump(N.x*dx(u1)+N.y*dy(u1) - N.x*p)) + square(jump(N.x*dx(u2)+N.y*dy(u2) - N.y*p)) ))
+
+   + int2d(Th)(chiK*hTriangle^4*(
+     square(f1 + dxx(u1) + dyy(u1) - dx(p)) + square(f2 + dxx(u2) + dyy(u2) - dy(p)) )
+   + chiK*hTriangle^2*square(dx(u1) + dy(u2)));
+
+
+for (int i=0;i<5;i++)
+{
+  	u1=u1;
+    u2=u2;
+    p=p;
+    plot(Th,wait=1);
+	stokes;
+    plot([u1,u2]);
+    plot(p,fill=1,dim=3);
+    plot(u1,fill=1);
+	real cc=0.7;
+	if(i>5) cc=1;
+        if(i<9)
+	 ReMeshIndicator(Th,Ph,Sh,indicatorL2,cc);;
+}
+
+
+

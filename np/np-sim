@@ -1,0 +1,323 @@
+#!/bin/bash
+# run simulations and synchronize automatically with git repo
+
+usage="Usage:
+-) np-sim init [/abspath/to/gitrepo]
+      initialize (or change) git repo, choose data file
+-) np-sim new [name of simulation]
+      create new data file for simulations
+-) np-sim run [-n 5] [-N 10] [-c 9.0] [--hold]
+      run simulation on <n> processes for <N> vertices each.
+      clscale (3D) is given by <c>.
+      use --hold if you want to inspect the results after finishing.
+"
+
+# name of package
+P=nanopores
+# README string of package in git repo (used to identify repo)
+README="Simulation of nanopores."
+# folder relative to git repo where the data files lie
+simulations=np-sim/simulations
+# name of data file in datadir (run operates on this file and copies to $datafile)
+file0="sim.dat"
+
+datadir() {
+# get $P data dir
+#    dir=$(python -c "try:
+#    import $P
+#    print $P.DATADIR
+#except ImportError:
+#    print '000'")
+#
+#    if [ $dir = "000" ]; then
+#        echo "Error: Apparently, '$P' is currently not installed."
+#        exit 1
+#    fi
+
+#    echo $dir
+    echo ~/.$P
+}
+
+gitsync() {
+    usage="Usage: gitsync dir"
+    git add $1
+    git commit -q -m "data file synchronization"
+    git push -q origin data
+    echo "Synchronized with remote repository."    
+}
+
+setrepo() {
+    dir=$(datadir)/sim
+    cd /
+    
+    # check whether folder exists
+    if [ ! -d $1 ]; then
+        echo "$usage"
+        echo "Error: $PWD: Not an existing directory."
+        exit 1
+    fi
+    
+    cd $1
+    
+    # check whether is git repo
+    if [ ! -e ".git" ]; then
+        echo "$usage"
+        echo "Error: $PWD: Not a git repository."
+        exit 1
+    fi
+    
+    # check whether is correct git repo by comparing README
+    readme=$(git show HEAD:README) #refs/remotes/origin/HEAD:README)
+    if [ ! "$readme" ==  "$README" ]; then
+        echo "$usage"
+        echo "Error: $PWD: Not the right git repository."
+        exit 1
+    fi
+    
+    # check whether dir exists
+    if [ ! -d $dir ]; then
+        mkdir -p $dir
+    fi
+    echo $PWD > $dir/gitrepo
+    echo "Saved $PWD as git repository."
+}
+
+init() {
+    usage="Usage: np-sim init [/abspath/to/gitrepo]"
+    dir=$(datadir)/sim
+    if [ -n "$1" ]; then
+        setrepo $1
+        repo=$(cat $dir/gitrepo)
+        
+    elif [ ! -e $dir/gitrepo ]; then
+        echo "$usage"
+        echo "Error: Didn't set any git repository."
+        exit 1      
+    else
+        repo=$(cat $dir/gitrepo)
+        echo "Git repository: $repo"
+        echo "(to change, run np-sim init /abspath/to/gitrepo)"
+        echo        
+    fi
+    
+    cd $repo
+    git pull -q origin data
+    echo "Pulled data files from remote."
+    echo
+    
+    sims=$(ls $simulations | grep -v .xml | tr "\n" " ")
+    
+    echo "Set data file: enter one of"
+    echo  $sims
+    read dat
+    
+    if [ ! -f $simulations/$dat ]; then
+        echo "Error: Bad option."
+        exit 1
+    fi
+    
+    echo $dat > $dir/datafile
+}
+
+new() {
+    usage="Usage: np-sim new [name of simulation]"
+    dir=$(datadir)/sim
+ 
+    if [ ! -e $dir/gitrepo ]; then
+        echo "Error: Git repository is not set. Use np-sim init /abspath/to/repo"
+        exit 1
+    fi
+    
+    # change filename if given
+    if [ -n "$1" ]; then
+        #mv $dir/$file $dir/$1
+        file=$1
+    else
+        file=$file0
+    fi
+    
+    # change ending to .dat
+    file=${file%.*}.dat
+        
+    # call create_mesh.py from repo
+    # TODO: options to create_mesh.py
+    
+    repo=$(cat $dir/gitrepo)
+    
+    # important: import pkg from git repo!!
+    export PYTHONPATH="$repo/np":$PYTHONPATH
+    
+    $repo/np-sim/create_mesh.py ${file%.*}
+    files="$file ${file%.*}_mesh_o.xml ${file%.*}_mesh_i.xml"
+    
+    # push to git
+    cd $repo
+    for f in $files; do
+        cp $dir/$f $simulations/$f
+    done
+    gitsync "$simulations"
+}
+
+new1D() {
+    usage="Usage: np-sim new [name of simulation]"
+    dir=$(datadir)/sim
+ 
+    if [ ! -e $dir/gitrepo ]; then
+        echo "Error: Git repository is not set. Use np-sim init /abspath/to/repo"
+        exit 1
+    fi
+    
+    # change filename if given
+    if [ -n "$1" ]; then
+        #mv $dir/$file $dir/$1
+        file=$1
+    else
+        file=sim1D
+    fi
+    
+    # change ending to .dat
+    file=${file%.*}.dat
+        
+    # call create_mesh.py from repo
+    # TODO: options to create_mesh.py
+    
+    repo=$(cat $dir/gitrepo)
+    
+    # important: import pkg from git repo!!
+    export PYTHONPATH="$repo/np":$PYTHONPATH
+    
+    $repo/np-sim/create_1Dmesh.py ${file%.*}
+    files="$file"
+    
+    # push to git
+    cd $repo
+    for f in $files; do
+        cp $dir/$f $simulations/$f
+    done
+    gitsync "$simulations"
+}
+
+cleanup() {
+    # clean up $file0 and push
+    dir=$(datadir)/sim
+    repo=$(cat $dir/gitrepo)
+    file=$(cat $dir/datafile)
+    
+    cd $repo
+    cp $dir/$file0 $simulations/$file
+    
+    cd np-sim
+    export PYTHONPATH="$repo/np":$PYTHONPATH
+    python cleanup.py
+    cd ..
+    gitsync "$simulations/$file"
+}
+
+control_c() {
+    # run if user hits control-c
+    echo -e "\nKeyboard Interrupt! Cleaning up and exiting."
+    cleanup
+    exit 0
+}
+
+run() {
+    usage="Usage: np-sim run [-n 5] [-N 10] [-c 9.0] [--hold] [--2D]"
+    dir=$(datadir)/sim
+
+    # default # of processes
+    nproc=1
+    # default # of vertices per process
+    nmol=1
+    # optional args
+    cls=""
+    hold=""
+    dim2=""
+ 
+    # check initialization
+    if [ ! -e $dir/gitrepo ]; then
+        echo "Error: Git repository is not set. Use np-sim init /abspath/to/repo"
+        exit 1
+    fi
+    if [ ! -e $dir/datafile ]; then
+        echo "Error: Data file is not set. Use np-sim init"
+        exit 1
+    fi
+
+    # change to directory and pull data file
+    repo=$(cat $dir/gitrepo)
+    cd $repo
+    
+    git pull -q origin data
+    echo "Updated data file from remote."
+    
+    file=$(cat $dir/datafile)
+    cp $simulations/$file $dir/$file0
+    
+    # parse user input
+    while [[ $# > 0 ]]
+    do
+    key="$1"
+    case $key in
+        -n) nproc="$2"
+        shift;;
+        -N) nmol="$2"
+        shift;;
+        -c|--clscale) cls="-c $2"
+        shift;;
+        --hold) hold=" -hold"
+        ;;
+        -2D|--2D) dim2=" -2"
+        ;;
+        *) echo "$usage"
+        exit 1;;
+    esac
+    shift
+    done
+    
+    echo "Starting $nproc child process(es)."
+    
+    # important: import pkg from git repo!!
+    export PYTHONPATH="$repo/np":$PYTHONPATH
+
+    # start script in $nproc different terminals
+    cd np-sim
+    for i in $(seq 1 $nproc); do
+        # this will start different shells:
+        # (xterm is needed because gnome-terminal terminates the process you called)
+        xterm $hold -e "./simulation_script.py -N $nmol --pid $i -v $cls $dim2" &
+        
+        # this would do all in the same shell:
+        #./simulation_script.py -N $nmol -pid "$i" -v $cls &
+        
+        # wait a little so we don't get in our way in data file
+        sleep 0.5
+    done
+    cd ..
+    
+    # push preliminary changes to git
+    cp $dir/$file0 $simulations/$file
+    gitsync "$simulations/$file"
+    
+    # wait for calculations to finish and push again (if successful)
+    echo "Waiting for child process(es) to terminate..."
+    echo "(you can safely stop calculations with Ctrl-C)"
+    # trap keyboard interrupt (control-c)
+    trap control_c SIGINT
+    wait
+    # FIXME: changes to data file in the meantime are not incorporated
+    cp $dir/$file0 $simulations/$file
+    gitsync "$simulations/$file"
+}
+
+case $1 in
+    init|new|new1D|run)
+    f=$1
+    shift
+    $f $@
+    ;;
+    *)
+    echo "$usage"
+    exit 1
+    ;;
+esac
+
