@@ -212,7 +212,10 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
     del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
-    ps_Fluid = PhysicalSurface(surfs_Fluid,'2') #Physical Surface Fluid
+    
+    tostr = lambda l: "{%s}"%(",".join(l),)
+    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'3') #Physical Surface Fluid
+    
     surfs_Fluid_aHem = surfs[1][:]
     for index in range(apdiff):
         del surfs_Fluid_aHem[ap1::n_e_i[1]-index]  # deletes membrane
@@ -220,7 +223,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     [surfs_Fluid.append(s) for s in surfs[2]]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
 
-    ps_aHem = PhysicalSurface(surfs_Fluid_aHem,'0') #Physical Surface aHem
+    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'1') #Physical Surface aHem
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -233,7 +236,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     vol_Membrane = Volume(sl_Membrane)
     
     surfs_Membrane_ps = surfs[2]
-    ps_Membrane = PhysicalSurface(surfs_Membrane_ps,'1') #Physical Surface Membrane
+    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'2') #Physical Surface Membrane
 
 
     if x0 is None:
@@ -247,7 +250,11 @@ def get_geo(x0 = None, crosssections = True, **params):
         vol_Fluid = Volume(sl_Fluid_Molecule)
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
-
+        
+    PhysicalVolume(vol_Fluid, 1)
+    PhysicalVolume(vol_Membrane, 2)
+    PhysicalVolume(vol_aHem, 3)
+    
     if crosssections:
         surfs_CrossS = surfs[3]
         raw_code(['Surface{%s} In Volume{%s};'  \
@@ -284,12 +291,12 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     geo_dict = {"gmsh mesh generating sript": __name__,
                 "xMolecule": x0,
-                "crosssections": crosssections,
-                "Number of crosssections": len(e_CrossS),
-                "Total number of crossections": 4,
-                "molecule crosses": geo_cs_str,
-                "popped crossection index": cs_pop_i,
-                "cs_pop_i": cs_pop_i,
+                #"crosssections": crosssections,
+                #"Number of crosssections": len(e_CrossS),
+                #"Total number of crossections": 4,
+                #"molecule crosses": geo_cs_str,
+                #"popped crossection index": cs_pop_i,
+                #"cs_pop_i": cs_pop_i,
                 "Typical length scale on aHem": lcCenter,
                 "geo_code": get_code(),
             }
