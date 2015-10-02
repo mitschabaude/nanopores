@@ -214,7 +214,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
     
     tostr = lambda l: "{%s}"%(",".join(l),)
-    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'3') #Physical Surface Fluid
+    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluid') #Physical Surface Fluid
     
     surfs_Fluid_aHem = surfs[1][:]
     for index in range(apdiff):
@@ -223,7 +223,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     [surfs_Fluid.append(s) for s in surfs[2]]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
 
-    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'1') #Physical Surface aHem
+    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahem') #Physical Surface aHem
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -236,8 +236,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     vol_Membrane = Volume(sl_Membrane)
     
     surfs_Membrane_ps = surfs[2]
-    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'2') #Physical Surface Membrane
-
+    
 
     if x0 is None:
         vol_Fluid = Volume(sl_Fluid)
@@ -251,9 +250,11 @@ def get_geo(x0 = None, crosssections = True, **params):
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
         
-    PhysicalVolume(vol_Fluid, 1)
-    PhysicalVolume(vol_Membrane, 2)
-    PhysicalVolume(vol_aHem, 3)
+    PhysicalVolume(vol_Fluid, 'fluid')
+    PhysicalVolume(vol_Membrane, 'membrane')
+    PhysicalVolume(vol_aHem, "ahem")
+    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'membrane') #Physical Surface Membrane
+
     
     if crosssections:
         surfs_CrossS = surfs[3]
@@ -299,6 +300,7 @@ def get_geo(x0 = None, crosssections = True, **params):
                 #"cs_pop_i": cs_pop_i,
                 "Typical length scale on aHem": lcCenter,
                 "geo_code": get_code(),
+                "meta": get_meta(),
             }
     return geo_dict
 

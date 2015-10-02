@@ -57,6 +57,11 @@ _EXTRUDE_ID = 0
 _ARRAY_ID = 0
 _FIELD_ID = 0
 
+_PHYSSURF_ID = 0
+_PHYSVOL_ID = 0
+_PHYSSURF = {}
+_PHYSVOL = {}
+
 
 def _header():
     '''Return file header.
@@ -97,6 +102,19 @@ def get_code():
     #reset Gmsh Code
     init_code()
     return _tmp
+    
+def get_meta():
+    '''Returns metadata: physical surfaces, volumes
+       with corresponding integer values '''
+    global _PHYSSURF
+    global _PHYSVOL
+    
+    tmp = {"physical_boundary":_PHYSSURF, "physical_domain":_PHYSVOL}
+    
+    # reset
+    _PHYSSURF = {}
+    _PHYSVOL = {}
+    return tmp
 
 
 def Point(x, lcar):
@@ -224,7 +242,10 @@ def SurfaceLoop(surfaces):
 def PhysicalSurface(surface, label):
     '''Gmsh Physical Surface.
     '''
-    _GMSH_CODE.append('Physical Surface("%s") = %s;' % (label, surface))
+    global _PHYSSURF_ID, _PHYSSURF
+    _PHYSSURF_ID += 1
+    _GMSH_CODE.append('Physical Surface(%s) = %s;' % (_PHYSSURF_ID, surface))
+    _PHYSSURF[label] =  (_PHYSSURF_ID,)
     return
 
 
@@ -256,7 +277,10 @@ def CompoundVolume(volumes):
 def PhysicalVolume(volume, label):
     '''Gmsh Physical Volume.
     '''
-    _GMSH_CODE.append('Physical Volume("%s") = %s;' % (label, volume))
+    global _PHYSVOL_ID, _PHYSVOL
+    _PHYSVOL_ID += 1
+    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+    _PHYSVOL[label] =  (_PHYSVOL_ID,)
     return
 
 

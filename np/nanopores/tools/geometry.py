@@ -7,7 +7,7 @@ from warnings import warn
 from importlib import import_module
 import types
 
-__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains"]
+__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains", "geo_from_xml"]
 
 class Geometry(object):
     """ Interface between numerical routines and files describing the geometry.
@@ -400,3 +400,25 @@ def geo_from_name(name, mesh=None, check_midpoint=False, **params):
     #geo.rebuild = rebuild.__get__(geo, Geometry) #<-- equivalent
     geo.rebuild = types.MethodType(rebuild, geo)
     return geo
+    
+    
+def geo_from_xml(name, mesh=mesh):
+    DIR = "%s/%s/mesh/" %(nanopores.DATADIR,name)
+    mesh = Mesh(DIR+"mesh.xml")
+    subdomains = MeshFunction("size_t", mesh, DIR+"mesh_physical_region.xml")
+    boundaries = MeshFunction("size_t", mesh, DIR+"mesh_facet_region.xml")
+    
+    # quick hack for testing aHem geo
+    #physical_domain = {"fluid":(4,), "membrane":(5,), "ahem":(6,)}
+    #physical_boundary = {"ext":(1,), "ahem":(2,), "membrane":(3,)}
+    
+    with open(DIR+"meta.txt", "r") as f:
+        meta = eval(f.read())
+        
+    print meta
+    
+    if not isinstance(meta, dict):
+        meta = {}
+    
+    return Geometry(None, mesh, subdomains, boundaries, **meta)
+    

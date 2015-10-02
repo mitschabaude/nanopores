@@ -46,9 +46,18 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
     if xml:
         fid_dict["fid_xml"] = os.path.join(meshdir, meshfile)
         subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
+        
+    # optionally, write metadata to file ("meta" should be dict-like)
+    if "meta" in geo_dict:
+        save(geo_dict["meta"], meshdir, "meta")
 
     geo_dict.update(fid_dict)
     return geo_dict
+    
+    
+def save(data, dir=".", name="file"):
+    with open('%s/%s.txt' % (dir,name), 'w') as f:
+        f.write(repr(data))
 
 
 # -----
