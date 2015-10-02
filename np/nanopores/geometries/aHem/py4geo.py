@@ -165,7 +165,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     geo_cs_str = "no crosssectional surface"
     if crosssections:
         Comment(' integrate crosssectional lines in fluid and check if molecule intersects lines')
-        e_CrossS = [Line(p_aHem[52], p_Fluid[6]), Line(p_aHem[68], p_Fluid[7]), Line(p_aHem[82], p_Fluid[8]), Line(p_aHem[0], p_Fluid[9])]
+        e_CrossS = [Line(p_aHem[ac1], p_Fluid[6]), Line(p_aHem[ac2], p_Fluid[7]), Line(p_aHem[ac3], p_Fluid[8]), Line(p_aHem[ac4], p_Fluid[9])]
         cs_pop_i = None
         # check if molecule is near pore
         if x0 is not None and (x0[0]**2 + x0[1]**2 <= r0**2):
