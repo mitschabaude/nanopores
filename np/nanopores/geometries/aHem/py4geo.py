@@ -25,21 +25,6 @@ def get_geo(x0 = None, crosssections = True, **params):
 
 
 
-
-    lt = -l2-(l0+l1-l2-lm)/2.
-    lb = -l2-(l0+l1-l2-lm)/2.-lm
-
-
-    X_Fluid_ext = numpy.array([[0.0, 0.0, l3],
-                               [R, 0.0, l3],
-                               [R, 0.0, -5.41],
-                               [R, 0.0, -9.84],
-                               [R, 0.0, -l0-l1-l4],
-                               [0.0, 0.0, -l0-l1-l4]])
-    X_Fluid_ctr = numpy.array([[0.0, 0.0, -10.21],#########################
-                               [0.0, 0.0, -6.25],
-                               [0.0, 0.0, -3.22],
-                               [0.0, 0.0, 0.0]])
     X_aHem = numpy.array([[2.16, 0.0, 0.0],
                           [2.77, 0.0, -0.19],
                           [3.24, 0.0, -0.1 ],
@@ -137,6 +122,27 @@ def get_geo(x0 = None, crosssections = True, **params):
                           [1.26, 0.0, -0.64],
                           [1.7 , 0.0, -0.31]])
 
+    #Anchor Points on aHem for membran (index)
+    ap1 = 18
+    ap2 = 49
+    apdiff=ap2-ap1
+
+    #Anchor Points in aHem for CrossS (index)
+    ac1 = 52
+    ac2 = 68
+    ac3 = 82
+    ac4 = 0
+
+    X_Fluid_ext = numpy.array([[0.0, 0.0, l3],
+                               [R, 0.0, l3],
+                               [R, 0.0, X_aHem[ap1][2]],
+                               [R, 0.0, X_aHem[ap2][2]],
+                               [R, 0.0, -l0-l1-l4],
+                               [0.0, 0.0, -l0-l1-l4]])
+    X_Fluid_ctr = numpy.array([[0.0, 0.0, X_aHem[ac1][2]],
+                               [0.0, 0.0, X_aHem[ac2][2]],
+                               [0.0, 0.0, X_aHem[ac3][2]],
+                               [0.0, 0.0, X_aHem[ac4][2]]])
 
 
     p_Fluid = [Point(x, lcOuter) for x in X_Fluid_ext]
@@ -152,16 +158,9 @@ def get_geo(x0 = None, crosssections = True, **params):
     e_aHem = [Line(p_aHem[k], p_aHem[k+1]) for k in range(len(p_aHem)-1)]
     e_aHem.append(Line(p_aHem[-1], p_aHem[0]))
 
-    #Anchor Points on aHem for membran (index)
-    ap1 = 18
-    ap2 = 49
-    apdiff=ap2-ap1
-
     e_Membrane = [Line(p_aHem[ap1],p_Fluid[2]), Line(p_Fluid[3], p_aHem[ap2])]
 
-
     edges_to_rot = [e_Fluid[0:5], e_aHem, e_Membrane]
-
 
     geo_cs_str = "no crosssectional surface"
     if crosssections:
