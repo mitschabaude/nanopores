@@ -257,10 +257,41 @@ def get_geo(x0 = None, crosssections = True, **params):
     else:                   # no intersect with any crossS -> remove 2nd and 3rd crossS
         del surfs_CrossS_bulk[1::4]
         del surfs_CrossS_bulk[1::3]
+        
     [surfs_Fluid_bulk.append(s) for s in surfs_CrossS_bulk]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
     sl_Fluid_bulk = SurfaceLoop(surfs_Fluid_bulk)
-    vol_Fluid_bulk = Volume(sl_Fluid_bulk)
+
+    surfs_Fluid_bottom = surfs[1][:] # create Fluid_bottom/center/top - the aHem side
+    for index in range(ac1):
+        del surfs_Fluid_bottom[0::n_e_i[1]-index]
+    surfs_Fluid_center = surfs_Fluid_bottom[:]
+    surfs_Fluid_top = surfs_Fluid_bottom[:]
+    for index in range(n_e_i[1]-ac2):
+        del surfs_Fluid_bottom[ac2-ac1::n_e_i[1]-ac1-index]
+    for index in range(ac2-ac1):
+        del surfs_Fluid_center[0::n_e_i[1]-ac1-index]
+    for index in range(n_e_i[1]-ac3):
+        del surfs_Fluid_center[ac3-ac2::n_e_i[1]-ac2-index]
+    for index in range(ac3-ac1):
+        del surfs_Fluid_top[0::n_e_i[1]-ac1-index]
+
+    surfs_CrossS_bottom = surfs[3][:] # create Fluid_bottom/center/top - the CrossS side
+    surfs_CrossS_center = surfs[3][:]
+    surfs_CrossS_top = surfs[3][:]
+    del surfs_CrossS_bottom[2::4]
+    del surfs_CrossS_bottom[2::3]
+    del surfs_CrossS_center[0::4]
+    del surfs_CrossS_center[2::3]
+    del surfs_CrossS_top[0::4]
+    del surfs_CrossS_top[0::3]
+
+    [surfs_Fluid_bottom.append(s) for s in surfs_CrossS_bottom] # combine aHem side and CrossS side for surfs_Fluid_bottom/center/top
+    [surfs_Fluid_center.append(s) for s in surfs_CrossS_center]
+    [surfs_Fluid_top.append(s) for s in surfs_CrossS_top]
+    sl_Fluid_bottom = SurfaceLoop(surfs_Fluid_bottom)
+    sl_Fluid_center = SurfaceLoop(surfs_Fluid_center)
+    sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
 
     ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahem') #Physical Surface aHem
 
@@ -279,7 +310,7 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     if x0 is None:
         vol_Fluid = Volume(sl_Fluid)
-    else:
+    else: # TODO: consider molecule ball either in fluid_bulk or in fluid_top/center/bottom - then create physical volume
         Comment('Add molecule ball')
         Molecule = add_ball(numpy.asarray(x0), rMolecule, lcMolecule,
                             with_volume=True, holes=None, label=None
@@ -289,7 +320,6 @@ def get_geo(x0 = None, crosssections = True, **params):
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
         
-    PhysicalVolume(vol_Fluid_bulk, 'fluid_bulk')
     PhysicalVolume(vol_Fluid, 'fluid')
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
