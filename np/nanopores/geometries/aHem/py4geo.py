@@ -133,6 +133,8 @@ def get_geo(x0 = None, crosssections = True, **params):
     ac3 = 82
     ac4 = 0
 
+    r0=max([X_aHem[index][0] for index in [ac1, ac2, ac3, ac4]])+rMolecule
+
     X_Fluid_ext = numpy.array([[0.0, 0.0, l3],
                                [R, 0.0, l3],
                                [R, 0.0, X_aHem[ap1][2]],
@@ -170,21 +172,35 @@ def get_geo(x0 = None, crosssections = True, **params):
         # check if molecule is near pore
         if x0 is not None and (x0[0]**2 + x0[1]**2 <= r0**2):
             # check z coordinate of molecule
-            if abs(x0[2]) < rMolecule:
+            if abs(x0[2] - X_aHem[ac4][2]) < rMolecule:
                 geo_cs_str = "top crosssection"
                 cs_pop_i = -1
-            elif abs(x0[2] + 3.22) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac3][2]) < rMolecule:
                 geo_cs_str = "center top crosssection"
                 cs_pop_i = 2
-            elif abs(x0[2] + 3.25) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac2][2]) < rMolecule:
                 geo_cs_str = "center bottom crosssection"
                 cs_pop_i = 1
-            elif abs(x0[2] + 10.21) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac1][2]) < rMolecule:
                 geo_cs_str = "bottom crosssection"
                 cs_pop_i = 0
         if cs_pop_i is not None:
             e_CrossS.pop(cs_pop_i)
+            if cs_pop_i == 0:
+                acstart = ac2
+                acdiff = len(X_aHem)-ac2
+            elif cs_pop_i == 1:
+                acstart = ac3
+                acdiff = len(X_aHem)-ac3
+            elif cs_pop_i == 2:
+                acstart = ac1
+                acdiff = ac2-ac1
+            elif cs_pop_i == -1:
+                acstart = ac1
+                acdiff = ac3-ac1                
         edges_to_rot.append(e_CrossS)
+        acstart = ac1
+        acdiff = len(X_aHem)-ac1
 
     rot_axis = [0.0, 0.0, 1.0]
     point_on_rot_axis = [0.0, 0.0, 0.0]
@@ -210,17 +226,41 @@ def get_geo(x0 = None, crosssections = True, **params):
         surfs.append(surfs_i)
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
+    surfs_Fluid_bulk = surfs[0][:] # prepare for Fluid_bulk
     del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
+    del surfs_Fluid_bulk[2::n_e_i[0]] # deletes outer membrane boundary
     
     tostr = lambda l: "{%s}"%(",".join(l),)
     ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluid') #Physical Surface Fluid
     
     surfs_Fluid_aHem = surfs[1][:]
+    surfs_Fluid_aHem_add = surfs[1][:] # additional aHem surfs for surfs_Fluid_bulk
     for index in range(apdiff):
         del surfs_Fluid_aHem[ap1::n_e_i[1]-index]  # deletes membrane
+        del surfs_Fluid_aHem_add[ap1::n_e_i[1]-index]  # deletes membrane
     [surfs_Fluid.append(s) for s in surfs_Fluid_aHem]
     [surfs_Fluid.append(s) for s in surfs[2]]
+    [surfs_Fluid_bulk.append(s) for s in surfs[2]]
+    for index in range(acdiff):
+        del surfs_Fluid_aHem_add[acstart::n_e_i[1]-apdiff-index]
+    [surfs_Fluid_bulk.append(s) for s in surfs_Fluid_aHem_add]
+    surfs_CrossS_bulk = surfs[3][:]
+    if cs_pop_i is not None: # molecule intersect with 1st crossS (already removed) -> remove 3rd crossS; molecule intersect with 2nd (already removed) crossS -> remove 1st crossS
+        if cs_pop_i == 0:
+            del surfs_CrossS_bulk[1::3]
+        elif cs_pop_i == 1:
+            del surfs_CrossS_bulk[0::3]
+        elif cs_pop_i == 2:
+            del surfs_CrossS_bulk[2::3]
+        elif cs_Pop_i == -1:
+            del surfs_CrossS_bulk[1::3]
+    else:                   # no intersect with any crossS -> remove 2nd and 3rd crossS
+        del surfs_CrossS_bulk[1::4]
+        del surfs_CrossS_bulk[1::3]
+    [surfs_Fluid_bulk.append(s) for s in surfs_CrossS_bulk]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
+    sl_Fluid_bulk = SurfaceLoop(surfs_Fluid_bulk)
+    vol_Fluid_bulk = Volume(sl_Fluid_bulk)
 
     ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahem') #Physical Surface aHem
 
@@ -249,6 +289,7 @@ def get_geo(x0 = None, crosssections = True, **params):
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
         
+    PhysicalVolume(vol_Fluid_bulk, 'fluid_bulk')
     PhysicalVolume(vol_Fluid, 'fluid')
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
