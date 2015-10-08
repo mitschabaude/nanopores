@@ -5,7 +5,6 @@
 
 import dolfin
 from nanopores.physics.params_physical import *
-from warnings import warn
 
 # 1. -- default values for direct parameters
 

@@ -54,8 +54,19 @@ class Geometry(object):
                  physical_domain=None, physical_boundary=None,
                  synonymes=None, params=None):
         if module:
-            exec('from %s import *' %module.__name__)
+            exec 'from %s import *' %module.__name__ in globals(), locals()
+            
         self.mesh = mesh
+        
+        # trivial default subdomains/boundaries
+        if subdomains is None:
+            subdomains = CellFunction("size_t", mesh, 0)
+            physical_domain = {"all":(0,)}
+        if boundaries is None:
+            boundaries = FacetFunction("size_t", mesh, 0)
+            AutoSubDomain(lambda x, on_boundary : on_boundary).mark(boundaries, 1)
+            physical_boundary = {"boundary":(1,)}
+            
         self.subdomains = subdomains
         self.boundaries = boundaries
         self.params = params
@@ -70,9 +81,13 @@ class Geometry(object):
                 self.import_synonymes(synonymes)
         #print self._physical_domain
         #print self._physical_boundary
-
-        self._dom2phys = _invert_dict_nonunique(physical_domain)
-        self._bou2phys = _invert_dict_nonunique(physical_boundary)
+        try:
+            self._dom2phys = _invert_dict_nonunique(physical_domain)
+            self._bou2phys = _invert_dict_nonunique(physical_boundary)
+        except:
+            self._dom2phys = {}
+            self._bou2phys = {}
+            
         self.dg = {}
 
     def physicalboundary(self, string):
@@ -147,6 +162,7 @@ class Geometry(object):
     def linearRHS(self, v, string, value=None, axisym = False):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
         # thus v should be TestFunction (or Function)
+        # value can be dict or float
         if value is None:
             try:
                 value = vars(self.physics)[string]
@@ -154,10 +170,14 @@ class Geometry(object):
                 dolfin_error(__name__+".py",
                              "interprete string description",
                              "The module %s has not implemented '%s'" % (self.physics.__name__, string))
-
-        dom2value = self._pwconst_lookup(self._dom2phys,value)
+        
         dx = self.dx()
-        return sum([inner(dom2value[i], v) * dx(i) for i in dom2value])
+        
+        if isinstance(value, dict):
+            dom2value = self._pwconst_lookup(self._dom2phys, value)
+            return sum([inner(dom2value[i], v) * dx(i) for i in dom2value])
+        else:
+            return inner(Constant(value), v) * dx
 
     def pwconst(self, string, value=None, DG=True): #TODO: should also work as in docstring
         if DG and self.dg.has_key(string):

@@ -19,7 +19,7 @@ def typestr(t): return d[type(t)]
 
 class Physics(object):
 
-    def __init__(self, name, geo=None, **params):
+    def __init__(self, name="default", geo=None, **params):
         # initialize from module nanopores.physics.name
         name = "nanopores.physics."+name
         mod = import_module(name)
