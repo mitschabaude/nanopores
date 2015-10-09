@@ -306,11 +306,26 @@ def get_geo(x0 = None, crosssections = True, **params):
     vol_Membrane = Volume(sl_Membrane)
     
     surfs_Membrane_ps = surfs[2]
-    
 
+    x0_in_pore = None
+    if x0 is not None and (x0[0]**2 + x0[1]**2 <= r0**2) and cs_pop_i is None:
+        # check z coordinate of molecule
+        if x0[2]<ac4 and x0[2]>ac3:
+            x0_in_pore = 2 # Molecule is in surfs_Fluid_top
+        elif x0[2]<ac3 and x0[2]>ac2:
+            x0_in_pore = 1 # Molecule is in surfs_Fluid_center
+        elif x0[2]<ac2 and x0[2]>ac1:
+            x0_in_pore = 0 # Molecule is in surfs_Fluid_bottom
+
+
+    pv_fluid_top, pv_fluid_center, pv_fluid_bottom = True, True, True
     if x0 is None:
         vol_Fluid = Volume(sl_Fluid)
-    else: # TODO: consider molecule ball either in fluid_bulk or in fluid_top/center/bottom - then create physical volume
+        vol_Fluid_bulk = Volume(sl_Fluid_bulk)
+        vol_Fluid_top = Volume(sl_Fluid_top)
+        vol_Fluid_center = Volume(sl_Fluid_center)
+        vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+    else: 
         Comment('Add molecule ball')
         Molecule = add_ball(numpy.asarray(x0), rMolecule, lcMolecule,
                             with_volume=True, holes=None, label=None
@@ -319,7 +334,55 @@ def get_geo(x0 = None, crosssections = True, **params):
         vol_Fluid = Volume(sl_Fluid_Molecule)
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
+        if x0_in_pore is not None: # NO CrossS and Molecule is in fluid_top/center/bottom
+            vol_Fluid_bulk = Volume(sl_Fluid_bulk)
+            if x0_in_pore == 2:
+                sl_Fluid_top_Molecule = Array([sl_Fluid_top] + [Molecule[1]])
+                vol_Fluid_top = Volume(sl_Fluid_top_Molecule)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            elif x0_in_pore == 1:
+                sl_Fluid_center_Molecule = Array([sl_Fluid_center] + [Molecule[1]])
+                vol_Fluid_center = Volume(sl_Fluid_center_Molecule)
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            elif x0_in_pore == 0:
+                sl_Fluid_bottom_Molecule = Array([sl_Fluid_bottom] + [Molecule[1]])
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom_Molecule)
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+        else:
+            sl_Fluid_bulk_Molecule = Array([sl_Fluid_bulk] + [Molecule[1]])
+            vol_Fluid_bulk = Volume(sl_Fluid_bulk_Molecule)
+            if cs_pop_i is None: # Molecule is in fluid_bulk
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            else: # Molecule is in CrossS -> one or two of fluid_top/center/bottom are not going to be defined 
+                if cs_pop_i == -1:
+                    pv_fluid_top = False # fluid_top isn't defined
+                    vol_Fluid_center = Volume(sl_Fluid_center)
+                    vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                elif cs_pop_i == 2:
+                    pv_fluid_top, pv_fluid_center = False, False # fluid_top/center isn't defined
+                    vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                elif cs_pop_i == 1:
+                    pv_fluid_center, pv_fluid_bottom = False, False # fluid_center/bottom isn't defined
+                    vol_Fluid_top = Volume(sl_Fluid_top)
+                elif cs_pop_i == 0:
+                    pv_fluid_bottom = False # fluid_bottom isn't defined
+                    vol_Fluid_top = Volume(sl_Fluid_top)
+                    vol_Fluid_center = Volume(sl_Fluid_center)
+                    
+            
         
+    PhysicalVolume(vol_Fluid_bulk, 'fluid_bulk')
+    if pv_fluid_top:
+        PhysicalVolume(vol_Fluid_top, 'fluid_top')
+    if pv_fluid_center:
+        PhysicalVolume(vol_Fluid_center, 'fluid_center')
+    if pv_fluid_bottom:
+        PhysicalVolume(vol_Fluid_bottom, 'fluid_bottom') 
     PhysicalVolume(vol_Fluid, 'fluid')
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
