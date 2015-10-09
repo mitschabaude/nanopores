@@ -376,10 +376,16 @@ def get_geo(x0 = None, crosssections = True, **params):
                 vol_Fluid_bottom = Volume(sl_Fluid_bottom_Molecule)
                 vol_Fluid_top = Volume(sl_Fluid_top)
                 vol_Fluid_center = Volume(sl_Fluid_center)
-        else: # TODO unterscheiden!! bulk top/bottom
-            sl_Fluid_bulk_Molecule = Array([sl_Fluid_bulk] + [Molecule[1]])
-            vol_Fluid_bulk = Volume(sl_Fluid_bulk_Molecule)
+        else:
             if cs_pop_i is None: # Molecule is in fluid_bulk
+                if x0[2]>=X_aHem[ap1][2]:
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+                elif x0[2]<=X_aHem[ap2][2]:
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
                 vol_Fluid_top = Volume(sl_Fluid_top)
                 vol_Fluid_center = Volume(sl_Fluid_center)
                 vol_Fluid_bottom = Volume(sl_Fluid_bottom)
@@ -388,16 +394,28 @@ def get_geo(x0 = None, crosssections = True, **params):
                     pv_fluid_top = False # fluid_top isn't defined
                     vol_Fluid_center = Volume(sl_Fluid_center)
                     vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
                 elif cs_pop_i == 2:
                     pv_fluid_top, pv_fluid_center = False, False # fluid_top/center isn't defined
                     vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
                 elif cs_pop_i == 1:
                     pv_fluid_center, pv_fluid_bottom = False, False # fluid_center/bottom isn't defined
                     vol_Fluid_top = Volume(sl_Fluid_top)
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
                 elif cs_pop_i == 0:
                     pv_fluid_bottom = False # fluid_bottom isn't defined
                     vol_Fluid_top = Volume(sl_Fluid_top)
                     vol_Fluid_center = Volume(sl_Fluid_center)
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
                     
             
       
