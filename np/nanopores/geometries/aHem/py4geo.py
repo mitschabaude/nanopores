@@ -232,6 +232,11 @@ def get_geo(x0 = None, crosssections = True, **params):
     
     tostr = lambda l: "{%s}"%(",".join(l),)
     ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluidb') #Physical Surface Fluid
+
+    surfs_boundary_top = [surfs[0][s*5] for s in range(4)]
+    surfs_boundary_side = [surfs[0][1+s*5] for s in range(4)]
+    [surfs_boundary_side.append(s) for s in [surfs[0][3+s*5] for s in range(4)]]
+    surfs_boundary_bottom = [surfs[0][4+s*5] for s in range(4)]
     
     surfs_Fluid_aHem = surfs[1][:]
     surfs_Fluid_aHem_add = surfs[1][:] # additional aHem surfs for surfs_Fluid_bulk
@@ -294,6 +299,9 @@ def get_geo(x0 = None, crosssections = True, **params):
     sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
 
     ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
+    ps_boundary_top = PhysicalSurface(tostr(surfs_boundary_top),'surfs_fluid_top') # Physical surfaces fluid bottom, side (without membran), top
+    ps_boundary_side = PhysicalSurface(tostr(surfs_boundary_side),'surfs_fluid_side')
+    ps_boundary_bottom = PhysicalSurface(tostr(surfs_boundary_bottom),'surfs_fluid_bottom')
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
