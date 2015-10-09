@@ -8,6 +8,8 @@ tolc = 1e-14*nm  # tolerance for coordinate comparisons
 dim = 3
 
 synonymes = {
+    "pore": {"fluid_top", "fluid_center", "fluid_bottom"},
+    "fluid_all": {"pore", "fluid_bulk"},
     "solid": {"membrane", "ahem"},
     "protein": "ahem",
     "noslip": {"ahemb", "membraneb"},

@@ -375,7 +375,7 @@ def get_geo(x0 = None, crosssections = True, **params):
                     vol_Fluid_center = Volume(sl_Fluid_center)
                     
             
-        
+      
     PhysicalVolume(vol_Fluid_bulk, 'fluid_bulk')
     if pv_fluid_top:
         PhysicalVolume(vol_Fluid_top, 'fluid_top')
@@ -383,6 +383,7 @@ def get_geo(x0 = None, crosssections = True, **params):
         PhysicalVolume(vol_Fluid_center, 'fluid_center')
     if pv_fluid_bottom:
         PhysicalVolume(vol_Fluid_bottom, 'fluid_bottom') 
+    
     PhysicalVolume(vol_Fluid, 'fluid')
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
