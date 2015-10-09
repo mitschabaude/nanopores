@@ -2,12 +2,12 @@ from nanopores import *
 from dolfin import *
 
 geo_params = dict(
-    l4 = 10.,
+    l4 = 15.,
     R = 20.
 )
 
 t = Timer("meshing")
-meshdict = generate_mesh(6., "aHem", **geo_params)
+meshdict = generate_mesh(12., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 print "Mesh file:",meshdict["fid_xml"]
