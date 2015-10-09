@@ -231,7 +231,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     del surfs_Fluid_bulk[2::n_e_i[0]] # deletes outer membrane boundary
     
     tostr = lambda l: "{%s}"%(",".join(l),)
-    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluid') #Physical Surface Fluid
+    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluidb') #Physical Surface Fluid
     
     surfs_Fluid_aHem = surfs[1][:]
     surfs_Fluid_aHem_add = surfs[1][:] # additional aHem surfs for surfs_Fluid_bulk
@@ -293,7 +293,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     sl_Fluid_center = SurfaceLoop(surfs_Fluid_center)
     sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
 
-    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahem') #Physical Surface aHem
+    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -323,7 +323,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     PhysicalVolume(vol_Fluid, 'fluid')
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
-    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'membrane') #Physical Surface Membrane
+    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'membraneb') #Physical Surface Membrane
 
     
     if crosssections:
@@ -359,6 +359,9 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     # Meshing Algorithm: 2= ?, 5 = frontal (netgen)
     #raw_code(['Mesh.Algorithm3D = 5;'])
+    
+    meta = get_meta()
+    meta.update(params)
 
     geo_dict = {"gmsh mesh generating sript": __name__,
                 "xMolecule": x0,
@@ -370,7 +373,7 @@ def get_geo(x0 = None, crosssections = True, **params):
                 #"cs_pop_i": cs_pop_i,
                 "Typical length scale on aHem": lcCenter,
                 "geo_code": get_code(),
-                "meta": get_meta(),
+                "meta": meta,
             }
     return geo_dict
 

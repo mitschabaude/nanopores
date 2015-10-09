@@ -402,23 +402,22 @@ def geo_from_name(name, mesh=None, check_midpoint=False, **params):
     return geo
     
     
-def geo_from_xml(name, mesh=mesh):
-    DIR = "%s/%s/mesh/" %(nanopores.DATADIR,name)
+def geo_from_xml(name):
+    DIR = "%s/%s/mesh/" %(nanopores.DATADIR, name)
     mesh = Mesh(DIR+"mesh.xml")
     subdomains = MeshFunction("size_t", mesh, DIR+"mesh_physical_region.xml")
     boundaries = MeshFunction("size_t", mesh, DIR+"mesh_facet_region.xml")
     
-    # quick hack for testing aHem geo
-    #physical_domain = {"fluid":(4,), "membrane":(5,), "ahem":(6,)}
-    #physical_boundary = {"ext":(1,), "ahem":(2,), "membrane":(3,)}
-    
     with open(DIR+"meta.txt", "r") as f:
         meta = eval(f.read())
-        
-    print meta
     
-    if not isinstance(meta, dict):
-        meta = {}
+    physdom = meta.pop("physical_domain")
+    physbou = meta.pop("physical_boundary")
     
-    return Geometry(None, mesh, subdomains, boundaries, **meta)
+    module = "nanopores.geometries.%s.params_geo" %name
+    params = nanopores.import_vars(module)
+    params.update(meta)
+    syn = params.pop("synonymes")
+    
+    return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
     
