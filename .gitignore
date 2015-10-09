@@ -12,6 +12,7 @@ ffc_form*.h
 *.mesh
 *.msh
 *.pos
+*.geo
 
 # ignore numpy saves
 *.npy
