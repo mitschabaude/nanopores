@@ -25,5 +25,6 @@ print "Geo physical domains:", geo._physical_domain
 print "Geo physical boundaries:", geo._physical_boundary
 
 plot(geo.submesh("ahem"))
-plot(geo.submesh("fluid"))
+plot(geo.submesh("fluid_bulk_top"))
+plot(geo.submesh("fluid_center"))
 interactive()
