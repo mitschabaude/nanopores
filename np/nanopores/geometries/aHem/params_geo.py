@@ -9,10 +9,15 @@ dim = 3
 
 synonymes = {
     "pore": {"fluid_top", "fluid_center", "fluid_bottom"},
-    "fluid_all": {"pore", "fluid_bulk"},
+    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
+    "fluid": {"pore", "bulkfluid"},
     "solid": {"membrane", "ahem"},
     "protein": "ahem",
     "noslip": {"ahemb", "membraneb"},
+    "bulk": {"upperb", "lowerb"},
+    "nopressure": "bulk",
+    "ground": "upperb",
+    "bV": "lowerb",
 }
 
 # characteristic length / mesh size h

@@ -313,10 +313,10 @@ def get_geo(x0 = None, crosssections = True, **params):
     sl_Fluid_center = SurfaceLoop(surfs_Fluid_center)
     sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
 
-    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
-    ps_boundary_top = PhysicalSurface(tostr(surfs_boundary_top),'surfs_fluid_top') # Physical surfaces fluid bottom, side (without membran), top
-    ps_boundary_side = PhysicalSurface(tostr(surfs_boundary_side),'surfs_fluid_side')
-    ps_boundary_bottom = PhysicalSurface(tostr(surfs_boundary_bottom),'surfs_fluid_bottom')
+    PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
+    PhysicalSurface(tostr(surfs_boundary_top),'upperb') # Physical surfaces fluid bottom, side (without membran), top
+    PhysicalSurface(tostr(surfs_boundary_side),'sideb')
+    PhysicalSurface(tostr(surfs_boundary_bottom),'lowerb')
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -414,9 +414,8 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
-    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'membraneb') #Physical Surface Membrane
+    PhysicalSurface(tostr(surfs_Membrane_ps),'membraneb') #Physical Surface Membrane
 
-    
     if crosssections:
         surfs_CrossS = surfs[3]
         raw_code(['Surface{%s} In Volume{%s};'  \
