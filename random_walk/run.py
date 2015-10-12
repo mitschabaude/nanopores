@@ -64,7 +64,7 @@ X[0] = -0.0*nm
 time=0
 i=0
 j=0
-S=np.zeros(9)
+S=np.zeros(11)
 
 def cyl2cart(F, x):
     # transform vector in cylindrical coordinate system to cartesian
@@ -134,6 +134,8 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
         S[6]=s_dnabottom(ax,ay,az,bx,by,bz)
         S[7]=s_innertorus_bottom(ax,ay,az,bx,by,bz)
         S[8]=s_outertorus_bottom(ax,ay,az,bx,by,bz)
+        S[9]=s_outercylinder_bottom(ax,ay,az,bx,by,bz)
+        S[10]=s_membran_bottom(ax,ay,az,bx,by,bz)
         s=np.min(S)
         if s>1.0 or s==0.0:
             break
@@ -146,9 +148,9 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
             newpoint=newpoint_innertorus
         elif pos==3:
             newpoint=newpoint_outertorus
-        elif pos==4:
+        elif pos==4 or pos==9:
             newpoint=newpoint_outercylinder
-        elif pos==5:
+        elif pos==5 or pos==10:
             newpoint=newpoint_membran
         elif pos==6:
             newpoint=newpoint_dnabottom
@@ -156,6 +158,8 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
             newpoint=newpoint_innertorus_bottom
         elif pos==8:
             newpoint=newpoint_outertorus_bottom
+        elif pos==10:
+            newpoint=newpoint_membran_bottom
     
         j+=1
         if False:

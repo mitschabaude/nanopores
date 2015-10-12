@@ -103,7 +103,7 @@ def mirror(a,b,c,d,dx,dy,dz):
     return np.array([dx+s*a,dy+s*b,dz+s*c])
 
 def s_innercylinder(ax,ay,az,bx,by,bz):
-    if radius(ax,ay)<=r0-rMolecule and radius(bx,by)>r0-rMolecule:
+    if radius(ax,ay)<=round(r0-rMolecule,2) and radius(bx,by)>r0-rMolecule:
         s=para(ax,ay,bx,by)
         z_new=az+s*(bz-az)
         if z_new<=l0*0.5 and z_new>=-l0*0.5:
@@ -393,7 +393,7 @@ def newpoint_outertorus_bottom(ax,ay,az,bx,by,bz,s):
 
 def s_dnabottom(ax,ay,az,bx,by,bz):
     if az<-l0*0.5-rMolecule and bz>=-l0*0.5-rMolecule:
-        s=(bz+(l0*0.5+rMolecule))/(bz-az)
+        s=(bz+(l0*0.5+rMolecule))/(az-bz)
         x_new, y_new=ax+s*(bx-ax), ay+s*(by-ay)
         if radius(x_new,y_new)<=r1 and radius(x_new,y_new)>=r0:
             return s
@@ -410,3 +410,21 @@ def newpoint_dnabottom(ax,ay,az,bx,by,bz,s):
     ey=D[1]+ay+s*(by-ay)
     ez=D[2]+az+s*(bz-az)
     return np.array([ex,ey,ez])
+
+def s_outercylinder_bottom(ax,ay,az,bx,by,bz):
+    if radius(ax,ay)>r1+rMolecule and radius(bx,by)<=r1+rMolecule:
+        s=1-para2(bx,by,ax,ay)
+        cz=az+s*(bz-az)
+        if s>=0 and s<=1 and cz>=-l0*0.5 and cz<-l1*0.5:
+            return s
+        else: return 2.0
+    else: return 2.0
+
+def s_membran_bottom(ax,ay,az,bx,by,bz):
+    if az<-l1*0.5-rMolecule and bz>=-l1*0.5-rMolecule:
+        s=(-(l1*0.5+rMolecule)-az)/(bz-az)
+        x_new, y_new=ax+s*(bx-ax), ay+s*(by-ay)
+        if radius(x_new,y_new)>=r1+rMolecule:
+            return s
+        else: return 2.0
+    else: return 2.0
