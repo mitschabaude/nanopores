@@ -9,7 +9,7 @@ geo_params = dict(
 #x0 = None,
 x0 = [0.,0.,z0],
 #x0 = [0., 0., -8.372*nm],
-rMolecule = 0.55*nm,
+rMolecule = 0.4*nm,
 #lcMolecule = nm*0.1,
 moleculeblayer = True,
 boxfields = True,
@@ -19,17 +19,20 @@ boxfields = True,
 
 phys_params = dict(
 Membraneqs = -0.0,
-#bV = 0.004,
-Qmol = -2.*qq,
+#bV = .1,
+Qmol = -1.*qq,
 bulkcon = 3e2,
-lowerpbias = .01,
-lowermbias = -.01,
-dnaqsdamp = 0.5,
-#permittivity = {"fluid": eperm*rpermw, "solid": eperm*rpermw}
+#lowerpbias = .01,
+#lowermbias = -.01,
+dnaqsdamp = 0.1,
+bulkconFluo = 10e-3, # bulk concentration of fluorophore [mol/m**3]
+hReservoir = 1e-8, # height of cylindrical upper reservoir [m]
+#applylowerqs = True,
+couplebVtoQmol = True,
+bV0 = 0.01,
 )
 
-
-meshgen_dict = generate_mesh(.5, geo_name, **geo_params)
+meshgen_dict = generate_mesh(.9, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore_molecule", geo, **phys_params)
 print phys.charge
@@ -53,7 +56,6 @@ PNPSAxisym.alwaysstokes = True
 PNPProblemAxisym.method["iterative"] = False
 PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 
-#phys.bV = 0.01
 #pb = LinearPBAxisym(geo, phys)
 goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPBold(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = lambda v : phys.CurrentPB(v)
@@ -65,8 +67,8 @@ pb.solve(refinement=True)
 #pb.estimate0()
 #pb.estimate()
 #pb.estimators["err"].plot(rate=-1.)#/2.)
+#pb.visualize()
 
-#phys.bV = None #phys_params["bV"]
 geo = pb.geo
 v0 = pb.solution
 JPB_list = ["CurrentPB", "CurrentPBold"]
@@ -134,4 +136,4 @@ else:
 print "hmin: ", geo.mesh.hmin()*1e9
 #plot(pnps.geo.mesh)
 #interactive()
-pnps.visualize()
+#pnps.visualize()

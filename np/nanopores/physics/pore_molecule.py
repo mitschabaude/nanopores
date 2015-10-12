@@ -8,10 +8,10 @@ from nanopores.physics.params_physical import *
 
 # 1. -- default values for direct parameters
 
-bV = None # voltage bias across pore [V] (None for no enforced bias)
+bV0 = None # voltage bias across pore [V] (None for no enforced bias)
 
 Qmol = 0.*qq # charge on one molecule [C] = [A*s]
-Membraneqs = -0.03 # membrane surface charge density [C/m**2]
+Membraneqs = -0.0 # membrane surface charge density [C/m**2]
 DNAqsPure = -qq/nm**2 # = -0.16 # DNA surface charge density [C/m**2]
 dnaqsdamp = 1. # DNA charge damping
 SiNqs = -0.022
@@ -30,6 +30,11 @@ rpermPore = rpermw
 rDPore = 0.5
 stokesdampPore = 1.0
 
+bulkconFluo = 0. # bulk concentration of fluorophore [mol/m**3]
+hReservoir = 0.01 # height of cylindrical upper reservoir
+applylowerqs = False
+couplebVtoQmol = False
+
 
 # 2. -- derived parameters depending on other parameters and/or geometry
 #    -- these are FUNCTIONS with keyword arguments corresponding to direct parameters
@@ -42,6 +47,9 @@ mu = lambda: D*qq/(kB*T) # mobility [m^2/Vs]
 cFarad = lambda: qq*mol  # Faraday constant [C/mol]
 debye = lambda: dolfin.sqrt(rpermw*eperm*kB*T/qq**2/2/mol/bulkcon)  # debye length [m]
 bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrolyte bulk conductivity [S/m]
+lowerqs = lambda: (-Qmol*bulkconFluo*mol*hReservoir/2. if applylowerqs else 0.)
+
+bV = lambda: -bV0*Qmol/qq if couplebVtoQmol else None
 
 def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:
@@ -102,6 +110,7 @@ surfcharge = { # surface charge densities for Neumann RHS
     "chargeddnab": "DNAqs",
     "chargedsinb": "SiNqs",
     "chargedsamb": "SAMqs",
+    "lowerb": "lowerqs",
 }
 
 volcharge = {# volume charges for RHS
@@ -189,7 +198,7 @@ def FbareE(geo):
 def CurrentPBold(geo):
     try:
         # current approximated by linear functional of potential
-        bV0 = bV if bV is not None else 0.1
+        bV0 = 0.1 #bV if bV is not None else 0.1
         def J0(v):
             c0 = cFarad*bulkcon
             L = geo.params["l0"]/lscale
@@ -208,7 +217,7 @@ def CurrentPBold(geo):
 def CurrentPB(geo):
     try:
         # current approximated by linear functional of potential (not really)
-        bV0 = bV if bV is not None else 0.1
+        bV0 = 0.1 #bV if bV is not None else 0.1
         def J0(v):
             L = geo.params["l0"]/lscale
             E = bV0/L

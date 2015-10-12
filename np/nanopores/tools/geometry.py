@@ -156,8 +156,10 @@ class Geometry(object):
                              "The module %s has not implemented '%s'" % (self.physics.__name__, string))
 
         bou2value = self._neumann_lookup(self._bou2phys, value)
+        #print bou2value
         dS = self.dS()
-        return sum([avg(inner(bou2value[i], v)) * dS(i) for i in bou2value])
+        ds = self.ds()
+        return sum([avg(inner(bou2value[i], v)) * dS(i) for i in bou2value]) + sum([inner(bou2value[i], v) * ds(i) for i in bou2value])
 
     def linearRHS(self, v, string, value=None, axisym = False):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...

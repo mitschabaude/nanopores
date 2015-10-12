@@ -7,7 +7,7 @@ from .params_physical import *
 parameters["allow_extrapolation"] = True
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["PoissonProblem", "Poisson", "PoissonProblemPureNeumannAxisym"]
+__all__ = ["PoissonProblem", "Poisson", "PoissonProblemAxisym", "PoissonProblemPureNeumannAxisym"]
 
 class PoissonProblem(AdaptableLinearProblem):
     k = 1
@@ -45,7 +45,7 @@ class PoissonProblem(AdaptableLinearProblem):
         
         eps = geo.pwconst('permittivity')           
         a = inner(eps*grad(u), grad(v))*dx
-        L = f*v*dx + lscale*geo.NeumannRHS(v, "surfcharge")
+        L = f*v*dx + geo.linearRHS(v, "volcharge") + lscale*geo.NeumannRHS(v, "surfcharge")
         
         return (a, L)
     
@@ -95,6 +95,25 @@ class PoissonProblemPureNeumannAxisym(PoissonProblem):
         r = Expression("2*pi*x[0]")
         eps = geo.pwconst('permittivity')           
         a = inner(eps*grad(u), grad(v))*r*dx + (b*v + c*u)*r*dx
+        
+        L = f*v*r*dx + geo.linearRHS(v*r, "volcharge")
+        L = L + lscale*geo.NeumannRHS(v*r, "surfcharge")
+        
+        return (a, L)
+        
+class PoissonProblemAxisym(PoissonProblem):
+    
+    @staticmethod
+    def forms(V, geo, f):
+        u = TrialFunction(V)
+        v = TestFunction(V)
+        dx = geo.dx()
+        grad = geo.physics.grad
+        lscale = geo.physics.lscale
+        
+        r = Expression("2*pi*x[0]")
+        eps = geo.pwconst('permittivity')           
+        a = inner(eps*grad(u), grad(v))*r*dx
         
         L = f*v*r*dx + geo.linearRHS(v*r, "volcharge")
         L = L + lscale*geo.NeumannRHS(v*r, "surfcharge")
