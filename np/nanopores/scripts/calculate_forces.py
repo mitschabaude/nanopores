@@ -2,7 +2,7 @@
 
 from nanopores import *
 from dolfin import *
-import sys, argparse, math
+import sys, argparse, math, os
 
 # general parameters
 rMolecule = 0.55 # [nm]
@@ -157,6 +157,7 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     return f
     
 def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
+    pid = str(os.getpid())
     globals().update(params)
     nm = 1e-9
     global params2D, phys_params
@@ -164,7 +165,7 @@ def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
     if "x0" in params:
         x0 = params["x0"]
     else:
-        x0 = [0.,0.,z0*nm]
+        x0 = [0.,0.,z0] # see convention
     phys_params.update(dict(
         Qmol = Qmol*qq,
         dnaqsdamp = dnaqsdamp,

@@ -3,9 +3,10 @@
 from distutils.core import setup
 
 scripts = ["np-test", "np-test-local", "np-sim"]
-packages = ["nanopores", "nanopores.tools", "nanopores.physics", "nanopores.testsuite",
-    "nanopores.py4gmsh", "nanopores.geometries", "nanopores.geometries.H_cyl_geo", "nanopores.geometries.H_geo", "nanopores.geometries.P_geo",
-    "nanopores.geometries.Nanowire", "nanopores.geometries.W_3D_geo", "nanopores.geometries.W_2D_geo"]
+packages = ["nanopores", "nanopores.tools", "nanopores.physics", "nanopores.testsuite","nanopores.scripts",
+    "nanopores.py4gmsh", "nanopores.geometries", "nanopores.geometries.H_cyl_geo", "nanopores.geometries.H_geo",
+    "nanopores.geometries.P_geo","nanopores.geometries.Nanowire", "nanopores.geometries.W_3D_geo",
+    "nanopores.geometries.W_2D_geo"]
 
 setup(name = "fenics-np",
       version = "1.0",
