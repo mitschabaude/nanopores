@@ -173,7 +173,7 @@ def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
     ))
     forces = calculate_forces2D(x0, pid=pid, clscale=clscale, refinement=refinement, maxcells=maxcells)
     F = sum(forces[s] for s in ["Fbarevol2", "Fp2", "Fshear2"])
-    return F
+    return {"F": F}
     
     
 if __name__ == "__main__":

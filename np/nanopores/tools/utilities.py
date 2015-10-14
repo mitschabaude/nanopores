@@ -2,7 +2,7 @@
 
 from importlib import import_module
 
-__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub"]
+__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict"]
 
 def import_vars(mod):
     d = vars(import_module(mod))
@@ -33,5 +33,9 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
     adaptfunction(u, submesh, assign=True)
     u0 = u if expr is None else expr
     plot(u0, title=title)
+    
+def save_dict(data, dir=".", name="file"):
+    with open('%s/%s.txt' % (dir,name), 'w') as f:
+        f.write(repr(data))
     
 
