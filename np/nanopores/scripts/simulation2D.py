@@ -11,13 +11,15 @@ from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
 from pathos.helpers import mp # mp = fork of multiprocessing package
 from .. import DATADIR
-import numpy
+import numpy, os
 from .calculate_forces import calculate2D
 
 __all__ = ["iterate_in_parallel", "post_iteration", "simulation2D"]
 
 # directory where data are saved
 savedir = DATADIR + "/sim/stamps/"
+if not os.path.exists(savedir):
+        os.makedirs(savedir)
 
 # two quite general function for running simulations and saving output
 
@@ -95,7 +97,7 @@ def post_iteration(result, stamp, showplot=False):
 # simulation in 2D    
 def simulation2D(nproc=1, **params):
     result, stamp = iterate_in_parallel(calculate2D, nproc=nproc, **params)
-    post_iteration(result, stamp, showplot=True)
+    post_iteration(result, stamp, showplot=False)
     
     
     
