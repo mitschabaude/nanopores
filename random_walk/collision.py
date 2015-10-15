@@ -393,7 +393,7 @@ def newpoint_outertorus_bottom(ax,ay,az,bx,by,bz,s):
 
 def s_dnabottom(ax,ay,az,bx,by,bz):
     if az<-l0*0.5-rMolecule and bz>=-l0*0.5-rMolecule:
-        s=(bz+(l0*0.5+rMolecule))/(az-bz)
+        s=(-l0/2.-rMolecule-az)/(bz-az)
         x_new, y_new=ax+s*(bx-ax), ay+s*(by-ay)
         if radius(x_new,y_new)<=r1 and radius(x_new,y_new)>=r0:
             return s
