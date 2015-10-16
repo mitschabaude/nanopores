@@ -193,7 +193,7 @@ elif i==steps-1:
     file.write("-2.00\n")
 file.close()
 
-'''
+
 X=X[:i]
 Y=Y[:i]
 Z=Z[:i]
@@ -270,4 +270,4 @@ print 'collisions: ',j
 print 'number of steps:',i
 print 'time [microsec]=',time*1e-3
 import plot
-'''
+

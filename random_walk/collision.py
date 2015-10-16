@@ -261,7 +261,7 @@ def s_innertorus_new(ax,ay,az,bx,by,bz):
     roots=np.array(sp.solve(a_4*s**4+a_3*s**3+a_2*s**2+a_1*s+a_0,s))
     t=2.0
     for index in range(roots.shape[0]):
-        if sp.im(roots[index])<=1e-20:
+        if abs(sp.im(roots[index]))<=1e-20:
             f=sp.re(roots[index])
             if f>=0 and f<=1:
                 t=min(t,f)
