@@ -5,11 +5,11 @@ from dolfin import *
 import sys, argparse, math, os
 
 # general parameters
-rMolecule = 0.55 # [nm]
-Qmol = -2. # [q*C]
+r = 0.55 # [nm]
+q = -2. # [q*C]
 dnaqsdamp = 0.1
 bV0 = 0.01
-z0 = 7.5 # [nm]
+z = 7.5 # [nm]
 newtondamp = 1.0
 
 # geo parameters 3D
@@ -33,7 +33,7 @@ boxfields = True,
 phys_params = dict(
 Membraneqs = -0.,
 #bV = 0.01,
-Qmol = Qmol*qq,
+Qmol = q*qq,
 bulkcon = 3e2,
 #uppermbias = 1.,
 #lowermbias = -.02,
@@ -163,21 +163,26 @@ def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
     IllposedNonlinearSolver.newtondamp = newtondamp
     nm = 1e-9
     global params2D, phys_params
-    params2D["rMolecule"] = rMolecule*nm
-    if "x0" in params:
-        x0 = params["x0"]
-    else:
-        x0 = [0.,0.,z0] # see convention
+    params2D["rMolecule"] = r*nm
+    x0 = params["x0"] if "x0" in params else [0.,0.,z] # see convention
+    Jkey = "Javgbtm" if x0[2] > 0. else "Javgtop" # TODO: this is customized for Howorka pore
+        
     phys_params.update(dict(
-        Qmol = Qmol*qq,
+        Qmol = q*qq,
         dnaqsdamp = dnaqsdamp,
         bV0 = bV0,
     ))
+    if "bV" in params:
+        phys_params["bV"] = bV
+        
     forces = calculate_forces2D(x0, pid=pid, clscale=clscale, refinement=refinement, maxcells=maxcells)
-    forces["Fdrag2"] = sum(forces[s] for s in ["Fp2", "Fshear2"])
-    forces["F2"] = sum(forces[s] for s in ["Fbarevol2", "Fdrag2"])
     
-    return {s: forces[s] for s in ["Fbarevol2", "Fdrag2", "F2"]}
+    result = {}
+    result["Fdrag"] = sum(forces[s] for s in ["Fp2", "Fshear2"])
+    result["Fbare"] = forces["Fbarevol2"]
+    result["F"] = sum(result[s] for s in ["Fbare", "Fdrag"])
+    result["J"] = forces[Jkey]
+    return result
     
     
 if __name__ == "__main__":

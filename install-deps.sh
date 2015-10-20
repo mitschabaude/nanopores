@@ -1,5 +1,8 @@
 #!/bin/bash
 
+sudo pip install git+https://github.com/uqfoundation/dill.git@master
+sudo pip install git+https://github.com/uqfoundation/pathos.git@master
+
 sudo apt-get install python-mpi4py
 sudo apt-get install cython
 sudo apt-get install python-h5py
