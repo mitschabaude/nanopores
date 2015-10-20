@@ -10,7 +10,7 @@ Qmol = -2. # [q*C]
 dnaqsdamp = 0.1
 bV0 = 0.01
 z0 = 7.5 # [nm]
-
+newtondamp = 1.0
 
 # geo parameters 3D
 geo_name = "H_cyl_geo"
@@ -43,7 +43,7 @@ bV0 = bV0,
 )
 
 
-IllposedNonlinearSolver.newtondamp = 1.
+IllposedNonlinearSolver.newtondamp = newtondamp
 #set_log_level(PROGRESS)
 
 # solver parameters 3D
@@ -133,8 +133,8 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     t = Timer('PNPS')
     geo = pb.geo
     v0 = pb.solution
-    pnps = PNPSAxisym(geo, phys, v0=v0)
-    #pnps = PNPSAxisym(geo, phys)
+    #pnps = PNPSAxisym(geo, phys, v0=v0)
+    pnps = PNPSAxisym(geo, phys)
     i = pnps.solve(visualize=False)
     while i==50:
         print "\nRestarting Newton iteration!"
@@ -145,6 +145,7 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
 
     print "CPU Time (PNPS):",t.stop()
     pnps.print_results()
+    #pnps.visualize()
     
     # make forces 3D
     f = pnps.get_functionals()
@@ -159,6 +160,7 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
 def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
     pid = str(os.getpid())
     globals().update(params)
+    IllposedNonlinearSolver.newtondamp = newtondamp
     nm = 1e-9
     global params2D, phys_params
     params2D["rMolecule"] = rMolecule*nm
@@ -172,8 +174,10 @@ def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
         bV0 = bV0,
     ))
     forces = calculate_forces2D(x0, pid=pid, clscale=clscale, refinement=refinement, maxcells=maxcells)
-    F = sum(forces[s] for s in ["Fbarevol2", "Fp2", "Fshear2"])
-    return {"F": F}
+    forces["Fdrag2"] = sum(forces[s] for s in ["Fp2", "Fshear2"])
+    forces["F2"] = sum(forces[s] for s in ["Fbarevol2", "Fdrag2"])
+    
+    return {s: forces[s] for s in ["Fbarevol2", "Fdrag2", "F2"]}
     
     
 if __name__ == "__main__":

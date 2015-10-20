@@ -98,6 +98,7 @@ def post_iteration(result, stamp, showplot=False):
 def simulation2D(nproc=1, **params):
     result, stamp = iterate_in_parallel(calculate2D, nproc=nproc, **params)
     post_iteration(result, stamp, showplot=False)
+    return result
     
     
     

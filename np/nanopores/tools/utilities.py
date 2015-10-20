@@ -2,7 +2,10 @@
 
 from importlib import import_module
 
-__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict"]
+__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "crange"]
+
+def crange(a, b, N): # continuous range with step 1/N
+    return [x/float(N) for x in range(a*N, b*N+1)]
 
 def import_vars(mod):
     d = vars(import_module(mod))
