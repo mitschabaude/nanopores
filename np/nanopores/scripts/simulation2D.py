@@ -60,19 +60,22 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     # map iterator using multiprocessing.Pool
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
-    '''
+    #        also it's not supposed to be appropriate for HPC architectures
     pool = mp.Pool(nproc)
     result = pool.map(f, iterator)
     pool.close()
     pool.join()
-    '''
-    pool = MPIPool(f)
-    result = pool.map(f, iterator)
-    pool.close()
+    # map iterator using mpi4py
+    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
+    #pool = MPIPool(f, debug=True)
+    #result = pool.map(f, iterator)
+    #pool.close()
+
     #print result
     #print {key:[dic[key] for dic in result] for key in result[0]}
     return result, stamp
-        
+    
+
 def combinations(dic, iterkeys):
     # Input: dict of iterables and/or single values, list of iterable keys to provide order
     # Output: list of dicts with all possible combinations of single values

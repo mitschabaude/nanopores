@@ -468,9 +468,9 @@ def gmsh2xml(ifilename, handler):
     tags = tags_for_dim[highest_dim-1]
     if (len(tags) > 0) and (mesh is not None):
         physical_regions = tuple(tag[0] for tag in tags)
-        from dolfin import plot, interactive
-        plot(mesh)
-        interactive()
+        #from dolfin import plot, interactive
+        #plot(mesh)
+        #interactive()
         if not all(tag == 0 for tag in physical_regions):
             mesh.init(highest_dim-1,0)
 

@@ -1,7 +1,7 @@
 import nanopores
 
 nanopores.simulation2D(
-z = 0., #nanopores.crange(0, 11, 5),
+z = nanopores.crange(0, 11, 5),
 r = [0.4, 0.55],
 dnaqsdamp = 0.2,
 bV = [0.002, 0.003],
@@ -12,7 +12,7 @@ clscale = .8,
 maxcells = 5e4,
 newtondamp = .8,
 
-plot = "q",
+plot = "z",
 outputs = ["F", "J", "Fdrag", "Fbare"],
 nproc = 4,
 )
