@@ -2,7 +2,7 @@
 
 from nanopores import *
 from dolfin import *
-import sys, argparse, math, os
+import sys, argparse, math, os, mpi4py
 
 # general parameters
 r = 0.55 # [nm]
@@ -158,7 +158,8 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     return f
     
 def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
-    pid = str(os.getpid())
+    #pid = str(os.getpid())
+    pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
     globals().update(params)
     IllposedNonlinearSolver.newtondamp = newtondamp
     nm = 1e-9

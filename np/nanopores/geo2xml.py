@@ -41,7 +41,7 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
     gmsh_out = subprocess.call(["gmsh", "-%s" %dim, "-v", "1","-clscale", "%f" %clscale,
                      fid_dict["fid_geo"], "-o", fid_dict["fid_msh"]])
 
-    if gmsh_out < 0:
+    if gmsh_out != 0:
         raise RuntimeError('Gmsh failed in generating this geometry')
     if xml:
         fid_dict["fid_xml"] = os.path.join(meshdir, meshfile)

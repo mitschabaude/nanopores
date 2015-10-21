@@ -9,6 +9,8 @@ if simulation is finished at the end, save plot of the range in same DIR.
 
 from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
+from ..tools.mpipool import MPIPool
+from mpi4py import MPI
 from pathos.helpers import mp # mp = fork of multiprocessing package
 from .. import DATADIR
 import numpy, os
@@ -56,10 +58,17 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     def f(params): return method(**params)
         
     # map iterator using multiprocessing.Pool
+    # FIXME: this approach of distributing across multiple processors is inconvenient
+    #        since a single error kills the whole simulation.
+    '''
     pool = mp.Pool(nproc)
     result = pool.map(f, iterator)
     pool.close()
     pool.join()
+    '''
+    pool = MPIPool(f)
+    result = pool.map(f, iterator)
+    pool.close()
     #print result
     #print {key:[dic[key] for dic in result] for key in result[0]}
     return result, stamp
@@ -83,7 +92,7 @@ def join_dicts(list):
     # [{"F":1.0}, {"F":2.0}, ...] --> {"F":[1.0, 2.0, ...]}
     return {key:[dic[key] for dic in list] for key in list[0]}
     
-def post_iteration(result, stamp, showplot=False, plotkey=None):
+def post_iteration(result, stamp, showplot=False):
     ''' in case method output is a dict, put result of iterate_in_parallel
         into nicer form, save in .dat file and create plots '''
     # create unique id for filenames
@@ -140,7 +149,7 @@ def post_iteration(result, stamp, showplot=False, plotkey=None):
             plot(x, y, '-x', label=label)
             xlabel(plotkey)
             ylabel(key)
-            legend()
+            legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         savefig(savedir+"plot"+uid+key+".eps", bbox_inches='tight')
     if showplot: show()
     
@@ -229,6 +238,8 @@ def simulation2D(nproc=1, outputs=None, plot=None, **params):
         result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
     else:
         result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
+    if MPI.COMM_WORLD.Get_rank() > 0:
+        return    
     post_iteration(result, stamp, showplot=False)
     return result
 
