@@ -42,7 +42,7 @@ m= 1e-21 #mass[kg]
 gamma=(6*pi*r*visc)/damp #divided by mass - already reduced #friction [1/s]
 
 tau=0.1 # [ns]
-steps=1e6 # 
+steps=1e6
 
 
 C = 1e9*1e-12/(gamma)*(tau*1e-9) #gamma times mass - already reduced
@@ -58,13 +58,13 @@ TT = np.zeros((steps))
 #Y_C=np.zeros((steps))
 #Z_C=np.zeros((steps))
 
-Z[0] = l0*0.5 - 1*nm
-X[0] = -0.0*nm
+Z[0] = l0/2+1.
+X[0] = 0
 
 time=0
 i=0
 j=0
-S=np.zeros(9)
+S=np.zeros(11)
 
 def cyl2cart(F, x):
     # transform vector in cylindrical coordinate system to cartesian
@@ -80,7 +80,13 @@ print "\nTypical random displacement |dx|_L2 [nm] ",coeff
 print "Displacement caused by force of 1 pN [nm] ",C
 print "\n"*4
 
-while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
+def lowerradius(x,y,z):
+    if z>= -l0/2-rMolecule:
+        return 0.
+    else:
+        return math.sqrt((z+l0/2+rMolecule)**2+x**2+y**2)
+
+while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5 and lowerradius(X[i],Y[i],Z[i])<=3.:
     print "\x1b[A"*4,"\r",
     timer_a=0
     if association(radius(X[i],Y[i]),Z[i]):
@@ -134,6 +140,8 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
         S[6]=s_dnabottom(ax,ay,az,bx,by,bz)
         S[7]=s_innertorus_bottom(ax,ay,az,bx,by,bz)
         S[8]=s_outertorus_bottom(ax,ay,az,bx,by,bz)
+        S[9]=s_outercylinder_bottom(ax,ay,az,bx,by,bz)
+        S[10]=s_membran_bottom(ax,ay,az,bx,by,bz)
         s=np.min(S)
         if s>1.0 or s==0.0:
             break
@@ -146,9 +154,9 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
             newpoint=newpoint_innertorus
         elif pos==3:
             newpoint=newpoint_outertorus
-        elif pos==4:
+        elif pos==4 or pos==9:
             newpoint=newpoint_outercylinder
-        elif pos==5:
+        elif pos==5 or pos==10:
             newpoint=newpoint_membran
         elif pos==6:
             newpoint=newpoint_dnabottom
@@ -156,6 +164,8 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
             newpoint=newpoint_innertorus_bottom
         elif pos==8:
             newpoint=newpoint_outertorus_bottom
+        elif pos==10:
+            newpoint=newpoint_membran_bottom
     
         j+=1
         if False:
@@ -170,8 +180,18 @@ while i<=steps-2 and Z[i]>=-l0*0.5-5 and Z[i] <=15 and radius(X[i],Y[i])<=7.5:
         X[i+1], Y[i+1], Z[i+1]=array[0], array[1], array[2]
 
     i+=1
-if Z[i]<-l0*0.5:
-    print 'unten'
+
+file=open("results.txt","a")
+if Z[i]<-l0*0.5-rMolecule:
+    print 'bottom'
+    file.write("{:.3f}".format(time*1e-3)+"\n") 
+elif Z[i]>0:
+    print 'top'
+    file.write("-1.00\n")
+elif i==steps-1:
+    'ran out of steps'
+    file.write("-2.00\n")
+file.close()
 
 
 X=X[:i]
@@ -212,33 +232,42 @@ x_3=np.cos(x__)*rMolecule+r0
 y_3=np.sin(y__)*rMolecule-l0*0.5
 x5=np.linspace(r0,r1,100)
 y5=np.zeros(100)-l0*0.5-rMolecule
-plt.plot(x_2,y_2)
-plt.plot(-x_2,y_2)
-plt.plot(x_1,y_1)
-plt.plot(-x_1,y_1)
-plt.plot(-x1,y1)
-plt.plot(-x2,y2)
-plt.plot(-x3,y3)
-plt.plot(-x4,y4)
-plt.plot(x4,y4)
-plt.plot(x1,y1)
-plt.plot(x2,y2)
-plt.plot(x3,y3)
-plt.plot(x_3,y_3)
-plt.plot(-x_3,y_3)
-plt.plot(x5,y5)
-plt.plot(-x5,y5)
+x6_1=np.linspace(3*pi/2,2*pi,100)
+y6_1=x6_1[:]
+x6_2=np.cos(x6_1)*rMolecule+r1
+y6_2=np.sin(y6_1)*rMolecule-l0/2
+x7=np.zeros(100)+r1+rMolecule
+y7=np.linspace(-l0/2,-l1/2-rMolecule,100)
+x8=np.linspace(r1+rMolecule,7.5,100)
+y8=np.zeros(100)-l1/2-rMolecule
+plt.plot(x_2,y_2,color='black')
+plt.plot(-x_2,y_2,color='black')
+plt.plot(x_1,y_1,color='black')
+plt.plot(-x_1,y_1,color='black')
+plt.plot(-x1,y1,color='black')
+plt.plot(-x2,y2,color='black')
+plt.plot(-x3,y3,color='black')
+plt.plot(-x4,y4,color='black')
+plt.plot(x4,y4,color='black')
+plt.plot(x1,y1,color='black')
+plt.plot(x2,y2,color='black')
+plt.plot(x3,y3,color='black')
+plt.plot(x_3,y_3,color='black')
+plt.plot(-x_3,y_3,color='black')
+plt.plot(x5,y5,color='black')
+plt.plot(-x5,y5,color='black')
+plt.plot(x6_2,y6_2,color='black')
+plt.plot(x7,y7,color='black')
+plt.plot(x8,y8,color='black')
 X_norm=np.zeros(X.shape[0])
 for index in range(X.shape[0]):
     X_norm[index]=radius(X[index],Y[index])
 
 plt.plot(X_norm,Z)
 plt.scatter(X_norm,Z)
-#plt.plot(np.linspace(0,time*1e-3,Z.shape[0]),Z)
-#plt.plot(np.linspace(0,time*1e-3,Z.shape[0]),X_norm)
-#plt.plot(np.linspace(0,time*1e-3,Z.shape[0]),np.full(Z.shape[0],r0-rMolecule))
-#plt.savefig('plot_z.png')
+
 print 'collisions: ',j
 print 'number of steps:',i
 print 'time [microsec]=',time*1e-3
 import plot
+

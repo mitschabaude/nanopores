@@ -6,25 +6,19 @@ nm = 1e0
 tolc = 1e-14*nm  # tolerance for coordinate comparisons
 
 dim = 3
-'''
-# DNA radius
-rDNA = 1.1*nm
-# molecule radius
-rMolecule = 0.5*nm
-# effective pore radius
-r0 = 1.*nm
-# barrel outer radius
-r1 = 2.5*nm
-# pore length
-l0 = 15.0*nm
-# membrane thickness
-l1 = 2.2*nm
-# Radius of domain
-Rz = 15.0*nm
-R = 15.0*nm
-'''
-# total number of charged DNA base pairs
-ncbp = 6.0*36  # 6 scaffold strands of DNA with 36 charged base pairs
+
+synonymes = {
+    "pore": {"fluid_top", "fluid_center", "fluid_bottom"},
+    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
+    "fluid": {"pore", "bulkfluid"},
+    "solid": {"membrane", "ahem"},
+    "protein": "ahem",
+    "noslip": {"ahemb", "membraneb"},
+    "bulk": {"upperb", "lowerb"},
+    "nopressure": "bulk",
+    "ground": "upperb",
+    "bV": "lowerb",
+}
 
 # characteristic length / mesh size h
 lc = nm

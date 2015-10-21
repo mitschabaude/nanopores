@@ -133,6 +133,8 @@ def get_geo(x0 = None, crosssections = True, **params):
     ac3 = 82
     ac4 = 0
 
+    r0=max([X_aHem[index][0] for index in [ac1, ac2, ac3, ac4]])+rMolecule
+
     X_Fluid_ext = numpy.array([[0.0, 0.0, l3],
                                [R, 0.0, l3],
                                [R, 0.0, X_aHem[ap1][2]],
@@ -170,21 +172,35 @@ def get_geo(x0 = None, crosssections = True, **params):
         # check if molecule is near pore
         if x0 is not None and (x0[0]**2 + x0[1]**2 <= r0**2):
             # check z coordinate of molecule
-            if abs(x0[2]) < rMolecule:
+            if abs(x0[2] - X_aHem[ac4][2]) < rMolecule:
                 geo_cs_str = "top crosssection"
                 cs_pop_i = -1
-            elif abs(x0[2] + 3.22) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac3][2]) < rMolecule:
                 geo_cs_str = "center top crosssection"
                 cs_pop_i = 2
-            elif abs(x0[2] + 3.25) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac2][2]) < rMolecule:
                 geo_cs_str = "center bottom crosssection"
                 cs_pop_i = 1
-            elif abs(x0[2] + 10.21) < rMolecule:
+            elif abs(x0[2] - X_aHem[ac1][2]) < rMolecule:
                 geo_cs_str = "bottom crosssection"
                 cs_pop_i = 0
         if cs_pop_i is not None:
             e_CrossS.pop(cs_pop_i)
+            if cs_pop_i == 0:
+                top_acdiff = len(X_aHem)-ap1
+                bottom_end = ac2
+            elif cs_pop_i == 1:
+                top_acdiff = len(X_aHem)-ap1
+                bottom_end = ac3
+            elif cs_pop_i == 2:
+                top_acdiff = ac2-ap1
+                bottom_end = ac1
+            elif cs_pop_i == -1:
+                top_acdiff = ac3-ap1
+                bottom_end = ac1
         edges_to_rot.append(e_CrossS)
+        top_acdiff = len(X_aHem)-ap1
+        bottom_end = ac1
 
     rot_axis = [0.0, 0.0, 1.0]
     point_on_rot_axis = [0.0, 0.0, 0.0]
@@ -210,19 +226,97 @@ def get_geo(x0 = None, crosssections = True, **params):
         surfs.append(surfs_i)
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
+    surfs_Fluid_bulk_top = surfs[0][:] # prepare for Fluid_bulk
+    surfs_Fluid_bulk_bottom = surfs[0][:]
     del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
+    for index in range(3):
+        del surfs_Fluid_bulk_top[2::n_e_i[0]-index]
+        del surfs_Fluid_bulk_bottom[0::n_e_i[0]-index]
     
     tostr = lambda l: "{%s}"%(",".join(l),)
-    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluid') #Physical Surface Fluid
+    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluidb') #Physical Surface Fluid
+
+    surfs_boundary_top = [surfs[0][s*5] for s in range(4)]
+    surfs_boundary_side = [surfs[0][1+s*5] for s in range(4)]
+    [surfs_boundary_side.append(s) for s in [surfs[0][3+s*5] for s in range(4)]]
+    surfs_boundary_bottom = [surfs[0][4+s*5] for s in range(4)]
     
     surfs_Fluid_aHem = surfs[1][:]
+    surfs_Fluid_aHem_add_top = surfs[1][:] # additional aHem surfs for surfs_Fluid_bulk
+    surfs_Fluid_aHem_add_bottom = surfs[1][:]
     for index in range(apdiff):
         del surfs_Fluid_aHem[ap1::n_e_i[1]-index]  # deletes membrane
     [surfs_Fluid.append(s) for s in surfs_Fluid_aHem]
     [surfs_Fluid.append(s) for s in surfs[2]]
-    sl_Fluid = SurfaceLoop(surfs_Fluid)
+    [surfs_Fluid_bulk_top.append(s) for s in [surfs[2][2*s] for s in range(4)]]
+    [surfs_Fluid_bulk_bottom.append(s) for s in [surfs[2][2*s+1] for s in range(4)]]
+    for index in range(top_acdiff):
+        del surfs_Fluid_aHem_add_top[ap1::n_e_i[1]-index]
+    for index in range(ap2):
+        del surfs_Fluid_aHem_add_bottom[0::n_e_i[1]-index]
+    for index in range(len(X_aHem)-bottom_end):
+        del surfs_Fluid_aHem_add_bottom[ac1-ap2::n_e_i[1]-ap2-index]
+    [surfs_Fluid_bulk_top.append(s) for s in surfs_Fluid_aHem_add_top]    
+    [surfs_Fluid_bulk_bottom.append(s) for s in surfs_Fluid_aHem_add_bottom]
 
-    ps_aHem = PhysicalSurface(tostr(surfs_Fluid_aHem),'ahem') #Physical Surface aHem
+    if cs_pop_i is not None: 
+        if cs_pop_i == 0:
+            surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
+            surfs_CrossS_bulk_bottom = [surfs[3][1+4*s] for s in range (4)]
+        elif cs_pop_i == 1:
+            surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
+            surfs_CrossS_bulk_bottom = [surfs[3][2+4*s] for s in range (4)]
+        elif cs_pop_i == 2:
+            surfs_CrossS_bulk_top = [surfs[3][1+4*s] for s in range (4)]
+            surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
+        elif cs_Pop_i == -1:
+            surfs_CrossS_bulk_top = [surfs[3][2+4*s] for s in range (4)]
+            surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
+    else:                   # no intersect with any crossS -> remove 2nd and 3rd crossS
+        surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
+        surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
+        
+    [surfs_Fluid_bulk_top.append(s) for s in surfs_CrossS_bulk_top]
+    [surfs_Fluid_bulk_bottom.append(s) for s in surfs_CrossS_bulk_bottom]
+    sl_Fluid = SurfaceLoop(surfs_Fluid)
+    sl_Fluid_bulk_top = SurfaceLoop(surfs_Fluid_bulk_top)
+    sl_Fluid_bulk_bottom = SurfaceLoop(surfs_Fluid_bulk_bottom)
+
+    surfs_Fluid_bottom = surfs[1][:] # create Fluid_bottom/center/top - the aHem side
+    for index in range(ac1):
+        del surfs_Fluid_bottom[0::n_e_i[1]-index]
+    surfs_Fluid_center = surfs_Fluid_bottom[:]
+    surfs_Fluid_top = surfs_Fluid_bottom[:]
+    for index in range(n_e_i[1]-ac2):
+        del surfs_Fluid_bottom[ac2-ac1::n_e_i[1]-ac1-index]
+    for index in range(ac2-ac1):
+        del surfs_Fluid_center[0::n_e_i[1]-ac1-index]
+    for index in range(n_e_i[1]-ac3):
+        del surfs_Fluid_center[ac3-ac2::n_e_i[1]-ac2-index]
+    for index in range(ac3-ac1):
+        del surfs_Fluid_top[0::n_e_i[1]-ac1-index]
+
+    surfs_CrossS_bottom = surfs[3][:] # create Fluid_bottom/center/top - the CrossS side
+    surfs_CrossS_center = surfs[3][:]
+    surfs_CrossS_top = surfs[3][:]
+    del surfs_CrossS_bottom[2::4]
+    del surfs_CrossS_bottom[2::3]
+    del surfs_CrossS_center[0::4]
+    del surfs_CrossS_center[2::3]
+    del surfs_CrossS_top[0::4]
+    del surfs_CrossS_top[0::3]
+
+    [surfs_Fluid_bottom.append(s) for s in surfs_CrossS_bottom] # combine aHem side and CrossS side for surfs_Fluid_bottom/center/top
+    [surfs_Fluid_center.append(s) for s in surfs_CrossS_center]
+    [surfs_Fluid_top.append(s) for s in surfs_CrossS_top]
+    sl_Fluid_bottom = SurfaceLoop(surfs_Fluid_bottom)
+    sl_Fluid_center = SurfaceLoop(surfs_Fluid_center)
+    sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
+
+    PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
+    PhysicalSurface(tostr(surfs_boundary_top),'upperb') # Physical surfaces fluid bottom, side (without membran), top
+    PhysicalSurface(tostr(surfs_boundary_side),'sideb')
+    PhysicalSurface(tostr(surfs_boundary_bottom),'lowerb')
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -235,11 +329,27 @@ def get_geo(x0 = None, crosssections = True, **params):
     vol_Membrane = Volume(sl_Membrane)
     
     surfs_Membrane_ps = surfs[2]
-    
 
+    x0_in_pore = None
+    if x0 is not None and (x0[0]**2 + x0[1]**2 <= r0**2) and cs_pop_i is None:
+        # check z coordinate of molecule
+        if x0[2]<ac4 and x0[2]>ac3:
+            x0_in_pore = 2 # Molecule is in surfs_Fluid_top
+        elif x0[2]<ac3 and x0[2]>ac2:
+            x0_in_pore = 1 # Molecule is in surfs_Fluid_center
+        elif x0[2]<ac2 and x0[2]>ac1:
+            x0_in_pore = 0 # Molecule is in surfs_Fluid_bottom
+
+
+    pv_fluid_top, pv_fluid_center, pv_fluid_bottom = True, True, True
     if x0 is None:
         vol_Fluid = Volume(sl_Fluid)
-    else:
+        vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
+        vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+        vol_Fluid_top = Volume(sl_Fluid_top)
+        vol_Fluid_center = Volume(sl_Fluid_center)
+        vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+    else: 
         Comment('Add molecule ball')
         Molecule = add_ball(numpy.asarray(x0), rMolecule, lcMolecule,
                             with_volume=True, holes=None, label=None
@@ -248,13 +358,82 @@ def get_geo(x0 = None, crosssections = True, **params):
         vol_Fluid = Volume(sl_Fluid_Molecule)
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
-        
-    PhysicalVolume(vol_Fluid, 'fluid')
+        if x0_in_pore is not None: # NO CrossS and Molecule is in fluid_top/center/bottom
+            vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
+            vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+            if x0_in_pore == 2:
+                sl_Fluid_top_Molecule = Array([sl_Fluid_top] + [Molecule[1]])
+                vol_Fluid_top = Volume(sl_Fluid_top_Molecule)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            elif x0_in_pore == 1:
+                sl_Fluid_center_Molecule = Array([sl_Fluid_center] + [Molecule[1]])
+                vol_Fluid_center = Volume(sl_Fluid_center_Molecule)
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            elif x0_in_pore == 0:
+                sl_Fluid_bottom_Molecule = Array([sl_Fluid_bottom] + [Molecule[1]])
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom_Molecule)
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+        else:
+            if cs_pop_i is None: # Molecule is in fluid_bulk
+                if x0[2]>=X_aHem[ap1][2]:
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+                elif x0[2]<=X_aHem[ap2][2]:
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
+                vol_Fluid_top = Volume(sl_Fluid_top)
+                vol_Fluid_center = Volume(sl_Fluid_center)
+                vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+            else: # Molecule is in CrossS -> one or two of fluid_top/center/bottom are not going to be defined 
+                if cs_pop_i == -1:
+                    pv_fluid_top = False # fluid_top isn't defined
+                    vol_Fluid_center = Volume(sl_Fluid_center)
+                    vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+                elif cs_pop_i == 2:
+                    pv_fluid_top, pv_fluid_center = False, False # fluid_top/center isn't defined
+                    vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+                    sl_Fluid_bulk_top_Molecule = Array([sl_Fluid_bulk_top] + [Molecule[1]])
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top_Molecule)
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
+                elif cs_pop_i == 1:
+                    pv_fluid_center, pv_fluid_bottom = False, False # fluid_center/bottom isn't defined
+                    vol_Fluid_top = Volume(sl_Fluid_top)
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
+                elif cs_pop_i == 0:
+                    pv_fluid_bottom = False # fluid_bottom isn't defined
+                    vol_Fluid_top = Volume(sl_Fluid_top)
+                    vol_Fluid_center = Volume(sl_Fluid_center)
+                    sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
+                    vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
+                    vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
+                    
+            
+    PhysicalVolume(vol_Fluid_bulk_top, 'fluid_bulk_top')
+    PhysicalVolume(vol_Fluid_bulk_bottom, 'fluid_bulk_bottom')    
+
+    if pv_fluid_top:
+        PhysicalVolume(vol_Fluid_top, 'fluid_top')
+    if pv_fluid_center:
+        PhysicalVolume(vol_Fluid_center, 'fluid_center')
+    if pv_fluid_bottom:
+        PhysicalVolume(vol_Fluid_bottom, 'fluid_bottom') 
+            
+    #PhysicalVolume(vol_Fluid, 'fluid')
+
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
-    ps_Membrane = PhysicalSurface(tostr(surfs_Membrane_ps),'membrane') #Physical Surface Membrane
+    PhysicalSurface(tostr(surfs_Membrane_ps),'membraneb') #Physical Surface Membrane
 
-    
     if crosssections:
         surfs_CrossS = surfs[3]
         raw_code(['Surface{%s} In Volume{%s};'  \
@@ -288,6 +467,9 @@ def get_geo(x0 = None, crosssections = True, **params):
 
     # Meshing Algorithm: 2= ?, 5 = frontal (netgen)
     #raw_code(['Mesh.Algorithm3D = 5;'])
+    
+    meta = get_meta()
+    meta.update(params)
 
     geo_dict = {"gmsh mesh generating sript": __name__,
                 "xMolecule": x0,
@@ -299,7 +481,7 @@ def get_geo(x0 = None, crosssections = True, **params):
                 #"cs_pop_i": cs_pop_i,
                 "Typical length scale on aHem": lcCenter,
                 "geo_code": get_code(),
-                "meta": get_meta(),
+                "meta": meta,
             }
     return geo_dict
 

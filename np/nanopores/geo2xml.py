@@ -2,6 +2,7 @@ import subprocess
 from importlib import import_module
 import os
 import nanopores
+from nanopores.meshconvert import convert2xml
 
 def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
     """
@@ -46,8 +47,10 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
     if xml:
         fid_dict["fid_xml"] = os.path.join(meshdir, meshfile)
         subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
+        # for debugging:
+        #convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
         
-    # optionally, write metadata to file ("meta" should be dict-like)
+    # optionally, write metadata to file ("meta" should be dict)
     if "meta" in geo_dict:
         save(geo_dict["meta"], meshdir, "meta")
 
