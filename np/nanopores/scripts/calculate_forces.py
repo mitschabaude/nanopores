@@ -117,9 +117,8 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     t = Timer("Mesh Generation")
     generate_mesh(clscale, geo_name2D, pid=pid, x0=x0, **params2D)
     meshfile = "/".join([DATADIR, geo_name2D, "mesh", "mesh%s.xml" %pid])
-    mesh = Mesh(meshfile)
-    #print "I AM HERE (worker %s)" %pid
-    geo = geo_from_name(geo_name2D, mesh=Mesh(meshfile), x0=x0, **params2D)
+    geo = geo_from_name(geo_name2D, mesh=Mesh(mpi_comm_self(), meshfile), x0=x0, **params2D)
+    print "I AM HERE!!! (worker %s)" %pid
     phys = Physics("pore_molecule", geo, **phys_params)
     print "CPU Time (mesh generation):",t.stop()
     print "hmin:", geo.mesh.hmin()
@@ -160,8 +159,8 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     return f
     
 def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
-    pid = str(os.getpid())
-    #pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
+    #pid = str(os.getpid())
+    pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
     globals().update(params)
     IllposedNonlinearSolver.newtondamp = newtondamp
     nm = 1e-9

@@ -61,15 +61,15 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
     #        also it's not supposed to be appropriate for HPC architectures
-    pool = mp.Pool(nproc)
-    result = pool.map(f, iterator)
-    pool.close()
-    pool.join()
-    # map iterator using mpi4py
-    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
-    #pool = MPIPool(f, debug=True)
+    #pool = mp.Pool(nproc)
     #result = pool.map(f, iterator)
     #pool.close()
+    #pool.join()
+    # map iterator using mpi4py
+    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
+    pool = MPIPool(f, debug=True)
+    result = pool.map(f, iterator)
+    pool.close()
 
     #print result
     #print {key:[dic[key] for dic in result] for key in result[0]}
