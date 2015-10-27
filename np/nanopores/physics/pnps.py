@@ -209,7 +209,7 @@ class PNPS(PDESystem):
                         '<=', self.tolnewton ,' \n  ==> break loop \n'
                     break
 
-            print 'Relative H1 Newton error:',\
+            print 'Relative l2 Newton error:',\
                             self.solvers["PNP"].relerror()
 
             #plot(sqrt(ind), title="sqrt(ind) "+str(i+1))

@@ -2,9 +2,11 @@
  provide default values and functions for calculating physical parameters
  for a specific physical set-up: nanopore with molecule inside
 '''
-
 import dolfin
 from nanopores.physics.params_physical import *
+# TODO: we could easily "subclass" a more general physics module by importing * from it
+#       e.g. default -> pore -> pore_molecule
+#       one would have to be careful about closure of functions though
 
 # 1. -- default values for direct parameters
 
@@ -35,6 +37,9 @@ hReservoir = 0.01 # height of cylindrical upper reservoir
 applylowerqs = False
 couplebVtoQmol = False
 
+# FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
+# --> because which functionals are calculated depends on the Physics of the problem!
+# --> this could recognize which functionals make sense according to PDESystem.functions.keys()
 
 # 2. -- derived parameters depending on other parameters and/or geometry
 #    -- these are FUNCTIONS with keyword arguments corresponding to direct parameters

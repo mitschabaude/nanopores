@@ -25,7 +25,6 @@ class Physics(object):
         mod = import_module(name)
         mod = reload(mod)
         var = import_vars(name)
-
         #print var
 
         # override with user-specified parameters
@@ -45,7 +44,6 @@ class Physics(object):
             else:
                 self.base[k] = v
                 setattr(mod, k, v)
-
         # calculate all dependent parameters
         if geo:
             self.base["geo"] = geo

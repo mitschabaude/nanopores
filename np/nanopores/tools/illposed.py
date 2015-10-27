@@ -1,13 +1,14 @@
+import numpy, dolfin
 from dolfin import *
 from dolfin.fem.solving import _extract_u
-import petsc4py
+import petsc4py, mpi4py
 import ufl
 from warnings import warn
 
 __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
     "replace_function_in_form", "AdaptableLinearProblem", 
     "IllposedNonlinearSolver",  "AdaptableNonlinearProblem", 
-    "AdaptableBC", "Functional"]
+    "AdaptableBC", "Functional", "assemble_scalar"]
 
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
@@ -33,7 +34,8 @@ class IllposedLinearSolver(object):
             self.assemble_A()
                 
     def assemble_A(self):
-        #print "I'm assembling a system of size "+str(self.problem.u.function_space().dim())+" now!"
+        #print ("Process %s: I'm assembling a system of size %s now!" % 
+        #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
         A = assemble(self.problem.a,keep_diagonal=True)
         for bc in self.problem.bcs:
             bc.apply(A)
@@ -105,7 +107,8 @@ class IllposedLinearSolver(object):
         b = assemble(self.problem.L)
         for bc in self.problem.bcs:
             bc.apply(b)
-        #print "I'm solving a system of size "+str(self.problem.u.function_space().dim())+" now!"
+        #print ("Process %s: I'm solving a system of size %s now!" % 
+        #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
         if isinstance(self.S, petsc4py.PETSc.KSP):
             l = as_backend_type(b).vec()
             (x, _) = self.S.getOperators()[0].getVecs()
@@ -153,12 +156,13 @@ class IllposedNonlinearSolver(IllposedLinearSolver):
     
     def convergence(self,tolnewton):
         if norm(self.problem.u.vector(),'linf') >= 1e12:
-            warn('\n linf norm of solution: %g' %norm(self.problem.u.vector(),'linf'))
-        return norm(self.problem.u.vector(), 'linf') <= tolnewton
+            warning('\n linf norm of solution: %g' %self.problem.u.vector().norm('linf'))
+        return self.problem.u.vector().norm('linf') <= tolnewton
     
+    #def relerror(self):
+    #    return norm(self.problem.u,"H10")/norm(self.problem.uold,"H10")
     def relerror(self):
-        return norm(self.problem.u,"H10")/norm(self.problem.uold,"H10")
-		
+        return self.problem.u.vector().norm('l2')/self.problem.uold.vector().norm('l2')
     
 class AdaptableLinearProblem(object):
     # TODO: any use for subclassing LinearVariationalProblem?
@@ -246,7 +250,7 @@ class Functional(object):
 
     def evaluate(self):
         try:
-            e = assemble(self.form)
+            e = assemble_scalar(self.form)
         except TypeError:
             e = self.form  #maybe it's already a float       
         self.values.append(e)
@@ -291,9 +295,22 @@ class Functional(object):
             J = replace(self.form,{f0:f})
         else:
             J = self.form
-        e = assemble(J)
+        e = assemble_scalar(J)
         self.values.append(e)
         return e
+        
+
+def assemble_scalar(form):
+    # assembles rank-0 form using the MPI communicator of the form's mesh,
+    # i.e. sum values over processes only if mesh is distributed.
+    comm = form.domain().data().mpi_comm()
+    z = numpy.empty(shape=(0,2), dtype="uintp")
+    tl = dolfin.TensorLayout(comm, z, 0, 0, z, False)
+    x = dolfin.Scalar()
+    x.init(tl)
+    dolfin.assemble(form, tensor=x)
+    return x.get_scalar_value()
+
         
 
 def adaptform_evil(form,mesh): # doesn't work at all. why?
