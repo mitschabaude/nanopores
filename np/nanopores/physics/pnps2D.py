@@ -437,7 +437,7 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
 
     @staticmethod
     def space(mesh):
-        k = StokesProblemAxisym.k
+        k = StokesProblemAxisymEqualOrder.k
         U = VectorFunctionSpace(mesh, 'CG', k)
         P = FunctionSpace(mesh, 'CG', k)
         return U*P

@@ -1,7 +1,10 @@
 ''' calculate forces on molecule depending on midpoint '''
-
+#from petsc4py import PETSc
+#from mpi4py import MPI
+#comm = PETSc.Comm(MPI.COMM_SELF)
 from nanopores import *
 from dolfin import *
+comm = mpi_comm_self()
 import sys, argparse, math, os, mpi4py
 
 # general parameters
@@ -11,6 +14,7 @@ dnaqsdamp = 0.1
 bV0 = 0.01
 z = 7.5 # [nm]
 newtondamp = 1.0
+new_mesh = True
 
 # geo parameters 3D
 geo_name = "H_cyl_geo"
@@ -115,28 +119,28 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     x0 = map(lambda x:x*nm, x0)
     
     t = Timer("Mesh Generation")
-    generate_mesh(clscale, geo_name2D, pid=pid, x0=x0, **params2D)
+    if new_mesh:
+        generate_mesh(clscale, geo_name2D, pid=pid, x0=x0, **params2D)
     meshfile = "/".join([DATADIR, geo_name2D, "mesh", "mesh%s.xml" %pid])
-    mesh = Mesh(meshfile)
-    #print "I AM HERE (worker %s)" %pid
-    geo = geo_from_name(geo_name2D, mesh=Mesh(meshfile), x0=x0, **params2D)
+    geo = geo_from_name(geo_name2D, mesh=Mesh(comm, meshfile), x0=x0, **params2D)
     phys = Physics("pore_molecule", geo, **phys_params)
     print "CPU Time (mesh generation):",t.stop()
     print "hmin:", geo.mesh.hmin()
-    
-    t = Timer('PB')
-    goal = lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)
-    pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
-    pb.maxcells = maxcells
-    pb.marking_fraction = 0.5
-    pb.solve(refinement=refinement)
-    print "CPU Time (PB):",t.stop()
-
-    t = Timer('PNPS')
-    geo = pb.geo
-    v0 = pb.solution
-    #pnps = PNPSAxisym(geo, phys, v0=v0)
-    pnps = PNPSAxisym(geo, phys)
+    if refinement:
+        t = Timer('PB')
+        goal = lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)
+        pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
+        pb.maxcells = maxcells
+        pb.marking_fraction = 0.5
+        pb.solve(refinement=refinement)
+        print "CPU Time (PB):",t.stop()
+        t = Timer('PNPS')
+        geo = pb.geo
+        v0 = pb.solution
+        pnps = PNPSAxisym(geo, phys, v0=v0)
+    else:
+        t = Timer('PNPS')
+        pnps = PNPSAxisym(geo, phys)
     i = pnps.solve(visualize=False)
     while i==50:
         print "\nRestarting Newton iteration!"
@@ -160,8 +164,10 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     return f
     
 def calculate2D(clscale=.8, refinement=True, maxcells=10e4, pid="", **params):
-    pid = str(os.getpid())
-    #pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
+    if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+        pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
+    else:
+        pid = str(os.getpid())
     globals().update(params)
     IllposedNonlinearSolver.newtondamp = newtondamp
     nm = 1e-9

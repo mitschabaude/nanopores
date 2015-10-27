@@ -57,19 +57,25 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     # create the function to be mapped with
     def f(params): return method(**params)
         
+    # map iterator using mpi4py
+    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
+    rank = MPI.COMM_WORLD.Get_rank()
+    print "Input at proc %s: %s" % (rank, iterator[rank])
+    result = f(iterator[rank])
+    print "Result at proc %s: %s" % (rank, result)
+    '''if MPI.COMM_WORLD.Get_size() > 1:
+        pool = MPIPool(f, debug=True)
+        result = pool.map(f, iterator)
+        pool.close()
     # map iterator using multiprocessing.Pool
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
     #        also it's not supposed to be appropriate for HPC architectures
-    pool = mp.Pool(nproc)
-    result = pool.map(f, iterator)
-    pool.close()
-    pool.join()
-    # map iterator using mpi4py
-    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
-    #pool = MPIPool(f, debug=True)
-    #result = pool.map(f, iterator)
-    #pool.close()
+    else:
+        pool = mp.Pool(nproc)
+        result = pool.map(f, iterator)
+        pool.close()
+        pool.join()'''
 
     #print result
     #print {key:[dic[key] for dic in result] for key in result[0]}
@@ -230,7 +236,7 @@ def post_iteration_ONE(result, stamp, showplot=False):
 
 
 # simulation in 2D    
-def simulation2D(nproc=1, outputs=None, plot=None, **params):
+def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):
     if outputs is not None:
         def f(**x):
             res = calculate2D(**x)
@@ -241,8 +247,8 @@ def simulation2D(nproc=1, outputs=None, plot=None, **params):
         result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
     else:
         result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
-    if MPI.COMM_WORLD.Get_rank() > 0:
-        return    
+    if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
+        return
     post_iteration(result, stamp, showplot=False)
     return result
 

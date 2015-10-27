@@ -13,7 +13,7 @@ print "Mesh generation time:",t.stop()
 print "Mesh file:",meshdict["fid_xml"]
 print "Mesh metadata:"
 for item in meshdict["meta"].items():
-    print "'%s' : %s" %item
+    print "%s = %s" %item
 print 
 
 t = Timer("reading geometry")
