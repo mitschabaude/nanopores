@@ -9,7 +9,7 @@ if simulation is finished at the end, save plot of the range in same DIR.
 
 from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
-from ..tools.mpipool import MPIPool
+from ..tools.mpipool import MPIPool, mpimap
 from mpi4py import MPI
 from pathos.helpers import mp # mp = fork of multiprocessing package
 from .. import DATADIR
@@ -58,15 +58,8 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     def f(params): return method(**params)
         
     # map iterator using mpi4py
-    # FIXME: using mpi doesnt seem to cooperate with mpi features of dolfin
-    rank = MPI.COMM_WORLD.Get_rank()
-    print "Input at proc %s: %s" % (rank, iterator[rank])
-    result = f(iterator[rank])
-    print "Result at proc %s: %s" % (rank, result)
-    '''if MPI.COMM_WORLD.Get_size() > 1:
-        pool = MPIPool(f, debug=True)
-        result = pool.map(f, iterator)
-        pool.close()
+    if MPI.COMM_WORLD.Get_size() > 1:
+        result = mpimap(f, iterator)
     # map iterator using multiprocessing.Pool
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
@@ -75,7 +68,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
         pool = mp.Pool(nproc)
         result = pool.map(f, iterator)
         pool.close()
-        pool.join()'''
+        pool.join()
 
     #print result
     #print {key:[dic[key] for dic in result] for key in result[0]}

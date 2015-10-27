@@ -7,8 +7,8 @@ dnaqsdamp = 0.2,
 bV = [0.002, 0.003],
 q = [-3, 1],
 
-refinement = True,
-clscale = .8,
+refinement = False,
+clscale = .5,
 maxcells = 5e4,
 newtondamp = .8,
 

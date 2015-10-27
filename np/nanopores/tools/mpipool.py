@@ -4,10 +4,43 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["MPIPool"]
+__all__ = ["MPIPool", "mpimap"]
 __version__ = "0.0.1"
 
+import numpy
 from mpi4py import MPI
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
+
+def mpimap(f, input):
+    "Map iterator with f by equidistributing the work on all MPI nodes"
+    n = len(input)
+    
+    # indices that our process will handle
+    I = range(rank, n, size)
+    
+    # map f on the local portion of input, store in result
+    result = [None for i in range(n)]
+    for i in I:
+        result[i] = f(input[i])
+        #try:
+        #    result[i] = f(input[i])
+        #except Exception as e:
+        #    print("An error occured at process %s, index %s."%(rank, i))
+        #    print(e)
+    
+    # processes other than 0 send their result and return None   
+    if rank > 0:
+        comm.send((result, I), dest=0)
+        return
+    
+    # process 0 recieves, stores and returns all the other results
+    for rank_ in range(1, size):
+        result_, I = comm.recv(source=rank_)
+        for i in I:
+            result[i] = result_[i]
+    return result
 
 
 class MPIPool(object):

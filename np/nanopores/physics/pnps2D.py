@@ -415,6 +415,7 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         err = sqrt(errp*errd)
 
         # plot indicators
+        '''
         plotind = Function(W)
         plotind.vector()[:] = numpy.log(indp.vector()[:])
         plot(plotind, title="primal indicators")
@@ -423,6 +424,7 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         plotind.vector()[:] = numpy.log(ind.vector()[:])
         plot(plotind, title="goal-oriented indicators")
         interactive()
+        '''
         return ind, err
 
     def print_functionals(self):
