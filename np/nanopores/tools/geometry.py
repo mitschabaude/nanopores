@@ -439,6 +439,7 @@ def geo_from_xml(name):
     module = "nanopores.geometries.%s.params_geo" %name
     params = nanopores.import_vars(module)
     params.update(meta)
+    params["name"] = name
     syn = params.pop("synonymes")
     
     return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)

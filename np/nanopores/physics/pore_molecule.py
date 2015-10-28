@@ -18,6 +18,7 @@ DNAqsPure = -qq/nm**2 # = -0.16 # DNA surface charge density [C/m**2]
 dnaqsdamp = 1. # DNA charge damping
 SiNqs = -0.022
 SAMqs = -0.078
+ahemqs = 0.
 
 T = 293 # temperature [K]
 bulkcon = 300. # bulk concentration of ions [mol/m**3]
@@ -29,6 +30,7 @@ upperpbias = None
 lowerpbias = None
 
 rpermPore = rpermw
+rpermProtein = 12. # TODO ?????
 rDPore = 0.5
 stokesdampPore = 1.0
 
@@ -46,6 +48,7 @@ couplebVtoQmol = False
 
 DNAqs = lambda: DNAqsPure*dnaqsdamp
 permPore = lambda: eperm*rpermPore
+permProtein = lambda: eperm*rpermProtein
 kT = lambda: kB*T
 UT = lambda: kB*T/qq
 mu = lambda: D*qq/(kB*T) # mobility [m^2/Vs]
@@ -104,6 +107,7 @@ permittivity = {
     "lipid": eperm*rpermLipid,
     "au": eperm*rpermAu,
     "sam": eperm*rpermSAM,
+    "protein": "permProtein",
 }
 
 # determines how Molecule charge is implemented
@@ -116,13 +120,15 @@ surfcharge = { # surface charge densities for Neumann RHS
     "chargedsinb": "SiNqs",
     "chargedsamb": "SAMqs",
     "lowerb": "lowerqs",
+    "ahemb": "ahemqs",
 }
 
 volcharge = {# volume charges for RHS
     "molecule": ("Moleculeqv" if smearMolCharge else 0.),
-    "ions": 0.,
+    "fluid": 0.,
     "dna": 0.,
     "membrane": 0.,
+    "protein": 0.,
     }
 charge = {"volcharge":volcharge, "surfcharge":surfcharge}
 

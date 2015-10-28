@@ -241,11 +241,21 @@ def SurfaceLoop(surfaces):
 
 def PhysicalSurface(surface, label):
     '''Gmsh Physical Surface.
+       surface is expected to be either string or iterable of strings
     '''
     global _PHYSSURF_ID, _PHYSSURF
     _PHYSSURF_ID += 1
+    if hasattr(surface, "__iter__"):
+        surface = "{%s}" % (",".join(surface),)
     _GMSH_CODE.append('Physical Surface(%s) = %s;' % (_PHYSSURF_ID, surface))
     _PHYSSURF[label] =  (_PHYSSURF_ID,)
+    return
+    
+def NoPhysicalSurface(label):
+    '''Create "empty" Physical Surface (for geometry metadata).
+    '''
+    global _PHYSSURF
+    _PHYSSURF[label] =  ()
     return
 
 
@@ -281,6 +291,13 @@ def PhysicalVolume(volume, label):
     _PHYSVOL_ID += 1
     _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
     _PHYSVOL[label] =  (_PHYSVOL_ID,)
+    return
+    
+def NoPhysicalVolume(label):
+    '''Create "empty" Physical Volume (for geometry metadata).
+    '''
+    global _PHYSVOL
+    _PHYSVOL[label] =  ()
     return
 
 

@@ -23,8 +23,6 @@ def get_geo(x0 = None, crosssections = True, **params):
     reload(nanopores.py4gmsh.extra)
     globals().update(params)
 
-
-
     X_aHem = numpy.array([[2.16, 0.0, 0.0],
                           [2.77, 0.0, -0.19],
                           [3.24, 0.0, -0.1 ],
@@ -132,6 +130,10 @@ def get_geo(x0 = None, crosssections = True, **params):
     ac2 = 68
     ac3 = 82
     ac4 = 0
+    zcross = sorted([X_aHem[i][2] for i in [ac1, ac2, ac3, ac4]])
+    params["lbtm"] = -zcross[0] + zcross[1]
+    params["lctr"] = -zcross[1] + zcross[2]
+    params["ltop"] = -zcross[2] + zcross[3]
 
     r0=max([X_aHem[index][0] for index in [ac1, ac2, ac3, ac4]])+rMolecule
 
@@ -233,8 +235,7 @@ def get_geo(x0 = None, crosssections = True, **params):
         del surfs_Fluid_bulk_top[2::n_e_i[0]-index]
         del surfs_Fluid_bulk_bottom[0::n_e_i[0]-index]
     
-    tostr = lambda l: "{%s}"%(",".join(l),)
-    ps_Fluid = PhysicalSurface(tostr(surfs_Fluid),'fluidb') #Physical Surface Fluid
+    #PhysicalSurface(surfs_Fluid,'fluidb') #Physical Surface Fluid
 
     surfs_boundary_top = [surfs[0][s*5] for s in range(4)]
     surfs_boundary_side = [surfs[0][1+s*5] for s in range(4)]
@@ -269,7 +270,7 @@ def get_geo(x0 = None, crosssections = True, **params):
         elif cs_pop_i == 2:
             surfs_CrossS_bulk_top = [surfs[3][1+4*s] for s in range (4)]
             surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
-        elif cs_Pop_i == -1:
+        elif cs_pop_i == -1:
             surfs_CrossS_bulk_top = [surfs[3][2+4*s] for s in range (4)]
             surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
     else:                   # no intersect with any crossS -> remove 2nd and 3rd crossS
@@ -313,10 +314,10 @@ def get_geo(x0 = None, crosssections = True, **params):
     sl_Fluid_center = SurfaceLoop(surfs_Fluid_center)
     sl_Fluid_top = SurfaceLoop(surfs_Fluid_top)
 
-    PhysicalSurface(tostr(surfs_Fluid_aHem),'ahemb') #Physical Surface aHem
-    PhysicalSurface(tostr(surfs_boundary_top),'upperb') # Physical surfaces fluid bottom, side (without membran), top
-    PhysicalSurface(tostr(surfs_boundary_side),'sideb')
-    PhysicalSurface(tostr(surfs_boundary_bottom),'lowerb')
+    PhysicalSurface(surfs_Fluid_aHem,'ahemb') #Physical Surface aHem
+    PhysicalSurface(surfs_boundary_top,'upperb') # Physical surfaces fluid bottom, side (without membran), top
+    PhysicalSurface(surfs_boundary_side,'sideb')
+    PhysicalSurface(surfs_boundary_bottom,'lowerb')
 
     sl_aHem = SurfaceLoop(surfs[1])
     vol_aHem = Volume(sl_aHem)
@@ -349,6 +350,8 @@ def get_geo(x0 = None, crosssections = True, **params):
         vol_Fluid_top = Volume(sl_Fluid_top)
         vol_Fluid_center = Volume(sl_Fluid_center)
         vol_Fluid_bottom = Volume(sl_Fluid_bottom)
+        NoPhysicalVolume("molecule")
+        NoPhysicalSurface("moleculeb")
     else: 
         Comment('Add molecule ball')
         Molecule = add_ball(numpy.asarray(x0), rMolecule, lcMolecule,
@@ -358,6 +361,9 @@ def get_geo(x0 = None, crosssections = True, **params):
         vol_Fluid = Volume(sl_Fluid_Molecule)
         # Molecule[0]->Volume,  Molecule[1]->surface loop,  Molecule[2]->surfs
         vol_Molecule = Molecule[0]
+        PhysicalVolume(vol_Molecule, "molecule")
+        PhysicalSurface(Molecule[2], "moleculeb")
+        
         if x0_in_pore is not None: # NO CrossS and Molecule is in fluid_top/center/bottom
             vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
             vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
@@ -422,17 +428,17 @@ def get_geo(x0 = None, crosssections = True, **params):
     PhysicalVolume(vol_Fluid_bulk_bottom, 'fluid_bulk_bottom')    
 
     if pv_fluid_top:
-        PhysicalVolume(vol_Fluid_top, 'fluid_top')
+        PhysicalVolume(vol_Fluid_top, 'poretop')
     if pv_fluid_center:
-        PhysicalVolume(vol_Fluid_center, 'fluid_center')
+        PhysicalVolume(vol_Fluid_center, 'porecenter')
     if pv_fluid_bottom:
-        PhysicalVolume(vol_Fluid_bottom, 'fluid_bottom') 
+        PhysicalVolume(vol_Fluid_bottom, 'porebottom') 
             
     #PhysicalVolume(vol_Fluid, 'fluid')
 
     PhysicalVolume(vol_Membrane, 'membrane')
     PhysicalVolume(vol_aHem, "ahem")
-    PhysicalSurface(tostr(surfs_Membrane_ps),'membraneb') #Physical Surface Membrane
+    PhysicalSurface(surfs_Membrane_ps,'membraneb') #Physical Surface Membrane
 
     if crosssections:
         surfs_CrossS = surfs[3]
@@ -470,6 +476,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     
     meta = get_meta()
     meta.update(params)
+    meta["x0"] = x0
 
     geo_dict = {"gmsh mesh generating sript": __name__,
                 "xMolecule": x0,

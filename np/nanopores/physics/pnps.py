@@ -143,6 +143,12 @@ class PNPS(PDESystem):
         Jp = cFarad*(C*(-D*grad(cp) - mu*cp*grad(v)) + SD*cp*u)
         Jz = (Jm + Jp)[2]
 
+        # FIXME: this is just ugly, also because geo has to have "name" in params
+        """ up until now, a geo that "supports" some feature (e.g. currents) 
+        had to provide the necessary information, i.e. geo.parameter("ltop") in this case.
+        this is tricky for derived quantities...
+        the solution is to have the derived quantity functionality in py4geo
+        and always use some meta.txt as in geo_from_xml. """
         if geo.parameter("name") == "H_cyl_geo":
             ltop = (geo.parameter("l0")-geo.parameter("l1"))/2
             lctr = geo.parameter("l1")
@@ -150,6 +156,10 @@ class PNPS(PDESystem):
         elif geo.parameter("name") == "W_3D_geo":
             l0 = geo.parameter("lsam")+geo.parameter("lau")+geo.parameter("lsin")
             lbtm = lctr = ltop = l0/3
+        elif "ltop" in geo.params: # hope for the best
+            ltop = geo.parameter("ltop")
+            lctr = geo.parameter("lctr")
+            lbtm = geo.parameter("lbtm")
 
         J_dict = dict(
             #Jtop = Functional(Jz('+') * Cinvlscale(2)*Fmult*geo.dS("crosstop2d")),

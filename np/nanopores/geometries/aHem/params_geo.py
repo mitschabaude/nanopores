@@ -8,16 +8,19 @@ tolc = 1e-14*nm  # tolerance for coordinate comparisons
 dim = 3
 
 synonymes = {
-    "pore": {"fluid_top", "fluid_center", "fluid_bottom"},
+    "pore": {"poretop", "porecenter", "porebottom"},
     "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
     "fluid": {"pore", "bulkfluid"},
-    "solid": {"membrane", "ahem"},
+    "solid": {"membrane", "ahem", "molecule"},
     "protein": "ahem",
-    "noslip": {"ahemb", "membraneb"},
+    "proteinb": "ahemb",
+    "noslip": {"ahemb", "membraneb", "moleculeb"},
     "bulk": {"upperb", "lowerb"},
     "nopressure": "bulk",
     "ground": "upperb",
     "bV": "lowerb",
+    "ions": "fluid",
+    "lipid": "membrane",
 }
 
 # characteristic length / mesh size h
