@@ -1,4 +1,5 @@
 from nanopores import *
+from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 
 # @Benjamin, Gregor TODO:
@@ -11,13 +12,13 @@ geo_params = dict(
     x0 = [2., 4., 6.],
 )
 phys_params = dict(
-    bV = 0.1,
-    ahemqs = 0.05,
-    rpermProtein = 12.,
+    bV = 1.0,
+    ahemqs = 0.01,
+    rpermProtein = 2.,
 )    
 
 t = Timer("meshing")
-meshdict = generate_mesh(6., "aHem", **geo_params)
+meshdict = generate_mesh(5., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 print "Mesh file:",meshdict["fid_xml"]
@@ -36,7 +37,7 @@ print "Geo physical boundaries:", geo._physical_boundary
 
 plot(geo.boundaries)
 plot(geo.submesh("solid"))
-plot(geo.submesh("fluid"))
+#plot(geo.submesh("exittime"))
 
 phys = Physics("pore_molecule", geo, **phys_params)
 
@@ -46,6 +47,7 @@ phys = Physics("pore_molecule", geo, **phys_params)
     
 pde = PNPS(geo, phys)
 pde.solve()
+pde.print_results()
 
 (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
 E = -phys.grad(v)
@@ -56,11 +58,22 @@ Fel = Q*E
 Fdrag = 6*pi*eta*r*u
 F = Fel + Fdrag
 
+'''
 VV = VectorFunctionSpace(geo.mesh, "CG", 1)
 Fdrag = project(Fdrag, VV)
 F = project(F, VV)
 plot(F, title="F")
 plot(Fdrag, title="Fdrag")
 interactive()
-#pde.visualize("fluid")
+'''
+# solve exit time problem
+phys.Dtarget = phys.kT/(6*pi*eta*r)
+
+etp = LinearPDE(geo, ExitTimeProblem, phys, F=F)
+etp.solve()
+etp.visualize("exittime")
+
+etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.0,0.0,0.0)))
+etp_noF.solve()
+etp_noF.visualize("exittime")
 

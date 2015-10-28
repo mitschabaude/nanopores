@@ -6,7 +6,8 @@ from .errorest import *
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE"]
+__all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
+           "GeneralLinearProblem"]
 
 class PDESystem(object):
     imax = 100
@@ -197,8 +198,8 @@ class PDESystem(object):
 
 class LinearPDE(PDESystem):
     ''' simple interface for single linear PDE '''
-    def __init__(self, geo, ProblemClass, **problem_params):
-        problem = ProblemClass(geo, **problem_params)
+    def __init__(self, geo, ProblemClass, *problem_args, **problem_params):
+        problem = ProblemClass(geo, *problem_args, **problem_params)
         solver = IllposedLinearSolver(problem)
 
         self.geo = geo
@@ -231,7 +232,6 @@ class NonlinearPDE(PDESystem):
         print "Newton iterations:",i+1
         print 'Relative H1 Newton error:',S.relerror()
         return i+1
-
 
 class GoalAdaptivePDE(PDESystem):
     ''' simple interface for PDE solver with goal-oriented adaptivity '''
@@ -266,3 +266,20 @@ class GoalAdaptivePDE(PDESystem):
         self.solution = u
         self.solvers = {"primal": solver, "dual":dualsolver}
         self.functionals = {"goal": goal_f}
+        
+
+class GeneralLinearProblem(AdaptableLinearProblem):
+    def __init__(self, geo, phys=None, u=None, bcs=None, **params):
+        mesh = geo.mesh
+        V = self.space(mesh)
+        if not u:
+            u = Function(V)
+        if not bcs:
+            bcs = self.bcs(V, geo)
+            
+        params.update(geo=geo, u=u, phys=phys, V=V)
+        import inspect
+        argnames = inspect.getargspec(self.forms).args
+        args = [params[k] for k in argnames]
+        a, L = self.forms(*args)
+        AdaptableLinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)

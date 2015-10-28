@@ -277,6 +277,15 @@ def get_geo(x0 = None, crosssections = True, **params):
         surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
         surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
         
+    # exit surface for exit time problem
+    exit_i = 1 # 0,...,3 <--> bottom,...,top
+    if cs_pop_i is None or cs_pop_i %4 != exit_i:
+        surfs_exit = [surfs[3][exit_i+4*s] for s in range(4)]
+        # exitS = list of surfaces
+        PhysicalSurface(surfs_exit, "exit")
+    else:
+        NoPhysicalSurface("exit")
+        
     [surfs_Fluid_bulk_top.append(s) for s in surfs_CrossS_bulk_top]
     [surfs_Fluid_bulk_bottom.append(s) for s in surfs_CrossS_bulk_bottom]
     sl_Fluid = SurfaceLoop(surfs_Fluid)

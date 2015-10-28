@@ -21,6 +21,7 @@ synonymes = {
     "bV": "lowerb",
     "ions": "fluid",
     "lipid": "membrane",
+    "exittime": {"poretop", "porecenter", "fluid_bulk_top"},
 }
 
 # characteristic length / mesh size h
