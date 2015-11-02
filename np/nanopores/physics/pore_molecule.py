@@ -30,9 +30,20 @@ upperpbias = None
 lowerpbias = None
 
 rpermPore = rpermw
-rpermProtein = 12. # TODO ?????
+rpermProtein = 2. # TODO ?????
 rDPore = 0.5
 stokesdampPore = 1.0
+
+rTarget = 0.5*nm
+qTarget = -qq
+rDtargetPore = 1.
+DtargetBulk = lambda: kB*T/(6*dolfin.pi*eta*rTarget) # Stokes Law
+DtargetPore = lambda: kB*T/(6*dolfin.pi*eta*rTarget)*rDtargetPore
+Dtarget = { # diffusivity of target molecule relative to bulk
+    "bulkfluid": "DtargetBulk",
+    "pore": "DtargetPore",
+    "solid": 0.,
+}
 
 bulkconFluo = 0. # bulk concentration of fluorophore [mol/m**3]
 hReservoir = 0.01 # height of cylindrical upper reservoir
@@ -250,3 +261,13 @@ def CurrentPBdrift(geo):
         return Jzdrift
     except:
         return None
+        
+def Feff(geo):
+    def Feff0(v, u):
+        E = -grad(v)
+        pi = 3.141592653589793
+        Fel = qTarget*E
+        Fdrag = 6*pi*eta*rTarget*u
+        F = Fel + Fdrag
+        return F
+    return Feff0

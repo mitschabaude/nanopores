@@ -35,10 +35,12 @@ class ExitTimeProblem(GeneralLinearProblem):
         v = TestFunction(V)
         dx = geo.dx("exittime")
         grad = phys.grad
-        D = phys.Dtarget # TODO: pwconst
+        # TODO: for some reason, taking the pwconst causes conflict with F, results in u=NaN
+        D = phys.DtargetBulk #geo.pwconst("Dtarget")
         mu = D/phys.kT
         
-        a = -inner(D*grad(u), grad(v))*dx + inner(mu*F, grad(u))*v*dx
+        J = -D*grad(v) + v*mu*F
+        a = inner(J, grad(u))*dx # this is the dual of -div(J(u))
         L = Constant(-1.0)*v*dx
         
         return (a, L)

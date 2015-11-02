@@ -5,7 +5,7 @@ import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
 from warnings import warn
 
-def get_geo(x0 = None, crosssections = True, **params):
+def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     """
     writes a 3d geo file for an extruded axissymmetric geometry
     for Howorka 'Self-Assembled aHem that spans lipid bilayers'
@@ -22,6 +22,7 @@ def get_geo(x0 = None, crosssections = True, **params):
     reload(nanopores.py4gmsh.basic)
     reload(nanopores.py4gmsh.extra)
     globals().update(params)
+    params["synonymes"] = synonymes
 
     X_aHem = numpy.array([[2.16, 0.0, 0.0],
                           [2.77, 0.0, -0.19],
@@ -278,13 +279,17 @@ def get_geo(x0 = None, crosssections = True, **params):
         surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
         
     # exit surface for exit time problem
-    exit_i = 1 # 0,...,3 <--> bottom,...,top
-    if cs_pop_i is None or cs_pop_i %4 != exit_i:
+    # exit_i = 0,...,3, None <--> exit surface = pore btm,...,pore top, lowerb
+    if exit_i is not None and (cs_pop_i is None or cs_pop_i %4 != exit_i):
         surfs_exit = [surfs[3][exit_i+4*s] for s in range(4)]
-        # exitS = list of surfaces
-        PhysicalSurface(surfs_exit, "exit")
+        # surfs_exit = list of surfaces
+        PhysicalSurface(surfs_exit, "poreexit")
+        exittimeDomain = {"fluid_bulk_top"}
+        for i in range(3 - exit_i):
+            exittimeDomain.add(["poretop", "porecenter", "porebottom"][i])
+        params["synonymes"]["exittime"] = exittimeDomain
     else:
-        NoPhysicalSurface("exit")
+        params["synonymes"]["poreexit"] = "lowerb"
         
     [surfs_Fluid_bulk_top.append(s) for s in surfs_CrossS_bulk_top]
     [surfs_Fluid_bulk_bottom.append(s) for s in surfs_CrossS_bulk_bottom]

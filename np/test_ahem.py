@@ -1,24 +1,27 @@
 from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
+import math
 
 # @Benjamin, Gregor TODO:
 # -) check permittivity and surface charge of ahem
 # -) what biased voltage to use?
 
 geo_params = dict(
-    l4 = 15.,
-    R = 20.,
-    x0 = [2., 4., 6.],
+    l3 = 80.,
+    l4 = 80.,
+    R = 120.,
+    x0 = [20., 0., 50.], # |x0| > 2.2
+    exit_i = None,
 )
 phys_params = dict(
-    bV = 1.0,
-    ahemqs = 0.01,
-    rpermProtein = 2.,
+    bV = .5,
+    ahemqs = 0.0,
+    rTarget = 0.5*nm,
 )    
 
 t = Timer("meshing")
-meshdict = generate_mesh(5., "aHem", **geo_params)
+meshdict = generate_mesh(15., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 print "Mesh file:",meshdict["fid_xml"]
@@ -47,33 +50,51 @@ phys = Physics("pore_molecule", geo, **phys_params)
     
 pde = PNPS(geo, phys)
 pde.solve()
-pde.print_results()
+#pde.print_results()
 
 (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
-E = -phys.grad(v)
-Q = -qq
-pi = 3.141592
-r = 0.5*nm
-Fel = Q*E
-Fdrag = 6*pi*eta*r*u
-F = Fel + Fdrag
+F = phys.Feff(v, u)
 
-'''
-VV = VectorFunctionSpace(geo.mesh, "CG", 1)
-Fdrag = project(Fdrag, VV)
-F = project(F, VV)
-plot(F, title="F")
-plot(Fdrag, title="Fdrag")
-interactive()
-'''
+for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
+    print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
+
+#VV = VectorFunctionSpace(geo.mesh, "CG", 1)
+#F = project(F, VV)
+
 # solve exit time problem
-phys.Dtarget = phys.kT/(6*pi*eta*r)
+x0 = geo.params["x0"]
+r0 = math.sqrt(sum(x**2 for x in x0))
+rnear = r0 - geo.params["rMolecule"]
+rfar = r0 + geo.params["rMolecule"]
+xnear = map(lambda x: rnear/r0*x, x0)
+xfar = map(lambda x: rfar/r0*x, x0)
+
+def exit_times(tau):
+    Tmin = tau(xnear)
+    Tmax = tau(xfar)
+    Tavg = assemble(tau*geo.dS("moleculeb"))/assemble(Constant(1.0)*geo.dS("moleculeb"))
+    return (Tmin, Tavg, Tmax)
 
 etp = LinearPDE(geo, ExitTimeProblem, phys, F=F)
 etp.solve()
-etp.visualize("exittime")
+
+T = exit_times(etp.solution)
+print "\nTime [s] to reach bottom from molecule: (min, avg, max)"
+print T
+
+print "\nTime [s] to reach bottom from pore entrance:"
+print etp.solution([0.,0.,-3.])
 
 etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.0,0.0,0.0)))
 etp_noF.solve()
-etp_noF.visualize("exittime")
+T = exit_times(etp_noF.solution)
+print "\nTime [s] to reach bottom from molecule for F=0: (min, avg, max)"
+print T
+
+print "\nTime [s] to reach bottom from pore entrance for F=0:"
+print etp_noF.solution([0.,0.,-3.])
+
+
+plot(F, title="F")
+etp.visualize("exittime")
 
