@@ -53,7 +53,7 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
         
     # optionally, write metadata to file ("meta" should be dict)
     if "meta" in geo_dict:
-        save(geo_dict["meta"], meshdir, "meta")
+        save(geo_dict["meta"], meshdir, "meta%s" %pid)
 
     geo_dict.update(fid_dict)
     return geo_dict

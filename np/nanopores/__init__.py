@@ -19,4 +19,4 @@ DATADIR = os.path.join(HOME,".%s" %NAME)
 #if not os.path.exists(DATADIR):
 #    os.makedirs(DATADIR)
 
-from scripts import simulation2D
+from scripts import simulation2D, simulate

@@ -7,7 +7,7 @@ from warnings import warn
 from importlib import import_module
 import types
 
-__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains", "geo_from_xml"]
+__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains", "geo_from_xml", "geo_from_xml_threadsafe"]
 
 class Geometry(object):
     """ Interface between numerical routines and files describing the geometry.
@@ -443,4 +443,37 @@ def geo_from_xml(name):
     syn = params.pop("synonymes")
     
     return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
+    
+def geo_from_xml_threadsafe(name, reuse_mesh=False, clscale=None, **params):
+    import os, mpi4py
+    comm = mpi_comm_self()
+    
+    if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
+        pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
+    else:
+        pid = str(os.getpid())
+        
+    if not reuse_mesh:
+        nanopores.generate_mesh(clscale, name, pid=pid, **params)
+        
+    DIR = "%s/%s/mesh/" %(nanopores.DATADIR, name)
+    mesh = Mesh(comm, DIR+"mesh%s.xml" %pid)
+    subdomains = MeshFunction("size_t", mesh, DIR+"mesh%s_physical_region.xml" %pid)
+    boundaries = MeshFunction("size_t", mesh, DIR+"mesh%s_facet_region.xml" %pid)
+    
+    with open(DIR+"meta%s.txt" %pid, "r") as f:
+        meta = eval(f.read())
+    
+    physdom = meta.pop("physical_domain")
+    physbou = meta.pop("physical_boundary")
+    
+    module = "nanopores.geometries.%s.params_geo" %name
+    params = nanopores.import_vars(module)
+    params.update(meta)
+    params["name"] = name
+    syn = params.pop("synonymes")
+    
+    return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
+    
+
     

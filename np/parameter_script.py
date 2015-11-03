@@ -1,5 +1,5 @@
 import nanopores
-
+'''
 nanopores.simulation2D(
 z = nanopores.crange(0, 11, 5),
 r = [0.4, 0.55],
@@ -16,4 +16,13 @@ plot = "z",
 outputs = ["F", "J", "Fdrag", "Fbare"],
 nproc = 4,
 )
+'''
+
+result = nanopores.simulate("ahemFPT",
+nproc = 1,
+domscale = [1, 2, 3, 4, 5],
+z0 = 3.,
+plot = "domscale",
+)
+
 

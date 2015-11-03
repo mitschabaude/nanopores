@@ -135,6 +135,8 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     params["lbtm"] = -zcross[0] + zcross[1]
     params["lctr"] = -zcross[1] + zcross[2]
     params["ltop"] = -zcross[2] + zcross[3]
+    params["ztop"] = zcross[3]
+    params["zbtm"] = zcross[0]
 
     r0=max([X_aHem[index][0] for index in [ac1, ac2, ac3, ac4]])+rMolecule
 

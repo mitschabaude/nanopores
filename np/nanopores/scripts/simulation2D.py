@@ -16,7 +16,7 @@ from .. import DATADIR
 import numpy, os
 from .calculate_forces import calculate2D
 
-__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D", "calculate2D"]
+__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D", "calculate2D", "simulate"]
 
 # directory where data are saved
 savedir = DATADIR + "/sim/stamps/"
@@ -40,11 +40,13 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
             iterkeys2.append(key)
     if iterkeys is None:
         iterkeys = iterkeys2
-    elif len(iterkeys) == 1:
-        iterkeys2.remove(iterkeys[0])
+    elif set(iterkeys) <= set(iterkeys2):
+        for key in iterkeys:
+            iterkeys2.remove(key)
         iterkeys = iterkeys + iterkeys2
-    elif len(iterkeys) != len(iterkeys2):
-        raise Exception("Your iterkeys are wrong!")
+    else:
+        print "I'm ignoring your iterkeys."
+        iterkeys = iterkeys2
         
     # create stamp of the input
     stamp = dict(params)
@@ -58,20 +60,22 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     def f(params): return method(**params)
         
     # map iterator using mpi4py
+    # FIXME: doesn't work if some dolfin function are used, e.g. Function.extrapolate
     if MPI.COMM_WORLD.Get_size() > 1:
         result = mpimap(f, iterator)
     # map iterator using multiprocessing.Pool
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
     #        also it's not supposed to be appropriate for HPC architectures
-    else:
+    elif nproc>1:
         pool = mp.Pool(nproc)
         result = pool.map(f, iterator)
         pool.close()
         pool.join()
+    # map in serial
+    else:
+        result = map(f, iterator)
 
-    #print result
-    #print {key:[dic[key] for dic in result] for key in result[0]}
     return result, stamp
     
 
@@ -109,7 +113,7 @@ def post_iteration(result, stamp, showplot=False):
     iterkeys = stamp.pop("iterkeys")
     input = join_dicts(combinations(stamp, iterkeys))
     
-    # save iterated parameter and result to data file
+    # save iterated parameters and result to data file
     N = len(input.values()[0])
     data = Data(savedir+"result"+uid+".dat", N=N, overwrite=True)
     data.data["status"][:] = 1
@@ -118,6 +122,10 @@ def post_iteration(result, stamp, showplot=False):
     for key in result:
         data.data[key] = numpy.array(result[key])
     data.write()
+    
+    # no plot if not at least two different parameter sets
+    if len(iterkeys) == 0:
+        return
     
     # create plot for every result column
     # TODO: for the moment i assume that iterkeys[0] is the one to be plotted
@@ -155,6 +163,25 @@ def post_iteration(result, stamp, showplot=False):
         savefig(savedir+"plot"+uid+key+".eps", bbox_inches='tight')
     if showplot: show()
 
+# general simulation (for modules with calculate() function)
+def simulate(name, nproc=1, outputs=None, plot=None, write_files=True, **params):
+    calculate = __import__("nanopores.scripts."+name, fromlist=["calculate"]).calculate
+    
+    if outputs is not None:
+        def f(**x):
+            res = calculate(**x)
+            return {key:res[key] for key in outputs if key in res}
+    else:
+        f = calculate
+    if plot is not None:
+        result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
+    else:
+        result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
+    if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
+        return
+    print result, stamp
+    post_iteration(result, stamp, showplot=False)
+    return result
 
 # simulation in 2D    
 def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):

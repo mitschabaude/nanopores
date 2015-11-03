@@ -1,5 +1,5 @@
 """
-define a number of often-occuring routines and call them easily for different parameter ranges
+this module specifies a number of often-occuring routines and enables to call them easily for different parameter ranges
 
 a script is defined as a .py module containing a function calculate(). this function is expected to accept arbitrary keyword arguments and no positional arguments. this allows the script to be called by a generic routine with a range of different parameter sets, possibly in parallel, where parameter sets are implemented as dicts.
 the script only has to take care that every relevant parameter to its execution gets recognized correctly by calculate(), which can be assured most conveniently by defining default values for all those parameters globally at the module level and do something like
