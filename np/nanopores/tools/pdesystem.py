@@ -3,6 +3,7 @@
 from dolfin import *
 from .illposed import *
 from .errorest import *
+from .utilities import _call
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
@@ -268,20 +269,21 @@ class GoalAdaptivePDE(PDESystem):
         self.solvers = {"primal": solver, "dual":dualsolver}
         self.functionals = {"goal": goal_f}
         
-
+    
 class GeneralLinearProblem(AdaptableLinearProblem):
 
     def __init__(self, geo, phys=None, u=None, bcs=None, **params):
+        
         mesh = geo.mesh
         V = self.space(mesh)
         if not u:
             u = Function(V)
-        if not bcs:
-            bcs = self.bcs(V, geo)
             
         params.update(geo=geo, u=u, phys=phys, V=V)
-        import inspect
-        argnames = inspect.getargspec(self.forms).args
-        args = [params[k] for k in argnames]
-        a, L = self.forms(*args)
+        
+        if not bcs:
+            bcs = _call(self.bcs, params)
+        
+        a, L = _call(self.forms, params)
         AdaptableLinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
+        

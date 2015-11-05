@@ -46,8 +46,8 @@ class ExitTimeProblem(GeneralLinearProblem):
         return (a, L)
         
     @staticmethod
-    def bcs(V, geo):
-        return [geo.BC(V, Constant(0.0), "exit")]
+    def bcs(V, geo, exitb={"exit"}):
+        return [geo.BC(V, Constant(0.0), bou) for bou in exitb]
         
         
 class SurvivalProblem(GeneralLinearProblem):
@@ -82,15 +82,15 @@ class SurvivalProblem(GeneralLinearProblem):
         mu = D/phys.kT
         J = -D*grad(v) + v*mu*F
         
-        # (u1 - u)/dt + divJ*(u1 + u)/2 = 0
-        # u1 + dt*divJ*(u1/2) = u - dt*divJ*(u/2)
+        # (u1 - u)/dt + divJ*(th*u1 + (1-th)*u) = 0
+        # u1 + dt*divJ*(u1*th) = u - dt*divJ*(u*(1-th))
         
-        a = (u1*v - dt/2*inner(J, grad(u1)))*dx
-        L = (u*v + dt/2*inner(J, grad(u)))*dx
+        a = (u1*v - dt*inner(J, grad(u1)))*dx
+        L = u*v*dx # + dt/2*inner(J, grad(u)))*dx
         
         return (a, L)
         
     @staticmethod
-    def bcs(V, geo):
-        return [geo.BC(V, Constant(0.0), "exit")]
+    def bcs(V, geo, exitb={"exit"}):
+        return [geo.BC(V, Constant(0.0), bou) for bou in exitb]
         

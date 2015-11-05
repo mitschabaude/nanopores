@@ -3,7 +3,8 @@
 from dolfin import plot
 from .pdesystem import PDESystem
 from .illposed import IllposedLinearSolver
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
+import numpy as np
 
 __all__ = ["TransientLinearPDE"]
 
@@ -34,48 +35,47 @@ class TransientLinearPDE(PDESystem):
         self.solver = solver
         self.functionals = {}
         
-    def timestep(self, t, verbose=True, visualize=False, **params):
+    def timestep(self, **params):
         PDESystem.solve(self, verbose=False, **params)
-        if verbose:
-            print "Time:",t
-        if visualize:
-            self.visualize(t)
         
-    def solve(self, t=0, **params):
+    def solve(self, t=0, verbose=True, visualize=True, **params):
+        if verbose:
+            print "\n"
         # evolve system up to time t
         for t_ in timerange(t, self.dt):
-            self.timestep(t_, **params)
+            self.timestep(**params)
+            if verbose:
+                print "\x1b[A","\r",
+                print "t = %s [s]" %t_
+            if visualize:
+                self.visualize(t_)
+        if visualize:
+            plt.show(block=True)
             
     def visualize(self, t):
-        plot(self.solution, title="solution at time %s" %t)
-        '''
-        x = range(-15, 5, 1)
+        u = self.solution
+        #plot(u, title="solution at time %s [s]" %t)
         
-        pyplot.ion()
-
-        fig = pyplot.figure()
-        ax = fig.add_subplot(111)
-        line1, = ax.plot(x, y, 'r-') # Returns a tuple of line objects, thus the comma
-
-        for phase in np.linspace(0, 10*np.pi, 500):
-            line1.set_ydata(np.sin(x + phase))
-            fig.canvas.draw()
-        
-        
+        if t < 1.5*self.dt: # first step
+            # FIXME: softcode this
+            #self.x = np.array([[0., 0., float(z)] for z in range(-15, 10, 1)])
+            self.x = np.linspace(-25., 60., 200)
+            plt.ion()
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(111)
+        else:
+            self.ax.clear()
             
-        sol = self.solutions(deepcopy=True)
-        mesh = self.geo.mesh
-        on = ""
-
-        if subdomain:
-            on = " on " + subdomain
-            mesh = self.geo.submesh(subdomain)
-            for f in sol:
-                adaptfunction(f,mesh,assign=True)
-
-        plot(mesh, title="final mesh"+on)
-        for f in sol:
-            plot(f, title = str(f)+on)
-        interactive()
-        '''    
+        # TODO: efficient?
+        y = np.array([u([0., 0., z]) for z in self.x])
+        self.ax.plot(self.x, y, 'r-')
+        self.ax.set_title("t = %s [s]" %t)
+        self.ax.set_xlabel("z [nm]")
+        self.ax.set_ylabel("p(x, t)")
+        self.ax.set_ylim([0.,1.])
+        #self.ax.draw()
+        #self.line.set_ydata(y)
+        self.fig.canvas.draw()
+        #plt.plot(self.x, y)
+          
         
