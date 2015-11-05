@@ -22,7 +22,8 @@ class PDESystem(object):
 
     def solve(self, refinement=False, verbose=True):
 
-        print "Number of cells:",self.geo.mesh.num_cells()
+        if verbose:
+            print "Number of cells:",self.geo.mesh.num_cells()
         if self.geo.mesh.num_cells() > self.maxcells:
             refinement = False
 
@@ -269,6 +270,7 @@ class GoalAdaptivePDE(PDESystem):
         
 
 class GeneralLinearProblem(AdaptableLinearProblem):
+
     def __init__(self, geo, phys=None, u=None, bcs=None, **params):
         mesh = geo.mesh
         V = self.space(mesh)

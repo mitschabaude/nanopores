@@ -8,20 +8,20 @@ import math
 # -) what biased voltage to use?
 
 geo_params = dict(
-    l3 = 80.,
-    l4 = 80.,
-    R = 120.,
-    x0 = [20., 0., 50.], # |x0| > 2.2
+    l3 = 30.,
+    l4 = 30.,
+    R = 40.,
+    x0 = [0., 0., 10.], # |x0| > 2.2
     exit_i = None,
 )
 phys_params = dict(
-    bV = .5,
-    ahemqs = 0.0,
+    bV = .1,
+    ahemqs = 0.01,
     rTarget = 0.5*nm,
 )    
 
 t = Timer("meshing")
-meshdict = generate_mesh(15., "aHem", **geo_params)
+meshdict = generate_mesh(12., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 print "Mesh file:",meshdict["fid_xml"]
@@ -38,8 +38,8 @@ print "Geo params:", geo.params
 print "Geo physical domains:", geo._physical_domain
 print "Geo physical boundaries:", geo._physical_boundary
 
-plot(geo.boundaries)
-plot(geo.submesh("solid"))
+#plot(geo.boundaries)
+#plot(geo.submesh("solid"))
 #plot(geo.submesh("exittime"))
 
 phys = Physics("pore_molecule", geo, **phys_params)
@@ -94,7 +94,13 @@ print T
 print "\nTime [s] to reach bottom from pore entrance for F=0:"
 print etp_noF.solution([0.,0.,-3.])
 
-
 plot(F, title="F")
 etp.visualize("exittime")
+
+# TIMESTEP
+dt = 1e-6
+
+survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=F)
+survival.solve(t=1e-3, visualize=True)
+interactive()
 

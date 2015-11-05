@@ -47,7 +47,7 @@ def calculate(**params):
     
     # use some of the parameters
     params["x0"] = [r0, 0., z0]
-    params["l4"] = l4*domscale
+    params["l3"] = l3*domscale
     params["R"] = R*domscale
     nanopores.IllposedNonlinearSolver.newtondamp = newtondamp
     nanopores.PNPS.tolnewton = tolnewton
@@ -65,6 +65,7 @@ def calculate(**params):
     
     pnps = nanopores.PNPS(geo, phys)
     pnps.solve()
+    pnps.visualize("fluid")
     
     (v, cp, cm, u, p) = pnps.solutions(deepcopy=True)
     F = phys.Feff(v, u)

@@ -22,7 +22,7 @@ synonymes = {
     "ions": "fluid",
     "lipid": "membrane",
     "exittime": "fluid",
-    "exit":"poreexit",
+    "exit": "poreexit",
 }
 
 # characteristic length / mesh size h

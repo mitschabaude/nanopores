@@ -18,11 +18,14 @@ nproc = 4,
 )
 '''
 
-result = nanopores.simulate("ahemFPT",
+nanopores.simulate("ahemFPT",
 nproc = 1,
-domscale = [1, 2, 3, 4, 5],
-z0 = 3.,
 plot = "domscale",
+
+domscale = [1, 2, 3],
+z0 = 10.,
+
+ahemqs = 0.01,
 )
 
 
