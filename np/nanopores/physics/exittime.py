@@ -93,4 +93,4 @@ class SurvivalProblem(GeneralLinearProblem):
     @staticmethod
     def bcs(V, geo, exitb={"exit"}):
         return [geo.BC(V, Constant(0.0), bou) for bou in exitb]
-        
+               

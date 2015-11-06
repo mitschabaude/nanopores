@@ -1,0 +1,118 @@
+
+--- INPUT VARIABLES:
+
+voltage bias: 400.0000 mV
+a-Hem surface charge: 0.0200 C/m^2
+upper reservoir dimensions: 400 x 400 x 300 nm
+
+--- MESHING
+
+Converting from Gmsh format (.msh, .gmsh) to DOLFIN XML format
+Expecting 121937 vertices
+Found all vertices
+Expecting 734314 cells
+Found all cells
+Conversion done
+Mesh generation time: 38.132804195
+Geo generation time: 2.236144331
+
+--- STATISTICS FOR F=0
+
+Time [s] to reach bottom from molecule for F=0: (min, avg, max)
+(1.5908821013048491, 1.5922716686078116, 1.5931614804016503)
+
+Time [s] to reach bottom from pore entrance for F=0:
+Building point search tree to accelerate distance queries.
+Computed bounding box tree with 1468627 nodes for 734314 points.
+1.27491912247
+Calling FFC just-in-time (JIT) compiler, this may take some time.
+
+After mean time (1.59227166861 s) to reach bottom from molecule:
+Average survival rate in pore: 24.990 percent
+Average survival rate in poretop: 32.120 percent
+Average survival rate in porecenter: 27.686 percent
+Average survival rate in porebottom: 7.660 percent
+Average survival rate in fluid_bulk_top: 37.060 percent
+Average survival rate in fluid_bulk_bottom: 0.000 percent
+
+--- CALCULATING F from PNPS
+
+Number of cells: 734314
+
+- Loop 1 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Relative l2 Newton error: 0.0331258503408
+Loop timing: 24.094107949
+
+- Loop 2 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Relative l2 Newton error: 0.0081332916637
+Loop timing: 25.095548222
+
+- Loop 3 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 1.095731e+07).
+Relative l2 Newton error: 0.000247472864443
+Loop timing: 1761.75280269
+
+- Loop 4 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 1.057871e+07).
+Relative l2 Newton error: 0.000725122404266
+Loop timing: 1747.82020426
+
+- Loop 5 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 1.759047e+06).
+Relative l2 Newton error: 0.151907260108
+Loop timing: 1716.18626457
+
+- Loop 6 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 4.101518e+02).
+Relative l2 Newton error: 0.149356797274
+Loop timing: 1715.25701255
+
+- Loop 7 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 2.866601e+03).
+Relative l2 Newton error: 0.00210964422421
+Loop timing: 1713.9583359
+
+- Loop 8 of max. 50
+Solving linear system of size 365811 x 365811 (PETSc Krylov solver).
+Solving linear system of size 487748 x 487748 (PETSc Krylov solver).
+*** Warning: Krylov solver did not converge in 10000 iterations (PETSc reason DIVERGED_ITS, residual norm ||r|| = 6.184614e+00).
+linf Norm of Newton update: 0.0163108190504 <= 1.0  
+  ==> break loop 
+
+Average F in pore: -3.71557268742e-12
+Average F in poretop: -2.67775519218e-12
+Average F in porecenter: -4.45365576507e-12
+Average F in porebottom: -4.75753488416e-12
+Average F in fluid_bulk_top: -6.93998944366e-17
+Average F in fluid_bulk_bottom: -3.9607514323e-16
+
+--- STATISTICS FOR F=F
+
+Time [s] to reach bottom from molecule: (min, avg, max)
+(0.092220960334591637, 0.0935539252369996, 0.094414418622678992)
+
+Time [s] to reach bottom from pore entrance:
+0.00261685503503
+Calling FFC just-in-time (JIT) compiler, this may take some time.
+
+After mean time (0.093553925237 s) to reach bottom from molecule:
+Average survival rate in pore: 3.921 percent
+Average survival rate in poretop: 8.208 percent
+Average survival rate in porecenter: 0.581 percent
+Average survival rate in porebottom: 0.000 percent
+Average survival rate in fluid_bulk_top: 38.805 percent
+Average survival rate in fluid_bulk_bottom: 0.000 percent
+
+

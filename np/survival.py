@@ -70,6 +70,9 @@ rfar = r0 + geo.params["rMolecule"]
 xnear = map(lambda x: rnear/r0*x, x0)
 xfar = map(lambda x: rfar/r0*x, x0)
 
+ztop = geo.params["l3"]
+zbtm = geo.params["zbtm"] - geo.params["l4"]
+
 def avg(u, meas):
     return assemble(u*meas)/assemble(Constant(1.0)*meas)
 
@@ -92,10 +95,24 @@ print etp_noF.solution([0.,0.,-3.])
 
 t = T_noF[1]
 dt = t/100
-survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exitb)
-survival.solve(t=t, visualize=True, verbose=False)
 
-p = survival.solution
+survival1 = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exit1)
+survival2 = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exit2)
+
+def P(z):
+    x = [0., 0., z]    
+    return survival1.solution(x) - survival2.solution(x)
+    
+plotter = TimeDependentPlotter(P, [zbtm, ztop, 200], dt)
+
+for t_ in timerange(t, dt):
+    survival1.timestep()
+    survival2.timestep()
+p1 = survival1.solution
+
+
+survival2.solve(t=t, visualize=True, verbose=False)
+p2 = survival2.solution
 
 print
 print "After mean time (%s s) to reach bottom from molecule:" %T_noF[1]
