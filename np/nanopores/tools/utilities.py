@@ -48,5 +48,4 @@ def _call(f, params):
     argnames = inspect.getargspec(f).args
     args = [params[k] for k in argnames]
     return f(*args)
-    
 

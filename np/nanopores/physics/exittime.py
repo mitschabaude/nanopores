@@ -1,7 +1,9 @@
 from dolfin import *
 from ..tools.pdesystem import GeneralLinearProblem
+from ..tools.transientpde import *
+from ..tools.illposed import IllposedLinearSolver, Functional
 
-__all__ = ["ExitTimeProblem", "SurvivalProblem"]
+__all__ = ["ExitTimeProblem", "SurvivalProblem", "SuccessfulExit"]
 
 class ExitTimeProblem(GeneralLinearProblem):
     k = 1
@@ -46,8 +48,8 @@ class ExitTimeProblem(GeneralLinearProblem):
         return (a, L)
         
     @staticmethod
-    def bcs(V, geo, exitb={"exit"}):
-        return [geo.BC(V, Constant(0.0), bou) for bou in exitb]
+    def bcs(V, geo, exit={"exit"}):
+        return [geo.BC(V, Constant(0.0), bou) for bou in exit]
         
         
 class SurvivalProblem(GeneralLinearProblem):
@@ -68,9 +70,6 @@ class SurvivalProblem(GeneralLinearProblem):
 
     @staticmethod
     def forms(V, geo, phys, u, F, dt):
-        # initial condition u(x,0) = 1
-        # (this is cheating but ok)
-        u.vector()[:] = 1.
         
         u1 = TrialFunction(V)
         v = TestFunction(V)
@@ -91,6 +90,51 @@ class SurvivalProblem(GeneralLinearProblem):
         return (a, L)
         
     @staticmethod
-    def bcs(V, geo, exitb={"exit"}):
-        return [geo.BC(V, Constant(0.0), bou) for bou in exitb]
-               
+    def bcs(V, geo, exit={"exit"}):
+        return [geo.BC(V, Constant(0.0), bou) for bou in exit]
+        
+    @staticmethod
+    def initial_u(V):
+        u = Function(V)
+        # initial condition u(x,0) = 1
+        u.vector()[:] = 1.
+        return u
+        
+class SuccessfulExit(TransientLinearPDE):
+
+    def __init__(self, geo=None, phys=None,
+                 dt=None, badexit=set(), goodexit=set(), **problem_params):
+        if dt is not None:
+            self.dt = dt
+            
+        bothexit = badexit | goodexit
+        
+        badproblem = SurvivalProblem(geo=geo, phys=phys, dt=dt, exit=badexit, **problem_params)
+        badsolver = IllposedLinearSolver(badproblem)
+        ubad = badproblem.solution()
+        
+        bothproblem = SurvivalProblem(geo=geo, phys=phys, dt=dt, exit=bothexit, **problem_params)
+        bothsolver = IllposedLinearSolver(bothproblem)
+        uboth = bothproblem.solution()
+        
+        ugood = ubad - uboth
+
+        self.geo = geo
+        self.functions = {"bad": ubad, "both": uboth}
+        self.solution = ugood
+        self.solvers = {"bad": badsolver, "both": bothsolver}
+        
+        P = lambda z: ubad([0., 0., z]) - uboth([0., 0., z])
+        zbtm = geo.params["zbtm"]
+        ztop = geo.params["ztop"]
+        
+        self.plotter = TimeDependentPlotter(P, [zbtm, ztop, 200], dt)
+        self.functionals = {}
+        
+    def visualize(self):
+        self.plotter.plot(self.time[-1])
+        
+    def finish_plots(self):
+        self.plotter.finish()
+        self.plot_functionals("semilogx")
+        

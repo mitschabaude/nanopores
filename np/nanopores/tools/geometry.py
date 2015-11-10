@@ -201,6 +201,10 @@ class Geometry(object):
             return dgfun
         else:
             return value
+            
+    def avg(self, u, string, dx="dx"):
+        meas = getattr(self, dx)(string)
+        return assemble(u*meas)/assemble(Constant(1.0)*meas)
 
     def parameter(self, string):
         try:

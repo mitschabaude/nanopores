@@ -8,24 +8,26 @@ import math
 # -) what biased voltage to use?
 
 geo_params = dict(
-    l3 = 30.,
-    l4 = 15.,
-    R = 40.,
+    l3 = 60.,
+    l4 = 10.,
+    R = 60.,
     x0 = [5., 0., 10.], # |x0| > 2.2
     exit_i = None,
 )
 phys_params = dict(
     bV = .5,
-    ahemqs = 0.02,
+    ahemqs = 0.01,
     rTarget = 0.5*nm,
     bulkcon = 1000,
 )
 # TODO: discriminate upper/lower side boundary
-exit1 = {"upperb"}
-exit2 = {"upperb", "lowerb"}
+badexit = {"upperb"}
+goodexit = {"exit"}
 
 #StokesProblem.method["lusolver"] = "mumps" # doesn't work
 #StokesProblem.method["iterative"] = True
+skip_stokes = True
+#IllposedNonlinearSolver.newtondamp = 0.8
 
 print
 print "--- INPUT VARIABLES:"
@@ -40,7 +42,7 @@ print "--- MESHING"
 print
 
 t = Timer("meshing")
-meshdict = generate_mesh(10., "aHem", **geo_params)
+meshdict = generate_mesh(7., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 #print "Mesh file:",meshdict["fid_xml"]
@@ -70,9 +72,6 @@ rfar = r0 + geo.params["rMolecule"]
 xnear = map(lambda x: rnear/r0*x, x0)
 xfar = map(lambda x: rfar/r0*x, x0)
 
-ztop = geo.params["l3"]
-zbtm = geo.params["zbtm"] - geo.params["l4"]
-
 def avg(u, meas):
     return assemble(u*meas)/assemble(Constant(1.0)*meas)
 
@@ -81,54 +80,50 @@ def exit_times(tau):
     Tmax = tau(xfar)
     Tavg = avg(tau, geo.dS("moleculeb"))
     return (Tmin, Tavg, Tmax)
-
+'''
 print
 print "--- STATISTICS FOR F=0"
-etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.,0.,0.)), exitb=exitb)
+etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.,0.,0.)), exit=badexit)
 etp_noF.solve(verbose=False)
 T_noF = exit_times(etp_noF.solution)
-print "\nTime [s] to reach bottom from molecule for F=0: (min, avg, max)"
+print "\nTime [s] to reach top from molecule for F=0: (min, avg, max)"
 print T_noF
 
-print "\nTime [s] to reach bottom from pore entrance for F=0:"
+print "\nTime [s] to reach top from pore entrance for F=0:"
 print etp_noF.solution([0.,0.,-3.])
 
-t = T_noF[1]
+Tbot = avg(etp_noF.solution, geo.dx("fluid_bulk_bottom"))
+print "\nTime [s] to reach top from bottom reservoir for F=0:"
+print Tbot
+
+t = T_noF[1]*.01
 dt = t/100
 
-survival1 = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exit1)
-survival2 = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exit2)
-
-def P(z):
-    x = [0., 0., z]    
-    return survival1.solution(x) - survival2.solution(x)
+survival = SuccessfulExit(geo, phys, dt=dt, F=Constant((0.,0.,0.)),
+    goodexit=goodexit, badexit=badexit)
+survival.timerange = logtimerange(t, levels=4, frac=.05, change_dt=survival.change_dt)
     
-plotter = TimeDependentPlotter(P, [zbtm, ztop, 200], dt)
-
-for t_ in timerange(t, dt):
-    survival1.timestep()
-    survival2.timestep()
-p1 = survival1.solution
-
-
-survival2.solve(t=t, visualize=True, verbose=False)
-p2 = survival2.solution
+survival.solve(visualize=True)
+p = survival.solution
 
 print
-print "After mean time (%s s) to reach bottom from molecule:" %T_noF[1]
+#print "After t = %s s:" %T_noF[1]
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
-    print "Average survival rate in %s: %.3f percent"%(domain,
-        100.*assemble(p*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain)))
+    print "Average successful exit rate in %s: %.2f percent"%(domain,
+        100.*avg(p, geo.dx(domain)))
+print "Average successful exit rate from molecule: %.2f percent" %(100.*avg(p, geo.dS("moleculeb")), )
 
 #print "Physics:"
 #for item in phys.__dict__.items():
 #    print "%s = %s" %item
-
+'''
 print
 print "--- CALCULATING F from PNPS"
 print
     
 pde = PNPS(geo, phys)
+if skip_stokes:
+    pde.solvers.pop("Stokes")
 pde.solve()
 #pde.print_results()
 
@@ -140,14 +135,12 @@ for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", 
 
 #VV = VectorFunctionSpace(geo.mesh, "CG", 1)
 #F = project(F, VV)
-
-# solve exit time problem
-
+#plot(F, title="F")
 
 print
 print "--- STATISTICS FOR F=F"
 
-etp = LinearPDE(geo, ExitTimeProblem, phys, F=F, exitb=exitb)
+etp = LinearPDE(geo, ExitTimeProblem, phys, F=F, exit=goodexit)
 etp.solve(verbose=False)
 
 T = exit_times(etp.solution)
@@ -155,25 +148,36 @@ print "\nTime [s] to reach bottom from molecule: (min, avg, max)"
 print T
 
 print "\nTime [s] to reach bottom from pore entrance:"
-print etp.solution([0.,0.,-3.])
-
-
-
-#plot(F, title="F")
-#etp.visualize("exittime")
+print etp.solution([0.,0.,0.])
 
 # TIMESTEP
-t = T[1]
+t = T[1]*.01
 dt = t/100
-survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=F, exitb=exitb)
-survival.solve(t=t, visualize=True, verbose=False)
 
+survival = SuccessfulExit(geo, phys, dt=dt, F=F, goodexit=goodexit, badexit=badexit)
 p = survival.solution
 
+avgdS = lambda domain: p/assemble(Constant(1.0)*geo.dS(domain))*geo.dS(domain)
+avgdx = lambda domain: p/assemble(Constant(1.0)*geo.dx(domain))*geo.dx(domain)
+
+survival.functionals = {
+    "P(t) from upper reservoir": Functional(avgdx("fluid_bulk_top")),
+    "P(t) from molecule": Functional(avgdS("moleculeb")),
+    #"P(t) from pore top": Functional(avgdx("poretop")),
+    #"P(t) from pore center": Functional(avgdx("porecenter")),
+    #"P(t) from pore bottom": Functional(avgdx("porebottom")),
+}
+survival.timerange = logtimerange(t, levels=3, frac=.1, change_dt=survival.change_dt)
+survival.solve(visualize=True)
+survival.plot_functionals("loglog")
+
 print
-print "After mean time (%s s) to reach bottom from molecule:" %T[1]
+#print "After mean time (%s s) to reach bottom from molecule:" %T[1]
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
-    print "Average survival rate in %s: %.3f percent"%(domain,
-        100.*assemble(p*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain)))
+    print "Average successful exit rate in %s: %.2f percent"%(domain,
+        100.*avg(p, geo.dx(domain)))
+print "Average successful exit rate from molecule: %.2f percent"%(
+        100.*avg(p, geo.dS("moleculeb")),)
 print
+#interactive()
 

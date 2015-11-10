@@ -276,14 +276,30 @@ class GeneralLinearProblem(AdaptableLinearProblem):
         
         mesh = geo.mesh
         V = self.space(mesh)
+        params.update(geo=geo, phys=phys, V=V)
+        
         if not u:
-            u = Function(V)
+            if hasattr(self, "initial_u"):
+                u = _call(self.initial_u, params)
+            else:
+                u = Function(V)
             
-        params.update(geo=geo, u=u, phys=phys, V=V)
+        params.update(u=u)
+        self.params = params
         
         if not bcs:
             bcs = _call(self.bcs, params)
         
         a, L = _call(self.forms, params)
         AdaptableLinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
+        
+    def update_forms(self, **new_params):
+        # useful to e.g. change timestep and reassemble matrix
+    
+        self.params.update(new_params)
+        a, L = _call(self.forms, self.params)
+        self.a = a
+        self.L = L
+        
+    
         
