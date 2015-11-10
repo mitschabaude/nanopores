@@ -41,10 +41,6 @@ class TransientLinearPDE(PDESystem):
         solver = IllposedLinearSolver(problem)
 
         self.geo = geo
-        self.phys = phys
-        self.problem_params = problem_params
-        self.Problem = Problem
-        
         self.functions = {Problem.__name__: problem.solution()}
         self.solution = problem.solution()
         self.solvers = {Problem.__name__: solver}

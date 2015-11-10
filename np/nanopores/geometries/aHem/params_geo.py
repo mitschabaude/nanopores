@@ -23,6 +23,9 @@ synonymes = {
     "lipid": "membrane",
     "exittime": "fluid",
     "exit": "poreexit",
+    "sideb": {"uppersideb", "lowersideb"},
+    "upperbulkb": {"upperb", "uppersideb"},
+    "lowerbulkb": {"lowerb", "lowersideb"},
 }
 
 # characteristic length / mesh size h

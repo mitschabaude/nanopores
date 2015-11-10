@@ -69,7 +69,7 @@ class SurvivalProblem(GeneralLinearProblem):
         return FunctionSpace(mesh, 'CG', SurvivalProblem.k)
 
     @staticmethod
-    def forms(V, geo, phys, u, F, dt):
+    def forms(V, geo, phys, u, F, dt=None, steady=False):
         
         u1 = TrialFunction(V)
         v = TestFunction(V)
@@ -81,25 +81,30 @@ class SurvivalProblem(GeneralLinearProblem):
         mu = D/phys.kT
         J = -D*grad(v) + v*mu*F
         
-        # (u1 - u)/dt + divJ*(th*u1 + (1-th)*u) = 0
-        # u1 + dt*divJ*(u1*th) = u - dt*divJ*(u*(1-th))
-        
-        a = (u1*v - dt*inner(J, grad(u1)))*dx
-        L = u*v*dx # + dt/2*inner(J, grad(u)))*dx
+        if steady or dt is None:
+            a = inner(J, grad(u1))*dx
+            L = Constant(0.)*v*dx
+        else: # transient case
+            # backward euler: (u1 - u)/dt + divJ*(u1) = 0
+            a = (u1*v - dt*inner(J, grad(u1)))*dx
+            L = u*v*dx
         
         return (a, L)
         
     @staticmethod
-    def bcs(V, geo, exit={"exit"}):
-        return [geo.BC(V, Constant(0.0), bou) for bou in exit]
+    def bcs(V, geo, goodexit=set(), badexit={"exit"}):
+        return ([geo.BC(V, Constant(0.0), bou) for bou in badexit] +
+                [geo.BC(V, Constant(1.0), bou) for bou in goodexit])
         
     @staticmethod
-    def initial_u(V):
+    def initial_u(V, u0=0.):
         u = Function(V)
-        # initial condition u(x,0) = 1
-        u.vector()[:] = 1.
+        # initial condition u(x,0) = u0
+        # u0 = 1 for "survival" type problem, u0 = 0 for "death"
+        u.vector()[:] = u0
         return u
-        
+
+'''        
 class SuccessfulExit(TransientLinearPDE):
 
     def __init__(self, geo=None, phys=None,
@@ -125,11 +130,19 @@ class SuccessfulExit(TransientLinearPDE):
         self.solvers = {"bad": badsolver, "both": bothsolver}
         
         P = lambda z: ubad([0., 0., z]) - uboth([0., 0., z])
+'''
+class SuccessfulExit(TransientLinearPDE):
+
+    def __init__(self, geo=None, phys=None, dt=None, **problem_params):
+        TransientLinearPDE.__init__(self, SurvivalProblem, geo=geo,
+            phys=phys, dt=dt, **problem_params)
+        
+        p = self.solution
+        pz = lambda z: p([0., 0., z])
         zbtm = geo.params["zbtm"]
         ztop = geo.params["ztop"]
         
-        self.plotter = TimeDependentPlotter(P, [zbtm, ztop, 200], dt)
-        self.functionals = {}
+        self.plotter = TimeDependentPlotter(pz, [zbtm, ztop, 200], dt)
         
     def visualize(self):
         self.plotter.plot(self.time[-1])

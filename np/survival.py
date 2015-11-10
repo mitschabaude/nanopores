@@ -21,7 +21,7 @@ phys_params = dict(
     bulkcon = 1000,
 )
 # TODO: discriminate upper/lower side boundary
-badexit = {"upperb"}
+badexit = {"upperbulkb"}
 goodexit = {"exit"}
 
 #StokesProblem.method["lusolver"] = "mumps" # doesn't work
@@ -42,7 +42,7 @@ print "--- MESHING"
 print
 
 t = Timer("meshing")
-meshdict = generate_mesh(7., "aHem", **geo_params)
+#meshdict = generate_mesh(9., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 #print "Mesh file:",meshdict["fid_xml"]
@@ -140,44 +140,60 @@ for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", 
 print
 print "--- STATISTICS FOR F=F"
 
-etp = LinearPDE(geo, ExitTimeProblem, phys, F=F, exit=goodexit)
+etp = LinearPDE(geo, ExitTimeProblem, phys, F=F)
 etp.solve(verbose=False)
-
 T = exit_times(etp.solution)
 print "\nTime [s] to reach bottom from molecule: (min, avg, max)"
 print T
-
 print "\nTime [s] to reach bottom from pore entrance:"
 print etp.solution([0.,0.,0.])
+print "\nTime [s] to reach bottom from bottom reservoir for F=0:"
+print avg(etp.solution, geo.dx("fluid_bulk_bottom"))
+
+exit()
+steadysurv = LinearPDE(geo, SurvivalProblem, phys, F=F, goodexit=goodexit, badexit=badexit)
+steadysurv.solve(verbose=False)
+steadysurv.visualize("fluid")
+psteady = steadysurv.solution
+
+print
+print "Steady solution:"
+for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
+    print "Average successful exit rate in %s: %.2f percent"%(domain,
+        100.*avg(psteady, geo.dx(domain)))
+print "Average successful exit rate from molecule: %.2f percent"%(
+        100.*avg(psteady, geo.dS("moleculeb")),)
+print
 
 # TIMESTEP
-t = T[1]*.01
+t = T[1]*.001
 dt = t/100
 
 survival = SuccessfulExit(geo, phys, dt=dt, F=F, goodexit=goodexit, badexit=badexit)
 p = survival.solution
 
-avgdS = lambda domain: p/assemble(Constant(1.0)*geo.dS(domain))*geo.dS(domain)
-avgdx = lambda domain: p/assemble(Constant(1.0)*geo.dx(domain))*geo.dx(domain)
+avgdS = lambda domain: Functional(p/assemble(Constant(1.0)*geo.dS(domain))*geo.dS(domain))
+avgdx = lambda domain: Functional(p/assemble(Constant(1.0)*geo.dx(domain))*geo.dx(domain))
 
 survival.functionals = {
-    "P(t) from upper reservoir": Functional(avgdx("fluid_bulk_top")),
-    "P(t) from molecule": Functional(avgdS("moleculeb")),
-    #"P(t) from pore top": Functional(avgdx("poretop")),
-    #"P(t) from pore center": Functional(avgdx("porecenter")),
-    #"P(t) from pore bottom": Functional(avgdx("porebottom")),
+    "P(t) from upper reservoir": avgdx("fluid_bulk_top"),
+    "P(t) from molecule": avgdS("moleculeb"),
+    "P(t) from pore top": avgdx("poretop"),
+    "P(t) from pore center": avgdx("porecenter"),
+    "P(t) from pore bottom": avgdx("porebottom"),
 }
-survival.timerange = logtimerange(t, levels=3, frac=.1, change_dt=survival.change_dt)
+survival.timerange = logtimerange(t, levels=3, frac=.05, change_dt=survival.change_dt)
 survival.solve(visualize=True)
 survival.plot_functionals("loglog")
 
 print
-#print "After mean time (%s s) to reach bottom from molecule:" %T[1]
+print "Transient solution after t=%s:" %(survival.time[-1],)
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
     print "Average successful exit rate in %s: %.2f percent"%(domain,
         100.*avg(p, geo.dx(domain)))
 print "Average successful exit rate from molecule: %.2f percent"%(
         100.*avg(p, geo.dS("moleculeb")),)
 print
+
 #interactive()
 
