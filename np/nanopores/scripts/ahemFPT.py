@@ -15,6 +15,8 @@ R = 20.
 r0 = 0.
 z0 = 10.
 exit_i = None
+badexit = {"upperbulkb"}
+goodexit = {"exit"}
 
 ### phys params
 phys_name = "pore_molecule"
@@ -30,6 +32,7 @@ maxcells = 50e3
 newtondamp = 1.0
 reuse_mesh = False
 tolnewton = 1e-1
+skip_stokes = True
 
 def _update(dic, dic2): # conservative update
     dic.update({key:dic2[key] for key in dic2 if not key in dic})
@@ -58,12 +61,15 @@ def calculate(**params):
     
     #dolfin.plot(geo.submesh("solid"), interactive=True)
     phys = nanopores.Physics(phys_name, geo, **params)
+    
 
     #print "Physics:"
     #for item in phys.__dict__.items():
     #    print "%s = %s" %item
     
     pnps = nanopores.PNPS(geo, phys)
+    if skip_stokes:
+        pnps.solvers.pop("Stokes")
     pnps.solve()
     pnps.visualize("fluid")
     
@@ -82,7 +88,18 @@ def calculate(**params):
 
     def avg(u, dx):
         return dolfin.assemble(u*dx)/dolfin.assemble(dolfin.Constant(1.)*dx)
-
+        
+    steadysurv = LinearPDE(geo, SurvivalProblem, phys, F=F, goodexit=goodexit, badexit=badexit)
+    steadysurv.solve(verbose=False)
+    steadysurv.visualize("fluid")
+    psteady = steadysurv.solution
+    
+    result = {}
+    for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
+        result["Average successful exit rate in %s" %domain] = 100.*avg(psteady, geo.dx(domain))
+    result["Average successful exit rate from molecule"] = 100.*avg(psteady, geo.dS("moleculeb"))
+    
+    '''
     etp = nanopores.LinearPDE(geo, nanopores.ExitTimeProblem, phys, F=F)
     etp.solve()
     tau = etp.solution
@@ -95,6 +112,7 @@ def calculate(**params):
         tporemin = tau(xbtm),
         tporeavg = avg(tau, geo.dx("pore")),
     )
+    '''
     return result
 
 

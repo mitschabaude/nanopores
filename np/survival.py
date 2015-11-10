@@ -150,7 +150,6 @@ print etp.solution([0.,0.,0.])
 print "\nTime [s] to reach bottom from bottom reservoir for F=0:"
 print avg(etp.solution, geo.dx("fluid_bulk_bottom"))
 
-exit()
 steadysurv = LinearPDE(geo, SurvivalProblem, phys, F=F, goodexit=goodexit, badexit=badexit)
 steadysurv.solve(verbose=False)
 steadysurv.visualize("fluid")
