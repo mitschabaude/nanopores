@@ -12,15 +12,15 @@ geo_params = dict(
     l4 = 10.,
     R = 60.,
     x0 = [5., 0., 10.], # |x0| > 2.2
-    exit_i = None,
+    exit_i = 1,
 )
 phys_params = dict(
     bV = .5,
     ahemqs = 0.01,
     rTarget = 0.5*nm,
-    bulkcon = 1000,
+    bulkcon = 1000.,
 )
-# TODO: discriminate upper/lower side boundary
+
 badexit = {"upperbulkb"}
 goodexit = {"exit"}
 
@@ -42,7 +42,7 @@ print "--- MESHING"
 print
 
 t = Timer("meshing")
-#meshdict = generate_mesh(9., "aHem", **geo_params)
+meshdict = generate_mesh(5., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 #print "Mesh file:",meshdict["fid_xml"]
@@ -152,7 +152,7 @@ print avg(etp.solution, geo.dx("fluid_bulk_bottom"))
 
 steadysurv = LinearPDE(geo, SurvivalProblem, phys, F=F, goodexit=goodexit, badexit=badexit)
 steadysurv.solve(verbose=False)
-steadysurv.visualize("fluid")
+steadysurv.visualize("exittime")
 psteady = steadysurv.solution
 
 print

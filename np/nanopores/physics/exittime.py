@@ -17,7 +17,7 @@ class ExitTimeProblem(GeneralLinearProblem):
             same_nonzero_pattern = True,
             reuse_factorization = True,),
         ks = "bicgstab",
-        kp = "amg",
+        kp = "ilu",
         kparams = dict(
             maximum_iterations = 200,
             monitor_convergence = False,
@@ -62,7 +62,17 @@ class SurvivalProblem(GeneralLinearProblem):
         luparams = dict(
             symmetric = False,
             same_nonzero_pattern = True,
-            reuse_factorization = True,),)
+            reuse_factorization = True,),
+        ks = "bicgstab",
+        kp = "ilu",
+        kparams = dict(
+            maximum_iterations = 1000,
+            monitor_convergence = False,
+            relative_tolerance = 1e-4,
+            error_on_nonconvergence = False,
+            preconditioner = dict(
+                ilu = dict(fill_level = 1)))
+    )
             
     @staticmethod
     def space(mesh):

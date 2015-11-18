@@ -7,3 +7,4 @@ from physicsclass import *
 from protocol import *
 from mpipool import *
 from transientpde import *
+from box import *

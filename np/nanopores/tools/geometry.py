@@ -61,7 +61,7 @@ class Geometry(object):
         # trivial default subdomains/boundaries
         if subdomains is None:
             subdomains = CellFunction("size_t", mesh, 0)
-            physical_domain = {"all":(0,)}
+            physical_domain = {"domain":(0,)}
         if boundaries is None:
             boundaries = FacetFunction("size_t", mesh, 0)
             AutoSubDomain(lambda x, on_boundary : on_boundary).mark(boundaries, 1)
@@ -256,14 +256,30 @@ class Geometry(object):
         else:
             return SubMesh(self.mesh, self.indicator(string), 1)
 
-    def indicator(self, string):
+    def indicator(self, string, DG=False, callable=False):
         # return "indicator" CellFunction for subdomain
+        # set either DG or callable to True to use as function (callable with points)
         t = self.physicaldomain(string)
         sub = self.subdomains
+
+        if DG: # <-- slow. callable is better
+            D = FunctionSpace(self.mesh, "DG", 0)
+            dofmap = D.dofmap()
+            chi = Function(D)
+            chi.vector()[:] = 0
+            for cell in cells(self.mesh):
+                if sub[cell] in t:
+                    i = dofmap.cell_dofs(cell.index())
+                    chi.vector()[i] = 1
+            return chi
+    
         chi = CellFunction("size_t", self.mesh, 0)
         for cell in cells(self.mesh):
             if sub[cell] in t:
                 chi[cell] = 1
+        
+        if callable:
+            return CallableMeshFunction(chi)
         return chi
 
     def _neumann_lookup(self, bou2phys, value):
@@ -300,6 +316,7 @@ class Geometry(object):
         dgfun = Function(FunctionSpace(self.mesh,'DG',0))
         dgfun.interpolate(expr)
         return dgfun
+        
 
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
     def __init__(self, dom2value, subdomains):
@@ -307,7 +324,17 @@ class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
         self.dom2value = dom2value
     def eval_cell(self, values, x, cell):
         values[0] = self.dom2value[self.subdomains[cell.index]]
+        
 
+from numpy import array        
+class CallableMeshFunction(object):
+    def __init__(self, f):
+        self.f = f
+        self.btree = f.mesh().bounding_box_tree()
+    def __call__(self, x):
+        i = self.btree.compute_first_entity_collision(Point(array(x)))
+        return self.f[int(i)]
+    
 
 class PhysicalBC(object):
     """ boundary condition defined by its physical meaning

@@ -12,9 +12,9 @@ domscale = 1.
 l4 = 15.
 l3 = 15.
 R = 20.
-r0 = 0.
+r0 = 5.
 z0 = 10.
-exit_i = None
+exit_i = 1
 badexit = {"upperbulkb"}
 goodexit = {"exit"}
 
@@ -23,7 +23,7 @@ phys_name = "pore_molecule"
 bV = .5 # [V]
 ahemqs = 0.0 # [C/m**2]
 rTarget = 0.5e-9 # [m] for diffusion coeff.
-bulkcon = 3e2
+bulkcon = 1000
 
 ### num params
 clscale = 10.
@@ -33,6 +33,7 @@ newtondamp = 1.0
 reuse_mesh = False
 tolnewton = 1e-1
 skip_stokes = True
+iterative = True
 
 def _update(dic, dic2): # conservative update
     dic.update({key:dic2[key] for key in dic2 if not key in dic})
@@ -45,13 +46,14 @@ def _globals(): # globals except hidden ones ("_"), modules and functions
 def calculate(**params):
     # this time we do it the simple way: just pass every parameter
     # have to be careful though
-    _update(params, _globals())
     globals().update(params)
+    params.update(_globals())
     
     # use some of the parameters
     params["x0"] = [r0, 0., z0]
     params["l3"] = l3*domscale
     params["R"] = R*domscale
+    # does this something?
     nanopores.IllposedNonlinearSolver.newtondamp = newtondamp
     nanopores.PNPS.tolnewton = tolnewton
     
@@ -62,57 +64,33 @@ def calculate(**params):
     #dolfin.plot(geo.submesh("solid"), interactive=True)
     phys = nanopores.Physics(phys_name, geo, **params)
     
-
-    #print "Physics:"
-    #for item in phys.__dict__.items():
-    #    print "%s = %s" %item
-    
+    t = dolfin.Timer("PNPS")
     pnps = nanopores.PNPS(geo, phys)
     if skip_stokes:
         pnps.solvers.pop("Stokes")
     pnps.solve()
-    pnps.visualize("fluid")
+    print "Time to calculate F:",t.stop()
+    #pnps.visualize("fluid")
     
     (v, cp, cm, u, p) = pnps.solutions(deepcopy=True)
     F = phys.Feff(v, u)
-
-    # some points to evaluate exit time
-    x0 = geo.params["x0"]
-    rx0 = math.sqrt(sum(x**2 for x in x0))
-    rnear = rx0 - geo.params["rMolecule"]
-    rfar = rx0 + geo.params["rMolecule"]
-    xnear = map(lambda x: rnear/rx0*x, x0)
-    xfar = map(lambda x: rfar/rx0*x, x0)
-    xtop = [0.,0.,0.]
-    xbtm = [0.,0.,geo.params["zbtm"]]
-
     def avg(u, dx):
         return dolfin.assemble(u*dx)/dolfin.assemble(dolfin.Constant(1.)*dx)
-        
-    steadysurv = LinearPDE(geo, SurvivalProblem, phys, F=F, goodexit=goodexit, badexit=badexit)
+    
+    t = dolfin.Timer("SE")
+    nanopores.SurvivalProblem.method["iterative"] = iterative    
+    steadysurv = nanopores.LinearPDE(geo, nanopores.SurvivalProblem,
+        phys, F=F, goodexit=goodexit, badexit=badexit)
     steadysurv.solve(verbose=False)
-    steadysurv.visualize("fluid")
+    print "Time to solve SE problem:",t.stop()
+    #steadysurv.visualize("exittime")
     psteady = steadysurv.solution
     
     result = {}
-    for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
-        result["Average successful exit rate in %s" %domain] = 100.*avg(psteady, geo.dx(domain))
-    result["Average successful exit rate from molecule"] = 100.*avg(psteady, geo.dS("moleculeb"))
+    for domain in ["poretop", "porecenter", "fluid_bulk_top"]:
+        result["SER_%s" %domain] = 100.*avg(psteady, geo.dx(domain))
+    result["SER_molecule"] = 100.*avg(psteady, geo.dS("moleculeb"))
     
-    '''
-    etp = nanopores.LinearPDE(geo, nanopores.ExitTimeProblem, phys, F=F)
-    etp.solve()
-    tau = etp.solution
-    
-    result = dict(
-        tmolmin = tau(xnear),
-        tmolavg = avg(tau, geo.dS("moleculeb")),
-        tmolmax = tau(xfar),
-        tporemax = tau(xtop),
-        tporemin = tau(xbtm),
-        tporeavg = avg(tau, geo.dx("pore")),
-    )
-    '''
     return result
 
 
