@@ -10,6 +10,7 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 from itertools import izip, product, combinations
 import numpy as np
 from .. import py4gmsh
+import dolfin
 
 class Box(object):
     
@@ -75,10 +76,19 @@ class BoxCollection(object):
     def initialize(self):
         self.boxes = multi_box_union(*(self.boxes)).boxes
         
-    def plot(self, clscale=.5):
-        if not hasattr(self, "code"):
-            self.code = to_gmsh(self.entities)
-        gmsh_to_mesh(self.code, clscale)
+    def plot(self, clscale=.5, sub=False):
+        entities_to_gmsh(self.entities)
+        mesh = to_mesh(clscale)
+        dolfin.plot(mesh, interactive=True)
+        if sub:
+            pass
+        
+    def addboxes(self, *newboxes):
+        new = multi_box_union(*(self.boxes + list(newboxes)))
+        self.nodes = new.nodes
+        self.entities = new.entities
+        self.esets = new.esets
+        self.boxes = new.boxes
         
     #def __or__(self, other):
     #    if isinstance(other, Box):
@@ -208,9 +218,6 @@ def multi_box_union(*boxes):
         intvs.append(intv)
         isets.append(iset)
         
-    collection = BoxCollection()
-    collection.nodes = nodes # TODO: needed?
-    
     D = range(dim) # [0,...,dim-1]
     D1 = range(dim+1) # [0,..,dim]
     entities = [[] for k in D1] # entity := d-tuple of tuples/floats <=> box
@@ -230,27 +237,15 @@ def multi_box_union(*boxes):
         #print "k=%s:"%k, entities[k]
         #print
                     
+    collection = BoxCollection()
+    collection.nodes = nodes # TODO: needed?
     collection.entities = entities
     collection.esets = esets
     collection.boxes = [Box(intervals=A) for A in entities[dim]]
             
     return collection
-    
-def _endpoints(line):
-    a = tuple((x[0] if isinstance(x, tuple) else x) for x in line)
-    b = tuple((x[1] if isinstance(x, tuple) else x) for x in line)
-    return a, b
-    
-def _lineloop(surf):
-    loop = []
-    d = len(surf)
-    for i, x in enumerate(surf):
-        if isinstance(x, tuple):
-            loop.append(tuple((x[0] if i==j else surf[j]) for j in range(d)))
-            loop.append(tuple((x[1] if i==j else surf[j]) for j in range(d)))
-    return tuple(loop)
-    
-def _facets(box): # this is for general k-dimensional box, k = 1,...,d
+        
+def _facets(box): # get facets from d-dimensional box, d >= 1
     facets = []
     d = len(box)
     for i, x in enumerate(box): # iterate through intervals/floats
@@ -274,7 +269,10 @@ Entity = {
     3: py4gmsh.Volume
     }
 
-def to_gmsh(entities, lc=.5):
+def entities_to_gmsh(entities, lc=.5):
+
+    global gmsh_entities
+    global dim
     
     dim = len(entities)-1
     gmsh_entities = [[None for e in k] for k in entities]
@@ -296,7 +294,7 @@ def to_gmsh(entities, lc=.5):
             facets = _facets(e)
             
             # find corresponding gmsh facets
-            facets = tuple(_gmsh(l, k-1) for l in facets)
+            facets = [_gmsh(l, k-1) for l in facets]
             
             # create facet loop with correct orientations
             orient = _orientations(k-1)
@@ -305,10 +303,18 @@ def to_gmsh(entities, lc=.5):
             # add entity
             gmsh_entities[k][i] = Entity[k](loop)
             
-    return py4gmsh.get_code()
+            
+def subdomains_to_gmsh(esets):
+    # call only after entities_to_gmsh
+    sets = esets[dim]
+    vols = list(set.intersection(*sets))
+    #for i in vols:
+    #    for vol in gmsh_entities[
     
     
-def gmsh_to_mesh(code, clscale, pid=""):
+def to_mesh(clscale, pid=""):
+    code = py4gmsh.get_code()
+
     import os, subprocess
     inputfile = "input%s.geo" %pid
     outfile = "out%s.msh" %pid
@@ -338,8 +344,6 @@ def gmsh_to_mesh(code, clscale, pid=""):
     subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
     # for debugging:
     # convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
-    import dolfin
-    dolfin.plot(dolfin.Mesh(fid_dict["fid_xml"]))
-    dolfin.interactive()
+    return dolfin.Mesh(fid_dict["fid_xml"])
     
  

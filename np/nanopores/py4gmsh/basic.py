@@ -289,6 +289,8 @@ def PhysicalVolume(volume, label):
     '''
     global _PHYSVOL_ID, _PHYSVOL
     _PHYSVOL_ID += 1
+    if hasattr(volume, "__iter__"):
+        volume = "{%s}" % (",".join(volume),)
     _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
     _PHYSVOL[label] =  (_PHYSVOL_ID,)
     return
