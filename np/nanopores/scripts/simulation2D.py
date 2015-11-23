@@ -109,12 +109,13 @@ def post_iteration(result, stamp, showplot=False):
 
     # put result and input into form
     result = join_dicts(result)
-    stamp.pop("method")
     iterkeys = stamp.pop("iterkeys")
-    input = join_dicts(combinations(stamp, iterkeys))
+    # create combinations only of relevant (iterable) parameters
+    input_params = {k:stamp[k] for k in iterkeys} # can be empty
+    input = join_dicts(combinations(input_params, iterkeys))
     
     # save iterated parameters and result to data file
-    N = len(input.values()[0])
+    N = len(result.values()[0])
     data = Data(savedir+"result"+uid+".dat", N=N, overwrite=True)
     data.data["status"][:] = 1
     for key in input:
@@ -138,7 +139,6 @@ def post_iteration(result, stamp, showplot=False):
     # create combinations only of relevant (iterable) parameters
     input_params = {k:stamp[k] for k in iterkeys}
     params = combinations(input_params, iterkeys)
-    print params
     
     from matplotlib.pyplot import plot, xlabel, ylabel, legend, figure, savefig, show
     # for every result column
@@ -179,11 +179,13 @@ def simulate(name, nproc=1, outputs=None, plot=None, write_files=True, **params)
         result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
     if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
         return
+    
+    stamp["script"] = name
     print result, stamp
     post_iteration(result, stamp, showplot=False)
     return result
 
-# simulation in 2D    
+# simulation in 2D (script for howorka pore)
 def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):
     if outputs is not None:
         def f(**x):

@@ -9,38 +9,22 @@ import math
 
 geo_params = dict(
     l3 = 30.,
-    l4 = 15.,
+    l4 = 30.,
     R = 40.,
     x0 = [5., 0., 10.], # |x0| > 2.2
     exit_i = None,
 )
 phys_params = dict(
-    bV = .5,
-    ahemqs = 0.02,
+    bV = .1,
+    ahemqs = 0.01,
     rTarget = 0.5*nm,
-    bulkcon = 1000,
-)
-# TODO: discriminate upper/lower side boundary
-exit1 = {"upperb"}
-exit2 = {"upperb", "lowerb"}
-
-#StokesProblem.method["lusolver"] = "mumps" # doesn't work
-#StokesProblem.method["iterative"] = True
-
-print
-print "--- INPUT VARIABLES:"
-print
-print "voltage bias: %.4f mV" %(1000.*phys_params["bV"],)
-print "a-Hem surface charge: %.4f C/m^2" %(phys_params["ahemqs"],)
-print "upper reservoir dimensions: %d x %d x %d nm" %(geo_params["R"], geo_params["R"], geo_params["l3"])
-print "molecule position: %d nm above pore" %(geo_params["x0"][2],)
-    
+)    
 print
 print "--- MESHING"
 print
 
 t = Timer("meshing")
-meshdict = generate_mesh(10., "aHem", **geo_params)
+meshdict = generate_mesh(7., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 #print "Mesh file:",meshdict["fid_xml"]
@@ -81,7 +65,7 @@ def exit_times(tau):
 
 print
 print "--- STATISTICS FOR F=0"
-etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.,0.,0.)), exitb=exitb)
+etp_noF = LinearPDE(geo, ExitTimeProblem, phys, F=Constant((0.0,0.0,0.0)))
 etp_noF.solve(verbose=False)
 T_noF = exit_times(etp_noF.solution)
 print "\nTime [s] to reach bottom from molecule for F=0: (min, avg, max)"
@@ -90,14 +74,12 @@ print T_noF
 print "\nTime [s] to reach bottom from pore entrance for F=0:"
 print etp_noF.solution([0.,0.,-3.])
 
-t = T_noF[1]
-dt = t/100
-survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)), exitb=exitb)
-survival.solve(t=t, visualize=True, verbose=False)
+dt = 1e-4
+survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=Constant((0.,0.,0.)))
+survival.solve(t=T_noF[1], visualize=True, verbose=False)
 
 p = survival.solution
 
-print
 print "After mean time (%s s) to reach bottom from molecule:" %T_noF[1]
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
     print "Average survival rate in %s: %.3f percent"%(domain,
@@ -130,7 +112,7 @@ for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", 
 print
 print "--- STATISTICS FOR F=F"
 
-etp = LinearPDE(geo, ExitTimeProblem, phys, F=F, exitb=exitb)
+etp = LinearPDE(geo, ExitTimeProblem, phys, F=F)
 etp.solve(verbose=False)
 
 T = exit_times(etp.solution)
@@ -146,17 +128,15 @@ print etp.solution([0.,0.,-3.])
 #etp.visualize("exittime")
 
 # TIMESTEP
-t = T[1]
-dt = t/100
-survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=F, exitb=exitb)
-survival.solve(t=t, visualize=True, verbose=False)
+dt = 1e-5
+survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=F)
+survival.solve(t=T[1], visualize=True, verbose=False)
 
 p = survival.solution
 
-print
 print "After mean time (%s s) to reach bottom from molecule:" %T[1]
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
     print "Average survival rate in %s: %.3f percent"%(domain,
         100.*assemble(p*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain)))
-print
+#interactive()
 

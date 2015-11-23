@@ -135,8 +135,11 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     params["lbtm"] = -zcross[0] + zcross[1]
     params["lctr"] = -zcross[1] + zcross[2]
     params["ltop"] = -zcross[2] + zcross[3]
-    params["ztop"] = zcross[3]
-    params["zbtm"] = zcross[0]
+    
+    params["zporetop"] = zcross[3]
+    params["zporebtm"] = zcross[0]
+    params["ztop"] = params["zporetop"] + l3
+    params["zbtm"] = params["zporebtm"] - l4
 
     r0=max([X_aHem[index][0] for index in [ac1, ac2, ac3, ac4]])+rMolecule
 
@@ -229,20 +232,28 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
                 surfs_i.append(name + '[1]')
                 previous[k] = name + '[0]'
         surfs.append(surfs_i)
+        
+    # surfs:
+    # [0] --> outer cylinder <=> e_Fluid
+    # [1] --> ahem           <=> e_aHem
+    # [2] --> membrane-fluid <=> e_Membrane
+    # [3] --> crosssections
+    
+    # TODO: make this all less confusing
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
     surfs_Fluid_bulk_top = surfs[0][:] # prepare for Fluid_bulk
     surfs_Fluid_bulk_bottom = surfs[0][:]
-    del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary
+    del surfs_Fluid[2::n_e_i[0]]  # deletes outer membrane boundary (<=> e_Fluid[2])
     for index in range(3):
-        del surfs_Fluid_bulk_top[2::n_e_i[0]-index]
-        del surfs_Fluid_bulk_bottom[0::n_e_i[0]-index]
+        del surfs_Fluid_bulk_top[2::n_e_i[0]-index] # delete equivalent of 2,3,4
+        del surfs_Fluid_bulk_bottom[0::n_e_i[0]-index]  # delete equivalent of 0,1,2
     
     #PhysicalSurface(surfs_Fluid,'fluidb') #Physical Surface Fluid
 
     surfs_boundary_top = [surfs[0][s*5] for s in range(4)]
-    surfs_boundary_side = [surfs[0][1+s*5] for s in range(4)]
-    [surfs_boundary_side.append(s) for s in [surfs[0][3+s*5] for s in range(4)]]
+    surfs_boundary_side_top = [surfs[0][1+s*5] for s in range(4)]
+    surfs_boundary_side_bottom = [surfs[0][3+s*5] for s in range(4)]
     surfs_boundary_bottom = [surfs[0][4+s*5] for s in range(4)]
     
     surfs_Fluid_aHem = surfs[1][:]
@@ -251,7 +262,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     for index in range(apdiff):
         del surfs_Fluid_aHem[ap1::n_e_i[1]-index]  # deletes membrane
     [surfs_Fluid.append(s) for s in surfs_Fluid_aHem]
-    [surfs_Fluid.append(s) for s in surfs[2]]
+    [surfs_Fluid.append(s) for s in surfs[2]] # <=> surfs_Fluid += surfs[2] TODO
     [surfs_Fluid_bulk_top.append(s) for s in [surfs[2][2*s] for s in range(4)]]
     [surfs_Fluid_bulk_bottom.append(s) for s in [surfs[2][2*s+1] for s in range(4)]]
     for index in range(top_acdiff):
@@ -291,7 +302,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
             exittimeDomain.add(["poretop", "porecenter", "porebottom"][i])
         params["synonymes"]["exittime"] = exittimeDomain
     else:
-        params["synonymes"]["poreexit"] = "lowerb"
+        params["synonymes"]["poreexit"] = {"lowerbulkb"}
         
     [surfs_Fluid_bulk_top.append(s) for s in surfs_CrossS_bulk_top]
     [surfs_Fluid_bulk_bottom.append(s) for s in surfs_CrossS_bulk_bottom]
@@ -332,7 +343,8 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
 
     PhysicalSurface(surfs_Fluid_aHem,'ahemb') #Physical Surface aHem
     PhysicalSurface(surfs_boundary_top,'upperb') # Physical surfaces fluid bottom, side (without membran), top
-    PhysicalSurface(surfs_boundary_side,'sideb')
+    PhysicalSurface(surfs_boundary_side_top,'uppersideb')
+    PhysicalSurface(surfs_boundary_side_bottom,'lowersideb')
     PhysicalSurface(surfs_boundary_bottom,'lowerb')
 
     sl_aHem = SurfaceLoop(surfs[1])

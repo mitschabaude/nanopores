@@ -3,6 +3,7 @@
 from dolfin import *
 from .illposed import *
 from .errorest import *
+from .utilities import _call
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
@@ -268,20 +269,37 @@ class GoalAdaptivePDE(PDESystem):
         self.solvers = {"primal": solver, "dual":dualsolver}
         self.functionals = {"goal": goal_f}
         
-
+    
 class GeneralLinearProblem(AdaptableLinearProblem):
 
     def __init__(self, geo, phys=None, u=None, bcs=None, **params):
+        
         mesh = geo.mesh
         V = self.space(mesh)
+        params.update(geo=geo, phys=phys, V=V)
+        
         if not u:
-            u = Function(V)
-        if not bcs:
-            bcs = self.bcs(V, geo)
+            if hasattr(self, "initial_u"):
+                u = _call(self.initial_u, params)
+            else:
+                u = Function(V)
             
-        params.update(geo=geo, u=u, phys=phys, V=V)
-        import inspect
-        argnames = inspect.getargspec(self.forms).args
-        args = [params[k] for k in argnames]
-        a, L = self.forms(*args)
+        params.update(u=u)
+        self.params = params
+        
+        if not bcs:
+            bcs = _call(self.bcs, params)
+        
+        a, L = _call(self.forms, params)
         AdaptableLinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
+        
+    def update_forms(self, **new_params):
+        # useful to e.g. change timestep and reassemble matrix
+    
+        self.params.update(new_params)
+        a, L = _call(self.forms, self.params)
+        self.a = a
+        self.L = L
+        
+    
+        

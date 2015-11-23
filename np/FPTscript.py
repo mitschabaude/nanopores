@@ -31,16 +31,30 @@ result = {'tmolavg': [1.3859278792745953e-05,
 
 from numpy import *
 from matplotlib.pyplot import *
-from nanopores import 
+
+def fit(x, y, k): return polyval(polyfit(x, y, k), x)
+def err(y, y_): return linalg.norm(y-y_)/linalg.norm(y)
 
 def plotfit(x, y, k=1):
-    x = numpy.array(x)
-    y = numpy.array(y)
-    p = numpy.polyfit(x,y,k)
+    x = array(x)
+    y = array(y)
+    p = polyfit(x,y,k)
     C = p[0] # leading constant
-    y_ = numpy.polyval(p, x)
+    y_ = polyval(p, x)
     #plot(x, y_, label="degree %s fit" %k)
     plot(x, C*x**k, label="cx^%s fit (c=%s)" %(k,C))
+    
+def plot_inversefit(x, y, k=1, plot=plot):
+    x = array(x)
+    y = array(y)
+    p = polyfit(1./x, y, k)
+    #print p
+    y_ = polyval(p, 1./x)
+    c = p[-1] # constant term
+    plot(x, y_, "+-", label="degree %s fit in 1/x" %k)
+    #plot(x, C*x**k, label="cx^%s fit (c=%s)" %(k,C))
+    plot(x, [c for i in x], "--", label="c = %.5f (from the fit)" %c)
+    return y_
 
 def plotMFPT(x, y, title=""):
     plot(x,y, label=title)
@@ -51,4 +65,29 @@ def plotMFPT(x, y, title=""):
     savefig("np/data/ahem/%s.eps" %title, bbox_inches='tight')
     show()
     
-x = numpy.arange(1,6)
+def plotSER(x, y, k=1, title=""):
+    plot = semilogx
+    L = 15. # length scale [nm]
+    plot(x*L, y, "s-", label=title)
+    y_ = plot_inversefit(x*L, y, k=k, plot=plot)
+    #print err(y, y_)
+    legend(loc="lower right")
+    xlabel("upper reservoir size [nm]")
+    ylabel("probability [%]")
+    #savefig("np/data/ahem/%s.eps" %title, bbox_inches='tight')
+    #show()
+    return err(y, y_)
+    
+x = array([  1.,   2.,   3.,   4.,   5.,   6.,   7.,   8.,   9.,  10., 20., 40.])
+y = array([ 1.43748472,  2.85920221,  3.34647272,  3.67373476,  3.84163926,    3.93641666,  4.02680935,  4.09577207,  4.13149867,  4.16848892, 4.267684, 4.318430])
+#x = array([ 2., 5., 10., 20., 40.])
+#y = array([ 2.85920221,  3.84163926, 4.16848892, 4.267684, 4.318430])
+l = []
+ran = range(11)
+for k in ran: l.append(plotSER(x, y, k, title="Successful exit rate from molecule"))
+figure()
+semilogy(ran, l, "s-")
+show()
+        
+
+    

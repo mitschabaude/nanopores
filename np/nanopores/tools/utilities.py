@@ -1,6 +1,7 @@
 ''' some utility functions for global use after importing * from nanopores '''
 
 from importlib import import_module
+import inspect
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "crange"]
 
@@ -40,5 +41,11 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
 def save_dict(data, dir=".", name="file"):
     with open('%s/%s.txt' % (dir,name), 'w') as f:
         f.write(repr(data))
-    
+        
+def _call(f, params):
+    # call f without knowing its arguments --
+    # they just have to be subset of dict params.
+    argnames = inspect.getargspec(f).args
+    args = [params[k] for k in argnames if k in params]
+    return f(*args)
 
