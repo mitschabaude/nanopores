@@ -98,7 +98,7 @@ plot(F, title="F")
 etp.visualize("exittime")
 
 # TIMESTEP
-dt = 1e-6
+dt = 1e-6 # too large
 
 survival = TransientLinearPDE(SurvivalProblem, geo, phys, dt=dt, F=F)
 survival.solve(t=1e-3, visualize=True)
