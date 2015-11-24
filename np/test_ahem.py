@@ -58,7 +58,8 @@ print "Geo generation time:",t.stop()
 #print "Geo physical boundaries:", geo._physical_boundary
 
 #plot(geo.boundaries)
-#plot(geo.submesh("solid"))
+
+#plot(geo.submesh("pore"))
 #plot(geo.submesh("exittime"))
 
 phys = Physics("pore_molecule", geo, **phys_params)
@@ -121,8 +122,8 @@ F = phys.Feff(v, u)
 for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
     print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
 
-#VV = VectorFunctionSpace(geo.mesh, "CG", 1)
-#F = project(F, VV)
+VV = VectorFunctionSpace(geo.mesh, "CG", 1)
+Fproj = project(F, VV)
 
 # solve exit time problem
 

@@ -12,6 +12,7 @@ geo_params = dict(
     l4 = 10.,
     R = 60.,
     x0 = [5., 0., 10.], # |x0| > 2.2
+    rMolecule = 2.2*nm,
     exit_i = 1,
 )
 phys_params = dict(

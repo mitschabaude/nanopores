@@ -1,13 +1,68 @@
 """ Define Poisson-Boltzmann problem """
 
 from dolfin import *
-from ..tools import AdaptableNonlinearProblem, NonlinearPDE, poisson_indicator
+from ..tools import AdaptableNonlinearProblem, NonlinearPDE, poisson_indicator, GeneralNonlinearProblem
 from .params_physical import *
 
 parameters["allow_extrapolation"] = True
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["PBProblem", "PB"]
+__all__ = ["PBProblem", "PB", "NonstandardPB"]
+
+# TODO: cleanup
+
+class NonstandardPBProblem(GeneralNonlinearProblem):
+    k = 1
+    
+    method = dict(
+        reuse = True,
+        iterative = True,
+        lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+        luparams = dict(
+            symmetric = True,
+            same_nonzero_pattern = True,
+            reuse_factorization = True,),
+        ks = "cg",
+        kp = "amg",
+        kparams = dict(
+            maximum_iterations = 200,
+            monitor_convergence = False,
+            relative_tolerance = 1e-4,
+            preconditioner = dict(
+                ilu = dict(fill_level = 1)))
+    )
+
+    @staticmethod
+    def space(mesh):
+        return FunctionSpace(mesh, 'CG', NonstandardPBProblem.k)
+
+    @staticmethod
+    def forms(V, geo, phys, u):
+        U = TrialFunction(V)
+        v = TestFunction(V)
+        dx = geo.dx()
+         
+        eps = geo.pwconst("permittivity")
+        D = geo.pwconst("D")
+        p0 = geo.pwconst("p0")
+        n0 = geo.pwconst("n0")
+        
+        grad = phys.grad
+        beta = 1./phys.UT
+        
+        a = inner(eps*grad(U), grad(v))*dx + qq*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*U*v*dx
+        L = inner(eps*grad(u), grad(v))*dx + qq*(n0*exp(beta*u) - p0*exp(-beta*u))*v*dx - qq*D*v*dx
+        return (a, L)
+    
+    @staticmethod
+    def bcs(V, geo):
+        return geo.pwconstBC(V, "bV")
+        
+    @staticmethod
+    def bcs_homo(V, geo):
+        return geo.pwconstBC(V, "bV", homogenize=True)
+ 
+
 
 class PBProblem(AdaptableNonlinearProblem):
     k = 1
@@ -83,6 +138,11 @@ class PBProblem(AdaptableNonlinearProblem):
         a, L = self.forms(V, geo, u, phi)
 
         AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
+        
+
+class NonstandardPB(NonlinearPDE):
+    def __init__(self, geo, phys, **params):
+        NonlinearPDE.__init__(self, geo, NonstandardPBProblem, phys=phys, **params)
         
         
 class PB(NonlinearPDE):

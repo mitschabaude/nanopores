@@ -1,4 +1,5 @@
 from ..tools.box import Box, union
+from random import random
 
 # geo parameters
 lb = 7.
@@ -9,8 +10,8 @@ ww = 5.
 t1 = 1.5 #thickness of the oxide layer
 t2 = 3. #thickness of the gate
 ll = 10. #the length of the layers
-rdop = 1.
-Ndop = 2
+rdop = .8
+Ndop = 12
 
 # build geometry
 source = Box(center=[-(lw + lb)/2, 0, 0], l=lb, w=wb, h=hb)
@@ -36,4 +37,18 @@ finfet.addboundaries(
     crossr = fin.boundary("right"),
 )
 
+# add parameters (this should include params needed by physics module)
+finfet.params = dict(rdop = rdop)
+
+def dopants(Ndop=Ndop):
+    # create two chunks of random vars in [0, 1]**3
+    X = [[random() for i in range(3)] for i in range(Ndop)]
+    X1 = [[2*x[0] - 1., x[1], x[2]] for x in X if x[0] > .5]
+    X2 = [[2*x[0], x[1], x[2]] for x in X if x[0] <= .5]
+    # affine transform to source and drain
+    def affine(X, box, R):
+        return [[ai + R + t*(bi-ai-2.*R) for t, ai, bi in zip(x, box.a, box.b)] for x in X]
+    X1 = affine(X1, source, rdop)
+    X2 = affine(X2, drain, rdop)
+    return X1 + X2
 

@@ -8,7 +8,7 @@ from .utilities import _call
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
-           "GeneralLinearProblem"]
+           "GeneralLinearProblem", "GeneralNonlinearProblem"]
 
 class PDESystem(object):
     imax = 100
@@ -220,6 +220,7 @@ class NonlinearPDE(PDESystem):
 
         self.geo = geo
         self.functions = {ProblemClass.__name__: problem.solution()}
+        self.solution = problem.solution()
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
 
@@ -300,6 +301,29 @@ class GeneralLinearProblem(AdaptableLinearProblem):
         a, L = _call(self.forms, self.params)
         self.a = a
         self.L = L
+        
+class GeneralNonlinearProblem(AdaptableNonlinearProblem):
+
+    def __init__(self, geo, phys=None, u=None, **params):
+        
+        mesh = geo.mesh
+        V = self.space(mesh)
+        params.update(geo=geo, phys=phys, V=V)
+        
+        if not u:
+            u = Function(V)
+            
+        params.update(u=u)
+        self.params = params
+        
+        bcs = _call(self.bcs, params)
+        for bc in bcs:
+            bc.apply(u.vector())
+        
+        bcs_homo = _call(self.bcs_homo, params)
+        
+        a, L = _call(self.forms, params)
+        AdaptableNonlinearProblem.__init__(self, a, L, u, bcs_homo, geo.boundaries)
         
     
         

@@ -142,8 +142,24 @@ class Geometry(object):
             return PhysicalBC(V, g, string, self)
         else: # TODO: implement AdaptableBC(V,g,SubDomain)
             return DirichletBC(V, g, DomainBoundary())
+            
+    def pwconstBC(self, V, string, value=None, homogenize=False):
+        value = self._getvalue(string, value)
+        if homogenize:
+            value = {key: 0. for key in value}
+        return [self.BC(V, Constant(value[key]), key) for key in value]
+        
+    def _getvalue(self, string, value):
+        if value is None:
+            try:
+                value = getattr(self.physics, string)
+            except KeyError:
+                dolfin_error(__name__+".py",
+                    "interprete string description",
+                    "The module %s has not implemented '%s'" % (self.physics.__name__, string))
+        return value
 
-    def NeumannRHS(self, v, string, value=None, axisym=False):
+    def NeumannRHS(self, v, string, value=None):
         # L = geo.NeumannRHS(v, "surfcharge") == charge("dna")*v*dS("dna") +
         #                                    charge("mol")*v*dS("mol") + ...
         # thus v should be TestFunction (or Function)
@@ -161,7 +177,7 @@ class Geometry(object):
         ds = self.ds()
         return sum([avg(inner(bou2value[i], v)) * dS(i) for i in bou2value]) + sum([inner(bou2value[i], v) * ds(i) for i in bou2value])
 
-    def linearRHS(self, v, string, value=None, axisym = False):
+    def linearRHS(self, v, string, value=None):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
         # thus v should be TestFunction (or Function)
         # value can be dict or float
