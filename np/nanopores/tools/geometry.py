@@ -245,6 +245,12 @@ class Geometry(object):
                         break
                 if t is not None:
                     dic[syn] = tuple(t)
+                    
+    def add_subdomain(self, string, marker):
+        i = max(self._dom2phys.keys()) + 1
+        marker.mark(self.subdomains, i)
+        self._physical_domain[string] = (i,)
+        self._dom2phys[i] = [string]
 
     def submesh(self, string):
         # assumes volume submesh

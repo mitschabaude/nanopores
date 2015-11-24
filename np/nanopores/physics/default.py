@@ -14,6 +14,4 @@ def div():
     def div0(u):
         return lscale*dolfin.transpose(dolfin.nabla_div(u))
     return div0
-    
-#volcharge = {}
-#surfcharge = {}
+

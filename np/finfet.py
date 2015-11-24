@@ -1,12 +1,12 @@
 import dolfin
 from random import random
-from nanopores.geometries.finfet import finfet, leftblock, rightblock, rdop
+from nanopores.geometries.finfet import finfet, source, drain, rdop
 
 def dist(x, x0):
     return dolfin.sqrt(sum((t-t0)**2 for (t,t0) in zip(x,x0)))
 
 def inside_dopant(x, x0):
-    return dist(x, x0) <= rdop + 1e-12
+    return dist(x, x0) <= rdop
 
 class Dopants(dolfin.SubDomain):
     def __init__(self, xi):
@@ -20,23 +20,23 @@ def random_dopants(Ndop):
     X1 = [[2*x[0] - 1., x[1], x[2]] for x in X if x[0] > .5]
     X2 = [[2*x[0], x[1], x[2]] for x in X if x[0] <= .5]
     def affine(X, box, R):
-        return [[r + t*(s-r-R) for t, r, s in zip(x, box.a, box.b)] for x in X]
-    X1 = affine(X1, leftblock, rdop)
-    X2 = affine(X2, rightblock, rdop)
+        return [[ai + R + t*(bi-ai-2.*R) for t, ai, bi in zip(x, box.a, box.b)] for x in X]
+    X1 = affine(X1, source, rdop)
+    X2 = affine(X2, drain, rdop)
     return X1 + X2
     
-Ndop = 30    
+Ndop = 12
 
 t = dolfin.Timer("mesh")
-geo = finfet.create_geometry(lc=.25)
+geo = finfet.create_geometry(lc=.8)
 print "Mesh generation time:", t.stop()
 print "Number of elements:", geo.mesh.num_cells()
 print "Number of vertices:", geo.mesh.num_vertices()
-#finfet.plot()
+finfet.plot()
 
 xi = random_dopants(Ndop)
-Dopants(xi).mark(geo.subdomains, 1 + max(t[0] for t in geo._physical_domain.values()))
-dolfin.plot(geo.submesh("blocks"))
+geo.add_subdomain("dopants", Dopants(xi))
+dolfin.plot(geo.submesh("sourcendrain"))
 dolfin.interactive()
 
 
