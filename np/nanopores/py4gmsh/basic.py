@@ -237,9 +237,14 @@ def SurfaceLoop(surfaces):
     _GMSH_CODE.append('%s = newsl;' % name)
     _GMSH_CODE.append('Surface Loop(%s) = {%s};' % (name, ','.join(surfaces)))
     return name
-
-
-def PhysicalSurface(surface, label):
+    
+physsurf = {
+    1: "Physical Point",
+    2: "Physical Line",
+    3: "Physical Surface"
+}
+    
+def PhysicalSurface(surface, label, dim=3):
     '''Gmsh Physical Surface.
        surface is expected to be either string or iterable of strings
     '''
@@ -247,7 +252,7 @@ def PhysicalSurface(surface, label):
     _PHYSSURF_ID += 1
     if hasattr(surface, "__iter__"):
         surface = "{%s}" % (",".join(surface),)
-    _GMSH_CODE.append('Physical Surface(%s) = %s;' % (_PHYSSURF_ID, surface))
+    _GMSH_CODE.append('%s(%s) = %s;' % (physsurf[dim], _PHYSSURF_ID, surface))
     _PHYSSURF[label] =  (_PHYSSURF_ID,)
     return
     
@@ -257,7 +262,6 @@ def NoPhysicalSurface(label):
     global _PHYSSURF
     _PHYSSURF[label] =  ()
     return
-
 
 def Volume(surface_loop):
     '''Gmsh Volume.
@@ -284,14 +288,20 @@ def CompoundVolume(volumes):
     return name
 
 
-def PhysicalVolume(volume, label):
+physvol = {
+    1: "Physical Line",
+    2: "Physical Surface",
+    3: "Physical Volume"
+}
+
+def PhysicalVolume(volume, label, dim=3):
     '''Gmsh Physical Volume.
     '''
     global _PHYSVOL_ID, _PHYSVOL
     _PHYSVOL_ID += 1
     if hasattr(volume, "__iter__"):
         volume = "{%s}" % (",".join(volume),)
-    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+    _GMSH_CODE.append('%s(%s) = %s;' % (physvol[dim], _PHYSVOL_ID, volume))
     _PHYSVOL[label] =  (_PHYSVOL_ID,)
     return
     
@@ -301,6 +311,29 @@ def NoPhysicalVolume(label):
     global _PHYSVOL
     _PHYSVOL[label] =  ()
     return
+
+def PhysicalLine(volume, label):
+    '''Gmsh Physical Line.
+    '''
+    global _PHYSLINE_ID, _PHYSLINE
+    _PHYSVOL_ID += 1
+    if hasattr(volume, "__iter__"):
+        volume = "{%s}" % (",".join(volume),)
+    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+    _PHYSVOL[label] =  (_PHYSVOL_ID,)
+    return
+
+def PhysicalPoint(volume, label):
+    '''Gmsh Physical Point.
+    '''
+    global _PHYSVOL_ID, _PHYSVOL
+    _PHYSVOL_ID += 1
+    if hasattr(volume, "__iter__"):
+        volume = "{%s}" % (",".join(volume),)
+    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+    _PHYSVOL[label] =  (_PHYSVOL_ID,)
+    return
+
 
 
 def Rotate(entity,
