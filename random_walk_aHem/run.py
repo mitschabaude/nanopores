@@ -5,77 +5,13 @@ import numpy as np
 from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
-# CALCULATE FORCE:
-
-
-geo_params = dict(
-    l3 = 60.,
-    l4 = 10.,
-    R = 60.,
-    x0 = [5., 0., 10.], # |x0| > 2.2
-    exit_i = 1,
-)
-phys_params = dict(
-    bV = .5,
-    ahemqs = 0.01,
-    rTarget = 0.5*nm,
-    bulkcon = 1000.,
-)
-
-badexit = {"upperbulkb"}
-goodexit = {"exit"}
-skip_stokes = True
-
-
-t = Timer("meshing")
-meshdict = generate_mesh(5., "aHem", **geo_params)
-
-print "Mesh generation time:",t.stop()
-
-t = Timer("reading geometry")
-geo = geo_from_xml("aHem")
-
-print "Geo generation time:",t.stop()
-
-phys = Physics("pore_molecule", geo, **phys_params)
-
-x0 = geo.params["x0"]
-r0 = math.sqrt(sum(x**2 for x in x0))
-rnear = r0 - geo.params["rMolecule"]
-rfar = r0 + geo.params["rMolecule"]
-xnear = map(lambda x: rnear/r0*x, x0)
-xfar = map(lambda x: rfar/r0*x, x0)
-
-def avg(u, meas):
-    return assemble(u*meas)/assemble(Constant(1.0)*meas)
-
-def exit_times(tau):
-    Tmin = tau(xnear)
-    Tmax = tau(xfar)
-    Tavg = avg(tau, geo.dS("moleculeb"))
-    return (Tmin, Tavg, Tmax)
-    
-pde = PNPS(geo, phys)
-if skip_stokes:
-    pde.solvers.pop("Stokes")
-pde.solve()
-
-(v, cp, cm, u, p) = pde.solutions(deepcopy=True)
-F = phys.Feff(v, u)
-
-for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
-    print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
-
-VV = VectorFunctionSpace(geo.mesh, "CG", 1)
-F = project(F, VV)
-
-
-
+import sys
+from calculateforce import *
+F = calculateforce(clscale=8., tol=1e-2)
+# def F(vec):
+#     return [0,0,-1e-12]
 def radius(x,y):
     return sqrt(x**2+y**2)
-
-# def F(x,y,z):
-#     return [0,0,-5e-3]
 
 def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
@@ -92,6 +28,9 @@ def indicator_membrane(vec): #"infinite" large membrane
     else:
         return indicator_membrane_geo(vec)
 
+def oor(x,y,z):
+    return radius(x,y)>600 or z>600
+
 
 kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
@@ -100,16 +39,15 @@ damp = 1 # diffusion should be much lower in pore than in bulk
 D=(kb*T)/(6*pi*visc)*damp*1e9  #diffusion[m^2/s]
 gamma=(6*pi*visc) #friction [kg/s]
 tau=0.1 #-1 # [ns]
-steps=1e3 # 
+steps=5e7
 C=1/(gamma)*tau
 coeff=sqrt(2*D*1e9*tau)
 
-
 counter = np.array([0,0,0,0,0]) # ahem, molecule, poretop, membrane, bulk
 EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-
-for index in range(1):
-    print index
+Range =range(10)
+for index in Range:
+    print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
     Y=np.zeros((steps))
     Z=np.zeros((steps))
@@ -117,6 +55,10 @@ for index in range(1):
     Z[0] = 10
     i=0
     while i<=steps-2:
+        print
+        print '>>>>>>>>>>>>>>>> step ',i
+        sys.stdout.write("\033[F") # Cursor up one line
+        sys.stdout.write("\033[F") # Cursor up one line
         xi_x=gauss(0,1)
         xi_y=gauss(0,1)
         xi_z=gauss(0,1)
@@ -152,6 +94,9 @@ for index in range(1):
             counter[1] += 1
             i+=1
             break
+        if oor(X[i+1],Y[i+1],Z[i+1]):
+            i=steps-2
+            print 'OUT OF RANGE'
         i+=1
     if i>steps-2:
         counter[4] += 1
@@ -159,10 +104,10 @@ for index in range(1):
         EXIT_X = np.append(EXIT_X, np.array([exit_x]))
         EXIT_Y = np.append(EXIT_Y, np.array([exit_y]))
         EXIT_Z = np.append(EXIT_Z, np.array([exit_z]))
-
 np.save('exit_x',EXIT_X)
 np.save('exit_y',EXIT_Y)
 np.save('exit_z',EXIT_Z)
+np.save('counter',counter)
 
 # X=X[:i]
 # Y=Y[:i]
