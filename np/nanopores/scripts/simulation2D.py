@@ -24,11 +24,11 @@ if not os.path.exists(savedir):
         os.makedirs(savedir)
 
 # general functions for running simulations and saving output
-# TODO: this is a bit messy.. need class for storing and iterating 
+# TODO: this is a bit messy.. need class for storing and iterating
 #       through parameter sets (while holding some fixed)
 def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     ''' evaluate a given method for a given parameter set.
-    
+
         params is a dict and some of its values are allowed to be iterable.
         the method is expected to return a dict with the SAME KEYS for every parameter in one iteration.
         an exception ocurring in the method is NOT handled without stopping the iteration.
@@ -47,18 +47,18 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     else:
         print "I'm ignoring your iterkeys."
         iterkeys = iterkeys2
-        
+
     # create stamp of the input
     stamp = dict(params)
     stamp["iterkeys"] = iterkeys
     stamp["method"] = method.__name__
-    
+
     # create list of params instances to be mapped
     iterator = combinations(params, iterkeys)
-    
+
     # create the function to be mapped with
     def f(params): return method(**params)
-        
+
     # map iterator using mpi4py
     # FIXME: doesn't work if some dolfin function are used, e.g. Function.extrapolate
     if MPI.COMM_WORLD.Get_size() > 1:
@@ -77,7 +77,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
         result = map(f, iterator)
 
     return result, stamp
-    
+
 
 def combinations(dic, iterkeys):
     # Input: dict of iterables and/or single values, list of iterable keys to provide order
@@ -93,19 +93,19 @@ def combinations(dic, iterkeys):
         P = P2
         #print P
     return P
-    
+
 def join_dicts(list):
     # [{"F":1.0}, {"F":2.0}, ...] --> {"F":[1.0, 2.0, ...]}
     return {key:[dic[key] for dic in list] for key in list[0]}
-    
+
 def post_iteration(result, stamp, showplot=False):
     ''' in case method output is a dict, put result of iterate_in_parallel
         into nicer form, save in .dat file and create plots '''
     # create unique id for filenames
-    uid = str(unique_id()) 
-    
+    uid = str(unique_id())
+
     # save stamp to file
-    save_dict(stamp, dir=savedir, name=("stamp"+uid)) 
+    save_dict(stamp, dir=savedir, name=("stamp"+uid))
 
     # put result and input into form
     result = join_dicts(result)
@@ -113,7 +113,7 @@ def post_iteration(result, stamp, showplot=False):
     # create combinations only of relevant (iterable) parameters
     input_params = {k:stamp[k] for k in iterkeys} # can be empty
     input = join_dicts(combinations(input_params, iterkeys))
-    
+
     # save iterated parameters and result to data file
     N = len(result.values()[0])
     data = Data(savedir+"result"+uid+".dat", N=N, overwrite=True)
@@ -123,11 +123,11 @@ def post_iteration(result, stamp, showplot=False):
     for key in result:
         data.data[key] = numpy.array(result[key])
     data.write()
-    
+
     # no plot if not at least two different parameter sets
     if len(iterkeys) == 0:
         return
-    
+
     # create plot for every result column
     # TODO: for the moment i assume that iterkeys[0] is the one to be plotted
     # thus i can use numpy indexing to get the right chunks of the results
@@ -139,8 +139,10 @@ def post_iteration(result, stamp, showplot=False):
     # create combinations only of relevant (iterable) parameters
     input_params = {k:stamp[k] for k in iterkeys}
     params = combinations(input_params, iterkeys)
-    
-    from matplotlib.pyplot import plot, xlabel, ylabel, legend, figure, savefig, show
+
+    from matplotlib.pyplot import plot, xlabel, ylabel, legend, figure, savefig, show, close
+
+
     # for every result column
     for key, rescol in result.items():
         i = 0
@@ -162,11 +164,13 @@ def post_iteration(result, stamp, showplot=False):
             legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         savefig(savedir+"plot"+uid+key+".eps", bbox_inches='tight')
     if showplot: show()
+    else: close()
 
 # general simulation (for modules with calculate() function)
-def simulate(name, nproc=1, outputs=None, plot=None, write_files=True, **params):
+def simulate(name, nproc=1, outputs=None, plot=None,
+             write_files=True, **params):
     calculate = __import__("nanopores.scripts."+name, fromlist=["calculate"]).calculate
-    
+
     if outputs is not None:
         def f(**x):
             res = calculate(**x)
@@ -179,7 +183,7 @@ def simulate(name, nproc=1, outputs=None, plot=None, write_files=True, **params)
         result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
     if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
         return
-    
+
     stamp["script"] = name
     print result, stamp
     post_iteration(result, stamp, showplot=False)
@@ -201,5 +205,3 @@ def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):
         return
     post_iteration(result, stamp, showplot=False)
     return result
-
-    
