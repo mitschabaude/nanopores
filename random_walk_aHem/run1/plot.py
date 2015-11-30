@@ -1,4 +1,4 @@
-from math import pi
+from math import pi, sqrt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
@@ -10,10 +10,10 @@ import sys
 fig = plt.figure()
 ax=Axes3D(fig)
 
-EXIT_X=np.load('exit_x_2.npy')
-EXIT_Y=np.load('exit_y_2.npy')
-EXIT_Z=np.load('exit_z_2.npy')
-counter=np.load('counter_2.npy')
+EXIT_X=np.load('exit_x.npy')
+EXIT_Y=np.load('exit_y.npy')
+EXIT_Z=np.load('exit_z.npy')
+counter=np.load('counter.npy')
 hits = float(np.sum(counter))
 print
 print
@@ -30,15 +30,15 @@ print
 print 'INFINITY: ', float(counter[4])/hits
 print
 
-delete=[]
-for index in range(EXIT_X.shape[0]):
-    if EXIT_Z[index]<-5:
-        delete.append(index)
+# delete=[]
+# for index in range(EXIT_X.shape[0]):
+#     if EXIT_Z[index]<-5:
+#         delete.append(index)
 
-for index in reversed(delete):
-    EXIT_X = np.delete(EXIT_X, index)
-    EXIT_Y = np.delete(EXIT_Y, index)
-    EXIT_Z = np.delete(EXIT_Z, index)
+# for index in reversed(delete):
+#     EXIT_X = np.delete(EXIT_X, index)
+#     EXIT_Y = np.delete(EXIT_Y, index)
+#     EXIT_Z = np.delete(EXIT_Z, index)
 
 delete=[]
 for index in range(EXIT_X.shape[0]):
@@ -60,6 +60,12 @@ for index in reversed(delete):
 #     EXIT_Y = np.delete(EXIT_Y, index)
 #     EXIT_Z = np.delete(EXIT_Z, index)
 
+EXIT_RAD=np.zeros_like(EXIT_X)
+for index in range(EXIT_X.shape[0]):
+    EXIT_RAD[index] = sqrt(EXIT_X[index]**2+EXIT_Y[index]**2)
+np.save('exit_rad',EXIT_RAD)
+np.save('exit_z_2d',EXIT_Z)
+
 
 show_half=False
 fac=2
@@ -79,7 +85,7 @@ theta, mesh_z = np.meshgrid(angle,z_aHem)
 X_plot = mesh_x*np.cos(theta)
 Y_plot = mesh_x*np.sin(theta)
 Z_plot = mesh_z
-ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=.1)
+ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=.05)
 
 if False:#show_half:
     x=x_aHem.tolist()
