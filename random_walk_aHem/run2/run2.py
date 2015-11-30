@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import pylab
+import sys
 
 fig = plt.figure()
 ax=Axes3D(fig)
 
-EXIT_X=np.load('exit_x.npy')
-EXIT_Y=np.load('exit_y.npy')
-EXIT_Z=np.load('exit_z.npy')
-counter=np.load('counter.npy')
+EXIT_X=np.load('exit_x_2.npy')
+EXIT_Y=np.load('exit_y_2.npy')
+EXIT_Z=np.load('exit_z_2.npy')
+counter=np.load('counter_2.npy')
 hits = float(np.sum(counter))
 print
 print
@@ -29,7 +30,38 @@ print
 print 'INFINITY: ', float(counter[4])/hits
 print
 
-show_half=True
+delete=[]
+for index in range(EXIT_X.shape[0]):
+    if EXIT_Z[index]<-5:
+        delete.append(index)
+
+for index in reversed(delete):
+    EXIT_X = np.delete(EXIT_X, index)
+    EXIT_Y = np.delete(EXIT_Y, index)
+    EXIT_Z = np.delete(EXIT_Z, index)
+
+delete=[]
+for index in range(EXIT_X.shape[0]):
+    if ((EXIT_X[index]-5)**2+(EXIT_Y[index])**2+(EXIT_Z[index]-10)**2)<2.2**2:
+        delete.append(index)
+
+for index in reversed(delete):
+    EXIT_X = np.delete(EXIT_X, index)
+    EXIT_Y = np.delete(EXIT_Y, index)
+    EXIT_Z = np.delete(EXIT_Z, index)
+
+# delete=[]
+# for index in range(EXIT_X.shape[0]):
+#     if EXIT_Y[index]<0:
+#         delete.append(index)
+
+# for index in reversed(delete):
+#     EXIT_X = np.delete(EXIT_X, index)
+#     EXIT_Y = np.delete(EXIT_Y, index)
+#     EXIT_Z = np.delete(EXIT_Z, index)
+
+
+show_half=False
 fac=2
 if show_half:
     fac=1
@@ -40,16 +72,16 @@ for index in range(x_aHem.shape[0]):
     x_aHem[index], z_aHem[index] = X_aHem[index][0], X_aHem[index][2]
 x_aHem = np.append(x_aHem,x_aHem[0])
 z_aHem = np.append(z_aHem,z_aHem[0])
-angle = np.linspace(0,fac*pi,50)
+angle = np.linspace(0,fac*pi,20)
 theta, mesh_x = np.meshgrid(angle,x_aHem)
 theta, mesh_z = np.meshgrid(angle,z_aHem)
 
 X_plot = mesh_x*np.cos(theta)
 Y_plot = mesh_x*np.sin(theta)
 Z_plot = mesh_z
-ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=1.0)
+ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=.1)
 
-if show_half:
+if False:#show_half:
     x=x_aHem.tolist()
     left=-x_aHem
     x_=left.tolist()
@@ -77,5 +109,5 @@ ax.scatter(EXIT_X,EXIT_Y,EXIT_Z,color='red')
 x1 = 2.2*np.outer(np.cos(u), np.sin(v))
 y1 = 2.2*np.outer(np.sin(u), np.sin(v))
 z1 = 2.2*np.outer(np.ones(np.size(u)), np.cos(v))
-ax.plot_wireframe(x1+5., y1+0., z1+10., rstride=12, cstride=5, color='blue',alpha=1.0)
+# ax.plot_wireframe(x1+5., y1+0., z1+10., rstride=12, cstride=5, color='blue',alpha=1.0)
 plt.show()

@@ -7,9 +7,9 @@ from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 import sys
 from calculateforce import *
-F = calculateforce(clscale=8., tol=1e-2)
+F = calculateforce(clscale=6., tol=5e-3)
 # def F(vec):
-#     return [0,0,-1e-12]
+#     return [0,0,0]
 def radius(x,y):
     return sqrt(x**2+y**2)
 
@@ -19,7 +19,7 @@ def argument(x,y,z):
 geo = geo_from_xml("aHem")
 indicator_ahem = geo.indicator("ahem",callable=True)
 indicator_molecule = geo.indicator("molecule",callable=True)
-indicator_poretop = geo.indicator("poretop",callable=True)
+indicator_porecenter = geo.indicator("porecenter",callable=True)
 indicator_membrane_geo = geo.indicator("membrane",callable=True)
 def indicator_membrane(vec): #"infinite" large membrane
     x, y, z = vec[0], vec[1], vec[2]
@@ -29,7 +29,7 @@ def indicator_membrane(vec): #"infinite" large membrane
         return indicator_membrane_geo(vec)
 
 def oor(x,y,z):
-    return radius(x,y)>600 or z>600
+    return radius(x,y)>500 or z>500
 
 
 kb=1.3806488e-23 #boltzmann [J/K]
@@ -39,24 +39,28 @@ damp = 1 # diffusion should be much lower in pore than in bulk
 D=(kb*T)/(6*pi*visc)*damp*1e9  #diffusion[m^2/s]
 gamma=(6*pi*visc) #friction [kg/s]
 tau=0.1 #-1 # [ns]
-steps=5e7
+steps=5e6
 C=1/(gamma)*tau
 coeff=sqrt(2*D*1e9*tau)
 
 counter = np.array([0,0,0,0,0]) # ahem, molecule, poretop, membrane, bulk
 EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-Range =range(10)
+Range =range(1000)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
     Y=np.zeros((steps))
     Z=np.zeros((steps))
 
-    Z[0] = 10
+    Z[0] = 2
     i=0
     while i<=steps-2:
         print
-        print '>>>>>>>>>>>>>>>> step ',i
+        a=i/(steps-2)*100
+        rad=radius(X[i],Y[i])
+        print ">>>>>>>>>>>>>>>> progress %0.1f percent" %a
+        print 'RAD = %.3f , Z = %.3f '%(rad, Z[i])
+        sys.stdout.write("\033[F") # Cursor up one line
         sys.stdout.write("\033[F") # Cursor up one line
         sys.stdout.write("\033[F") # Cursor up one line
         xi_x=gauss(0,1)
@@ -80,7 +84,7 @@ for index in Range:
             counter[0] += 1
             i+=1
             break
-        elif indicator_poretop(argument(X[i+1],Y[i+1],Z[i+1]))==1:
+        elif indicator_porecenter(argument(X[i+1],Y[i+1],Z[i+1]))==1:
             exit_x = X[i+1]
             exit_y = Y[i+1]
             exit_z = Z[i+1]
@@ -96,7 +100,6 @@ for index in Range:
             break
         if oor(X[i+1],Y[i+1],Z[i+1]):
             i=steps-2
-            print 'OUT OF RANGE'
         i+=1
     if i>steps-2:
         counter[4] += 1
@@ -108,13 +111,5 @@ np.save('exit_x',EXIT_X)
 np.save('exit_y',EXIT_Y)
 np.save('exit_z',EXIT_Z)
 np.save('counter',counter)
-
-# X=X[:i]
-# Y=Y[:i]
-# Z=Z[:i]
-
-# np.save('X',X)
-# np.save('Y',Y)
-# np.save('Z',Z)
 
 import plot
