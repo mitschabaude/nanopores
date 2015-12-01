@@ -15,14 +15,14 @@ I0 = 24.  # [pA]
 V0 = 4.  # [mV]
 Gminf = 0.75  # 1/(R+r) [nS]
 Gpinf = 1.15  # 1/R [nS]
-# Gpinf/sigmab = 1.0 \°A
+# Gpinf/sigmab = 1.0 Angstrom
 R = 1/Gpinf  # [G Ohm]
 r = 1/Gminf - R  # [G Ohm]
 
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 
-bmV = numpy.linspace(-100, 100, 6)
+bmV = numpy.linspace(-100.0, 100.0, 6)
 I = []
 for amV in bmV:
     func = lambda i: i - amV/(r+R) - r*I0/(r+R)*(numpy.exp((amV-R*i)/V0)-1)
@@ -77,7 +77,7 @@ sim = nanopores.simulate("ahemIV",**args)
 # for i in ny:
 #     plt.plot(bV, Isim0p[i], '-x', label='sim'+str(i))
 
-plt.plot(bV, I, '-^', label='implicit (diode contr.)')
+plt.plot(bV, I, '-^', label='ICR (+ diode)')
 plt.plot(bV, bmV/(R+r), '-v', label='ohmic')
 plt.xlabel("V [V]")
 plt.ylabel("I [pA]")
