@@ -18,6 +18,13 @@ pde = nanopores.NonstandardPB(geo, phys)
 pde.solve()
 pde.visualize()
 
+u = pde.solution
+ds = geo.dS("crossl")
+
+j0 = u # TODO: change
+
+J0 = dolfin.assemble(j0*ds)
+
 
 
     
