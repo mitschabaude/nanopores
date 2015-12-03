@@ -9,11 +9,11 @@ ni = 1e10/cm**3
 
 Dfin = -1e15/cm**3
 Dsource = 7e18/cm**3
-Ddopant = lambda: Dsource*5
+Ddopant = lambda: Dsource*5.
 
-nDfin = lambda: ni**2/Dfin
-nDsource = lambda: ni**2/Dsource
-nDdopant = lambda: ni**2/(Dsource*5)
+nDfin = lambda: ni**2./Dfin
+nDsource = lambda: ni**2./Dsource
+nDdopant = lambda: ni**2./(Dsource*5.)
 
 vS = 0.
 vD = .5
@@ -77,7 +77,8 @@ def add_dopants(geo, xdopants):
         def inside(self, x, on_boundary):
             return any(dist(x, x0) <= rdop for x0 in self.xi)
 
-    geo.add_subdomain("dopants", Dopants(xdopants))
+    if xdopants:
+        geo.add_subdomain("dopants", Dopants(xdopants))
     return
 
 # TODO: doesn't work    

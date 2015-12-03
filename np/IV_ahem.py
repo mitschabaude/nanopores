@@ -15,7 +15,7 @@ I0 = 24.  # [pA]
 V0 = 4.  # [mV]
 Gminf = 0.75  # 1/(R+r) [nS]
 Gpinf = 1.15  # 1/R [nS]
-# Gpinf/sigmab = 1.0 \°A
+# Gpinf/sigmab = 1.0 \A
 R = 1/Gpinf  # [G Ohm]
 r = 1/Gminf - R  # [G Ohm]
 

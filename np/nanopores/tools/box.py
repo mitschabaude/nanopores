@@ -4,12 +4,14 @@ python class to handle n-dimensional rectangular boxes and unions of them
 note: very naive implementation of union, suitable for a couple 100 boxes
 '''
 
-# TODO: collaps pathological boxes,
-#       reduce number of boxes in disjoint union when there is no intersection
+# TODO: customizable length scales
+# TODO: reduce number of boxes in disjoint union when there is no intersection
 
 from itertools import izip, product, combinations
 from .. import py4gmsh
-import dolfin        
+import dolfin
+
+__all__ = ["BoxCollection", "Box"]
         
 class BoxCollection(object):
     " collection of disjoint boxes, and their vertices, edges, facets "
@@ -122,8 +124,8 @@ class Box(BoxCollection):
             self.b = tuple(y for x,y in intervals)
         else:
             if center is not None:
-                a = [c - x/2 for c,x in zip(center, [l,w,h])]
-                b = [c + x/2 for c,x in zip(center, [l,w,h])]
+                a = [c - x*.5 for c,x in zip(center, [l,w,h])]
+                b = [c + x*.5 for c,x in zip(center, [l,w,h])]
             # a, b should be tuples
             assert len(a) == len(b)
             a, b = _sort(a, b)
@@ -293,7 +295,7 @@ def _unique(seq):
     [unique.append(x) for x in seq if not unique.count(x)]
     return unique
         
-def multi_interval_union(*intvs):
+def multi_interval_union(intvs):
     " return disjoint subintervals with same union as intervals, plus parent information "
     # input: list of intervals
     # output: for lists:
@@ -317,6 +319,12 @@ def multi_interval_union(*intvs):
     #print points, psets, subs, ssets    
     return points, psets, subs, ssets
     
+    
+def _map(f, seq):
+    """ version of map() for function with multiple return values.
+    instead of a list of tuples (like map), return a tuple of lists. """
+    return tuple(map(list, zip(*map(f, seq))))
+        
 def multi_box_union(boxes, facets=[]):
     " return union of boxes as collection of disjoint boxes "
     # TODO: atm this modifies the boxes with an "indexset" attribute
@@ -330,16 +338,7 @@ def multi_box_union(boxes, facets=[]):
         box.indexset = set()
     
     # get list of disjoint intervals for every dimension
-    intvs = []
-    isets = []
-    nodes = []
-    nsets = []
-    for ilist in izip(*allboxes):
-        node, nset, intv, iset = multi_interval_union(*ilist)
-        nodes.append(node)
-        nsets.append(nset)
-        intvs.append(intv)
-        isets.append(iset)
+    nodes, nsets, intvs, isets = _map(multi_interval_union, izip(*allboxes))
         
     D = range(dim) # [0,...,dim-1]
     D1 = range(dim+1) # [0,..,dim]

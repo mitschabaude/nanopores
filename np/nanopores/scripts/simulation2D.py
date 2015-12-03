@@ -34,10 +34,8 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
         an exception ocurring in the method is NOT handled without stopping the iteration.
     '''
     # find the parameters to be iterated through
-    iterkeys2 = []
-    for key, value in params.items():
-        if hasattr(value, "__iter__"):
-            iterkeys2.append(key)
+    iterkeys2 = [key for key in params if hasattr(params[key], "__iter__")]
+    
     if iterkeys is None:
         iterkeys = iterkeys2
     elif set(iterkeys) <= set(iterkeys2):
@@ -169,7 +167,8 @@ def post_iteration(result, stamp, showplot=False):
 # general simulation (for modules with calculate() function)
 def simulate(name, nproc=1, outputs=None, plot=None,
              write_files=True, **params):
-    calculate = __import__("nanopores.scripts."+name, fromlist=["calculate"]).calculate
+    script = __import__("nanopores.scripts."+name, fromlist=["calculate"])
+    calculate = script.calculate
 
     if outputs is not None:
         def f(**x):
@@ -186,7 +185,10 @@ def simulate(name, nproc=1, outputs=None, plot=None,
 
     stamp["script"] = name
     print result, stamp
-    post_iteration(result, stamp, showplot=False)
+    if hasattr(script, "post_calculate"):
+        script.post_calculate(result, stamp)
+    else:
+        post_iteration(result, stamp, showplot=False)
     return result
 
 # simulation in 2D (script for howorka pore)

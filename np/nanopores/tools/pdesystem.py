@@ -230,7 +230,11 @@ class NonlinearPDE(PDESystem):
         S = self.solvers.values()[0]
         for i in range(self.imax):
             S.solve()
+            print 'Relative L2 Newton error:',S.relerror()
             if S.convergence(tol):
+                print 'linf Norm of Newton update:', \
+                        norm(S.problem.u.vector(),'linf'), \
+                        '<=', tol ,' \n  ==> break loop \n'
                 break
         print "Newton iterations:",i+1
         print 'Relative H1 Newton error:',S.relerror()

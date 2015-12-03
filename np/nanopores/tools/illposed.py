@@ -162,7 +162,11 @@ class IllposedNonlinearSolver(IllposedLinearSolver):
     #def relerror(self):
     #    return norm(self.problem.u,"H10")/norm(self.problem.uold,"H10")
     def relerror(self):
-        return self.problem.u.vector().norm('l2')/self.problem.uold.vector().norm('l2')
+        norm = self.problem.uold.vector().norm('l2')
+        if norm > 0.:
+            return self.problem.u.vector().norm('l2')/norm
+        else:
+            return self.problem.u.vector().norm('l2')
     
 class AdaptableLinearProblem(object):
     # TODO: any use for subclassing LinearVariationalProblem?
