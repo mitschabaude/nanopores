@@ -143,11 +143,16 @@ class Geometry(object):
         else: # TODO: implement AdaptableBC(V,g,SubDomain)
             return DirichletBC(V, g, DomainBoundary())
             
-    def pwconstBC(self, V, string, value=None, homogenize=False):
+    def pwconstBC(self, V, string, homogenize=False, value=None):
         value = self._getvalue(string, value)
-        if homogenize:
-            value = {key: 0. for key in value}
-        return [self.BC(V, Constant(value[key]), key) for key in value]
+        if isinstance(value, dict):
+            if homogenize:
+                value = {key: 0. for key in value}
+            return [self.BC(V, Constant(value[key]), key) for key in value]
+        else: # assume value is number
+            if homogenize:
+                value = 0.
+            return [self.BC(V, Constant(value))]
         
     def _getvalue(self, string, value):
         if value is None:
@@ -163,14 +168,7 @@ class Geometry(object):
         # L = geo.NeumannRHS(v, "surfcharge") == charge("dna")*v*dS("dna") +
         #                                    charge("mol")*v*dS("mol") + ...
         # thus v should be TestFunction (or Function)
-        if value is None:
-            try:
-                value = vars(self.physics)[string]
-            except KeyError:
-                dolfin_error(__name__+".py",
-                             "interprete string description",
-                             "The module %s has not implemented '%s'" % (self.physics.__name__, string))
-
+        value = self._getvalue(string, value)
         bou2value = self._neumann_lookup(self._bou2phys, value)
         #print bou2value
         dS = self.dS()
@@ -181,14 +179,7 @@ class Geometry(object):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
         # thus v should be TestFunction (or Function)
         # value can be dict or float
-        if value is None:
-            try:
-                value = vars(self.physics)[string]
-            except KeyError:
-                dolfin_error(__name__+".py",
-                             "interprete string description",
-                             "The module %s has not implemented '%s'" % (self.physics.__name__, string))
-        
+        value = self._getvalue(string, value)
         dx = self.dx()
         
         if isinstance(value, dict):
@@ -200,17 +191,11 @@ class Geometry(object):
     def pwconst(self, string, value=None, DG=True): #TODO: should also work as in docstring
         if DG and self.dg.has_key(string):
             return self.dg[string]
-        if value is None:
-            try:
-                value = vars(self.physics)[string]
-            except KeyError:
-                dolfin_error(__name__+".py",
-                             "interprete string description",
-                             "The module %s has not implemented '%s'" % (self.physics.__name__, string))
-
-        dom2value = self._pwconst_lookup(self._dom2phys,value)
+        value = self._getvalue(string, value)
+        dom2value = self._pwconst_lookup(self._dom2phys, value)
         #print value
-        #print dom2value
+        print self._dom2phys
+        print dom2value
         if DG:
             dgfun = self._dict_to_DG(dom2value)
             self.dg[string] = dgfun
@@ -319,6 +304,7 @@ class Geometry(object):
         return bou2value
 
     def _pwconst_lookup(self, dom2phys, value):
+        default = value["default"] if "default" in value else None
         dom2value = {}
         for i in dom2phys:
             for s in dom2phys[i]:
@@ -329,8 +315,12 @@ class Geometry(object):
                             "The value on '%s' is ambigous, check %s" %(s,self.physics.__name__))
                     else:
                         dom2value[i] = value[s]
-            if not dom2value.has_key(i):
-                warn("While creating piecewise constant, there was no value assigned to the %s domain" %str(dom2phys[i]))
+            if not i in dom2value:
+                if default is not None:
+                    dom2value[i] = default
+                else:
+                    warning("pwconst: no value specified for '%s' (used 0 as default)." %str(dom2phys[i][0]))
+                    dom2value[i] = 0.
         return dom2value
 
     def _dict_to_DG(self, dom2value): #TODO: not assume domain
@@ -368,6 +358,7 @@ class PhysicalBC(object):
         self.g = g
         self.description = description
         if geo:
+            self.geo = geo
             self.realize(geo)
 
     def realize(self, geo):
@@ -391,9 +382,14 @@ class PhysicalBC(object):
     def function_space(self):
         return self.bcs[0].function_space() if self.bcs else self.V
 
-    def homogenize(self):
-        for bc in self.bcs:
-            bc.homogenize()
+    def homogenize(self): # TODO: arbitrary tensors
+        shape = self.g.shape()
+        c = tuple(0. for i in range(shape[0])) if shape else 0.
+        self.g = Constant(c)
+        self.realize(self.geo)
+            
+        #for bc in self.bcs:
+        #    bc.homogenize()
 
 
 def _invert_dict(d):

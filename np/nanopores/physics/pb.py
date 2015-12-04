@@ -7,25 +7,29 @@ from .params_physical import *
 parameters["allow_extrapolation"] = True
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["NonstandardPB", "LinearNonstandardPB", "Poisson_"]
+__all__ = ["NonstandardPB", "LinearNonstandardPB"]
+
+# TODO: linearize() function to create linearized version of problem automatically
+# (same forms, Linear... framework, i.e. just make first newton step)
 
 class NonstandardPBProblem(GeneralNonlinearProblem):
     k = 1
     
     method = dict(
-        reuse = True,
+        reuse = False,
         iterative = True,
+        illposed = False,
         lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
         luparams = dict(
             symmetric = True,
             same_nonzero_pattern = True,
-            reuse_factorization = True,),
+            reuse_factorization = False,),
         ks = "bicgstab",
         kp = "amg",
         kparams = dict(
-            maximum_iterations = 200,
+            maximum_iterations = 500,
             monitor_convergence = False,
-            relative_tolerance = 1e-4,
+            absolute_tolerance = 1e-7,
             preconditioner = dict(
                 ilu = dict(fill_level = 1)))
     )
@@ -46,21 +50,15 @@ class NonstandardPBProblem(GeneralNonlinearProblem):
         n0 = geo.pwconst("n0")
         
         grad = phys.grad
-        beta = 1./phys.UT
-        
-        #a = inner(eps*grad(U), grad(v))*dx + qq*beta*(n0 + p0)*U*v*dx
-        #L = qq*D*v*dx + qq*(p0 - n0)*v*dx
-        a = inner(eps*grad(du), grad(v))*dx + qq*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*du*v*dx
-        L = inner(eps*grad(u), grad(v))*dx - qq*(p0*exp(-beta*u) - n0*exp(beta*u))*v*dx - qq*D*v*dx
+        beta = Constant(1./phys.UT)
+        q = Constant(phys.qq)
+        a = inner(eps*grad(du), grad(v))*dx + q*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*du*v*dx
+        L = inner(eps*grad(u), grad(v))*dx - q*(p0*exp(-beta*u) - n0*exp(beta*u) + D)*v*dx
         return (a, L)
     
     @staticmethod
     def bcs(V, geo):
         return geo.pwconstBC(V, "bV")
-        
-    @staticmethod
-    def bcs_homo(V, geo):
-        return geo.pwconstBC(V, "bV", homogenize=True)
     
         
 class LinearNonstandardPBProblem(GeneralLinearProblem):
@@ -69,6 +67,7 @@ class LinearNonstandardPBProblem(GeneralLinearProblem):
     method = dict(
         reuse = True,
         iterative = True,
+        illposed = False,
         lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
         luparams = dict(
             symmetric = True,
@@ -77,9 +76,9 @@ class LinearNonstandardPBProblem(GeneralLinearProblem):
         ks = "bicgstab",
         kp = "amg",
         kparams = dict(
-            maximum_iterations = 200,
+            maximum_iterations = 500,
             monitor_convergence = False,
-            relative_tolerance = 1e-4,
+            absolute_tolerance = 1e-7,
             preconditioner = dict(
                 ilu = dict(fill_level = 1)))
     )
@@ -89,8 +88,8 @@ class LinearNonstandardPBProblem(GeneralLinearProblem):
         return FunctionSpace(mesh, 'CG', LinearNonstandardPBProblem.k)
 
     @staticmethod
-    def forms(V, geo, phys, u):
-        U = TrialFunction(V)
+    def forms(V, geo, phys):
+        u = TrialFunction(V)
         v = TestFunction(V)
         dx = geo.dx()
          
@@ -102,8 +101,8 @@ class LinearNonstandardPBProblem(GeneralLinearProblem):
         grad = phys.grad
         beta = 1./phys.UT
         
-        a = inner(eps*grad(U), grad(v))*dx + qq*beta*(n0 + p0)*U*v*dx
-        L = qq*D*v*dx + qq*(p0 - n0)*v*dx
+        a = inner(eps*grad(u), grad(v))*dx + Constant(qq*beta)*(n0 + p0)*u*v*dx
+        L = Constant(qq)*(D + (p0 - n0))*v*dx
         #a = inner(eps*grad(U), grad(v))*dx + qq*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*U*v*dx
         #L = inner(eps*grad(u), grad(v))*dx + qq*(n0*exp(beta*u) - p0*exp(-beta*u))*v*dx - qq*D*v*dx
         return (a, L)
@@ -134,8 +133,4 @@ class NonstandardPB(NonlinearPDE):
 class LinearNonstandardPB(LinearPDE):
     def __init__(self, geo, phys, **params):
         LinearPDE.__init__(self, geo, LinearNonstandardPBProblem, phys=phys, **params)
-        
-class Poisson_(LinearPDE):
-    def __init__(self, geo, phys, **params):
-        LinearPDE.__init__(self, geo, PoissonProblem, phys=phys, **params)
 

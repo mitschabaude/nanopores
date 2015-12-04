@@ -43,7 +43,7 @@ print "--- MESHING"
 print
 
 t = Timer("meshing")
-meshdict = generate_mesh(5., "aHem", **geo_params)
+meshdict = generate_mesh(9., "aHem", **geo_params)
 
 print "Mesh generation time:",t.stop()
 #print "Mesh file:",meshdict["fid_xml"]

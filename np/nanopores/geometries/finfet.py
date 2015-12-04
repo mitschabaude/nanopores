@@ -38,7 +38,11 @@ finfet.addboundaries(
 )
 
 # add parameters (this should include params needed by physics module)
-finfet.params = dict(rdop = rdop)
+finfet.params = dict(
+    rdop = rdop,
+    lscale = 1e9,
+)
+
 
 # define dopant creation function here because this needs the box sizes
 def dopants(Ndop=Ndop):

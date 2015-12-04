@@ -1,5 +1,6 @@
 import dolfin
-from nanopores.physics.params_physical import *
+#from nanopores.physics.params_physical import *
+from nanopores.physics.default import *
 
 permSi = eperm*11.7
 permOx = eperm*3.9
@@ -19,7 +20,7 @@ vS = 0.
 vD = .5
 vG = .1
 
-xdopants = []
+dopants = [] # list of dopant coordinates
 
 synonymes = {
     "si": {"sourcendrain", "fin", "gate"}
@@ -33,10 +34,8 @@ bV = dict(
 )
 
 permittivity = dict(
+    default = "permSi",
     oxide = "permOx",
-    gate = "permSi",
-    fin = "permSi",
-    sourcendrain = "permSi",
     dopants = "permDopant",
 )
 
@@ -64,7 +63,7 @@ n0 = dict(
     oxide = 0.,
 )
 
-def add_dopants(geo, xdopants):
+def add_dopants(geo, dopants):
     rdop = geo.params["rdop"]
     
     def dist(x, x0):
@@ -77,24 +76,12 @@ def add_dopants(geo, xdopants):
         def inside(self, x, on_boundary):
             return any(dist(x, x0) <= rdop for x0 in self.xi)
 
-    if xdopants:
-        geo.add_subdomain("dopants", Dopants(xdopants))
+    if dopants:
+        geo.add_subdomain("dopants", Dopants(dopants))
     return
 
 # TODO: doesn't work    
 #def add_synonymes(geo):
 #    geo.import_synonymes(synonymes)
 
-def lscale(geo):
-    try:
-        return geo.parameter("nm")/nm
-    except:
-        return 1.0
-def grad():
-    def grad0(u):
-        return lscale*dolfin.nabla_grad(u)
-    return grad0
-def div():
-    def div0(u):
-        return lscale*dolfin.transpose(dolfin.nabla_div(u))
-    return div0
+

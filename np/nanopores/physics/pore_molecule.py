@@ -3,7 +3,7 @@
  for a specific physical set-up: nanopore with molecule inside
 '''
 import dolfin
-from nanopores.physics.params_physical import *
+from nanopores.physics.default import *
 # TODO: we could easily "subclass" a more general physics module by importing * from it
 #       e.g. default -> pore -> pore_molecule
 #       one would have to be careful about closure of functions though
@@ -88,38 +88,14 @@ def Moleculeqv(geo, Qmol): # Molecule volume charge density [C/m**3]
     except Exception:
         return None
 
-# scaling hack:
-# for scaled gradient, use phys.grad
-def lscale(geo):
-    try:
-        return geo.parameter("nm")/nm
-    except:
-        return 1.0
-def grad():
-    def grad0(u):
-        return lscale*dolfin.nabla_grad(u)
-    return grad0
-def div():
-    def div0(u):
-        return lscale*dolfin.transpose(dolfin.nabla_div(u))
-    return div0
-
-
 # 3. -- piecewise maps connecting physical domains to parameters
 #    -- these are DICTIONARIES of the form {"domain": "parameter_name"} OR
 #                                          {"domain": parameter}
-
-permittivity = {
-    "bulkfluid": eperm*rpermw,
-    "pore": "permPore",
-    "dna": eperm*rpermDNA,
-    "molecule": eperm*rpermDNA,
-    "sin": eperm*rpermSiN,
-    "lipid": eperm*rpermLipid,
-    "au": eperm*rpermAu,
-    "sam": eperm*rpermSAM,
-    "protein": "permProtein",
-}
+permittivity.update(
+    bulkfluid = eperm*rpermw,
+    pore = "permPore",
+    protein = permProtein,
+)
 
 # determines how Molecule charge is implemented
 smearMolCharge = True # note: this is no parameter

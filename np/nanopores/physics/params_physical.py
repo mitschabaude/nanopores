@@ -9,7 +9,7 @@ cm = 1e-2
 qq = 1.602e-19  # positive elementary charge [C]
 mol = 6.022e23  # Avogadro
 kB = 1.3806488e-23 # boltzmann [J/K]
-T = 293 # temp [K]
+T = 293 # room temperature (20 grad Celsius) [K]
 eperm = 8.854e-12  # electrical permittivity [F/m]
 rpermw = 80.2  # relative permittivity or dielectric constant of water
 rpermSiN = 7.0  # relative permittivity of SiN (http://www.iue.tuwien.ac.at/phd/quay/node27.html)
@@ -34,7 +34,7 @@ DNAqs = -qq/nm**2 # surface charge of dsDNA (according to Howorka)
 
 # absolute permittivities
 permittivity = {
-    'fluid':eperm*rpermw,
+    'water':eperm*rpermw,
     'dna':eperm*rpermDNA,
     'molecule':eperm*rpermDNA,
     'sin':eperm*rpermSiN,
@@ -43,23 +43,5 @@ permittivity = {
     'sam':eperm*rpermSAM,
     'oxide':eperm*3.9,
     'sil':eperm*11.7,
-    'impurity':eperm*2.27,
-}
-
-diffusion_factor = {
-    'bulkfluid':1.,
-    'pore':0.5, # this should actually be modeled directly
-    'sam':0.1,
-    'dna':0.01,
-    'molecule':0.01,
-    'sin':0.0001,
-    'au':0.0001,
-    'lipid':0.0001,
-}
-
-stokes_damp = { # damps stokes terms in current densities
-    "bulkfluid": 1.,
-    "pore": 1.,
-    "solid": 0.,
 }
 
