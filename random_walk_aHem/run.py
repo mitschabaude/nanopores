@@ -3,7 +3,7 @@ from math import sqrt, pi
 import math
 import numpy as np
 from nanopores import *
-#from nanopores.physics.exittime import ExitTimeProblem
+from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 import sys
 from calculateforce import *
@@ -17,7 +17,6 @@ def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
 
 geo = geo_from_xml("aHem")
-
 indicator_ahem = geo.indicator("ahem",callable=True)
 indicator_molecule = geo.indicator("molecule",callable=True)
 indicator_porecenter = geo.indicator("porecenter",callable=True)
@@ -33,6 +32,7 @@ def indicator_membrane(vec): #"infinite" large membrane
 def oor(x,y,z):
     return radius(x,y)>500 or z>500
 
+
 kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
 visc=1e-3 #[Pa*s]
@@ -45,7 +45,7 @@ coeff=sqrt(2*D*1e9*tau)
 
 counter = np.array([0,0,0,0,0]) # ahem, molecule, poretop, membrane, bulk
 EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-Range =range(100)
+Range =range(300)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
