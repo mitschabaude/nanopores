@@ -105,3 +105,4 @@ class Physics(object):
                 output.append(s % item)
             output.append("")
         return "\n".join(output)
+        

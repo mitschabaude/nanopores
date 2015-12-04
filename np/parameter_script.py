@@ -1,21 +1,22 @@
 import nanopores
-'''
-nanopores.simulation2D(
-z = nanopores.crange(0, 11, 5),
-r = [0.4, 0.55],
-dnaqsdamp = 0.2,
-bV = [0.002, 0.003],
-q = [-3, 1],
 
-refinement = False,
-clscale = .5,
+nanopores.simulation2D(
+z = 7.5, #nanopores.crange(0, 11, 5),
+r = 0.4,
+dnaqsdamp = 0.2,
+bV = [0.003, 0.03, 0.3],
+q = -3,
+
+refinement = True,
+clscale = .8,
 maxcells = 5e4,
 newtondamp = .8,
 
-plot = "z",
+plot = "bV",
 outputs = ["F", "J", "Fdrag", "Fbare"],
-nproc = 4,
+nproc = 1,
 )
+
 '''
 
 nanopores.simulate("ahemFPT",
@@ -35,5 +36,5 @@ clscale = 12.,
 skip_stokes = True, #[True, False],
 iterative = True,
 )
-
+'''
 

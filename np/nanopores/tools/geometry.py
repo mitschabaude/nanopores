@@ -194,8 +194,8 @@ class Geometry(object):
         value = self._getvalue(string, value)
         dom2value = self._pwconst_lookup(self._dom2phys, value)
         #print value
-        print self._dom2phys
-        print dom2value
+        #print self._dom2phys
+        #print dom2value
         if DG:
             dgfun = self._dict_to_DG(dom2value)
             self.dg[string] = dgfun

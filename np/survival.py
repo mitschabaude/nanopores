@@ -12,7 +12,7 @@ geo_params = dict(
     l4 = 10.,
     R = 60.,
     x0 = [5., 0., 10.], # |x0| > 2.2
-    rMolecule = 2.2*nm,
+    rMolecule = 2.2,
     exit_i = 1,
 )
 phys_params = dict(
@@ -65,6 +65,7 @@ print "Geo generation time:",t.stop()
 #plot(geo.submesh("exittime"))
 
 phys = Physics("pore_molecule", geo, **phys_params)
+print phys
 
 x0 = geo.params["x0"]
 r0 = math.sqrt(sum(x**2 for x in x0))
