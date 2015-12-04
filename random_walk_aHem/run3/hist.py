@@ -35,6 +35,6 @@ print exit/hits
 # plt.scatter(x,y)
 # plt.show()	
 
-n, bins, patches = P.hist(exit_rad, bin3,normed=1, histtype='stepfilled')
+n, bins, patches = P.hist(exit_rad, bin2,normed=1, histtype='stepfilled')
 P.setp(patches, 'facecolor', 'g', 'alpha', .75)
 P.show()

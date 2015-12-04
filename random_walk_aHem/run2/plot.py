@@ -30,15 +30,15 @@ print
 print 'INFINITY: ', float(counter[4])/hits
 print
 
-# delete=[]
-# for index in range(EXIT_X.shape[0]):
-#     if EXIT_Z[index]<-5:
-#         delete.append(index)
+delete=[]
+for index in range(EXIT_X.shape[0]):
+    if EXIT_Z[index]<-5:
+        delete.append(index)
 
-# for index in reversed(delete):
-#     EXIT_X = np.delete(EXIT_X, index)
-#     EXIT_Y = np.delete(EXIT_Y, index)
-#     EXIT_Z = np.delete(EXIT_Z, index)
+for index in reversed(delete):
+    EXIT_X = np.delete(EXIT_X, index)
+    EXIT_Y = np.delete(EXIT_Y, index)
+    EXIT_Z = np.delete(EXIT_Z, index)
 
 delete=[]
 for index in range(EXIT_X.shape[0]):
