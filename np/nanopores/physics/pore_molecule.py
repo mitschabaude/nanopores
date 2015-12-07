@@ -3,10 +3,9 @@
  for a specific physical set-up: nanopore with molecule inside
 '''
 import dolfin
-from nanopores.physics.params_physical import *
+from nanopores.physics.default import *
 # TODO: we could easily "subclass" a more general physics module by importing * from it
 #       e.g. default -> pore -> pore_molecule
-#       one would have to be careful about closure of functions though
 
 # 1. -- default values for direct parameters
 
@@ -88,38 +87,14 @@ def Moleculeqv(geo, Qmol): # Molecule volume charge density [C/m**3]
     except Exception:
         return None
 
-# scaling hack:
-# for scaled gradient, use phys.grad
-def lscale(geo):
-    try:
-        return geo.parameter("nm")/nm
-    except:
-        return 1.0
-def grad():
-    def grad0(u):
-        return lscale*dolfin.nabla_grad(u)
-    return grad0
-def div():
-    def div0(u):
-        return lscale*dolfin.transpose(dolfin.nabla_div(u))
-    return div0
-
-
 # 3. -- piecewise maps connecting physical domains to parameters
 #    -- these are DICTIONARIES of the form {"domain": "parameter_name"} OR
 #                                          {"domain": parameter}
-
-permittivity = {
-    "bulkfluid": eperm*rpermw,
-    "pore": "permPore",
-    "dna": eperm*rpermDNA,
-    "molecule": eperm*rpermDNA,
-    "sin": eperm*rpermSiN,
-    "lipid": eperm*rpermLipid,
-    "au": eperm*rpermAu,
-    "sam": eperm*rpermSAM,
-    "protein": "permProtein",
-}
+permittivity.update(
+    bulkfluid = eperm*rpermw,
+    pore = "permPore",
+    protein = "permProtein",
+)
 
 # determines how Molecule charge is implemented
 smearMolCharge = True # note: this is no parameter
@@ -134,13 +109,11 @@ surfcharge = { # surface charge densities for Neumann RHS
     "ahemb": "ahemqs",
 }
 
-volcharge = {# volume charges for RHS
-    "molecule": ("Moleculeqv" if smearMolCharge else 0.),
-    "fluid": 0.,
-    "dna": 0.,
-    "membrane": 0.,
-    "protein": 0.,
-    }
+volcharge = dict( # volume charges for RHS
+    default = 0.,
+    molecule = ("Moleculeqv" if smearMolCharge else 0.),
+)
+    
 charge = {"volcharge":volcharge, "surfcharge":surfcharge}
 
 diffusion_factor = { # diffusivity of ions relative to bulk
@@ -173,7 +146,7 @@ in our package all volume forms are in fact scaled with
 1./lscale**3, thus this is the reference for all forms,
 this means surfaces and grad need to be scaled by lscale
 '''
-def Fbare(geo):
+def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad):
     try: # to make geo not necessary
         if len(geo.physicalboundary("moleculeb"))==0:
             return
@@ -185,10 +158,10 @@ def Fbare(geo):
             #def gradT(v): # tangential gradient
             #    return tang(dolfin.grad(v))
             #return dolfin.Constant(Moleculeqs)*(-r*gradT(v)[i])('-')*dS
-            return dolfin.Constant(Moleculeqs) * (-r2pi*lscale*dolfin.grad(v)[i])('-') * lscale*dS
+            return dolfin.Constant(Moleculeqs) * (-r2pi*grad(v)[i])('-') * lscale*dS
         def Fbarevol(v, i):
             dx = geo.dx("molecule")
-            return dolfin.Constant(Moleculeqv) * (-r2pi*lscale*dolfin.grad(v)[i]) * dx
+            return dolfin.Constant(Moleculeqv) * (-r2pi*grad(v)[i]) * dx
 
         if geo.params["x0"]:
             Fbare0 = Fbarevol if smearMolCharge else Fbaresurf
@@ -198,7 +171,7 @@ def Fbare(geo):
     except:
         return None
 
-def FbareE(geo):
+def FbareE(geo, r2pi):
     try:
         # for gradient recovery, or testing with manifactured E field
         def Fbaresurf(E, i):
@@ -216,27 +189,7 @@ def FbareE(geo):
     except:
         return None
 
-
-def CurrentPBold(geo):
-    try:
-        # current approximated by linear functional of potential
-        bV0 = 0.1 #bV if bV is not None else 0.1
-        def J0(v):
-            c0 = cFarad*bulkcon
-            L = geo.params["l0"]/lscale
-            # linear PB approximation of charge
-            rho = 2*c0*v
-            # assume constant external electric field
-            Ez = bV0/L
-            # assume current dominated by el. drift
-            Jz = mu*rDPore*rho*Ez # = 2*c0*bV/L * v
-
-            return r2pi/L*Jz*geo.dx("pore")
-        return J0
-    except:
-        return None
-
-def CurrentPB(geo):
+def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, bV, UT, lscale, cFarad):
     try:
         # current approximated by linear functional of potential (not really)
         bV0 = 0.1 #bV if bV is not None else 0.1
@@ -249,7 +202,7 @@ def CurrentPB(geo):
     except:
         return None
 
-def CurrentPBdrift(geo):
+def CurrentPBdrift(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad):
     try:
         def Jzdrift(bV):
         #def Jzdrift(v):
@@ -262,7 +215,7 @@ def CurrentPBdrift(geo):
     except:
         return None
         
-def Feff(geo):
+def Feff(geo, grad):
     def Feff0(v, u):
         E = -grad(v)
         pi = 3.141592653589793

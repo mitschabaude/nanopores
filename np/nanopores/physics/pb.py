@@ -1,93 +1,136 @@
 """ Define Poisson-Boltzmann problem """
 
 from dolfin import *
-from ..tools import AdaptableNonlinearProblem, NonlinearPDE, poisson_indicator
+from ..tools import AdaptableNonlinearProblem, LinearPDE, NonlinearPDE, poisson_indicator, GeneralNonlinearProblem, GeneralLinearProblem
 from .params_physical import *
 
 parameters["allow_extrapolation"] = True
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["PBProblem", "PB"]
+__all__ = ["NonstandardPB", "LinearNonstandardPB"]
 
-class PBProblem(AdaptableNonlinearProblem):
+# TODO: linearize() function to create linearized version of problem automatically
+# (same forms, Linear... framework, i.e. just make first newton step)
+
+class NonstandardPBProblem(GeneralNonlinearProblem):
     k = 1
     
     method = dict(
-        reuse = True,
+        reuse = False,
         iterative = True,
+        illposed = False,
         lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
         luparams = dict(
             symmetric = True,
             same_nonzero_pattern = True,
-            reuse_factorization = True,),
-        ks = "cg",
+            reuse_factorization = False,),
+        ks = "bicgstab",
         kp = "amg",
         kparams = dict(
-            maximum_iterations = 200,
+            maximum_iterations = 500,
             monitor_convergence = False,
-            relative_tolerance = 1e-4,
+            absolute_tolerance = 1e-7,
             preconditioner = dict(
                 ilu = dict(fill_level = 1)))
     )
 
     @staticmethod
     def space(mesh):
-        return FunctionSpace(mesh, 'CG', PBProblem.k)
+        return FunctionSpace(mesh, 'CG', NonstandardPBProblem.k)
 
     @staticmethod
-    def forms(V, geo, u0, phi):
+    def forms(V, geo, phys, u):
+        du = TrialFunction(V)
+        v = TestFunction(V)
+        dx = geo.dx()
+         
+        eps = geo.pwconst("permittivity")
+        D = geo.pwconst("D")
+        p0 = geo.pwconst("p0")
+        n0 = geo.pwconst("n0")
+        
+        grad = phys.grad
+        beta = Constant(1./phys.UT)
+        q = Constant(phys.qq)
+        a = inner(eps*grad(du), grad(v))*dx + q*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*du*v*dx
+        L = inner(eps*grad(u), grad(v))*dx - q*(p0*exp(-beta*u) - n0*exp(beta*u) + D)*v*dx
+        return (a, L)
+    
+    @staticmethod
+    def bcs(V, geo):
+        return geo.pwconstBC(V, "bV")
+    
+        
+class LinearNonstandardPBProblem(GeneralLinearProblem):
+    k = 1
+    
+    method = dict(
+        reuse = True,
+        iterative = True,
+        illposed = False,
+        lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+        luparams = dict(
+            symmetric = True,
+            same_nonzero_pattern = True,
+            reuse_factorization = True,),
+        ks = "bicgstab",
+        kp = "amg",
+        kparams = dict(
+            maximum_iterations = 500,
+            monitor_convergence = False,
+            absolute_tolerance = 1e-7,
+            preconditioner = dict(
+                ilu = dict(fill_level = 1)))
+    )
+
+    @staticmethod
+    def space(mesh):
+        return FunctionSpace(mesh, 'CG', LinearNonstandardPBProblem.k)
+
+    @staticmethod
+    def forms(V, geo, phys):
         u = TrialFunction(V)
         v = TestFunction(V)
         dx = geo.dx()
-        dx_ions = geo.dx("ions")
          
-        eps = geo.pwconst('permittivity')
-        phiF = geo.pwconst("fermi_level")
-        c0 = geo.pwconst("ion_concentration")
-        rho = geo.pwconst("permanent_charge")
+        eps = geo.pwconst("permittivity")
+        D = geo.pwconst("D")
+        p0 = geo.pwconst("p0")
+        n0 = geo.pwconst("n0")
         
-        a = inner(eps*grad(u), grad(v))*dx + 2*cFarad*c0/UT*cosh((u0 - phiF)/UT)*u*v*dx
-        L = inner(eps*grad(u0), grad(v))*dx + 2*cFarad*c0*sinh((u0 - phiF)/UT)*v*dx - rho*v*dx
+        grad = phys.grad
+        beta = 1./phys.UT
         
-        if geo.physicalboundary("charged"):
-            L = L - phi*v('+')*geo.dS("charged")
-        
+        a = inner(eps*grad(u), grad(v))*dx + Constant(qq*beta)*(n0 + p0)*u*v*dx
+        L = Constant(qq)*(D + (p0 - n0))*v*dx
+        #a = inner(eps*grad(U), grad(v))*dx + qq*beta*(n0*exp(beta*u) + p0*exp(-beta*u))*U*v*dx
+        #L = inner(eps*grad(u), grad(v))*dx + qq*(n0*exp(beta*u) - p0*exp(-beta*u))*v*dx - qq*D*v*dx
         return (a, L)
     
-    def __init__(self, geo, bcs=None, phi=None, u=None, **phys_params_in):
-        mesh = geo.mesh
-        V = self.space(mesh)
-        phys_params.update(phys_params_in)
-        C0 = Constant(0.0)
+    @staticmethod
+    def bcs(V, geo):
+        return geo.pwconstBC(V, "bV")
         
-        if phi is None and geo.physicalboundary("charged"):
-            area = assemble(Constant(1.0)*geo.dS("charged"))
-            phi = Constant(phys_params["bcharge"]/area)
-        if u is None:
-            u = Function(V)
-        if bcs is None:
-            try:
-                bcs = [geo.BC(V, phys_params["bV"], "bV"),
-                       geo.BC(V, C0, "ground")]
-            except:
-                warning("No boundary conditions have been assigned to %s" %type(self).__name__)
-                
-        for bc in bcs:
-            bc.apply(u.vector())
-            #bc.homogenize() # <-- doesn't work!!!
+class PoissonProblem(LinearNonstandardPBProblem):
+    @staticmethod
+    def forms(V, geo, phys, u):
+        U = TrialFunction(V)
+        v = TestFunction(V)
+        dx = geo.dx()
+         
+        eps = geo.pwconst("permittivity")
+        grad = phys.grad
         
-        # TODO: decide on user interface    
-        bcs = [geo.BC(V, C0, "bV"),
-               geo.BC(V, C0, "ground")]
+        a = inner(eps*grad(U), grad(v))*dx
+        L = Constant(0.)*v*dx
+        return (a, L)
         
-        a, L = self.forms(V, geo, u, phi)
 
-        AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
-        
-        
-class PB(NonlinearPDE):
-    def __init__(self, geo, **params):
-        NonlinearPDE.__init__(self, geo, PBProblem, **params)
-    def estimate(self):
-        return poisson_indicator(self.geo, self.functions.values()[0])
+class NonstandardPB(NonlinearPDE):
+    def __init__(self, geo, phys, **params):
+        NonlinearPDE.__init__(self, geo, NonstandardPBProblem, phys=phys, **params)
+
+class LinearNonstandardPB(LinearPDE):
+    def __init__(self, geo, phys, **params):
+        LinearPDE.__init__(self, geo, LinearNonstandardPBProblem, phys=phys, **params)
 

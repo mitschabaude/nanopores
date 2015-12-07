@@ -19,18 +19,23 @@ class IllposedLinearSolver(object):
             dolfin_error("illposed.py",
                          "initialize IllposedLinearSolver",
                          "Sorry, accepts only an AdaptableLinearProblem")
-        self.problem = problem
-        self.problem.a = self.stab*self.problem.a
-        self.problem.L = self.stab*self.problem.L
         try:
             self.method = problem.method
         except AttributeError:
             self.method = dict(reuse=False,
                                iterative=False,
                                lusolver="mumps",)
-        if(method):
+        if method:
             self.method.update(method)
-        if(self.method["reuse"]):
+                               
+        self.illposed = ("illposed" not in self.method) or self.method["illposed"]
+        self.problem = problem
+        
+        if self.illposed:
+            self.problem.a = self.stab*self.problem.a
+            self.problem.L = self.stab*self.problem.L
+        
+        if self.method["reuse"]:
             self.assemble_A()
                 
     def assemble_A(self):
@@ -39,7 +44,8 @@ class IllposedLinearSolver(object):
         A = assemble(self.problem.a,keep_diagonal=True)
         for bc in self.problem.bcs:
             bc.apply(A)
-        A.ident_zeros()
+        if self.illposed:
+            A.ident_zeros()
         
         if not self.method["iterative"]:
             self.S = LUSolver(self.method["lusolver"])
@@ -76,7 +82,8 @@ class IllposedLinearSolver(object):
                     P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
                     for bc in self.problem.bcs:
                         bc.apply(P)
-                    P.ident_zeros()
+                    if self.illposed:
+                        P.ident_zeros()
                     P = as_backend_type(P).mat()
                     ksp.setOperators(A, P)
                 ksp.setFromOptions()
@@ -95,7 +102,8 @@ class IllposedLinearSolver(object):
                     P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
                     for bc in self.problem.bcs:
                         bc.apply(P)
-                    P.ident_zeros()
+                    if self.illposed:
+                        P.ident_zeros()
                     self.S.set_operators(A, P)
                 else:
                     self.S.set_operator(A)	
@@ -162,7 +170,11 @@ class IllposedNonlinearSolver(IllposedLinearSolver):
     #def relerror(self):
     #    return norm(self.problem.u,"H10")/norm(self.problem.uold,"H10")
     def relerror(self):
-        return self.problem.u.vector().norm('l2')/self.problem.uold.vector().norm('l2')
+        norm = self.problem.uold.vector().norm('l2')
+        if norm > 0.:
+            return self.problem.u.vector().norm('l2')/norm
+        else:
+            return self.problem.u.vector().norm('l2')
     
 class AdaptableLinearProblem(object):
     # TODO: any use for subclassing LinearVariationalProblem?

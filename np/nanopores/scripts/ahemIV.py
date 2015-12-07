@@ -53,7 +53,7 @@ def calculate(**params):
     params["x0"] = [r0, 0., z0]
     params["l3"] = l3*domscale
     params["R"] = R*domscale
-    # does this something?
+    # TODO does this something?
     nanopores.IllposedNonlinearSolver.newtondamp = newtondamp
     nanopores.PNPS.tolnewton = tolnewton
 

@@ -8,7 +8,7 @@ from .utilities import _call
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
-           "GeneralLinearProblem"]
+           "GeneralLinearProblem", "GeneralNonlinearProblem"]
 
 class PDESystem(object):
     imax = 100
@@ -207,12 +207,14 @@ class LinearPDE(PDESystem):
         self.geo = geo
         self.functions = {ProblemClass.__name__: problem.solution()}
         self.solution = problem.solution()
+        self.problem = problem
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
 
 class NonlinearPDE(PDESystem):
     ''' simple interface for single nonlinear PDE and Newton method '''
     tolnewton = 1e-4
+    newtondamp = 1.
 
     def __init__(self, geo, ProblemClass, **problem_params):
         problem = ProblemClass(geo, **problem_params)
@@ -220,19 +222,31 @@ class NonlinearPDE(PDESystem):
 
         self.geo = geo
         self.functions = {ProblemClass.__name__: problem.solution()}
+        self.solution = problem.solution()
+        self.problem = problem
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
 
-    def single_solve(self, tol=None):
+    def single_solve(self, tol=None, damp=None, verbose=False):
         if not tol:
             tol = self.tolnewton
-        S = self.solvers.values()[0]
+        if not damp:
+            damp = self.newtondamp
+        S = self.solvers.values()[0] 
+        S.newtondamp = damp
         for i in range(self.imax):
             S.solve()
+            #plot(self.solution) # for debugging
+            if verbose:
+                print 'Relative L2 Newton error:',S.relerror()
             if S.convergence(tol):
+                if verbose:
+                    print 'linf Norm of Newton update:', \
+                            norm(S.problem.u.vector(),'linf'), \
+                            '<=', tol ,' \n  ==> break loop \n'
                 break
         print "Newton iterations:",i+1
-        print 'Relative H1 Newton error:',S.relerror()
+        print 'Relative L2 Newton error:',S.relerror()
         return i+1
 
 class GoalAdaptivePDE(PDESystem):
@@ -300,6 +314,28 @@ class GeneralLinearProblem(AdaptableLinearProblem):
         a, L = _call(self.forms, self.params)
         self.a = a
         self.L = L
+        
+class GeneralNonlinearProblem(AdaptableNonlinearProblem):
+
+    def __init__(self, geo, phys=None, u=None, **params):
+        
+        mesh = geo.mesh
+        V = self.space(mesh)
+        params.update(geo=geo, phys=phys, V=V)
+        
+        if not u:
+            u = Function(V)
+            
+        params.update(u=u)
+        self.params = params
+        
+        bcs = _call(self.bcs, params)
+        for bc in bcs:
+            bc.apply(u.vector())
+            bc.homogenize()
+        
+        a, L = _call(self.forms, params)
+        AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
         
     
         

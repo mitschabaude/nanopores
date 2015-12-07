@@ -47,10 +47,12 @@ class Physics(object):
         # calculate all dependent parameters
         if geo:
             self.base["geo"] = geo
-        self.precalculate(mod) # could be optional at some point, for performance
+        #self.precalculate(mod) # could be optional at some point, for performance
+        self.mod = mod
+        self.__name__ = mod.__name__
 
         # crazy way to finish
-        self.__dict__ = self.base
+        #self.__dict__ = self.base
 
         # change physical parameters in geo to self
         # TODO: not ideal.. should we move all "physics functionality" from Geometry to Physics?
@@ -70,3 +72,37 @@ class Physics(object):
                     m[k] = self.base[m[k]]
             self.base[mstr] = m
             setattr(mod, mstr, m)
+            
+    def __getattr__(self, name):
+        if name in self.base:
+            return self.base[name]
+            
+        elif name in self.functions:
+            f = self.functions.pop(name)
+            argnames = inspect.getargspec(f).args
+            args = [getattr(self, k) for k in argnames]
+            result = f(*args)
+            self.base[name] = result
+            setattr(self.mod, name, result)
+            return result
+            
+        elif name in self.maps:
+            m = self.maps.pop(name)
+            for k in m:
+                if isinstance(m[k], str):
+                    m[k] = getattr(self, m[k])
+            self.base[name] = m
+            setattr(self.mod, name, m)
+            return m
+            
+    def __str__(self):
+        output = ["","Physics:"]
+        s = "   %s = %s"
+        for dstr in ["base", "functions", "maps"]:
+            d = getattr(self, dstr)
+            output.append("%s (%d):" % (dstr, len(d)))
+            for item in d.items():
+                output.append(s % item)
+            output.append("")
+        return "\n".join(output)
+        

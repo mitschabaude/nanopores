@@ -4,40 +4,14 @@ python class to handle n-dimensional rectangular boxes and unions of them
 note: very naive implementation of union, suitable for a couple 100 boxes
 '''
 
-# TODO: collaps pathological boxes,
-#       reduce number of boxes in disjoint union when there is no intersection
+# TODO: customizable length scales
+# TODO: reduce number of boxes in disjoint union when there is no intersection
 
 from itertools import izip, product, combinations
-import numpy as np
 from .. import py4gmsh
 import dolfin
 
-        
-    #@staticmethod    
-    #def union(*boxes):
-    #    return multi_box_union(*boxes)
-'''    
-class BoundaryBoxCollection(BoxCollection):
-    # mainly a wrapper for a csgExpression
-
-    def __or__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
-        coll = BoundaryBoxCollection(*boxes)
-        coll.csg = self._csg() | other._csg()
-        return coll
-        
-    def __and__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
-        coll = BoundaryBoxCollection(*boxes)
-        coll.csg = self._csg() & other._csg()
-        return coll
-        
-    def __sub__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
-        coll = BoundaryBoxCollection(*boxes)
-        coll.csg = self._csg() - other._csg()
-        return coll
-'''        
+__all__ = ["BoxCollection", "Box"]
         
 class BoxCollection(object):
     " collection of disjoint boxes, and their vertices, edges, facets "
@@ -52,7 +26,6 @@ class BoxCollection(object):
 
     def __str__(self):
         return str(self.csg)
-        #return "Union{\n  %s\n}\n" %(",\n  ".join(str(box) for box in self),)
         
     # two methods to unify Boxes and BoxCollections
     def _csg(self):
@@ -61,19 +34,7 @@ class BoxCollection(object):
         return self.boxes
     def _indexset(self):
         return self.indexset
-        
-    #def __iter__(self):
-    #    return iter(self.boxes)
-        
-    #def __getitem__(self, i):
-    #    return self.boxes[i]    
-        
-    #def append(self, item):
-    #    self.boxes.append(item)
-        
-    #def extend(self, seq):
-    #    self.boxes.extend(seq)
-        
+                
     def compute_entities(self):
         dic = multi_box_union(self.boxes, self.facets)
         self.__dict__.update(dic)
@@ -88,10 +49,10 @@ class BoxCollection(object):
             rest.indexset = rest.csg.eval()
             if rest.indexset:
                 self.addsubdomain(rest, "rest")
-        #self.boxes = boxes # needed?
         
     def compute_boundaries(self):
         # call after compute_entities
+        # TODO
         pass
         
     def create_geometry(self, lc=.5):
@@ -99,6 +60,7 @@ class BoxCollection(object):
         entities_to_gmsh(self.entities, self.indexset, lc=lc)
         physical_to_gmsh(self.subdomains, self.boundaries)
         self.geo = to_mesh()
+        self.geo.params = {} if not hasattr(self, "params") else self.params
         return self.geo
         
     def plot(self, sub=False):
@@ -109,9 +71,6 @@ class BoxCollection(object):
         else:
             dolfin.plot(geo.mesh)
         dolfin.interactive()
-        
-    def addboxes(self, *newboxes):
-        self.boxes.extend(newboxes)
         
     def addsubdomain(self, sub, name):
         assert isinstance(sub, BoxCollection) or isinstance(sub, Box)
@@ -134,28 +93,25 @@ class BoxCollection(object):
             self.addboundary(sub, name)
         
     def boundary(self):
-        bd = BoxCollection()
-        return bd
+        # TODO
+        pass
         
     def __or__(self, other):
         boxes = list(set(self._boxes() + other._boxes()))
         coll = BoxCollection(*boxes)
         coll.csg = self._csg() | other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
     def __and__(self, other):
         boxes = list(set(self._boxes() + other._boxes()))
         coll = BoxCollection(*boxes)
         coll.csg = self._csg() & other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
     def __sub__(self, other):
         boxes = list(set(self._boxes() + other._boxes()))
         coll = BoxCollection(*boxes)
         coll.csg = self._csg() - other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
 class Box(BoxCollection):
@@ -168,8 +124,8 @@ class Box(BoxCollection):
             self.b = tuple(y for x,y in intervals)
         else:
             if center is not None:
-                a = [c - x/2 for c,x in zip(center, [l,w,h])]
-                b = [c + x/2 for c,x in zip(center, [l,w,h])]
+                a = [c - x*.5 for c,x in zip(center, [l,w,h])]
+                b = [c + x*.5 for c,x in zip(center, [l,w,h])]
             # a, b should be tuples
             assert len(a) == len(b)
             a, b = _sort(a, b)
@@ -209,21 +165,18 @@ class Box(BoxCollection):
         # return union of two Boxes as a BoxCollection
         coll = BoxCollection(self, *(other._boxes()))
         coll.csg = self._csg() | other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
     def __and__(self, other):
         # return intersection of two Boxes as a BoxCollection
         coll = BoxCollection(self, *(other._boxes()))
         coll.csg = self._csg() & other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
     def __sub__(self, other):
         # return difference of two Boxes as a BoxCollection
         coll = BoxCollection(self, *(other._boxes()))
         coll.csg = self._csg() - other._csg()
-        #coll.boundaries = list(set(self.boundaries + other.boundaries))
         return coll
         
     def boundary(self, *strings):
@@ -291,9 +244,6 @@ class csgExpression(object):
         elif self.op == "-":
             return self.A.eval() - self.B.eval()
             
-    def store_eval(self):
-        self.indexset = self.eval()
-
     # boolean operations    
     def __or__(self, other):
         return csgExpression("|", self, other)
@@ -307,7 +257,8 @@ class Float(float):
     
     def __cmp__(self, other):
         return _cmp(self, other, self.tol)
-        
+    
+    # TODO: this is performance-critical, so minimize function calls    
     def __eq__(self, other):
         if isinstance(other, Float):
             return cmp(self, other) == 0
@@ -327,8 +278,7 @@ def _sort(a, b):
     a_ = tuple(map(min, izip(a,b)))
     b_ = tuple(map(max, izip(a,b)))
     return a_, b_
-    
-    
+        
 def _cmp(s, t, tol):
     " test floats for approximate equality "
     if s > t+tol:
@@ -336,10 +286,7 @@ def _cmp(s, t, tol):
     elif s < t-tol:
         return -1
     else:
-        return 0
-               
-def _sorted(I, J):
-    return (min(I,J), max(I,J))       
+        return 0    
         
 def _unique(seq):
     # version of list(set(seq)) but using list membership test
@@ -348,7 +295,7 @@ def _unique(seq):
     [unique.append(x) for x in seq if not unique.count(x)]
     return unique
         
-def multi_interval_union(*intvs):
+def multi_interval_union(intvs):
     " return disjoint subintervals with same union as intervals, plus parent information "
     # input: list of intervals
     # output: for lists:
@@ -372,16 +319,12 @@ def multi_interval_union(*intvs):
     #print points, psets, subs, ssets    
     return points, psets, subs, ssets
     
+    
+def _map(f, seq):
+    """ version of map() for function with multiple return values.
+    instead of a list of tuples (like map), return a tuple of lists. """
+    return tuple(map(list, zip(*map(f, seq))))
         
-#def _intersection(A, B):
-#    ints = [(max(a,c), min(b,d)) for (a,b),(c,d) in izip(A, B)]
-#    return Box(intervals=ints)
-
-def _disjoint(A, B):
-    " test whether two boxes are disjoint "
-    return any((a > d) | (c > b) for (a,b),(c,d) in izip(A, B))
-    
-    
 def multi_box_union(boxes, facets=[]):
     " return union of boxes as collection of disjoint boxes "
     # TODO: atm this modifies the boxes with an "indexset" attribute
@@ -395,16 +338,7 @@ def multi_box_union(boxes, facets=[]):
         box.indexset = set()
     
     # get list of disjoint intervals for every dimension
-    intvs = []
-    isets = []
-    nodes = []
-    nsets = []
-    for ilist in izip(*allboxes):
-        node, nset, intv, iset = multi_interval_union(*ilist)
-        nodes.append(node)
-        nsets.append(nset)
-        intvs.append(intv)
-        isets.append(iset)
+    nodes, nsets, intvs, isets = _map(multi_interval_union, izip(*allboxes))
         
     D = range(dim) # [0,...,dim-1]
     D1 = range(dim+1) # [0,..,dim]
@@ -425,7 +359,7 @@ def multi_box_union(boxes, facets=[]):
                     esets[k].append(eset)
                     if k == (dim-1):
                         for ii in eset:
-                            if allboxes[ii] in facets:
+                            if allboxes[ii] in facets: # TODO: bad hack
                                 allboxes[ii].indexset.add(j)
                     if k == dim:
                         for ii in eset:
@@ -437,7 +371,6 @@ def multi_box_union(boxes, facets=[]):
         #print
     return dict(nodes=nodes, entities=entities, esets=esets)
     
-        
 def _facets(box): # get facets from d-dimensional box, d >= 1
     facets = []
     d = len(box)
@@ -483,7 +416,7 @@ def entities_to_gmsh(entities, indexset, lc=.5):
     # add entities of dimension > 0
     for k in range(1, dim+1):
         for i, e in enumerate(entities[k]):
-            # preliminary hack
+            # TODO preliminary hack
             if k == dim:
                 if i not in indexset:
                     continue
@@ -501,7 +434,6 @@ def entities_to_gmsh(entities, indexset, lc=.5):
             # add entity
             gmsh_entities[k][i] = Entity[k](loop)
             
-            
 def physical_to_gmsh(subdomains, boundaries):
     # call only after entities_to_gmsh
     for sub in subdomains:
@@ -510,7 +442,6 @@ def physical_to_gmsh(subdomains, boundaries):
     for sub in boundaries:
         surfs = [gmsh_entities[dim-1][i] for i in sub.indexset]
         py4gmsh.PhysicalSurface(surfs, sub.name, dim)
-    
     
 def to_mesh(clscale=1., pid=""):
     py4gmsh.raw_code(['General.ExpertMode = 1;'])

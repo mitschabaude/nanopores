@@ -1,8 +1,13 @@
 import nanopores
 import numpy
 import dolfin
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
 
 dolfin.tic()
+
+bmV = numpy.linspace(-99.9, 99.9, 8)
+I = []
 
 # IV ohmic and diodic fit taken from:
 # Rectification of the Current in alpha-Hemolysin Pore Depends on the Cation Type:
@@ -16,14 +21,10 @@ V0 = 4.  # [mV]
 Gminf = 0.75  # 1/(R+r) [nS]
 Gpinf = 1.15  # 1/R [nS]
 # Gpinf/sigmab = 1.0 Angstrom
+
 R = 1/Gpinf  # [G Ohm]
 r = 1/Gminf - R  # [G Ohm]
 
-import matplotlib.pyplot as plt
-from scipy.optimize import fsolve
-
-bmV = numpy.linspace(-100.0, 100.0, 6)
-I = []
 for amV in bmV:
     func = lambda i: i - amV/(r+R) - r*I0/(r+R)*(numpy.exp((amV-R*i)/V0)-1)
     I_guess = amV/(R+r)*2  # [V/G Ohm *1e-3 = pA]
@@ -34,30 +35,58 @@ for amV in bmV:
 print "\nbmV = ", bmV
 print "I = ", I
 
+### SIMULATION
+
+# or use existing .dat file with uid
+uid = None
 
 # Simulation Args
-bV = bmV*1e-3 #numpy.linspace(-0.2, 0.2, 6),
+bV = bmV*1e-3
 args = dict(
     nproc = 1,
     plot = "bV",
     outputs = ["Javgbtm", "Javgtop"],
 
     domscale = 1,
-    r0 = 5.,
-    z0 = 10.,
+    #r0 = 5.,
+    #z0 = 10.,
 
     bV = list(bV),
     bulkcon = 1000.,
-    ahemqs = list(numpy.linspace(0.08, -0.08, 5)),
+    ahemqs = list(numpy.linspace(0.0, -0.08, 3)),
     rDPore = 0.22, # list(numpy.linspace(0.2, 0.3, 5)),
     #rTarget = [3e-10, 10e-10, 1e-9]
 
-    clscale = 12.,
+    clscale = 6.,
     skip_stokes = True, #[True, False],
     iterative = True,)
 
-sim = nanopores.simulate("ahemIV",**args)
+if not uid:
+    sim = nanopores.simulate("ahemIV",**args)
+else:
+    from nanopores.tools.protocol import *
+    from nanopores import DATADIR
+    savedir = DATADIR + "/sim/stamps/"
+    data = Data(savedir+"result"+uid+".dat")
+    datadict = data.data
+    # print datadict.keys()
 
+    Isim = datadict["Javgtop"]
+    # specific, assume data files corresponds to this simulation inputs
+    bVsim = args["bV"]
+    qssim = numpy.asarray(args["ahemqs"])*1e3
+    # print "Isim: ", Isim
+    # print "bVsim: ", bVsim
+
+    # regroup
+    Isim0 = Isim
+    nx = len(bVsim)
+    ny = range(int(float(len(Isim0))/nx))
+    Isim0p = [Isim0[slice(i*nx,(i+1)*nx)] for i in ny]
+
+    plt.figure()
+    for i in ny:
+        plt.plot(bV, Isim0p[i], '-x', label='PNPS '+str(qssim[i])+' mC/m$^2$')
 
 # # get experimental data from csv file
 # # Experimental Values taken from:
@@ -67,15 +96,6 @@ sim = nanopores.simulate("ahemIV",**args)
 # Vexp = -IV[1:-1,0]*1e-3
 # Iexp = -IV[1:-1,1]
 # plt.plot(Vexp, Iexp, '-ks', label='experimental')
-
-# plt.figure()
-# regroup
-# Isim0 = [sim[i][args["outputs"][0]] for i in range(len(sim))]
-# nx = len(args[args["plot"]])
-# ny = range(int(float(len(Isim0))/nx))
-# Isim0p = [Isim0[slice(i*nx,(i+1)*nx)] for i in ny]
-# for i in ny:
-#     plt.plot(bV, Isim0p[i], '-x', label='sim'+str(i))
 
 plt.plot(bV, I, '-^', label='ICR (+ diode)')
 plt.plot(bV, bmV/(R+r), '-v', label='ohmic')

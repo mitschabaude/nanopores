@@ -1,10 +1,11 @@
-from math import pi
+from math import pi, sqrt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import pylab
+import sys
 
 fig = plt.figure()
 ax=Axes3D(fig)
@@ -29,7 +30,44 @@ print
 print 'INFINITY: ', float(counter[4])/hits
 print
 
-show_half=True
+delete=[]
+for index in range(EXIT_X.shape[0]):
+    if EXIT_Z[index]<-5:
+        delete.append(index)
+
+for index in reversed(delete):
+    EXIT_X = np.delete(EXIT_X, index)
+    EXIT_Y = np.delete(EXIT_Y, index)
+    EXIT_Z = np.delete(EXIT_Z, index)
+
+delete=[]
+for index in range(EXIT_X.shape[0]):
+    if ((EXIT_X[index]-5)**2+(EXIT_Y[index])**2+(EXIT_Z[index]-10)**2)<2.2**2:
+        delete.append(index)
+
+for index in reversed(delete):
+    EXIT_X = np.delete(EXIT_X, index)
+    EXIT_Y = np.delete(EXIT_Y, index)
+    EXIT_Z = np.delete(EXIT_Z, index)
+
+# delete=[]
+# for index in range(EXIT_X.shape[0]):
+#     if EXIT_Y[index]<0:
+#         delete.append(index)
+
+# for index in reversed(delete):
+#     EXIT_X = np.delete(EXIT_X, index)
+#     EXIT_Y = np.delete(EXIT_Y, index)
+#     EXIT_Z = np.delete(EXIT_Z, index)
+
+EXIT_RAD=np.zeros_like(EXIT_X)
+for index in range(EXIT_X.shape[0]):
+    EXIT_RAD[index] = sqrt(EXIT_X[index]**2+EXIT_Y[index]**2)
+np.save('exit_rad',EXIT_RAD)
+np.save('exit_z_2d',EXIT_Z)
+
+
+show_half=False
 fac=2
 if show_half:
     fac=1
@@ -40,16 +78,16 @@ for index in range(x_aHem.shape[0]):
     x_aHem[index], z_aHem[index] = X_aHem[index][0], X_aHem[index][2]
 x_aHem = np.append(x_aHem,x_aHem[0])
 z_aHem = np.append(z_aHem,z_aHem[0])
-angle = np.linspace(0,fac*pi,50)
+angle = np.linspace(0,fac*pi,20)
 theta, mesh_x = np.meshgrid(angle,x_aHem)
 theta, mesh_z = np.meshgrid(angle,z_aHem)
 
 X_plot = mesh_x*np.cos(theta)
 Y_plot = mesh_x*np.sin(theta)
 Z_plot = mesh_z
-ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=1.0)
+ax.plot_wireframe(X_plot, Y_plot, Z_plot,color='blue', rstride = 1, cstride = 1, alpha=.05)
 
-if show_half:
+if False:#show_half:
     x=x_aHem.tolist()
     left=-x_aHem
     x_=left.tolist()
