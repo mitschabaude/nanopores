@@ -68,6 +68,7 @@ def calculate(**params):
     pnps = nanopores.PNPS(geo, phys)
     if skip_stokes:
         pnps.solvers.pop("Stokes")
+    pnps.alwaysstokes = True
     pnps.solve()
     print "Time to calculate F:",t.stop()
     #pnps.visualize("fluid")
@@ -77,6 +78,23 @@ def calculate(**params):
     # def avg(u, dx):
     #     return dolfin.assemble(u*dx)/dolfin.assemble(dolfin.Constant(1.)*dx)
 
+    Jcomp = ["Jzdiff", "Jzdrift", "Jzstokes"]
+    lPore = geo.params["ltop"]+geo.params["lctr"]+geo.params["lbtm"]
+    Jzdiff = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.D*phys.rDPore*phys.grad(-cp+cm)[2] /lPore * geo.dx("pore")
+    Jzdrift = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.mu*phys.rDPore*(-cp-cm)*phys.grad(v)[2]/lPore * geo.dx("pore")
+    Jzstokes = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.stokesdampPore*(cp-cm)*u[2]/lPore * geo.dx("pore")
+
+    Jcomponents = [j+p for j in Jcomp for p in ["top","btm"]]
+    Jzdifftop = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.D*phys.rDPore*phys.grad(-cp+cm)[2] /geo.params["ltop"] * geo.dx("poretop")
+    Jzdrifttop = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.mu*phys.rDPore*(-cp-cm)*phys.grad(v)[2]/geo.params["ltop"] * geo.dx("poretop")
+    Jzstokestop = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.stokesdampPore*(cp-cm)*u[2]/geo.params["ltop"] * geo.dx("poretop")
+    Jzdiffbtm = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.D*phys.rDPore*phys.grad(-cp+cm)[2] /geo.params["lbtm"] * geo.dx("porebottom")
+    Jzdriftbtm = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.mu*phys.rDPore*(-cp-cm)*phys.grad(v)[2]/geo.params["lbtm"] * geo.dx("porebottom")
+    Jzstokesbtm = dolfin.Constant((1.0/phys.lscale)**2) * phys.cFarad*phys.stokesdampPore*(cp-cm)*u[2]/geo.params["lbtm"] * geo.dx("porebottom")
+
     result = pnps.get_functionals()
+
+    for j in Jcomp+Jcomponents:
+        result.update({j: 1e12*dolfin.assemble(locals()[j])})
 
     return result

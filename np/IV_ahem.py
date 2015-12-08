@@ -6,7 +6,7 @@ from scipy.optimize import fsolve
 
 dolfin.tic()
 
-bmV = numpy.linspace(-99.9, 99.9, 8)
+bmV = numpy.linspace(-100.0, 100.0, 8)
 I = []
 
 # IV ohmic and diodic fit taken from:
@@ -42,23 +42,26 @@ uid = None
 
 # Simulation Args
 bV = bmV*1e-3
+Jcomp = ["Javg", "Jzdiff", "Jzdrift", "Jzstokes"]
+
 args = dict(
     nproc = 1,
     plot = "bV",
-    outputs = ["Javgbtm", "Javgtop"],
+    outputs = [j+p for j in Jcomp for p in ["top","btm"]]+Jcomp,
 
     domscale = 1,
+    x0 = None, #doesn't work
     #r0 = 5.,
     #z0 = 10.,
 
     bV = list(bV),
     bulkcon = 1000.,
     ahemqs = list(numpy.linspace(0.0, -0.08, 3)),
-    rDPore = 0.22, # list(numpy.linspace(0.2, 0.3, 5)),
+    rDPore = 0.25, # list(numpy.linspace(0.2, 0.3, 5)),
     #rTarget = [3e-10, 10e-10, 1e-9]
 
     clscale = 6.,
-    skip_stokes = True, #[True, False],
+    skip_stokes = False,
     iterative = True,)
 
 if not uid:
