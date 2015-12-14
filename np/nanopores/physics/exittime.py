@@ -114,33 +114,6 @@ class SurvivalProblem(GeneralLinearProblem):
         u.vector()[:] = u0
         return u
 
-'''        
-class SuccessfulExit(TransientLinearPDE):
-
-    def __init__(self, geo=None, phys=None,
-                 dt=None, badexit=set(), goodexit=set(), **problem_params):
-        if dt is not None:
-            self.dt = dt
-            
-        bothexit = badexit | goodexit
-        
-        badproblem = SurvivalProblem(geo=geo, phys=phys, dt=dt, exit=badexit, **problem_params)
-        badsolver = IllposedLinearSolver(badproblem)
-        ubad = badproblem.solution()
-        
-        bothproblem = SurvivalProblem(geo=geo, phys=phys, dt=dt, exit=bothexit, **problem_params)
-        bothsolver = IllposedLinearSolver(bothproblem)
-        uboth = bothproblem.solution()
-        
-        ugood = ubad - uboth
-
-        self.geo = geo
-        self.functions = {"bad": ubad, "both": uboth}
-        self.solution = ugood
-        self.solvers = {"bad": badsolver, "both": bothsolver}
-        
-        P = lambda z: ubad([0., 0., z]) - uboth([0., 0., z])
-'''
 class SuccessfulExit(TransientLinearPDE):
 
     def __init__(self, geo=None, phys=None, dt=None, **problem_params):
@@ -149,7 +122,7 @@ class SuccessfulExit(TransientLinearPDE):
         
         p = self.solution
         pz = lambda z: p([0., 0., z])
-        zbtm = geo.params["zbtm"]
+        zbtm = geo.params["zporebtm"]
         ztop = geo.params["ztop"]
         
         self.plotter = TimeDependentPlotter(pz, [zbtm, ztop, 200], dt)
