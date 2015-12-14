@@ -15,7 +15,7 @@ print "Number of vertices:", geo.mesh.num_vertices()
 t = dolfin.Timer("init")
 phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=.2, vG=.2)
 phys.add_dopants
-print phys
+#print phys
 #dolfin.plot(geo.submesh("sourcendrain"))
 #print geo._physical_domain
 
@@ -27,7 +27,7 @@ t = dolfin.Timer("solve")
 pde.solve()
 print "PDE solve time:", t.stop()
 u = pde.solution
-print phys
+#print phys
 dolfin.plot(u, title="potential", interactive=True)
 #pde.visualize("sourcendrain")
 ds = geo.dS("crossl")
