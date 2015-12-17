@@ -11,10 +11,10 @@ def lscale(geo):
             return 1.0
 def grad(lscale):
     def grad0(u):
-        return lscale*dolfin.nabla_grad(u)
+        return dolfin.Constant(lscale)*dolfin.nabla_grad(u)
     return grad0
 def div(lscale):
     def div0(u):
-        return lscale*dolfin.transpose(dolfin.nabla_div(u))
+        return dolfin.Constant(lscale)*dolfin.transpose(dolfin.nabla_div(u))
     return div0
 

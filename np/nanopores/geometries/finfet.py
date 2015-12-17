@@ -41,6 +41,8 @@ finfet.addboundaries(
 finfet.params = dict(
     rdop = rdop,
     lscale = 1e9,
+    length = lw + 2.*lb,
+    lfin = lw
 )
 
 
