@@ -17,17 +17,41 @@ def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
 
 geo = geo_from_xml("aHem")
-indicator_ahem = geo.indicator("ahem",callable=True)
+indicator_ahem_geo = geo.indicator("ahem",callable=True)
 indicator_molecule = geo.indicator("molecule",callable=True)
-indicator_porecenter = geo.indicator("porecenter",callable=True)
+indicator_porecenter_geo = geo.indicator("porecenter",callable=True)
 indicator_membrane_geo = geo.indicator("membrane",callable=True)
-indicator_poretop = geo.indicator("poretop",callable=True)
+indicator_poretop_geo = geo.indicator("poretop",callable=True)
 def indicator_membrane(vec): #"infinite" large membrane
     x, y, z = vec[0], vec[1], vec[2]
-    if radius(x,y)>=60.:
+    if z>60.:
+    	return 0
+    elif radius(x,y)>=30.:
         return indicator_membrane_geo(argument(10,0,z))
     else:
         return indicator_membrane_geo(vec)
+def indicator_ahem(vec):
+	x, y, z = vec[0], vec[1], vec[2]
+	if radius(x,y)>=30. or z>60.:
+		return 0
+	else:
+		return indicator_ahem_geo(vec)
+def indicator_porecenter(vec):
+    x, y, z = vec[0], vec[1], vec[2]
+    if radius(x,y)>50.:
+    	return 0
+    elif z>0.:
+    	return 0
+    else:
+    	return indicator_porecenter_geo(vec)
+def indicator_poretop(vec):
+    x, y, z = vec[0], vec[1], vec[2]
+    if radius(x,y)>50.:
+    	return 0
+    elif z>0.:
+    	return 0
+    else:
+    	return indicator_poretop_geo(vec)
 
 def oor(x,y,z):
     return radius(x,y)>500 or z>500
