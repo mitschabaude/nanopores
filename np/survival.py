@@ -8,9 +8,9 @@ import math
 # -) what biased voltage to use?
 
 geo_params = dict(
-    l3 = 3*60.,
+    l3 = 60.,
     l4 = 10.,
-    R = 3*60.,
+    R = 60.,
     x0 = [5., 0., 10.], # |x0| > 2.2
     rMolecule = 2.2,
     exit_i = 0,
@@ -131,7 +131,7 @@ for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", 
 print "Average successful exit rate from molecule: %.2f percent"%(
         100.*avg(p, geo.dS("moleculeb")),)
 
-exit()
+#exit()
 print
 print "--- CALCULATING F from PNPS"
 print

@@ -60,7 +60,8 @@ def calculateforce(clscale=8., tol=1e-2):
 
     (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
     F = phys.Feff(v, u)
-
+    plot(F)
+    interactive()
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
         print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
 

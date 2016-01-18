@@ -219,8 +219,8 @@ def Feff(geo, grad):
     def Feff0(v, u):
         E = -grad(v)
         pi = 3.141592653589793
-        Fel = qTarget*E
-        Fdrag = 6*pi*eta*rTarget*u
+        Fel = dolfin.Constant(qTarget)*E
+        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*u
         F = Fel + Fdrag
         return F
     return Feff0
