@@ -7,11 +7,21 @@ from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 import sys
 from calculateforce import *
-F = calculateforce(clscale=6., tol=5e-3)
+from aHem_array import *
+F = calculateforce(clscale=10., tol=5e-1) # 6. 5e-3
 # def F(vec):
 #     return [0,0,-0.01]
 def radius(x,y):
     return sqrt(x**2+y**2)
+    
+def distance_to_surface(rad,z):
+	if z>3. or rad >8.:
+		return 10.
+	else:
+		D = np.zeros(X_aHem.shape[0])
+for index in range(X_aHem.shape[0]):
+	D[index] = radius(rad-X_aHem[index][0],z-X_aHem[index][2])
+			return min(D)
 
 def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
@@ -63,13 +73,13 @@ visc=1e-3 #[Pa*s]
 D=(kb*T)/(6*pi*0.5*visc)*1e9  #diffusion[m^2/s]
 gamma=(6*pi*0.5*visc) #friction [kg/s]
 tau=0.1 #-1 # [ns]
-steps=5e6
+steps=5e6 # should be 5e7
 C=1/(gamma)*tau
 coeff=sqrt(2*D*1e9*tau)
 
 counter = np.array([0,0,0,0,0]) # ahem, molecule, poretop, membrane, bulk
 EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-Range =range(300)
+Range =range(1)# range(300)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
