@@ -21,7 +21,10 @@ def normal(ax,ay,bx,by,px,py):
 	AB=sqrt(AB2)
 	c = (AP2-BP2+AB2)/(2*AB)
 	if c>0. and c<AB:
-		return sqrt(AP2-c**2)
+		if AP2<=c**2:
+			return 0.
+		else:
+			return sqrt(AP2-c**2)
 	else:
 		return 100.
 
