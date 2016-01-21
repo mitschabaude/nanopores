@@ -13,15 +13,31 @@ F = calculateforce(clscale=10., tol=5e-1) # 6. 5e-3
 #     return [0,0,-0.01]
 def radius(x,y):
     return sqrt(x**2+y**2)
-    
-def distance_to_surface(rad,z):
-	if z>3. or rad >8.:
-		return 10.
+
+def normal(ax,ay,bx,by,px,py):
+	AP2=(ax-px)**2+(ay-py)**2
+	BP2=(bx-px)**2+(by-py)**2
+	AB2=(ax-bx)**2+(ay-by)**2
+	AB=sqrt(AB2)
+	c = (AP2-BP2+AB2)/(2*AB)
+	if c>0. and c<AB:
+		return sqrt(AP2-c**2)
 	else:
-		D = np.zeros(X_aHem.shape[0])
-for index in range(X_aHem.shape[0]):
-	D[index] = radius(rad-X_aHem[index][0],z-X_aHem[index][2])
-			return min(D)
+		return 100.
+
+def distance_to_surface(rad,z):
+	if z>3.:
+		return 100.
+	elif rad>8.:
+		return 100.
+	else:
+		size=X_aHem.shape[0]
+		D = np.zeros(size)
+		E = np.zeros(size)
+		for index in range(size):
+			D[index] = radius(rad-X_aHem[index][0],z-X_aHem[index][2])
+			E[index] = normal(X_aHem[(index-1)][0],X_aHem[(index-1)][2],X_aHem[(index)][0],X_aHem[(index)][2],rad,z)
+		return min([min(D),min(E)])
 
 def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
