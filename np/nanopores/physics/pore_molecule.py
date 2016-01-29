@@ -215,7 +215,7 @@ def CurrentPBdrift(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad):
     except:
         return None
         
-def Feff(geo, grad):
+def Feff(geo, grad, qTarget, rTarget):
     def Feff0(v, u):
         E = -grad(v)
         pi = 3.141592653589793

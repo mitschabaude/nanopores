@@ -17,5 +17,6 @@ ffc_form*.h
 # ignore numpy saves
 *.npy
 
-# ignore np/build
+# ignore some folders
 np/build
+data_heavy
