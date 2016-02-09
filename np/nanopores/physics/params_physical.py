@@ -23,7 +23,7 @@ rho = 1e3 # fluid density [kg/m^3]
 
 # derived constants
 kT = kB*T
-UT = kB*T/qq # thermal voltage [V]
+UT = kB*T/qq # thermal voltage [V] = ca. 25 mV
 cFarad = qq*mol  # Faraday [C/mol] cFarad=qq*mol
 mu = D/UT # 73e-9  # average mobility [m^2/Vs]
 
