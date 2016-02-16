@@ -12,6 +12,10 @@ ax=Axes3D(fig)
 EXIT_X=np.load('exit_x.npy')
 EXIT_Y=np.load('exit_y.npy')
 EXIT_Z=np.load('exit_z.npy')
+x = np.load('x.npy')
+y = np.load('y.npy')
+z = np.load('z.npy')
+
 counter=np.load('counter.npy')
 hits = float(np.sum(counter))
 print
@@ -29,7 +33,7 @@ print
 print 'INFINITY: ', float(counter[4])/hits
 print
 
-show_half=True
+show_half=False
 fac=2
 if show_half:
     fac=1
@@ -73,6 +77,7 @@ v = np.linspace(0, np.pi, 100)
 #     ax.plot_surface(x+EXIT_X[index], y+EXIT_Y[index], z+EXIT_Z[index],  rstride=12, cstride=5, color='r',alpha=1.0)
 ax.scatter(EXIT_X,EXIT_Y,EXIT_Z,color='red')
 
+plt.plot(x,y,z,color='red',linewidth=1.5)
 
 x1 = 2.2*np.outer(np.cos(u), np.sin(v))
 y1 = 2.2*np.outer(np.sin(u), np.sin(v))

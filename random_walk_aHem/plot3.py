@@ -2,11 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, acos, sin
 
-D_kcal = 100 # kcal/mol
-n = 55 # 1/nm
-r_e = 1. #nm - equilibrium distance
-D_en = D_kcal*4184e9 # from kcal to N*nm
-mol = 6.022e-23 # 1 atom
+x = np.load('x.npy')
+y = np.load('y.npy')
+z = np.load('z.npy')
 
 X_aHem = np.array([[2.16, 0.0, 0.0],
                       [2.77, 0.0, -0.19],
@@ -104,4 +102,67 @@ X_aHem = np.array([[2.16, 0.0, 0.0],
                       [1.  , 0.0, -0.8 ],
                       [1.26, 0.0, -0.64],
                       [1.7 , 0.0, -0.31]])
+def radius(x,y):
+    return sqrt(x**2+y**2)
+def det(a,b,c,d):
+	return a*d-b*c
+
+def normal(ax,ay,bx,by,px,py):
+	AP2=(ax-px)**2+(ay-py)**2
+	BP2=(bx-px)**2+(by-py)**2
+	AB2=(ax-bx)**2+(ay-by)**2
+	AB=sqrt(AB2)
+	c = (AP2-BP2+AB2)/(2*AB)
+	if c>0. and c<AB:
+		if AP2<=c**2:
+			return 0.
+		else:
+			return sqrt(AP2-c**2)
+	else:
+		return 100.
+
+
+def distance_to_surface(rad,z):
+	if z>3.:
+		return 100.
+	elif rad>8.:
+		return 100.
+	else:
+		size=X_aHem.shape[0]
+		D = np.zeros(size)
+		E = np.zeros(size)
+		for index in range(size):
+			D[index] = radius(rad-X_aHem[index][0],z-X_aHem[index][2])
+			E[index] = normal(X_aHem[(index-1)][0],X_aHem[(index-1)][2],X_aHem[(index)][0],X_aHem[(index)][2],rad,z)
+		return min([min(D),min(E)])
+
+
+l=x.shape[0]
+r=np.zeros(l)
+for index in range(l):
+    r[index]=radius(x[index],y[index])
+plt.plot(r,z,color='red')
+#plt.scatter(r,z,color='red')
+
+
+
+size=X_aHem.shape[0]
+X=np.zeros(size+1)
+Y=np.zeros(size+1)
+for index in range(size):
+	X[index]=X_aHem[index][0]
+	Y[index]=X_aHem[index][2]
+X[size]=X[0]
+Y[size]=Y[0]
+plt.plot(X,Y,linewidth='2',color='blue')
+plt.scatter(X,Y,50,color='blue')
+plt.show()
+plt.plot(x,z,color='red')
+plt.plot(X,Y,linewidth='2',color='blue')
+plt.scatter(X,Y,50,color='blue')
+plt.show()
+plt.plot(y,z,color='red')
+plt.plot(X,Y,linewidth='2',color='blue')
+plt.scatter(X,Y,50,color='blue')
+plt.show()
 
