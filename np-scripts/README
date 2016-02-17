@@ -1,0 +1,7 @@
+This is an attempt to clean up the messy /np folder.
+From now on, scripts that just use the nanopores library but add nothing to it should be located here instead of in /np.
+
+To enable a smooth workflow and ensure that the nanopore module is correctly loaded from ../np, I recommend adding that folder permanently to your PYTHONPATH, e.g. by running the following in a shell (from this directory):
+
+>> cd ../np
+>> echo export PYTHONPATH='$PYTHONPATH':$PWD >> ~/.bashrc

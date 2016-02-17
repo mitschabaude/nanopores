@@ -46,6 +46,6 @@ def _call(f, params):
     # call f without knowing its arguments --
     # they just have to be subset of dict params.
     argnames = inspect.getargspec(f).args
-    args = [params[k] for k in argnames if k in params]
-    return f(*args)
+    args = {k: params[k] for k in argnames if k in params}
+    return f(**args)
 

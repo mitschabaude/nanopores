@@ -37,6 +37,7 @@ geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore_molecule", geo, **phys_params)
 print phys.charge
 
+plot(geo.mesh)
 #plot(geo.pwconst("initial_ions"))
 #plot(geo.pwconst("permittivity"))
 #interactive()
@@ -57,28 +58,19 @@ PNPProblemAxisym.method["iterative"] = False
 PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 
 #pb = LinearPBAxisym(geo, phys)
-goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPBold(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
+goal = (lambda v : phys.Fbare(v, 1)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
+#goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = lambda v : phys.CurrentPB(v)
 pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
 
-pb.maxcells = 10e4
+pb.maxcells = 1e4
 pb.marking_fraction = 0.5
 pb.solve(refinement=True)
-#pb.estimate0()
-#pb.estimate()
-#pb.estimators["err"].plot(rate=-1.)#/2.)
-#pb.visualize()
 
 geo = pb.geo
 v0 = pb.solution
-JPB_list = ["CurrentPB", "CurrentPBold"]
-JPB_dict = {}
-for c in JPB_list:
-    JPB_dict[c] = assemble(1e12*phys.__dict__[c](v0))
-JPB_dict["CurrentPBdrift"] = 1e12*phys.CurrentPBdrift(0.003)
 
 #plot_on_sub(v0, geo, "pore", expr=-grad(v0)[1], title="E")
-print "check:", JPB_dict["CurrentPBold"]/UT/JPB_dict["CurrentPB"]
 
 #pnps = PNPSAxisym(geo, phys)
 pnps = PNPSAxisym(geo, phys, v0=v0)
@@ -102,10 +94,8 @@ for est in pnps.estimators.values():
 
 #plot_on_sub(v, geo, "pore", expr=-grad(v), title="E")
 #interactive()
-print
-print JPB_dict
-print
 
+print
 print "I (current through pore center):",I,"[pA]"
 print "V (transmembrane potential):",V,"[V]"
 print "conductance I/V:",I/V,"[pS]"
@@ -133,7 +123,9 @@ else:
     print "Fdrag [pN]:", Fdrag
     print "F [pN]:", Fdrag + Fel
 
-print "hmin: ", geo.mesh.hmin()*1e9
+print "hmin [nm]: ", geo.mesh.hmin()*1e9
 #plot(pnps.geo.mesh)
 #interactive()
-#pnps.visualize()
+pb.estimators["err"].plot(rate=-1.)
+pb.visualize()
+pnps.visualize()

@@ -4,11 +4,12 @@ from dolfin import *
 from .illposed import *
 from .errorest import *
 from .utilities import _call
+from collections import OrderedDict
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
-           "GeneralLinearProblem", "GeneralNonlinearProblem"]
+           "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem"]
 
 class PDESystem(object):
     imax = 100
@@ -236,7 +237,7 @@ class NonlinearPDE(PDESystem):
         S.newtondamp = damp
         for i in range(self.imax):
             S.solve()
-            #plot(self.solution) # for debugging
+            plot(self.solution) # for debugging
             if verbose:
                 print 'Relative L2 Newton error:',S.relerror()
             if S.convergence(tol):
@@ -285,6 +286,7 @@ class GoalAdaptivePDE(PDESystem):
         
     
 class GeneralLinearProblem(AdaptableLinearProblem):
+    is_linear = True
 
     def __init__(self, geo, phys=None, u=None, bcs=None, **params):
         
@@ -314,8 +316,10 @@ class GeneralLinearProblem(AdaptableLinearProblem):
         a, L = _call(self.forms, self.params)
         self.a = a
         self.L = L
+
         
 class GeneralNonlinearProblem(AdaptableNonlinearProblem):
+    is_linear = False
 
     def __init__(self, geo, phys=None, u=None, **params):
         
@@ -324,7 +328,10 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         params.update(geo=geo, phys=phys, V=V)
         
         if not u:
-            u = Function(V)
+            if hasattr(self, "initial_u"):
+                u = _call(self.initial_u, params)
+            else:
+                u = Function(V)
             
         params.update(u=u)
         self.params = params
@@ -337,5 +344,94 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         a, L = _call(self.forms, params)
         AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
         
+        
+        
+class CoupledProblem(object):
+    """ Automated creation of coupled problems out of single ones.
+    Designed for problems that subclass General(Non)LinearProblem;
+    will not immediately instantiate Problems but first use their static methods.
+    TODO: One should also be able to make CoupledProblems out of CoupledProblems, to create nested
+    fixed point loops automatically.
     
+    Expected usage:
+        problems = OrderedDict([
+            ("pnp", PNPProblem),
+            ("stokes", StokesProblem)])
+        ])
+        
+        def couple_pnp(ustokes):
+            return dict(u = ustokes.sub(0))
+        
+        def couple_stokes(upnp, phys):
+            v, cp, cm = upnp.split()
+            f = -phys.cFarad*(cp - cm)*grad(v)
+            return dict(f = f)
+        
+        couplers = dict(
+            pnp = couple_pnp
+            stokes = couple_stokes
+        )
+        
+        coupled = CoupledProblem(problems, couplers, geo, phys, **params)
+        solver = CoupledSolver(coupled)
+        for n in range(5):
+            solver.solve()
+    
+    The CoupledProblem will use the given problem names to create internal names for the solutions, e.g.
+    upnp, ustokes in this case, which will be fed through the couplers to provide arguments for the
+    the problem's form definitions. Everything contained in the **params may be used in the couplers.
+    E.g. in the above situation the StokesProblem forms must only expect a variable "f" (and thus not know
+    anything about its coupling to PNP):
+    
+    class StokesProblem(GeneralLinearProblem)
+        @staticmethod
+        def forms(..., f):
+            L = inner(f, v)
+            ...
+            
+    and CoupledProblem will make sure that f actually becomes -cFarad*(cp - cm)*grad(v).
+    The use of OrderedDict in the example makes sure that PNPProblem will be solved first in every
+    iteration. If this is unimportant, problems may be simply a dict.
+    """
+
+    def __init__(self, problems, couplers, geo, phys=None, **params):
+        # problems = dictionary of Problem classes
+        # keys are important! (see class docstring)
+        
+        self.solutions = OrderedDict()
+        self.problems = OrderedDict()
+        
+        params.update(geo=geo, phys=phys)
+        self.params = params
+        mesh = geo.mesh
+        
+        for name, Problem in problems.items():
+            # get space
+            V = Problem.space(mesh)
+            
+            # create solution function
+            if hasattr(Problem, "initial_u"):
+                u = _call(Problem.initial_u, dict(params, V=V))
+            else:
+                u = Function(V)
+                
+            self.solutions[name] = u
+            params.update({"u" + name: u})
+            
+        # now we have all solutions in hand and can actually create the problems
+        for name, Problem in problems.items():
+            u = solutions[name]
+            
+            # obtain parameters coupled to other problems
+            problem_specific_params = dict(params, u=u)
+            problem_specific_params.update(_call(couplers[name], problem_specific_params))
+            
+            # actually instantiate the problem
+            self.problems[name] = Problem(**problem_specific_params)
+        
+    def update_forms(self, **new_params):
+        # useful to e.g. change timestep and reassemble matrices
+        # this assumes that coupled parameters are *not* changed
+        for name, problem in problems.items():
+            problem.update_forms(**new_params)
         
