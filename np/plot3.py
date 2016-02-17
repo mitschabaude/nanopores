@@ -141,11 +141,13 @@ l=x.shape[0]
 r=np.zeros(l)
 for index in range(l):
     r[index]=radius(x[index],y[index])
-plt.plot(r,z,color='red')
-#plt.scatter(r,z,color='red')
+#plt.plot(r,z,color='red')
+plt.scatter(r,z,color='red')
 
 
-
+leftend=max(np.max(r),10.)
+x_mem=np.linspace(X_aHem[18][0],leftend,100)
+y_mem=np.zeros(x_mem.shape[0])+X_aHem[18][2]
 size=X_aHem.shape[0]
 X=np.zeros(size+1)
 Y=np.zeros(size+1)
@@ -156,13 +158,14 @@ X[size]=X[0]
 Y[size]=Y[0]
 plt.plot(X,Y,linewidth='2',color='blue')
 plt.scatter(X,Y,50,color='blue')
+plt.plot(x_mem,y_mem,color='black',linewidth=1)
 plt.show()
-plt.plot(x,z,color='red')
-plt.plot(X,Y,linewidth='2',color='blue')
-plt.scatter(X,Y,50,color='blue')
-plt.show()
-plt.plot(y,z,color='red')
-plt.plot(X,Y,linewidth='2',color='blue')
-plt.scatter(X,Y,50,color='blue')
-plt.show()
+#plt.plot(x,z,color='red')
+#plt.plot(X,Y,linewidth='2',color='blue')
+#plt.scatter(X,Y,50,color='blue')
+#plt.show()
+#plt.plot(y,z,color='red')
+#plt.plot(X,Y,linewidth='2',color='blue')
+#plt.scatter(X,Y,50,color='blue')
+#plt.show()
 
