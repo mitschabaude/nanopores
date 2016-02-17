@@ -17,7 +17,7 @@ y = np.load('y.npy')
 z = np.load('z.npy')
 
 counter=np.load('counter.npy')
-hits = float(np.sum(counter))
+hits = float(np.sum(counter))+1
 print
 print
 print 'PROBABILITY REACHING:'
