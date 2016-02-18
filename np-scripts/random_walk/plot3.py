@@ -141,7 +141,7 @@ l=x.shape[0]
 r=np.zeros(l)
 for index in range(l):
     r[index]=radius(x[index],y[index])
-#plt.plot(r,z,color='red')
+plt.plot(r,z,color='red')
 plt.scatter(r,z,color='red')
 
 

@@ -3,7 +3,7 @@ import numpy as np
 from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
-def calculateforce(clscale=8., tol=1e-2):
+def calculateforce(clscale=6., tol=5e-3):
     geo_params = dict(
         l3 = 60.,
         l4 = 10.,

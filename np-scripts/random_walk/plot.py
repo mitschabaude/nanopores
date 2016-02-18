@@ -17,20 +17,15 @@ y = np.load('y.npy')
 z = np.load('z.npy')
 
 counter=np.load('counter.npy')
-hits = float(np.sum(counter))+1
+hits = float(np.sum(counter))
 print
 print
 print 'PROBABILITY REACHING:'
 print 
-print 'PAC-MAN: ', float(counter[1])/hits
+print 'EXIT: ', float(counter[0])/hits
 print
-print 'MEMBRANE: ', float(counter[3])/hits
+print 'NONEXIT: ', float(counter[1])/hits
 print
-print 'A-HEMOLYSIN: ', float(counter[0])/hits
-print
-print 'EXIT: ', float(counter[2])/hits
-print
-print 'INFINITY: ', float(counter[4])/hits
 print
 
 show_half=False
@@ -70,14 +65,14 @@ ax.set_zlim3d(-10,10)
 u = np.linspace(0, 2 * np.pi, 100)
 v = np.linspace(0, np.pi, 100)
 
-# for index in range(EXIT_X.shape[0]-1):
-#     x = 0.1*np.outer(np.cos(u), np.sin(v))
-#     y = 0.1*np.outer(np.sin(u), np.sin(v))
-#     z = 0.1*np.outer(np.ones(np.size(u)), np.cos(v))
-#     ax.plot_surface(x+EXIT_X[index], y+EXIT_Y[index], z+EXIT_Z[index],  rstride=12, cstride=5, color='r',alpha=1.0)
-ax.scatter(EXIT_X,EXIT_Y,EXIT_Z,color='red')
+for index in range(EXIT_X.shape[0]):
+    x = 0.1*np.outer(np.cos(u), np.sin(v))
+    y = 0.1*np.outer(np.sin(u), np.sin(v))
+    z = 0.1*np.outer(np.ones(np.size(u)), np.cos(v))
+    ax.plot_surface(x+EXIT_X[index], y+EXIT_Y[index], z+EXIT_Z[index],  rstride=12, cstride=5, color='black',alpha=1.0)
+#ax.scatter(EXIT_X,EXIT_Y,EXIT_Z,color='red')
 
-plt.plot(x,y,z,color='red',linewidth=1.5)
+#plt.plot(x,y,z,color='red',linewidth=1.5)
 
 x1 = 2.2*np.outer(np.cos(u), np.sin(v))
 y1 = 2.2*np.outer(np.sin(u), np.sin(v))

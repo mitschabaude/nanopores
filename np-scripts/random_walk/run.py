@@ -9,9 +9,9 @@ from dolfin import *
 import sys
 from calculateforce import *
 from aHem_array import *
-#F = calculateforce(clscale=10., tol=5e-1) # 6. 5e-3
-def F(vec):
-    return [0.,0.,-1e-12]
+F = calculateforce(clscale=10., tol=5e-1) # 6. 5e-3
+#def F(vec):
+#    return [0.,0.,-1e-12]
 def radius(x,y):
     return sqrt(x**2+y**2)
 def normal(ax,ay,bx,by,px,py):
@@ -55,7 +55,7 @@ def surfdiff(r):
     if r>=3.:
         return 0.
     else:
-        return 12*1e-14/(r**13)
+        return 12*1e-14/((r+.4)**13)
 
 def F_surf(x,y,z):
     rad=radius(x,y)
@@ -90,25 +90,8 @@ def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
 
 geo = geo_from_xml("aHem")
-indicator_ahem_geo = geo.indicator("ahem",callable=True)
-indicator_molecule = geo.indicator("molecule",callable=True)
 indicator_porecenter_geo = geo.indicator("porecenter",callable=True)
-indicator_membrane_geo = geo.indicator("membrane",callable=True)
 indicator_poretop_geo = geo.indicator("poretop",callable=True)
-def indicator_membrane(vec): #"infinite" large membrane
-    x, y, z = vec[0], vec[1], vec[2]
-    if z>60.:
-    	return 0
-    elif radius(x,y)>=30.:
-        return indicator_membrane_geo(argument(10,0,z))
-    else:
-        return indicator_membrane_geo(vec)
-def indicator_ahem(vec):
-	x, y, z = vec[0], vec[1], vec[2]
-	if radius(x,y)>=30. or z>60.:
-		return 0
-	else:
-		return indicator_ahem_geo(vec)
 def indicator_porecenter(vec):
     x, y, z = vec[0], vec[1], vec[2]
     if radius(x,y)>50.:
@@ -132,28 +115,30 @@ def oor(x,y,z):
 kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
 visc=1e-3 #[Pa*s]
-D=(kb*T)/(6*pi*0.5e-9*visc)  #diffusion[m^2/s]
+D=(kb*T)/(6*pi*0.5e-9*visc) #diffusion[m^2/s]
 gamma=(6*pi*0.5*visc) #friction [microgramm/s]
 tau=0.05 # [ns]
 steps=1e8# 5 milliseconds = 1e8*tau
 C=1/(gamma)*tau # [s^2/kg]==>multiply force with 1e9 to convert from N to kg*nm/s^2
 coeff=sqrt(2*D*1e9*tau) # [nm]
 
-counter = np.array([0,0,0,0,0]) # ahem, molecule, poretop, membrane, bulk
+counter = np.array([0,0])
 EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-Range = range(1)
+Range = range(10)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
     Y=np.zeros((steps))
     Z=np.zeros((steps))
-    Z[0]=10.
+    Z[0]=2.
     time = 0.
     redos = 0
     hbonds = 0
 
     i=0
-    while time<5e6:
+    timeend=5e6
+    boolexit=False
+    while time<timeend:
         timefac=1.
         timefacsq = 1.
         timeadd = tau
@@ -175,26 +160,24 @@ for index in Range:
         [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
         [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
         [Fx, Fy, Fz] = F(argument(X[i],Y[i],Z[i]))
-        if dsurf<1.5 or dmem<1.5:
+        if dsurf<0.4:
             hbonds+=1
             time+=1e3*np.random.poisson(10.,1)[0]
-            Z[i+1]=Z[i]+5.
-            if rad<7. and rad>3.8:
-                if rad==0.:
-                    alpha=0.
-                else:
-                    alpha = acos(X[i]/rad)
-                if Y[i]<0:
-                    alpha = 2*pi-alpha
-                co=cos(alpha)
-                si=sin(alpha)
-                A=np.array([[co,-si],[si,co]])
-                vec = A.dot(np.array([5.,0]))
-                X[i+1]=X[i]+vec[0]
-                Y[i+1]=Y[i]+vec[1]
-            else:
-                X[i+1]=X[i]
-                Y[i+1]=Y[i]
+            vec = np.array([fsurfx,fsurfy,fsurfz])
+            vec *= 1./(LA.norm(vec))
+            X[i+1]=X[i]+vec[0]
+            Y[i+1]=Y[i]+vec[1]
+            Z[i+1]=Z[i]+vec[2]
+            i+=1
+            [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
+            [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
+            [Fx, Fy, Fz] = F(argument(X[i],Y[i],Z[i]))
+        if dmem<0.4:
+            hbonds+=1
+            time+=1e3*np.random.poisson(10.,1)[0]
+            X[i+1]=X[i]
+            Y[i+1]=Y[i]
+            Z[i+1]=Z[i]+1.
             i+=1
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
@@ -211,15 +194,22 @@ for index in Range:
             i-=1
             redos+=1
         time += timeadd
-#        if indicator_porecenter(argument(X[i+1],Y[i+1],Z[i+1]))==1:
-#            exit_x = X[i+1]
-#            exit_y = Y[i+1]
-#            exit_z = Z[i+1]
-#            counter[2] += 1
-#            i+=1
-#            break
         i+=1
-
+        if indicator_poretop(argument(X[i],Y[i],Z[i]))==1 and Z[i]<-1.0:
+            exit_x = X[i]
+            exit_y = Y[i]
+            exit_z = Z[i]
+            counter[0] += 1
+            boolexit=True
+            break
+    if not boolexit:
+        counter[1] += 1
+        exit_x = X[i]
+        exit_y = Y[i]
+        exit_z = Z[i]
+    EXIT_X = np.append(EXIT_X,np.array([exit_x]))
+    EXIT_Y = np.append(EXIT_Y,np.array([exit_y]))
+    EXIT_Z = np.append(EXIT_Z,np.array([exit_z]))
 X=X[:i]
 Y=Y[:i]
 Z=Z[:i]
@@ -233,5 +223,4 @@ np.save('counter',counter)
 np.save('x',X)
 np.save('y',Y)
 np.save('z',Z)
-import plot3
-#import plot2
+import plot
