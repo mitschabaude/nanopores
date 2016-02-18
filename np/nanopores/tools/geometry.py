@@ -69,24 +69,14 @@ class Geometry(object):
             
         self.subdomains = subdomains
         self.boundaries = boundaries
-        self.params = params
+        self.params = params if params else {}
+        self.synonymes = {}
         self.physics = params_physical
 
         self._physical_domain = physical_domain
         self._physical_boundary = physical_boundary
 
-        #print synonymes
-        if synonymes:
-            for i in range(3):
-                self.import_synonymes(synonymes)
-        #print self._physical_domain
-        #print self._physical_boundary
-        try:
-            self._dom2phys = _invert_dict_nonunique(physical_domain)
-            self._bou2phys = _invert_dict_nonunique(physical_boundary)
-        except:
-            self._dom2phys = {}
-            self._bou2phys = {}
+        self.import_synonymes((synonymes if synonymes else {}))
             
         self.dg = {}
 
@@ -173,7 +163,7 @@ class Geometry(object):
         #print bou2value
         dS = self.dS()
         ds = self.ds()
-        return sum([avg(inner(bou2value[i], v)) * dS(i) for i in bou2value]) + sum([inner(bou2value[i], v) * ds(i) for i in bou2value])
+        return sum([avg(inner(Constant(bou2value[i]), v)) * dS(i) for i in bou2value]) + sum([inner(Constant(bou2value[i]), v) * ds(i) for i in bou2value])
 
     def linearRHS(self, v, string, value=None):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
@@ -184,7 +174,7 @@ class Geometry(object):
         
         if isinstance(value, dict):
             dom2value = self._pwconst_lookup(self._dom2phys, value)
-            return sum([inner(dom2value[i], v) * dx(i) for i in dom2value])
+            return sum([inner(Constant(dom2value[i]), v) * dx(i) for i in dom2value])
         else:
             return inner(Constant(value), v) * dx
 
@@ -227,8 +217,17 @@ class Geometry(object):
 
     # alternative to adapt, should be overwritten dynamically
     rebuild = adapt
+    
+    def import_synonymes(self, synonymes):
+        self.synonymes.update(synonymes)
+        for i in range(3):
+            self._import_synonymes(self.synonymes)
+        #print self._physical_domain
+        #print self._physical_boundary
+        self._dom2phys = _invert_dict_nonunique(self._physical_domain)
+        self._bou2phys = _invert_dict_nonunique(self._physical_boundary)
 
-    def import_synonymes(self,syns):
+    def _import_synonymes(self,syns):
         # philosophy behind synonymes: the more, the better!
         for syn in syns:
             if not isinstance(syns[syn],set):
@@ -328,6 +327,9 @@ class Geometry(object):
         dgfun = Function(FunctionSpace(self.mesh,'DG',0))
         dgfun.interpolate(expr)
         return dgfun
+        
+    def __str__(self):
+        return "Boundaries:\n%s\nSubdomains:\n%s\n" % (self._physical_boundary, self._physical_domain)
         
 
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??

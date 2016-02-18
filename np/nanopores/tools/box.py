@@ -61,6 +61,8 @@ class BoxCollection(object):
         physical_to_gmsh(self.subdomains, self.boundaries)
         self.geo = to_mesh()
         self.geo.params = {} if not hasattr(self, "params") else self.params
+        if hasattr(self, "synonymes"):
+            self.geo.import_synonymes(self.synonymes)
         return self.geo
         
     def plot(self, sub=False):
@@ -487,6 +489,7 @@ def to_mesh(clscale=1., pid=""):
             f.write(repr(meta))
         physdom = meta.pop("physical_domain")
         physbou = meta.pop("physical_boundary")
+        # TODO: no interface for synonymes yet. maybe isn't needed if geo.import_synonymes() is works well.
         return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
         
     return nanopores.Geometry(None, mesh)

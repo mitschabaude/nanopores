@@ -39,6 +39,7 @@ class PDESystem(object):
             #plot(self.solvers.values()[0].problem.solution(), interactive=True)
             if refinement:
                 (ind,err) = self.estimate()
+                self.save_estimate("est", err)
                 if verbose:
                     print "Error estimate (H1):",err
                 refined = self.refine(ind)
@@ -228,7 +229,7 @@ class NonlinearPDE(PDESystem):
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
 
-    def single_solve(self, tol=None, damp=None, verbose=False):
+    def single_solve(self, tol=None, damp=None, verbose=True):
         if not tol:
             tol = self.tolnewton
         if not damp:
@@ -237,7 +238,7 @@ class NonlinearPDE(PDESystem):
         S.newtondamp = damp
         for i in range(self.imax):
             S.solve()
-            plot(self.solution) # for debugging
+            #plot(self.solution) # for debugging
             if verbose:
                 print 'Relative L2 Newton error:',S.relerror()
             if S.convergence(tol):

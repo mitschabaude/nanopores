@@ -36,10 +36,12 @@ v0 = dict(
     lowerb = "bV"
 )
 c0 = dict(
-    bulk = bulkcon,
+    upperb = "bulkcon",
+    lowerb = "bulkcon"
 )
 
 permittivity.update(
+    default = eperm*rpermw,
     bulkfluid = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein",
@@ -58,10 +60,34 @@ volcharge = dict( # volume charges for RHS
 )
 
 Dp = dict(
-    bulkfluid = D,
+    default = "D",
+    bulkfluid = "D",
     pore = rDPore*D,
     solid = 0.,
+    lipid = 0.
 )
 
 Dm = Dp
+
+synonymes = {
+    "pore": {"poretop", "porecenter", "porebottom"},
+    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
+    "fluid": {"pore", "bulkfluid"},
+    "solid": {"membrane", "channel", "molecule"},
+    "protein": {"ahem"},
+    "channel": {"ahem"},
+    "proteinb": {"ahemb"},
+    "noslip": {"ahemb", "membraneb", "moleculeb"},
+    "bulk": {"upperb", "lowerb"},
+    "nopressure": {"bulk"},
+    "ground": {"upperb"},
+    "bV": {"lowerb"},
+    "ions": {"fluid"},
+    "lipid": {"membrane"},
+    "exittime": {"fluid"},
+    "exit": {"poreexit"},
+    "sideb": {"uppersideb", "lowersideb"},
+    "upperbulkb": {"upperb", "uppersideb"},
+    "lowerbulkb": {"lowerb", "lowersideb"},
+}
 

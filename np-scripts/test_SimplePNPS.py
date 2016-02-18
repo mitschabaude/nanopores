@@ -4,15 +4,9 @@ from nanopores.physics.simplepnps import *
 
 geo_name = "H_geo"
 nm = 1e-9
-z0 = 7.5*nm
 
 geo_params = dict(
 x0 = None,
-#x0 = [0.,0.,z0],
-#x0 = [0., 0., -8.372*nm],
-#rMolecule = 0.4*nm,
-#lcMolecule = nm*0.1,
-#moleculeblayer = True,
 boxfields = True,
 #Rx = 300*nm,
 #Ry = 30*nm,
@@ -22,15 +16,16 @@ phys_params = dict(
 Membraneqs = -0.0,
 bulkcon = 3e2,
 bV = -.9,
-dnaqsdamp = .5
+dnaqsdamp = .25
 )
 
-generate_mesh(.9, geo_name, **geo_params)
+generate_mesh(.5, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore", geo, **phys_params)
 
 plot(geo.subdomains)
 plot(geo.boundaries)
+print geo
 
 if geo.parameter("x0") is None:
     exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
@@ -40,7 +35,11 @@ if geo.parameter("x0") is None:
 pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys, axisymmetric=True)
 pnps.imax = 20
 pnps.newtondamp = 1.
-
+pnps.maxcells = 5e4
+t = Timer("solve")
+pnps.solve(refinement=False)
+print "CPU time (solve): %s [s]" % (t.stop(),)
+"""
 tol = 1e-2
 damp = 1.
 S = pnps.solvers.values()[0] 
@@ -58,7 +57,9 @@ for i in range(20):
         break
 print "Newton iterations:",i+1
 print 'Relative L2 Newton error:',S.relerror()
-
+"""
 pnps.print_results()
+#pnps.estimators["est"].plot(rate=-.5)
+plot(geo.boundaries)
 pnps.visualize()
 

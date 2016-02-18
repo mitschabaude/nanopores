@@ -27,47 +27,40 @@ class SimplePNPProblem(GeneralNonlinearProblem):
 
     @staticmethod
     def forms(V, geo, phys, u, ustokes=None, axisymmetric=False):
-        # TODO: automatic Jacobian
-        (v, cp, cm) = TrialFunctions(V)
-        (vv, dp, dm) = TestFunctions(V)
-        
-        (vold, cpold, cmold) = u.split()
-
         if not ustokes:
             dim = geo.mesh.topology().dim()
             ustokes = Constant(tuple(0. for i in range(dim)))
-        uold = ustokes
         
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         r2pi = Expression("2*pi*x[0]") if axisymmetric else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
 
         eps = geo.pwconst("permittivity")
         Dp = geo.pwconst("Dp")
         Dm = geo.pwconst("Dm")
-        kT = phys.kT
-        q = phys.qq
-        F = phys.cFarad
+        kT = Constant(phys.kT)
+        q = Constant(phys.qq)
+        F = Constant(phys.cFarad)
         
-        apoisson = inner(eps*grad(v),grad(vv))*r2pi*dx - F*(cp - cm)*vv*r2pi*dx_ions
-        aJm = inner(Dm*(grad(cm) - q/kT*(cm*grad(vold) + cmold*grad(v))) - cm*uold, grad(dm))*r2pi*dx_ions
-        aJp = inner(Dp*(grad(cp) + q/kT*(cp*grad(vold) + cpold*grad(v))) - cp*uold, grad(dp))*r2pi*dx_ions
-        a = apoisson + aJm + aJp
-
-        Lpoisson = inner(eps*grad(vold),grad(vv))*r2pi*dx - F*(cpold - cmold)*vv*r2pi*dx_ions
-        LJm = inner(Dm*(grad(cmold) - q/kT*cmold*grad(vold)) - cmold*uold, grad(dm))*r2pi*dx_ions
-        LJp = inner(Dp*(grad(cpold) + q/kT*cpold*grad(vold)) - cpold*uold, grad(dp))*r2pi*dx_ions
-        Lqvol = geo.linearRHS(vv*r2pi, "volcharge")
-        Lqsurf = geo.NeumannRHS(vv*r2pi, "surfcharge")
-        Lq = Lqvol + Lqsurf
-
-        L = Lpoisson + LJm + LJp - Lq
+        (v, cp, cm) = u.split()
+        (w, dp, dm) = TestFunctions(V)
         
+        apoisson = inner(eps*grad(v), grad(w))*r2pi*dx - F*(cp - cm)*w*r2pi*dx_ions
+        aJm = inner(Dm*(grad(cm) - q/kT*cm*grad(v)) - cm*ustokes, grad(dm))*r2pi*dx_ions
+        aJp = inner(Dp*(grad(cp) + q/kT*cp*grad(v)) - cp*ustokes, grad(dp))*r2pi*dx_ions
+        
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        
+        L = apoisson + aJm + aJp - Lqvol - Lqsurf
+        a = derivative(L, (v, cp, cm))
+
         return a, L
     
     @staticmethod
     def bcs(V, geo, phys):
-        
         c0 = Constant(phys.bulkcon)
         bcs = geo.pwconstBC(V.sub(0), "v0")
         bcs = bcs + geo.pwconstBC(V.sub(1), "c0")

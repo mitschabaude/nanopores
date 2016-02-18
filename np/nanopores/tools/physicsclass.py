@@ -44,9 +44,7 @@ class Physics(object):
             else:
                 self.base[k] = v
                 setattr(mod, k, v)
-        # calculate all dependent parameters
-        if geo:
-            self.base["geo"] = geo
+
         #self.precalculate(mod) # could be optional at some point, for performance
         self.mod = mod
         self.__name__ = mod.__name__
@@ -57,7 +55,14 @@ class Physics(object):
         # change physical parameters in geo to self
         # TODO: not ideal.. should we move all "physics functionality" from Geometry to Physics?
         if geo:
+            self.base["geo"] = geo
             geo.physics = self
+            # TODO: i'm not totally sure about this...
+            # should some synonymes be a *physical* property rather than *geometrical*?
+            if "synonymes" in self.maps:
+                syns = self.maps.pop("synonymes")
+                self.base["synonymes"] = syns
+                geo.import_synonymes(syns)
 
     def precalculate(self, mod):
         for fstr, f in self.functions.items():
