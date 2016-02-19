@@ -57,12 +57,13 @@ class Physics(object):
         if geo:
             self.base["geo"] = geo
             geo.physics = self
+            # conservative import of default synonymes
             # TODO: i'm not totally sure about this...
             # should some synonymes be a *physical* property rather than *geometrical*?
             if "synonymes" in self.maps:
                 syns = self.maps.pop("synonymes")
                 self.base["synonymes"] = syns
-                geo.import_synonymes(syns)
+                geo.import_synonymes(syns, conservative=True)
 
     def precalculate(self, mod):
         for fstr, f in self.functions.items():

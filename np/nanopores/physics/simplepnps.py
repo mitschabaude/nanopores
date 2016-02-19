@@ -6,12 +6,12 @@ from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProbl
 from nanopores.physics.params_physical import *
 
 #__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
-__all__ = ["SimplePNPProblem"]
+__all__ = ["SimplePNPProblem", "SimplePBProblem"]
 
 # --- Problems ---
 
 class SimplePNPProblem(GeneralNonlinearProblem):
-    method = solvermethods.bicgstab
+    method = dict(solvermethods.bicgstab)
     method["iterative"] = False
     
     @staticmethod
@@ -20,20 +20,20 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         return MixedFunctionSpace((V, V, V))
         
     @staticmethod
-    def initial_u(V, geo, phys, v0=None, vPB=None): # TODO
+    def initial_u(V, geo, phys, v0=None, vPB=None): # TODO incorporate initial guesses
         u = Function(V)
         u.interpolate(Constant((0.0, phys.bulkcon, phys.bulkcon)))
         return u
 
     @staticmethod
-    def forms(V, geo, phys, u, ustokes=None, axisymmetric=False):
+    def forms(V, geo, phys, u, ustokes=None, cyl=False):
         if not ustokes:
             dim = geo.mesh.topology().dim()
             ustokes = Constant(tuple(0. for i in range(dim)))
         
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
-        r2pi = Expression("2*pi*x[0]") if axisymmetric else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
 
@@ -61,11 +61,46 @@ class SimplePNPProblem(GeneralNonlinearProblem):
     
     @staticmethod
     def bcs(V, geo, phys):
-        c0 = Constant(phys.bulkcon)
         bcs = geo.pwconstBC(V.sub(0), "v0")
         bcs = bcs + geo.pwconstBC(V.sub(1), "c0")
         bcs = bcs + geo.pwconstBC(V.sub(2), "c0")
         return bcs
+        
+        
+class SimplePBProblem(GeneralNonlinearProblem):
+    method = dict(solvermethods.bicgstab)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, 'CG', k)
+
+    @staticmethod
+    def forms(V, geo, phys, u, cyl=False):
+        dx = geo.dx()
+        dx_ions = geo.dx("fluid")
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+
+        eps = geo.pwconst("permittivity")
+        UT = Constant(phys.UT)
+        k = Constant(2*phys.cFarad*phys.bulkcon)
+        
+        w = TestFunction(V)
+        
+        apoisson = inner(eps*grad(u), grad(w))*r2pi*dx + k*sinh(u/UT)*w*r2pi*dx_ions
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        
+        L = apoisson - Lqvol - Lqsurf
+        a = derivative(L, u)
+
+        return a, L
+    
+    @staticmethod
+    def bcs(V, geo, phys):
+        # TODO: really only allow homogeneous BCs for PB?
+        return geo.pwconstBC(V, "v0", homogenize=True)     
 
 """
 class SimpleStokesProblemAxisym(StokesProblemAxisym):

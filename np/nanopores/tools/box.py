@@ -11,7 +11,7 @@ from itertools import izip, product, combinations
 from .. import py4gmsh
 import dolfin
 
-__all__ = ["BoxCollection", "Box"]
+__all__ = ["BoxCollection", "Box", "Interval"]
         
 class BoxCollection(object):
     " collection of disjoint boxes, and their vertices, edges, facets "
@@ -22,6 +22,7 @@ class BoxCollection(object):
         self.boundaries = []
         self.facets = []
         self.indexset = set()
+        self.params = {}
         #self.csg = union(map(csgExpression, boxes))
 
     def __str__(self):
@@ -60,7 +61,7 @@ class BoxCollection(object):
         entities_to_gmsh(self.entities, self.indexset, lc=lc)
         physical_to_gmsh(self.subdomains, self.boundaries)
         self.geo = to_mesh()
-        self.geo.params = {} if not hasattr(self, "params") else self.params
+        self.geo.params = self.params
         if hasattr(self, "synonymes"):
             self.geo.import_synonymes(self.synonymes)
         return self.geo
@@ -115,6 +116,10 @@ class BoxCollection(object):
         coll = BoxCollection(*boxes)
         coll.csg = self._csg() - other._csg()
         return coll
+        
+def Interval(a, b):
+    # simple wrapper for Box
+    return Box(intervals=[(a, b)])
         
 class Box(BoxCollection):
     

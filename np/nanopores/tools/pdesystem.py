@@ -9,7 +9,8 @@ from collections import OrderedDict
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
-           "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem"]
+           "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem",
+           "solve_pde"]
 
 class PDESystem(object):
     imax = 100
@@ -133,19 +134,20 @@ class PDESystem(object):
             J.values = functionals[Jstr].values
 
     def visualize(self, subdomain=None):
-        sol = self.solutions(deepcopy=True)
+        sol = {x: self.solutions(x, deepcopy=True) for x in self.functions}
         mesh = self.geo.mesh
         on = ""
 
         if subdomain:
             on = " on " + subdomain
             mesh = self.geo.submesh(subdomain)
-            for f in sol:
-                adaptfunction(f,mesh,assign=True)
 
         plot(mesh, title="final mesh"+on)
-        for f in sol:
-            plot(f, title = str(f)+on)
+        for x in sol:
+            for i, f in enumerate(sol[x]):
+                if subdomain:
+                    adaptfunction(f, mesh, assign=True)
+                plot(f, title = ("%s-%i" % (x, i)) +on)
         interactive()
 
     def print_functionals(self):
@@ -183,7 +185,7 @@ class PDESystem(object):
                 return (f,)
         t = ()
         for x in self.functions:
-            t = t + self.solutions(x)
+            t = t + self.solutions(x, deepcopy=deepcopy)
         return t
 
     def save_mesh(self, mesh_name=None):
@@ -250,6 +252,28 @@ class NonlinearPDE(PDESystem):
         print "Newton iterations:",i+1
         print 'Relative L2 Newton error:',S.relerror()
         return i+1
+        
+def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcells=1e4,
+        marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False, **params):
+    """ very simple interface for quick tests """
+    solverparams = dict(imax=imax, maxcells=maxcells, marking_fraction=marking_fraction,
+        tolnewton=tolnewton, newtondamp=newtondamp)
+    if iterative is not None:
+        Problem.method["iterative"] = iterative # TODO shouldn't be necessary to change class attributes
+        
+    PDEClass = LinearPDE if Problem.is_linear else NonlinearPDE
+    pde = PDEClass(geo, Problem, phys=phys, **params)
+    for key in solverparams:
+        setattr(pde, key, solverparams[key])
+        
+    t = Timer("solve")
+    pde.solve(refinement=refinement)
+    print "CPU time (solve): %s [s]" % (t.stop(),)
+    
+    if visualize:
+        pde.visualize()
+    return pde
+    
 
 class GoalAdaptivePDE(PDESystem):
     ''' simple interface for PDE solver with goal-oriented adaptivity '''

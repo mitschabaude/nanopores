@@ -1,7 +1,7 @@
 """ simple base class for pore geometries compatible with PNPS """
 
 import dolfin
-from nanopores.physics.default import *
+from nanopores.physics.electrolyte import *
 
 bV = None # voltage bias across pore [V] (None for no enforced bias)
 
@@ -12,10 +12,6 @@ SiNqs = -0.022
 SAMqs = -0.078
 ahemqs = 0.
 
-T = 293 # temperature [K]
-bulkcon = 300. # bulk concentration of ions [mol/m**3]
-D = 1.9e-9  # diffusivity [m^2/s]
-
 rpermPore = rpermw
 rpermProtein = 2. # TODO ?????
 rDPore = 0.5
@@ -23,12 +19,7 @@ rDPore = 0.5
 DNAqs = lambda: DNAqsPure*dnaqsdamp
 permPore = lambda: eperm*rpermPore
 permProtein = lambda: eperm*rpermProtein
-kT = lambda: kB*T
-UT = lambda: kB*T/qq
-mu = lambda: D*qq/(kB*T) # mobility [m^2/Vs]
-cFarad = lambda: qq*mol  # Faraday constant [C/mol]
-debye = lambda: dolfin.sqrt(rpermw*eperm*kB*T/qq**2/2/mol/bulkcon)  # debye length [m]
-bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrolyte bulk conductivity [S/m]
+DPore = lambda: D*rDPore
 
 # piece-wise boundary conditions
 v0 = dict(
@@ -41,7 +32,7 @@ c0 = dict(
 )
 
 permittivity.update(
-    default = eperm*rpermw,
+    #default = eperm*rpermw,
     bulkfluid = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein",
@@ -60,15 +51,15 @@ volcharge = dict( # volume charges for RHS
 )
 
 Dp = dict(
-    default = "D",
+    #default = "D",
     bulkfluid = "D",
-    pore = rDPore*D,
+    pore = "DPore",
     solid = 0.,
-    lipid = 0.
 )
 
 Dm = Dp
 
+# TODO: this seems a little much; clean it up
 synonymes = {
     "pore": {"poretop", "porecenter", "porebottom"},
     "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},

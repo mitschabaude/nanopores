@@ -138,7 +138,7 @@ class Geometry(object):
         if isinstance(value, dict):
             if homogenize:
                 value = {key: 0. for key in value}
-            return [self.BC(V, Constant(value[key]), key) for key in value]
+            return [self.BC(V, Constant(value[key]), key) for key in value if (value[key] is not None)]
         else: # assume value is number
             if homogenize:
                 value = 0.
@@ -218,7 +218,9 @@ class Geometry(object):
     # alternative to adapt, should be overwritten dynamically
     rebuild = adapt
     
-    def import_synonymes(self, synonymes):
+    def import_synonymes(self, synonymes, conservative=False):
+        if conservative:
+            synonymes.update(self.synonymes)
         self.synonymes.update(synonymes)
         for i in range(3):
             self._import_synonymes(self.synonymes)
@@ -365,8 +367,14 @@ class PhysicalBC(object):
 
     def realize(self, geo):
         boundaries = geo.boundaries
-        numbers = geo.physicalboundary(self.description)
-        self.bcs = [AdaptableBC(self.V, self.g, boundaries, i) for i in numbers]
+        #if True:
+        try:
+            numbers = geo.physicalboundary(self.description)
+            self.bcs = [AdaptableBC(self.V, self.g, boundaries, i) for i in numbers]
+        #else:
+        except RuntimeError:
+            warning("PhysicalBC: boundary '%s' not found; no bcs will be assigned." % (self.description,))
+            self.bcs = []
         self.boundaries = boundaries
         self.real = True
 
