@@ -9,9 +9,9 @@ from dolfin import *
 import sys
 from calculateforce import *
 from aHem_array import *
-F = calculateforce(clscale=10., tol=5e-1) # 6. 5e-3
-#def F(vec):
-#    return [0.,0.,-1e-12]
+#F = calculateforce(clscale=6., tol=5e-3) # 6. 5e-3
+def F(vec):
+    return [0.,0.,-1e-12]
 def radius(x,y):
     return sqrt(x**2+y**2)
 def normal(ax,ay,bx,by,px,py):
@@ -55,7 +55,7 @@ def surfdiff(r):
     if r>=3.:
         return 0.
     else:
-        return 12*1e-14/((r+.4)**13)
+        return 12*1e-14/((r+.3)**13)
 
 def F_surf(x,y,z):
     rad=radius(x,y)
@@ -109,9 +109,6 @@ def indicator_poretop(vec):
     else:
     	return indicator_poretop_geo(vec)
 
-def oor(x,y,z):
-    return radius(x,y)>500 or z>500
-
 kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
 visc=1e-3 #[Pa*s]
@@ -123,20 +120,22 @@ C=1/(gamma)*tau # [s^2/kg]==>multiply force with 1e9 to convert from N to kg*nm/
 coeff=sqrt(2*D*1e9*tau) # [nm]
 
 counter = np.array([0,0])
-EXIT_X, EXIT_Y, EXIT_Z = np.array([]), np.array([]), np.array([])
-Range = range(10)
+EXIT_X, EXIT_Y, EXIT_Z, TIME = np.array([]), np.array([]), np.array([]), np.array([])
+Range = range(500)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros((steps))
     Y=np.zeros((steps))
     Z=np.zeros((steps))
-    Z[0]=2.
+    Z[0] = 2.
     time = 0.
     redos = 0
     hbonds = 0
 
     i=0
-    timeend=5e6
+    timeend=5e1
+    mean_hbond = 1e3*0 #1 microsec
+    lambda_poisson = 10.
     boolexit=False
     while time<timeend:
         timefac=1.
@@ -162,7 +161,7 @@ for index in Range:
         [Fx, Fy, Fz] = F(argument(X[i],Y[i],Z[i]))
         if dsurf<0.4:
             hbonds+=1
-            time+=1e3*np.random.poisson(10.,1)[0]
+            time+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             vec = np.array([fsurfx,fsurfy,fsurfz])
             vec *= 1./(LA.norm(vec))
             X[i+1]=X[i]+vec[0]
@@ -174,7 +173,7 @@ for index in Range:
             [Fx, Fy, Fz] = F(argument(X[i],Y[i],Z[i]))
         if dmem<0.4:
             hbonds+=1
-            time+=1e3*np.random.poisson(10.,1)[0]
+            time+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             X[i+1]=X[i]
             Y[i+1]=Y[i]
             Z[i+1]=Z[i]+1.
@@ -182,7 +181,7 @@ for index in Range:
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = F(argument(X[i],Y[i],Z[i]))
-        if Z[i]>X_aHem[18][2]+10. and ( rad>15. or Z[i]>10.):
+        if Z[i]>X_aHem[18][2]+7. and ( rad>10. or Z[i]>7.):
             timefac = 20.
             timefacsq = 4.472135
             timeadd = 1.
@@ -200,6 +199,7 @@ for index in Range:
             exit_y = Y[i]
             exit_z = Z[i]
             counter[0] += 1
+            TIME = np.append(TIME,np.array([time]))
             boolexit=True
             break
     if not boolexit:
@@ -210,17 +210,19 @@ for index in Range:
     EXIT_X = np.append(EXIT_X,np.array([exit_x]))
     EXIT_Y = np.append(EXIT_Y,np.array([exit_y]))
     EXIT_Z = np.append(EXIT_Z,np.array([exit_z]))
+
 X=X[:i]
 Y=Y[:i]
 Z=Z[:i]
 
-print 'redos: ',redos
-print 'hbonds: ',hbonds
+#print 'redos: ',redos
+#print 'hbonds: ',hbonds
 np.save('exit_x',EXIT_X)
 np.save('exit_y',EXIT_Y)
 np.save('exit_z',EXIT_Z)
+np.save('time',TIME)
 np.save('counter',counter)
 np.save('x',X)
 np.save('y',Y)
 np.save('z',Z)
-import plot
+import plot2
