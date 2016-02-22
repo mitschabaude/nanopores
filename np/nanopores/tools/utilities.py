@@ -54,7 +54,7 @@ def _call(f, params):
     
 def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
         line=[1.,0.,0.], origin=[0.,0.,0.], plot="plot", title="", legend="upper right",
-        show=False):
+        show=False, fig=None):
     # functions is dict(string = callable)
     # output of functions should be real-valued
     
@@ -69,7 +69,7 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
     z = np.array([t*line + origin for t in x]) # could also be done in a numpy way
     
     # plot functions
-    fig = plt.figure()
+    fig = plt.figure() if fig is None else fig
     ax = fig.add_subplot(111)
     for fstr, f in functions.items():
         y = np.array([f(list(t)) for t in z])

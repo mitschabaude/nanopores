@@ -18,6 +18,7 @@ bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrol
 # piece-wise boundary conditions
 v0 = dict()
 c0 = dict()
+cp0 = cm0 = c0
 
 surfcharge = dict() # surface charge densities for Neumann RHS
 volcharge = dict( # volume charges for RHS

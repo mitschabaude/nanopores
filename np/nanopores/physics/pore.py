@@ -30,6 +30,7 @@ c0 = dict(
     upperb = "bulkcon",
     lowerb = "bulkcon"
 )
+cp0 = cm0 = c0
 
 permittivity.update(
     #default = eperm*rpermw,

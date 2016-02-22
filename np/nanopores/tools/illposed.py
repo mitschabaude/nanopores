@@ -206,6 +206,9 @@ class AdaptableLinearProblem(object):
         
     def solution(self):
         return self.u
+        
+    def addRHS(self, L):
+        self.L = self.L + L
     
 class AdaptableNonlinearProblem(AdaptableLinearProblem):
     # TODO: compute Jacobian automatically, tolnewton etc.

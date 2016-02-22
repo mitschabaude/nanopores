@@ -134,15 +134,30 @@ class Geometry(object):
             return DirichletBC(V, g, DomainBoundary())
             
     def pwconstBC(self, V, string, homogenize=False, value=None):
+        " piecewise constant boundary condition from dict(boundary = value) where value is a number (or None) "
         value = self._getvalue(string, value)
+        #print "DEBUG:", value
         if isinstance(value, dict):
             if homogenize:
                 value = {key: 0. for key in value}
             return [self.BC(V, Constant(value[key]), key) for key in value if (value[key] is not None)]
-        else: # assume value is number
+        else: # assume value is number and apply on whole boundary
             if homogenize:
                 value = 0.
-            return [self.BC(V, Constant(value))]
+            return [self.BC(V, Constant(value))] if value is not None else []
+            
+    def pwBC(self, V, string, homogenize=False, value=None):
+        " piecewise boundary condition from dict(boundary = value) where value is a function "
+        value = self._getvalue(string, value)
+        #print "DEBUG:", value
+        if isinstance(value, dict):
+            if homogenize:
+                value = {key: Constant(0.) for key in value}
+            return [self.BC(V, value[key], key) for key in value if (value[key] is not None)]
+        else: # assume value is function and apply on whole boundary
+            if homogenize:
+                value = Constant(0.)
+            return [self.BC(V, value)] if value is not None else []
         
     def _getvalue(self, string, value):
         if value is None:

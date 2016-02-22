@@ -48,8 +48,8 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         (w, dp, dm) = TestFunctions(V)
         
         apoisson = inner(eps*grad(v), grad(w))*r2pi*dx - F*(cp - cm)*w*r2pi*dx_ions
-        aJm = inner(Dm*(grad(cm) - q/kT*cm*grad(v)) - cm*ustokes, grad(dm))*r2pi*dx_ions
-        aJp = inner(Dp*(grad(cp) + q/kT*cp*grad(v)) - cp*ustokes, grad(dp))*r2pi*dx_ions
+        aJm = -inner(Dm*(grad(cm) - q/kT*cm*grad(v)) - cm*ustokes, grad(dm))*r2pi*dx_ions
+        aJp = -inner(Dp*(grad(cp) + q/kT*cp*grad(v)) - cp*ustokes, grad(dp))*r2pi*dx_ions
         
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
@@ -62,8 +62,8 @@ class SimplePNPProblem(GeneralNonlinearProblem):
     @staticmethod
     def bcs(V, geo, phys):
         bcs = geo.pwconstBC(V.sub(0), "v0")
-        bcs = bcs + geo.pwconstBC(V.sub(1), "c0")
-        bcs = bcs + geo.pwconstBC(V.sub(2), "c0")
+        bcs = bcs + geo.pwconstBC(V.sub(1), "cp0")
+        bcs = bcs + geo.pwconstBC(V.sub(2), "cm0")
         return bcs
         
         

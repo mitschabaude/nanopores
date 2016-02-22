@@ -10,7 +10,7 @@ parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
            "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem",
-           "solve_pde"]
+           "solve_pde", "solve_problem", "PDEfromProblem"]
 
 class PDESystem(object):
     imax = 100
@@ -23,7 +23,7 @@ class PDESystem(object):
         self.solvers = solvers
         self.functionals = functionals
 
-    def solve(self, refinement=False, verbose=True):
+    def solve(self, refinement=False, verbose=True, inside_loop=None):
 
         if verbose:
             print "Number of cells:",self.geo.mesh.num_cells()
@@ -37,6 +37,8 @@ class PDESystem(object):
             self.single_solve()
             if verbose:
                 self.print_functionals()
+            if inside_loop is not None:
+                inside_loop(self)
             #plot(self.solvers.values()[0].problem.solution(), interactive=True)
             if refinement:
                 (ind,err) = self.estimate()
@@ -149,6 +151,9 @@ class PDESystem(object):
                     adaptfunction(f, mesh, assign=True)
                 plot(f, title = ("%s-%i" % (x, i)) +on)
         interactive()
+        
+    def add_functionals(self, functionals):
+        self.functionals.update({key: Functional(value) for key, value in functionals.items()})
 
     def print_functionals(self):
         Jdir = self.functionals
@@ -201,7 +206,8 @@ class PDESystem(object):
         meshfile = File("%s/adapted/mesh_%s.xml" %(DIR, N))
         meshfile << self.geo.mesh
         return DIR
-
+    
+    
 class LinearPDE(PDESystem):
     ''' simple interface for single linear PDE '''
     def __init__(self, geo, ProblemClass, *problem_args, **problem_params):
@@ -268,6 +274,47 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
         
     t = Timer("solve")
     pde.solve(refinement=refinement)
+    print "CPU time (solve): %s [s]" % (t.stop(),)
+    
+    if visualize:
+        pde.visualize()
+    return pde
+    
+
+class PDEfromProblem(LinearPDE, NonlinearPDE):
+
+    def __init__(self, problem, geo):
+        import types
+        if problem.is_linear:
+            solver = IllposedLinearSolver(problem)
+            self.single_solve = types.MethodType(LinearPDE.single_solve, self)
+        else:
+            solver = IllposedNonlinearSolver(problem)
+            self.single_solve = types.MethodType(NonlinearPDE.single_solve, self)
+        self.geo = geo
+        self.functions = {type(problem).__name__: problem.solution()}
+        self.solution = problem.solution()
+        self.problem = problem
+        self.solvers = {type(problem).__name__: solver}
+        self.functionals = {}
+
+        
+def solve_problem(problem, geo, imax = 20, maxcells=1e4,
+        marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False,
+        goals={}, **solve_params):
+    "simple interface for quick tests. like solve_pde, but takes instantiated problem; useful for customized problems"
+    solverparams = dict(imax=imax, maxcells=maxcells, marking_fraction=marking_fraction,
+        tolnewton=tolnewton, newtondamp=newtondamp)
+    if iterative is not None:
+        problem.method["iterative"] = iterative
+        
+    pde = PDEfromProblem(problem, geo)
+    for key in solverparams:
+        setattr(pde, key, solverparams[key])
+    pde.add_functionals(goals)
+        
+    t = Timer("solve")
+    pde.solve(**solve_params)
     print "CPU time (solve): %s [s]" % (t.stop(),)
     
     if visualize:
@@ -346,7 +393,7 @@ class GeneralLinearProblem(AdaptableLinearProblem):
 class GeneralNonlinearProblem(AdaptableNonlinearProblem):
     is_linear = False
 
-    def __init__(self, geo, phys=None, u=None, **params):
+    def __init__(self, geo, phys=None, u=None, bcs=None, **params):
         
         mesh = geo.mesh
         V = self.space(mesh)
@@ -361,7 +408,8 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         params.update(u=u)
         self.params = params
         
-        bcs = _call(self.bcs, params)
+        if not bcs:
+            bcs = _call(self.bcs, params)
         for bc in bcs:
             bc.apply(u.vector())
             bc.homogenize()
