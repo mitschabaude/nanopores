@@ -21,7 +21,7 @@ domain.synonymes = dict(
     water = "fluid",
 )
 
-geo = domain.create_geometry(lc=.02)  
+geo = domain.create_geometry(lc=.01)  
 print geo
 
 # --- define physical parameters ---
@@ -37,14 +37,15 @@ print geo
 # --- solve pdes ---
 
 # nonlinear PB
-pb0 = solve_pde(SimplePBProblem, geo, phys, cyl=True, iterative=False, tolnewton=1e-10)
+pb = solve_pde(SimplePBProblem, geo, phys, cyl=True, iterative=False, tolnewton=1e-10)
 # linear PB -- imax=1 implies only one Newton iteration
-pb1 = solve_pde(SimplePBProblem, geo, phys, cyl=True, iterative=False, imax=1)
+pblin = solve_pde(SimplePBProblem, geo, phys, cyl=True, iterative=False, imax=1)
 
-u0 = pb0.solution
-u1 = pb1.solution
+u0 = pb.solution
+u1 = pblin.solution
 plot1D({"linear PB":u1, "nonlinear PB":u0},
         (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
+showplots()
 
 # PNP doesn't converge and probably doesn't make sense, since bulk concentration of ions can not be assigned
 #pnps = solve_pde(SimplePNPProblem, geo, phys, cyl=True, visualize=True)

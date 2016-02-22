@@ -26,6 +26,24 @@ bicgstab = dict(
             ilu = dict(fill_level = 1)))
 )
 
+poisson = dict(
+    reuse = True,
+    iterative = True,
+    lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+    luparams = dict(
+        symmetric = True,
+        same_nonzero_pattern = True,
+        reuse_factorization = True,),
+    ks = "cg",
+    kp = "hypre_euclid",
+    kparams = dict(
+        maximum_iterations = 500,
+        monitor_convergence = False,
+        relative_tolerance = 1e-6,
+        preconditioner = dict(
+            ilu = dict(fill_level = 1)))
+)
+
 stokes = dict(
     reuse = True,
     iterative = False,

@@ -2,11 +2,11 @@
 
 from dolfin import *
 
-from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem
+from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem, GeneralLinearProblem
 from nanopores.physics.params_physical import *
 
 #__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
-__all__ = ["SimplePNPProblem", "SimplePBProblem"]
+#__all__ = ["SimplePNPProblem", "SimplePBProblem"]
 
 # --- Problems ---
 
@@ -100,7 +100,35 @@ class SimplePBProblem(GeneralNonlinearProblem):
     @staticmethod
     def bcs(V, geo, phys):
         # TODO: really only allow homogeneous BCs for PB?
-        return geo.pwconstBC(V, "v0", homogenize=True)     
+        return geo.pwconstBC(V, "v0", homogenize=True)    
+        
+        
+class SimplePoissonProblem(GeneralLinearProblem):
+    method = dict(solvermethods.poisson)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, 'CG', k)
+
+    @staticmethod
+    def forms(V, geo, phys, u, cyl=False):
+        dx = geo.dx()
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+        eps = geo.pwconst("permittivity")
+        
+        w = TestFunction(V)
+        apoisson = inner(eps*grad(u), grad(w))*r2pi*dx
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        L = apoisson - Lqvol - Lqsurf
+        a = derivative(L, u)
+        return a, L
+    
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwconstBC(V, "v0")  
 
 """
 class SimpleStokesProblemAxisym(StokesProblemAxisym):
