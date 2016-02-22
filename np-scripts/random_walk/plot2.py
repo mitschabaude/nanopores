@@ -106,10 +106,11 @@ X_aHem = np.array([[2.16, 0.0, 0.0],
                       [1.26, 0.0, -0.64],
                       [1.7 , 0.0, -0.31]])
 
-timestep=5e1/100.
-exittime = np.linspace(0.,1.,100)*5e1
-exitprop = np.zeros(100)
-for index in range(100):
+fineness = 500
+timestep=5e6/float(fineness)
+exittime = np.linspace(0.,1.,fineness)*5e6
+exitprop = np.zeros(fineness)
+for index in range(fineness):
     exitprop[index]=np.where(time<timestep*(index+1))[0].shape[0]
 exitprop*=1./np.sum(counter)
 plt.plot(exittime,exitprop)
