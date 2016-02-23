@@ -133,6 +133,7 @@ class Geometry(object):
         else: # TODO: implement AdaptableBC(V,g,SubDomain)
             return DirichletBC(V, g, DomainBoundary())
             
+    # TODO: pwconstBC is DEPRECATED since pwBC has strictly more general functionality
     def pwconstBC(self, V, string, homogenize=False, value=None):
         " piecewise constant boundary condition from dict(boundary = value) where value is a number (or None) "
         value = self._getvalue(string, value)
@@ -146,18 +147,42 @@ class Geometry(object):
                 value = 0.
             return [self.BC(V, Constant(value))] if value is not None else []
             
+    # TODO: OMG this is ugly code. readability = -1000000
     def pwBC(self, V, string, homogenize=False, value=None):
-        " piecewise boundary condition from dict(boundary = value) where value is a function "
+        """ piecewise boundary condition from dict(boundary = value) where value is a dolfin.GenericFunction.
+            will wrap with dolfin.Constant is input is a number/tuple, and do nothin if value is None. """
         value = self._getvalue(string, value)
         #print "DEBUG:", value
         if isinstance(value, dict):
-            if homogenize:
+            # TODO: get rid of homogenize (it is only used for PB and is ugly, because assumes scalar pde)
+            if homogenize: 
                 value = {key: Constant(0.) for key in value}
-            return [self.BC(V, value[key], key) for key in value if (value[key] is not None)]
-        else: # assume value is function and apply on whole boundary
+            bcs = []
+            for key, val in value.items():
+                if val is not None:
+                    if isinstance(val, GenericFunction):
+                        bcs.append(self.BC(V, val, key))
+                    elif isinstance(val, float) or isinstance(val, tuple):
+                        bcs.append(self.BC(V, Constant(val), key))
+                    else:
+                        dolfin_error(__name__+".py",
+                            "assign boundary condition",
+                            "Value on '%s' for the BC '%s' is of unexpected type '%s'." % (key, string, type(val)))
+            return bcs
+        else: # try to assign value on whole boundary
             if homogenize:
                 value = Constant(0.)
-            return [self.BC(V, value)] if value is not None else []
+            if val is None:
+                return []
+            elif isinstance(val, GenericFunction):
+                bc = self.BC(V, val, key)
+            elif isinstance(val, float) or isinstance(val, tuple):
+                bc = self.BC(V, Constant(val), key)
+            else:
+                dolfin_error(__name__+".py",
+                    "assign boundary condition",
+                    "Value for the BC '%s' is of unexpected type '%s'." % (string, type(val)))
+            return [bc]
         
     def _getvalue(self, string, value):
         if value is None:

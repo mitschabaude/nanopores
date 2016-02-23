@@ -42,18 +42,19 @@ class Estimator(object):
         savemat("est_%s.mat" %self.name, dic)
 
     # errorplot using matplotlib
-    def plot(self, rate=None, show=False):
+    def plot(self, rate=None, fig=True):
         from matplotlib.pyplot import figure, loglog, xlabel, ylabel, legend, show
-        figure()
+        if fig is True:
+            figure()
         N, err = self.split()
-        loglog(N, err, 's-', label="Estimator")
+        loglog(N, err, 's-', label=self.name)
         if rate and N[0] != 0:
             alg = [err[0]/(N[0]**rate)*n**rate for n in N]
             loglog(N, alg, '--', label="N^{%s}" %rate)
-        xlabel("# Elements")
-        ylabel("Error estimator")
+        #xlabel("# Elements")
+        xlabel("degrees of freedom")
+        ylabel("rel. error")
         legend(loc='upper right')
-        if show: show()
 
     # newtonplot using matplotlib
     def newtonplot(self):

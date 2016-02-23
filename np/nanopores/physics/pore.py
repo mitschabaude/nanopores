@@ -57,7 +57,6 @@ Dp = dict(
     pore = "DPore",
     solid = 0.,
 )
-
 Dm = Dp
 
 # TODO: this seems a little much; clean it up
@@ -69,7 +68,7 @@ synonymes = {
     "protein": {"ahem"},
     "channel": {"ahem"},
     "proteinb": {"ahemb"},
-    "noslip": {"ahemb", "membraneb", "moleculeb"},
+    "noslip": {"proteinb", "membraneb"},
     "bulk": {"upperb", "lowerb"},
     "nopressure": {"bulk"},
     "ground": {"upperb"},

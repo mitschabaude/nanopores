@@ -27,7 +27,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
 
     @staticmethod
     def forms(V, geo, phys, u, ustokes=None, cyl=False):
-        if not ustokes:
+        if ustokes is None:
             dim = geo.mesh.topology().dim()
             ustokes = Constant(tuple(0. for i in range(dim)))
         
@@ -130,39 +130,64 @@ class SimplePoissonProblem(GeneralLinearProblem):
     def bcs(V, geo, phys):
         return geo.pwconstBC(V, "v0")  
 
-"""
-class SimpleStokesProblemAxisym(StokesProblemAxisym):
-    k = 1
-    beta = 0.1
+
+class SimpleStokesProblem(GeneralLinearProblem):
+    "stabilized equal-order formulation; consistent for k=1"
+    method = dict(solvermethods.stokes)
 
     @staticmethod
-    def space(mesh):
-        k = StokesProblemAxisymEqualOrder.k
+    def space(mesh, k=1):
         U = VectorFunctionSpace(mesh, 'CG', k)
         P = FunctionSpace(mesh, 'CG', k)
         return U*P
 
     @staticmethod
-    def forms(W, geo, f):
+    def forms(V, geo, phys, f=None, cyl=False, beta=0.01, conservative=True):
+        # beta = stabilization parameter, TODO: better lower in 2D?
         mesh = geo.mesh
+        if f is None:
+            dim = geo.mesh.topology().dim()
+            f = Constant(tuple(0. for i in range(dim)))
 
-        (u, p) = TrialFunctions(W)
-        (v, q) = TestFunctions(W)
+        (u, p) = TrialFunctions(V)
+        (v, q) = TestFunctions(V)
 
+        grad = phys.grad
+        div = phys.div
+        lscale = phys.lscale
+        
         dx = geo.dx("fluid")
         r = Expression("x[0]")
-        pi = 3.14159265359
+        pi2 = Constant(2.*pi)
         h = CellSize(mesh)
-        delta = StokesProblemAxisymEqualOrder.beta*h**2
+        delta = Constant(beta/lscale)*h**2
+        eta = Constant(phys.eta)
+        
+        def eps(u): return Constant(2.)*sym(grad(u))
+        eta2 = Constant(2.)*eta
 
         # conservative formulation for correct BC, with added stabilization term
-        a = (2*eta*inner(sym(grad(u)),sym(grad(v)))*r + 2*eta*u[0]*v[0]/r + \
-            (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*2*pi*dx - \
-            delta*inner(grad(p),grad(q))*r*2*pi*dx
+        if cyl:
+            a = (eta*inner(eps(u), eps(v))*r + eta2*u[0]*v[0]/r + \
+                (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*pi2*dx - \
+                delta*inner(grad(p), grad(q))*r*pi2*dx
+            L = inner(f, v - delta*grad(q))*r*pi2*dx
+        else:
+            a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
+                 - delta*inner(grad(p), grad(q))*dx
+            L = inner(f, v - delta*grad(q))*dx
+            
+        if not conservative:
+            raise Exception
+            pass #FIXME
+            #p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
+        # TODO: include preconditioning form in some way
+        return a, L
+        
+    @staticmethod
+    def bcs(V, geo):
+        return geo.pwBC(V.sub(0), "noslip") + geo.pwBC(V.sub(1), "pressure")
+        
+        
 
-        if f is None:
-            f = Constant((0.0,0.0))
 
-        L = 2*pi*inner(f,v - delta*grad(q))*r*dx
-        return (a,L)
-"""

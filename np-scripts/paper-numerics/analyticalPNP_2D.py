@@ -1,4 +1,4 @@
-" analytical test problem to validate 2D and 3D solvers "
+" analytical test problem to validate 2D solvers for PNP "
 import math
 from dolfin import *
 from nanopores import *
@@ -7,6 +7,7 @@ from nanopores.physics.simplepnps import *
 # --- define parameters ---
 bV = -0.1 # [V]
 rho = -0.025 # [C/m**2]
+Nmax = 5e6
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -143,11 +144,12 @@ Jm = Constant(D)*(-grad(cm) + Constant(1/UT)*cm*grad(v))
 J = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[1] * r2pi) * geo2D.dS("cross")
 Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[1] * r2pi * geo2D.dx("cross")
 def saveJ(self):
-    self.save_estimate("errJ", (self.functionals["Jvol"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
+    self.save_estimate("(J1_h - J)/J", (self.functionals["J"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
+    self.save_estimate("(J_h - J)/J", (self.functionals["Jvol"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
 
 # solve    
 pnps = solve_problem(problem, geo2D, goals={"J": J, "Jvol": Jvol}, inside_loop=saveJ, 
-    refinement=True, marking_fraction=.5, maxcells=2e5)
+    refinement=True, marking_fraction=1., maxcells=Nmax)
 
 # --- visualization ---
 pnps.visualize()
@@ -159,6 +161,7 @@ plot1D({"PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential
 fig = plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
 plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz), dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), fig=fig)
 
-pnps.estimators["errJ"].plot(rate=-1.)
+pnps.estimators["(J1_h - J)/J"].plot(rate=-1.)
+pnps.estimators["(J_h - J)/J"].plot(rate=-1.)
 showplots()
 

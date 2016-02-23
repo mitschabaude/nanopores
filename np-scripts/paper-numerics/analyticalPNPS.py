@@ -5,8 +5,9 @@ from nanopores import *
 from nanopores.physics.simplepnps import *
 
 # --- define parameters ---
-bV = -0.1 # [V]
+bV = -0.05 # [V]
 rho = -0.025 # [C/m**2]
+Nmax = 1e1
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -14,7 +15,7 @@ R = 2. # [nm] pore radius
 hcross = .2
 
 domain2D = Box([0., -Rz], [R, Rz])
-cross = Box([0., 0.], [R, hcross]) # TODO: Jvol bringt keine schnellere Konvergenzrate
+cross = Box([0., 0.], [R, hcross])
 domain2D.addsubdomains(
     main = domain2D - cross,
     cross = cross,
@@ -24,14 +25,17 @@ domain2D.addboundaries(
     upperb = domain2D.boundary("top"),
     wall = domain2D.boundary("right"),
     cross = cross.boundary("bottom"),
+    center = domain2D.boundary("left")
 )
 domain2D.params["lscale"] = 1e9
 domain2D.synonymes = dict(
     fluid = {"main", "cross"},
     pore = "fluid",
     chargedmembraneb = "wall",
+    noslip = "wall",
+    nopressure = "center",
 )
-geo2D = domain2D.create_geometry(lc=.2)
+geo2D = domain2D.create_geometry(lc=.05)
 domain2D.plot()
 
 # --- create geometry for 1D crossection ---
@@ -84,6 +88,11 @@ class Jp(Expression):
 class Jm(Expression):
     def eval(self, value, x):
         value[0] = -D/UT*E0*cmPB(x[0])
+        
+class pPB(Expression):
+    def eval(self, value, x):
+        value[0] = 2*c0*cFarad*cosh(phi(x[0]))
+        
 #jm = Function(FunctionSpace(geo2D.mesh, 'CG', 4))
 #jm.interpolate(Jm())
 #jp = Function(FunctionSpace(geo2D.mesh, 'CG', 4))
@@ -108,6 +117,11 @@ v0 = dict(
 )
 cp0 = dict(wall = c0*exp(-phi(R)/UT))
 cm0 = dict(wall = c0*exp(+phi(R)/UT))
+pressure = dict(
+    upperb = pPB(),
+    lowerb = pPB(),
+    wall = pPB
+)
 
 phys_params.update(
     cp0 = cp0,
@@ -125,8 +139,8 @@ bcs = geo2D.pwBC(V.sub(0), "v0")
 bcs = bcs + geo2D.pwconstBC(V.sub(1), "cp0")
 bcs = bcs + geo2D.pwconstBC(V.sub(2), "cm0")
 
-# --- solve customized 2D problem with non-zero flux BCs for nernst-planck ---
-problem = SimplePNPProblem(geo2D, phys, cyl=True, newtondamp=0.8, bcs=bcs)
+# --- solve customized 2D PNP problem with non-zero flux BCs for nernst-planck ---
+problem = SimplePNPProblem(geo2D, phys, cyl=True, newtondamp=0.5, bcs=bcs)
 
 # neumann bc
 w, dp, dm = split(problem.a.arguments()[0])
@@ -143,14 +157,20 @@ Jm = Constant(D)*(-grad(cm) + Constant(1/UT)*cm*grad(v))
 J = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[1] * r2pi) * geo2D.dS("cross")
 Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[1] * r2pi * geo2D.dx("cross")
 def saveJ(self):
-    self.save_estimate("errJ", (self.functionals["Jvol"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
+    self.save_estimate("(Jsing_h - J)/J", (self.functionals["J"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
+    self.save_estimate("(J_h - J)/J", (self.functionals["Jvol"].value()-J_PB)/J_PB, N=self.solution.function_space().dim())
 
 # solve    
 pnps = solve_problem(problem, geo2D, goals={"J": J, "Jvol": Jvol}, inside_loop=saveJ, 
-    refinement=True, marking_fraction=.5, maxcells=2e5)
+    refinement=True, marking_fraction=1., maxcells=Nmax, iterative=False)
+    
+# --- solve 2D Stokes Problem --
+plot(-cFarad*(cp-cm)*grad(v)/(lscale**2*eta))
+stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v))
 
 # --- visualization ---
 pnps.visualize()
+stokes.visualize()
 (v, cp, cm) = pnps.solutions()
 
 fig = plot1D({"PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
@@ -159,6 +179,7 @@ plot1D({"PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential
 fig = plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
 plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz), dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), fig=fig)
 
-pnps.estimators["errJ"].plot(rate=-1.)
-showplots()
+pnps.estimators["(Jsing_h - J)/J"].plot(rate=-1.)
+pnps.estimators["(J_h - J)/J"].plot(rate=-1.)
+#showplots()
 

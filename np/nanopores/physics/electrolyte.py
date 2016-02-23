@@ -15,20 +15,19 @@ cFarad = lambda: qq*mol  # Faraday constant [C/mol]
 debye = lambda: dolfin.sqrt(rpermw*eperm*kB*T/qq**2/2/mol/bulkcon)  # debye length [m]
 bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrolyte bulk conductivity [S/m]
 
+
 # piece-wise boundary conditions
 v0 = dict()
 c0 = dict()
 cp0 = cm0 = c0
 
 surfcharge = dict() # surface charge densities for Neumann RHS
-volcharge = dict( # volume charges for RHS
-    default = 0.,
-)
+volcharge = dict(default = 0.) # volume charges for RHS
 
-Dp = dict(
-    default = "D",
-    solid = 0.,
-)
+Dp = Dm = dict(default = "D", solid = 0.)
 
-Dm = Dp
+# no-slip velocity
+U0 = lambda dim: dolfin.Constant(tuple(0. for i in range(dim)))
+noslip = dict(noslip = "U0")
+pressure = dict(nopressure = 0.)
 

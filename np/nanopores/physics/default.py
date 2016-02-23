@@ -18,4 +18,7 @@ def div(lscale):
     def div0(u):
         return dolfin.Constant(lscale)*dolfin.transpose(dolfin.nabla_div(u))
     return div0
+    
+def dim(geo):
+    return geo.mesh.topology().dim()
 
