@@ -136,9 +136,10 @@ class SimpleStokesProblem(GeneralLinearProblem):
     method = dict(solvermethods.stokes)
 
     @staticmethod
-    def space(mesh, k=1):
-        U = VectorFunctionSpace(mesh, 'CG', k)
-        P = FunctionSpace(mesh, 'CG', k)
+    def space(mesh, ku=1, kp=1):
+        print "DEBUG",ku
+        U = VectorFunctionSpace(mesh, 'CG', ku)
+        P = FunctionSpace(mesh, 'CG', kp)
         return U*P
 
     @staticmethod
@@ -164,11 +165,10 @@ class SimpleStokesProblem(GeneralLinearProblem):
         eta = Constant(phys.eta)
         
         def eps(u): return Constant(2.)*sym(grad(u))
-        eta2 = Constant(2.)*eta
 
         # conservative formulation for correct BC, with added stabilization term
         if cyl:
-            a = (eta*inner(eps(u), eps(v))*r + eta2*u[0]*v[0]/r + \
+            a = (eta*inner(eps(u), eps(v))*r + Constant(2.)*eta*u[0]*v[0]/r + \
                 (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
             L = inner(f, v - delta*grad(q))*r*pi2*dx
@@ -177,9 +177,12 @@ class SimpleStokesProblem(GeneralLinearProblem):
                  - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
             
-        if not conservative:
-            raise Exception
-            pass #FIXME
+        if not conservative and cyl:
+            a = (eta*inner(grad(u), grad(v))*r + eta*u[0]*v[0]/r - \
+                inner(v, grad(p))*r + q*(u[0] + div(u)*r))*pi2*dx - \
+                delta*inner(grad(p), grad(q))*r*pi2*dx
+            L = inner(f, v - delta*grad(q))*r*pi2*dx
+            #FIXME
             #p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         # TODO: include preconditioning form in some way
         return a, L

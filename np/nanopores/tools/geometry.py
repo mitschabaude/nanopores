@@ -172,12 +172,12 @@ class Geometry(object):
         else: # try to assign value on whole boundary
             if homogenize:
                 value = Constant(0.)
-            if val is None:
+            if value is None:
                 return []
-            elif isinstance(val, GenericFunction):
-                bc = self.BC(V, val, key)
+            elif isinstance(value, GenericFunction):
+                bc = self.BC(V, value)
             elif isinstance(val, float) or isinstance(val, tuple):
-                bc = self.BC(V, Constant(val), key)
+                bc = self.BC(V, Constant(value))
             else:
                 dolfin_error(__name__+".py",
                     "assign boundary condition",

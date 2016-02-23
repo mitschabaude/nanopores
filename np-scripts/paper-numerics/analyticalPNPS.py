@@ -36,7 +36,7 @@ domain2D.synonymes = dict(
     nopressure = "center",
 )
 geo2D = domain2D.create_geometry(lc=.05)
-domain2D.plot()
+#domain2D.plot()
 
 # --- create geometry for 1D crossection ---
 # TODO: it would be cool if the 1D domain could be extracted from the 2D one
@@ -72,26 +72,30 @@ c0 = phys.bulkcon
 D = phys.DPore
 lscale = phys.lscale
 E0 = -lscale*bV/(2.*Rz)
+eps = phys.permittivity["water"]
+eta = phys.eta
 
-print "Diffusion constant in pore:",D
-print "Constant electric field:",E0
+print "Diffusion constant in pore:", D*1e9, "[nm**2/ns]"
+print "Constant electric field:", E0, "[N]"
 def cpPB(x):
     return c0*exp(-phi(x)/UT)
 def cmPB(x):
     return c0*exp(phi(x)/UT)
-class Potential(Expression):
+def pPB(x):
+    return -2.*c0*cFarad*UT*(math.cosh(phi(x)/UT) - math.cosh(phi(0.)/UT))
+def uPB(x):
+    return eps*E0/eta*(phi(x[0]) - phi(R))
+    
+class vPB(Expression):
     def eval(self, value, x):
-        value[0] = phi(x[0]) + bV*x[1]/(2.*Rz)
+        value[0] = bV*x[1]/(2.*Rz) + phi(x[0])
 class Jp(Expression):
     def eval(self, value, x):
         value[0] = D/UT*E0*cpPB(x[0])
 class Jm(Expression):
     def eval(self, value, x):
         value[0] = -D/UT*E0*cmPB(x[0])
-        
-class pPB(Expression):
-    def eval(self, value, x):
-        value[0] = 2*c0*cFarad*cosh(phi(x[0]))
+
         
 #jm = Function(FunctionSpace(geo2D.mesh, 'CG', 4))
 #jm.interpolate(Jm())
@@ -103,25 +107,15 @@ jm = Jm()
 # compute current
 r2pi = Expression("2*pi*x[0]")
 J_PB = assemble(Constant(cFarad*D/UT*E0*c0/lscale**2)*(exp(-phi/UT) + exp(phi/UT))*r2pi*dx)
-print "J (PB): %s [N]" % J_PB
+print "J (PB): %s [A]" % J_PB
 
 
 # --- define physical parameters and non-standard BCs for 2D problem ---
 
 #v0 = dict(wall = phi(R))
-v0ex = Potential()
-v0 = dict(
-    #upperb = v0ex,
-    #lowerb = v0ex,
-    wall = v0ex,
-)
+v0 = dict(wall = vPB())
 cp0 = dict(wall = c0*exp(-phi(R)/UT))
 cm0 = dict(wall = c0*exp(+phi(R)/UT))
-pressure = dict(
-    upperb = pPB(),
-    lowerb = pPB(),
-    wall = pPB
-)
 
 phys_params.update(
     cp0 = cp0,
@@ -130,8 +124,8 @@ phys_params.update(
 )
 phys = Physics("pore", geo2D, **phys_params)
 phys.surfcharge.update(
-    upperb = lscale*bV/(2.*Rz)*permittivity["water"],
-    lowerb = -lscale*bV/(2.*Rz)*permittivity["water"],
+    upperb = lscale*eps*bV/(2.*Rz),
+    lowerb = -lscale*eps*bV/(2.*Rz),
 )
 
 V = SimplePNPProblem.space(geo2D.mesh)
@@ -166,12 +160,13 @@ pnps = solve_problem(problem, geo2D, goals={"J": J, "Jvol": Jvol}, inside_loop=s
     
 # --- solve 2D Stokes Problem --
 plot(-cFarad*(cp-cm)*grad(v)/(lscale**2*eta))
-stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v))
+stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=2, beta=0.)
 
 # --- visualization ---
 pnps.visualize()
 stokes.visualize()
 (v, cp, cm) = pnps.solutions()
+(u, p) = stokes.solutions()
 
 fig = plot1D({"PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
 plot1D({"PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), fig=fig)
@@ -179,7 +174,14 @@ plot1D({"PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential
 fig = plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
 plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz), dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), fig=fig)
 
-pnps.estimators["(Jsing_h - J)/J"].plot(rate=-1.)
-pnps.estimators["(J_h - J)/J"].plot(rate=-1.)
-#showplots()
+fig = plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+fig = plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+fig = plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+fig = plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+fig = plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+fig = plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+
+#pnps.estimators["(Jsing_h - J)/J"].plot(rate=-1.)
+#pnps.estimators["(J_h - J)/J"].plot(rate=-1.)
+showplots()
 

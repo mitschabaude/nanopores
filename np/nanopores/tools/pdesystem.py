@@ -363,7 +363,7 @@ class GeneralLinearProblem(AdaptableLinearProblem):
     def __init__(self, geo, phys=None, u=None, bcs=None, **params):
         
         mesh = geo.mesh
-        V = self.space(mesh)
+        V = _call(self.space, dict(params, mesh=mesh))
         params.update(geo=geo, phys=phys, V=V)
         
         if not u:
