@@ -21,8 +21,11 @@ v0 = dict()
 c0 = dict()
 cp0 = cm0 = c0
 
+# rhs data
 surfcharge = dict() # surface charge densities for Neumann RHS
 volcharge = dict(default = 0.) # volume charges for RHS
+cpflux = dict()
+cmflux = dict()
 
 Dp = Dm = dict(default = "D", solid = 0.)
 

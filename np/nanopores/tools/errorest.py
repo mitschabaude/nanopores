@@ -57,14 +57,16 @@ class Estimator(object):
         legend(loc='upper right')
 
     # newtonplot using matplotlib
-    def newtonplot(self):
-        from matplotlib.pyplot import semilogy, xlabel, ylabel, legend, show
+    def newtonplot(self, fig=True):
+        from matplotlib.pyplot import semilogy, xlabel, ylabel, legend, show, figure
+        if fig is True:
+            figure()
         i, err = self.split()
-        semilogy(i, err, 's-', label="Estimator")
-        xlabel(str(self.name))
-        ylabel("Error estimator")
+        semilogy(i, err, 's-', label=str(self.name))
+        xlabel("# iterations")
+        ylabel("rel. error")
         legend(loc='upper right')
-        show()
+        #show()
 
 
 

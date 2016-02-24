@@ -1,4 +1,5 @@
 from dolfin import *
+import ufl
 import nanopores
 from nanopores.tools.illposed import AdaptableBC,adaptmeshfunction,adaptfunction
 from nanopores.physics import params_physical
@@ -193,7 +194,7 @@ class Geometry(object):
                     "interprete string description",
                     "The module %s has not implemented '%s'" % (self.physics.__name__, string))
         return value
-
+        
     def NeumannRHS(self, v, string, value=None):
         # L = geo.NeumannRHS(v, "surfcharge") == charge("dna")*v*dS("dna") +
         #                                    charge("mol")*v*dS("mol") + ...
@@ -203,7 +204,8 @@ class Geometry(object):
         #print bou2value
         dS = self.dS()
         ds = self.ds()
-        return sum([avg(inner(Constant(bou2value[i]), v)) * dS(i) for i in bou2value]) + sum([inner(Constant(bou2value[i]), v) * ds(i) for i in bou2value])
+        return sum([avg(inner(_wrapf(bou2value[i]), v)) * dS(i) for i in bou2value]) \
+             + sum([inner(_wrapf(bou2value[i]), v) * ds(i) for i in bou2value])
 
     def linearRHS(self, v, string, value=None):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
@@ -441,6 +443,17 @@ class PhysicalBC(object):
         #for bc in self.bcs:
         #    bc.homogenize()
 
+
+def _wrapf(f):
+# takes either Function/uflExpression or float/tuple and wraps with Constant in the latter case
+# for easy specification of Dirichlet or Neumann data
+    if isinstance(f, GenericFunction) or isinstance(f, ufl.core.expr.Expr):
+        return f
+    elif isinstance(f, float) or isinstance(f, tuple):
+        return Constant(f)
+    else:
+        dolfin_error(__name__+".py", "use given function",
+            "Function is of unexpected type '%s'." % (type(f),))
 
 def _invert_dict(d):
     if isinstance(d,dict):

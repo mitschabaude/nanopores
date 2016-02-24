@@ -10,7 +10,7 @@ parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
            "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem",
-           "solve_pde", "solve_problem", "PDEfromProblem"]
+           "solve_pde", "solve_problem", "PDEfromProblem", "CoupledSolver"]
 
 class PDESystem(object):
     imax = 100
@@ -153,7 +153,12 @@ class PDESystem(object):
         interactive()
         
     def add_functionals(self, functionals):
-        self.functionals.update({key: Functional(value) for key, value in functionals.items()})
+        # the input functionals here is a list of functions of the solutions (flat tuple) and geo
+        # these should each return a dict(name of functional = ufl form)
+        U = self.solutions()
+        geo = self.geo
+        for f in functionals:
+            self.functionals.update({key: Functional(F) for key, F in f(U, geo).items()})
 
     def print_functionals(self):
         Jdir = self.functionals
@@ -260,7 +265,8 @@ class NonlinearPDE(PDESystem):
         return i+1
         
 def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcells=1e4,
-        marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False, **params):
+        marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False,
+        goals=(), inside_loop=None, **params):
     """ very simple interface for quick tests """
     solverparams = dict(imax=imax, maxcells=maxcells, marking_fraction=marking_fraction,
         tolnewton=tolnewton, newtondamp=newtondamp)
@@ -271,9 +277,10 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
     pde = PDEClass(geo, Problem, phys=phys, **params)
     for key in solverparams:
         setattr(pde, key, solverparams[key])
+    pde.add_functionals(goals)
         
     t = Timer("solve")
-    pde.solve(refinement=refinement)
+    pde.solve(refinement=refinement, inside_loop=inside_loop)
     print "CPU time (solve): %s [s]" % (t.stop(),)
     
     if visualize:
@@ -301,7 +308,7 @@ class PDEfromProblem(LinearPDE, NonlinearPDE):
         
 def solve_problem(problem, geo, imax = 20, maxcells=1e4,
         marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False,
-        goals={}, **solve_params):
+        goals=(), **solve_params):
     "simple interface for quick tests. like solve_pde, but takes instantiated problem; useful for customized problems"
     solverparams = dict(imax=imax, maxcells=maxcells, marking_fraction=marking_fraction,
         tolnewton=tolnewton, newtondamp=newtondamp)
@@ -430,10 +437,9 @@ class CoupledProblem(object):
         problems = OrderedDict([
             ("pnp", PNPProblem),
             ("stokes", StokesProblem)])
-        ])
         
         def couple_pnp(ustokes):
-            return dict(u = ustokes.sub(0))
+            return dict(ustokes = ustokes.sub(0))
         
         def couple_stokes(upnp, phys):
             v, cp, cm = upnp.split()
@@ -441,7 +447,7 @@ class CoupledProblem(object):
             return dict(f = f)
         
         couplers = dict(
-            pnp = couple_pnp
+            pnp = couple_pnp,
             stokes = couple_stokes
         )
         
@@ -473,6 +479,7 @@ class CoupledProblem(object):
         
         self.solutions = OrderedDict()
         self.problems = OrderedDict()
+        self.geo = geo
         
         params.update(geo=geo, phys=phys)
         self.params = params
@@ -493,7 +500,7 @@ class CoupledProblem(object):
             
         # now we have all solutions in hand and can actually create the problems
         for name, Problem in problems.items():
-            u = solutions[name]
+            u = self.solutions[name]
             
             # obtain parameters coupled to other problems
             problem_specific_params = dict(params, u=u)
@@ -508,3 +515,22 @@ class CoupledProblem(object):
         for name, problem in problems.items():
             problem.update_forms(**new_params)
         
+class CoupledSolver(PDESystem):
+    def __init__(self, coupled, goals=[]):
+                
+        self.solvers = OrderedDict()
+        for name, problem in coupled.problems.items():
+            if problem.is_linear:
+                solver = IllposedLinearSolver(problem)
+            else:
+                solver = IllposedNonlinearSolver(problem)
+            self.solvers[name] = solver
+            
+        self.geo = coupled.geo
+        self.functions = coupled.solutions
+        self.problems = coupled.problems
+        self.functionals = {}
+        self.add_functionals(goals)
+        
+
+

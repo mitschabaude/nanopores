@@ -34,7 +34,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         n = FacetNormal(geo.mesh)
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
 
@@ -55,22 +55,25 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         aJm = inner(Jm, grad(dm))*r2pi*dx_ions
         aJp = inner(Jp, grad(dp))*r2pi*dx_ions
         
+        # TODO: investigate "no bcs" further. in the test problem, they don't work as expected
         aNoBCp = -jump(lscale*Jp*dp*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jp, n*dp)*r2pi*geo.ds("nocbc")
         aNoBCm = -jump(lscale*Jm*dm*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jm, n*dm)*r2pi*geo.ds("nocbc")
         
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        LJm = lscale*geo.NeumannRHS(dm*r2pi, "cmflux")
+        LJp = lscale*geo.NeumannRHS(dp*r2pi, "cpflux")
         
-        L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf
+        L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf - LJm - LJp
         a = derivative(L, (v, cp, cm))
 
         return a, L
     
     @staticmethod
     def bcs(V, geo, phys):
-        bcs = geo.pwconstBC(V.sub(0), "v0")
-        bcs = bcs + geo.pwconstBC(V.sub(1), "cp0")
-        bcs = bcs + geo.pwconstBC(V.sub(2), "cm0")
+        bcs = geo.pwBC(V.sub(0), "v0")
+        bcs += geo.pwBC(V.sub(1), "cp0")
+        bcs += geo.pwBC(V.sub(2), "cm0")
         return bcs
         
         
@@ -167,7 +170,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         r = Expression("x[0]")
         pi2 = Constant(2.*pi)
         h = CellSize(mesh)
-        delta = Constant(beta/lscale)*h**2
+        delta = Constant(beta/lscale**2)*h**2
         eta = Constant(phys.eta)
         
         def eps(u): return Constant(2.)*sym(grad(u))
