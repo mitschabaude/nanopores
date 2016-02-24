@@ -60,7 +60,7 @@ Dp = dict(
 Dm = Dp
 
 # TODO: this seems a little much; clean it up
-synonymes = {
+synonymes.update({
     "pore": {"poretop", "porecenter", "porebottom"},
     "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
     "fluid": {"pore", "bulkfluid"},
@@ -80,5 +80,5 @@ synonymes = {
     "sideb": {"uppersideb", "lowersideb"},
     "upperbulkb": {"upperb", "uppersideb"},
     "lowerbulkb": {"lowerb", "lowersideb"},
-}
+})
 

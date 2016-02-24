@@ -7,7 +7,7 @@ from nanopores.physics.simplepnps import *
 # --- define parameters ---
 bV = -0.05 # [V]
 rho = -0.025 # [C/m**2]
-Nmax = 1e1
+Nmax = 1e5
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -34,8 +34,9 @@ domain2D.synonymes = dict(
     chargedmembraneb = "wall",
     noslip = "wall",
     nopressure = "center",
+    #nocbc = {"upperb", "lowerb"},
 )
-geo2D = domain2D.create_geometry(lc=.05)
+geo2D = domain2D.create_geometry(lc=.2)
 #domain2D.plot()
 
 # --- create geometry for 1D crossection ---
@@ -76,7 +77,7 @@ eps = phys.permittivity["water"]
 eta = phys.eta
 
 print "Diffusion constant in pore:", D*1e9, "[nm**2/ns]"
-print "Constant electric field:", E0, "[N]"
+print "Constant electric field:", E0, "[V/m]"
 def cpPB(x):
     return c0*exp(-phi(x)/UT)
 def cmPB(x):
@@ -135,13 +136,14 @@ bcs = bcs + geo2D.pwconstBC(V.sub(2), "cm0")
 
 # --- solve customized 2D PNP problem with non-zero flux BCs for nernst-planck ---
 problem = SimplePNPProblem(geo2D, phys, cyl=True, newtondamp=0.5, bcs=bcs)
-
+"""
 # neumann bc
 w, dp, dm = split(problem.a.arguments()[0])
 lscale = Constant(phys.lscale)
 Lp = lscale*jp*dp*r2pi*geo2D.ds("upperb") - lscale*jp*dp*r2pi*geo2D.ds("lowerb")
 Lm = lscale*jm*dm*r2pi*geo2D.ds("upperb") - lscale*jm*dm*r2pi*geo2D.ds("lowerb")
 problem.addRHS(- Lp - Lm)
+"""
 
 # the goal functional: current through crosssection
 v, cp, cm = problem.solution().split()
@@ -159,7 +161,7 @@ pnps = solve_problem(problem, geo2D, goals={"J": J, "Jvol": Jvol}, inside_loop=s
     refinement=True, marking_fraction=1., maxcells=Nmax, iterative=False)
     
 # --- solve 2D Stokes Problem --
-plot(-cFarad*(cp-cm)*grad(v)/(lscale**2*eta))
+plot(-cFarad*(cp-cm)*grad(v)/(lscale**2*eta), title="electroosmotoic forcing [m/s]")
 stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=2, beta=0.)
 
 # --- visualization ---
@@ -168,18 +170,21 @@ stokes.visualize()
 (v, cp, cm) = pnps.solutions()
 (u, p) = stokes.solutions()
 
-fig = plot1D({"PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
-plot1D({"PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), fig=fig)
+#fig = plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
+#plot1D({"phi PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), fig=fig)
 
 fig = plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
 plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz), dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), fig=fig)
 
-fig = plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-fig = plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
-fig = plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-fig = plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
-fig = plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-fig = plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm, "c+ PB":lambda x: cpPB(0.), "c- PB":lambda x: cmPB(0.)}, 
+    (-Rz, Rz, 101), "y", origin=(.0*R, 0.), dim=2, axlabels=("z [nm]", "concentration [mol/m**3]"))
+
+#fig = plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#fig = plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+#fig = plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#fig = plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
+#fig = plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#fig = plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), fig=fig)
 
 #pnps.estimators["(Jsing_h - J)/J"].plot(rate=-1.)
 #pnps.estimators["(J_h - J)/J"].plot(rate=-1.)

@@ -31,3 +31,6 @@ U0 = lambda dim: dolfin.Constant(tuple(0. for i in range(dim)))
 noslip = dict(noslip = "U0")
 pressure = dict(nopressure = 0.)
 
+synonymes = dict(
+    nocbc = set(),
+)

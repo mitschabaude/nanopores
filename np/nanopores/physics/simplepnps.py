@@ -33,6 +33,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
+        n = FacetNormal(geo.mesh)
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
@@ -47,14 +48,20 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         (v, cp, cm) = u.split()
         (w, dp, dm) = TestFunctions(V)
         
+        Jm = -Dm*(grad(cm) - q/kT*cm*grad(v)) + cm*ustokes
+        Jp = -Dp*(grad(cp) + q/kT*cp*grad(v)) + cp*ustokes
+        
         apoisson = inner(eps*grad(v), grad(w))*r2pi*dx - F*(cp - cm)*w*r2pi*dx_ions
-        aJm = -inner(Dm*(grad(cm) - q/kT*cm*grad(v)) - cm*ustokes, grad(dm))*r2pi*dx_ions
-        aJp = -inner(Dp*(grad(cp) + q/kT*cp*grad(v)) - cp*ustokes, grad(dp))*r2pi*dx_ions
+        aJm = inner(Jm, grad(dm))*r2pi*dx_ions
+        aJp = inner(Jp, grad(dp))*r2pi*dx_ions
+        
+        aNoBCp = -jump(lscale*Jp*dp*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jp, n*dp)*r2pi*geo.ds("nocbc")
+        aNoBCm = -jump(lscale*Jm*dm*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jm, n*dm)*r2pi*geo.ds("nocbc")
         
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
         
-        L = apoisson + aJm + aJp - Lqvol - Lqsurf
+        L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf
         a = derivative(L, (v, cp, cm))
 
         return a, L
@@ -137,7 +144,6 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
     @staticmethod
     def space(mesh, ku=1, kp=1):
-        print "DEBUG",ku
         U = VectorFunctionSpace(mesh, 'CG', ku)
         P = FunctionSpace(mesh, 'CG', kp)
         return U*P
@@ -182,6 +188,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
                 inner(v, grad(p))*r + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
             L = inner(f, v - delta*grad(q))*r*pi2*dx
+        
             #FIXME
             #p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         # TODO: include preconditioning form in some way
