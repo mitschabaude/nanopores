@@ -142,7 +142,7 @@ r=np.zeros(l)
 for index in range(l):
     r[index]=radius(x[index],y[index])
 plt.plot(r,z,color='red')
-plt.scatter(r,z,color='red')
+#plt.scatter(r,z,color='red')
 
 
 leftend=max(np.max(r),10.)
@@ -157,7 +157,7 @@ for index in range(size):
 X[size]=X[0]
 Y[size]=Y[0]
 plt.plot(X,Y,linewidth='2',color='blue')
-plt.scatter(X,Y,50,color='blue')
+#plt.scatter(X,Y,50,color='blue')
 plt.plot(x_mem,y_mem,color='black',linewidth=1)
 plt.show()
 #plt.plot(x,z,color='red')
