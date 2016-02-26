@@ -6,15 +6,12 @@ from nanopores import *
 from nanopores.physics.simplepnps import *
 
 # --- define parameters ---
-add_params(
-bV = -0.1, # [V]
-rho = -0.05, # [C/m**2]
-initialh = .1,
-Nmax = 1e5,
-damp = 1.,
-bulkcon = 300,
-)
-print PARAMS
+bV = -0.1 # [V]
+rho = -0.05 # [C/m**2]
+initialh = .05
+Nmax = 1e5
+damp = 1.
+bulkcon = 300
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -214,7 +211,7 @@ pnps.single_solve(inside_loop=saveJ)
 # --- visualization ---
 (v, cp, cm, u, p) = pnps.solutions()
 #plot(-cFarad*(cp-cm)*grad(v)[1]/(lscale**2*eta), title="electroosmotic forcing [m/s]")
-pnps.visualize()
+#pnps.visualize()
 
 #plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
 #plot1D({"phi PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), newfig=False)
@@ -227,8 +224,8 @@ plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz
 
 plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 #plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 #plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
@@ -236,6 +233,5 @@ pnps.estimators["(J_h - J)/J"].newtonplot()
 pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
-saveplots("anaPNPS_2D", meta=PARAMS)
-showplots()
+#showplots()
 

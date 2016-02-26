@@ -165,6 +165,7 @@ def post_iteration(result, stamp, showplot=False):
     else: close()
 
 # general simulation (for modules with calculate() function)
+# optionally, module can also provide post_calculate() function that receives the result
 def simulate(name, nproc=1, outputs=None, plot=None,
              write_files=True, **params):
     script = __import__("nanopores.scripts."+name, fromlist=["calculate"])

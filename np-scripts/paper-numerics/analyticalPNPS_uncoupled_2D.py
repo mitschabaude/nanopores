@@ -151,7 +151,8 @@ def saveJ(self):
 pnps = solve_pde(SimplePNPProblem, geo2D, phys, cyl=True, newtondamp=1., goals=[J], inside_loop=saveJ, 
     refinement=True, marking_fraction=.5, maxcells=Nmax, iterative=False)
 v, cp, cm = pnps.solutions()
-stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=1, beta=10.)
+stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=2, beta=0.)
+
 
 # --- visualization ---
 #plot(-cFarad*(cp-cm)*grad(v)[1]/(lscale**2*eta), title="electroosmotic forcing [m/s]")

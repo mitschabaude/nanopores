@@ -11,6 +11,8 @@ parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 __all__ = ["PDESystem", "LinearPDE", "NonlinearPDE", "GoalAdaptivePDE",
            "GeneralLinearProblem", "GeneralNonlinearProblem", "CoupledProblem",
            "solve_pde", "solve_problem", "PDEfromProblem", "CoupledSolver"]
+                 
+_pass = lambda *args, **kwargs : None
 
 class PDESystem(object):
     imax = 100
@@ -34,7 +36,7 @@ class PDESystem(object):
             if verbose:
                 print '\n- Loop ' +str(i+1) + ' of max.', self.imax
 
-            self.single_solve()
+            self.single_solve(inside_loop=inside_loop)
             if verbose:
                 self.print_functionals()
             if inside_loop is not None:
@@ -73,7 +75,7 @@ class PDESystem(object):
         ind, err = zz_indicator(u)
         return ind, err
 
-    def single_solve(self):
+    def single_solve(self, **other):
         for S in self.solvers.values(): S.solve()
 
     def refine(self,ind):
@@ -211,6 +213,28 @@ class PDESystem(object):
         meshfile = File("%s/adapted/mesh_%s.xml" %(DIR, N))
         meshfile << self.geo.mesh
         return DIR
+        
+def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass): 
+    S.newtondamp = damp
+    for i in range(imax):
+        S.solve()
+        #plot(self.solution) # for debugging
+        inside_loop()
+        if verbose:
+            print 'Relative L2 Newton error:',S.relerror()
+        if S.convergence(tol):
+            if verbose:
+                print 'linf Norm of Newton update:', \
+                        norm(S.problem.u.vector(),'linf'), \
+                        '<=', tol ,' \n  ==> break loop \n'
+            converged = True
+            break
+    else:
+        if verbose: print "Did not reach tol."
+        converged = False
+    print "---- Newton iterations:",i+1
+    print '---- Relative L2 Newton error:',S.relerror()
+    return i+1, converged
     
     
 class LinearPDE(PDESystem):
@@ -241,29 +265,15 @@ class NonlinearPDE(PDESystem):
         self.problem = problem
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
-
-    def single_solve(self, tol=None, damp=None, verbose=True):
-        if not tol:
-            tol = self.tolnewton
-        if not damp:
-            damp = self.newtondamp
-        S = self.solvers.values()[0] 
-        S.newtondamp = damp
-        for i in range(self.imax):
-            S.solve()
-            #plot(self.solution) # for debugging
-            if verbose:
-                print 'Relative L2 Newton error:',S.relerror()
-            if S.convergence(tol):
-                if verbose:
-                    print 'linf Norm of Newton update:', \
-                            norm(S.problem.u.vector(),'linf'), \
-                            '<=', tol ,' \n  ==> break loop \n'
-                break
-        print "Newton iterations:",i+1
-        print 'Relative L2 Newton error:',S.relerror()
-        return i+1
         
+    def single_solve(self, tol=None, damp=None, imax=None, verbose=True, **other):
+        if not tol: tol = self.tolnewton
+        if not damp: damp = self.newtondamp
+        if not imax: imax = self.imax
+        S = self.solvers.values()[0]
+        return newtonsolve(S, tol, damp, imax, verbose)
+        
+      
 def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcells=1e4,
         marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False,
         goals=(), inside_loop=None, **params):
@@ -487,7 +497,7 @@ class CoupledProblem(object):
         
         for name, Problem in problems.items():
             # get space
-            V = Problem.space(mesh)
+            V = _call(Problem.space, dict(params, mesh=mesh))
             
             # create solution function
             if hasattr(Problem, "initial_u"):
@@ -516,14 +526,19 @@ class CoupledProblem(object):
             problem.update_forms(**new_params)
         
 class CoupledSolver(PDESystem):
-    def __init__(self, coupled, goals=[]):
+    params = dict(inewton = 10, ipicard = 10,
+        tolnewton = 1e-4, damp = 1., nverbose=False)
+
+    def __init__(self, coupled, goals=[], **solverparams):
                 
         self.solvers = OrderedDict()
         for name, problem in coupled.problems.items():
             if problem.is_linear:
                 solver = IllposedLinearSolver(problem)
+                solver.is_linear = True
             else:
                 solver = IllposedNonlinearSolver(problem)
+                solver.is_linear = False
             self.solvers[name] = solver
             
         self.geo = coupled.geo
@@ -531,6 +546,34 @@ class CoupledSolver(PDESystem):
         self.problems = coupled.problems
         self.functionals = {}
         self.add_functionals(goals)
-        
+        self.params.update(solverparams)
+    
+    # TODO: good stopping criterion
+    # TODO: explore possibility to choose newton tol adaptively
+    def single_solve(self, tol=None, damp=None, verbose=True, inside_loop=_pass):
+        if tol is None: tol = self.params["tolnewton"]
+        if damp is None: damp = self.params["damp"]
+        I = self.params["ipicard"]
+        J = self.params["inewton"]
+        nverbose = self.params["nverbose"]
+    
+        for i in range(1, I+1):
+            if verbose:
+                print "\n-- Fixed-Point Loop %d of max. %d" % (i, I)
+            for name, solver in self.solvers.items():
+                if verbose:
+                    print "--- Solving %s." % name
+                if solver.is_linear:
+                    solver.solve()
+                else:
+                    j, con = newtonsolve(solver, tol, damp, J, nverbose, lambda: inside_loop(self))
+                    if j==1 and con:
+                        print "Break at iteration %d because Newton stopped changing." %i
+                        break
+            else: 
+                inside_loop(self)
+                continue
+            break
+            
 
 

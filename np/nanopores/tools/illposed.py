@@ -124,6 +124,8 @@ class IllposedLinearSolver(object):
             self.S.solve(l, x)
             u.vector().set_local(x.array.astype("float_"))
         else:
+            #print "DEBUG: dim u", u.vector().array().shape
+            #print "DEBUG: dim b", b.array().shape
             self.S.solve(u.vector(),b)
                            
     def adapt(self,mesh):
