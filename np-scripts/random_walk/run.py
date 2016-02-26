@@ -16,11 +16,9 @@ def radius(x,y):
     return sqrt(x**2+y**2)
 def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
-def FF(array):#TODO upper bound for z=50
-    if radius(array[0],array[1])>50.:
-        c=sqrt(50.**2/(array[0]**2+array[1]**2))
-        array[0]*=c
-        array[1]*=c
+def FF(array):
+    if radius(array[0],array[1])>50. or array[2]>50.:
+        return [0.,0.,0.]
     return F(array)
 def normal(ax,ay,bx,by,px,py):
     AP2=(ax-px)**2+(ay-py)**2
@@ -134,7 +132,7 @@ coeff=sqrt(2*D*1e9*tau) # [nm]
 
 counter = np.array([0,0])
 EXIT_X, EXIT_Y, EXIT_Z, TIME = np.array([]), np.array([]), np.array([]), np.array([])
-Range = range(500)
+Range = range(1)
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros(steps)
@@ -184,6 +182,7 @@ for index in Range:
             Y[i+1]=Y[i]+vec[1]
             Z[i+1]=Z[i]+vec[2]
             i+=1
+            rad=radius(X[i],Y[i])
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
@@ -194,6 +193,7 @@ for index in Range:
             Y[i+1]=Y[i]
             Z[i+1]=Z[i]+1.
             i+=1
+            rad=radius(X[i],Y[i])
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
@@ -201,6 +201,10 @@ for index in Range:
             timefac = 20.
             timefacsq = 4.47213
             timeadd = 1.
+        if Z[i]>100. and rad>100.:
+            timefac = 200.
+            timefacsq = 14.142136
+            timeadd = 10.
         X[i+1]=X[i] + coeff*xi_x*timefacsq + timefac*1e9*C*(Fx + fsurfx + fmemx)
         Y[i+1]=Y[i] + coeff*xi_y*timefacsq + timefac*1e9*C*(Fy + fsurfy + fmemy)
         Z[i+1]=Z[i] + coeff*xi_z*timefacsq + timefac*1e9*C*(Fz + fsurfz + fmemz)
@@ -244,12 +248,12 @@ Z=Z[:i]
 
 #print 'redos: ',redos
 #print 'hbonds: ',hbonds
-#np.save('x',X)
-#np.save('y',Y)
-#np.save('z',Z)
+np.save('x',X)
+np.save('y',Y)
+np.save('z',Z)
 np.save('exit_x',EXIT_X)
 np.save('exit_y',EXIT_Y)
 np.save('exit_z',EXIT_Z)
 np.save('time',TIME)
 np.save('counter',counter)
-import plot2
+import plot3
