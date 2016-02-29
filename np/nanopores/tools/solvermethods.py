@@ -19,9 +19,10 @@ bicgstab = dict(
     ks = "bicgstab",
     kp = "hypre_euclid",
     kparams = dict(
-        maximum_iterations = 5000,
+        maximum_iterations = 300,
         monitor_convergence = False,
-        relative_tolerance = 1e-6,
+        absolute_tolerance = 1e-5,
+        relative_tolerance = 1e-4,
         preconditioner = dict(
             ilu = dict(fill_level = 1)))
 )

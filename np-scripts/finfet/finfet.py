@@ -8,7 +8,7 @@ Ndop = 12
 
 # --- create mesh and geometrical/physical context information
 t = dolfin.Timer("mesh")
-geo = finfet.create_geometry(lc=.8)
+geo = finfet.create_geometry(lc=2.)
 print "Mesh generation time:", t.stop()
 print "Number of elements:", geo.mesh.num_cells()
 print "Number of vertices:", geo.mesh.num_vertices()

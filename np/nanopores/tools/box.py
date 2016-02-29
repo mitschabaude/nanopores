@@ -40,6 +40,7 @@ class BoxCollection(object):
         dic = multi_box_union(self.boxes, self.facets)
         self.__dict__.update(dic)
         self.indexset = self._csg().eval()
+        self.indexsets = self._csg().evalsets()
         for sub in self.subdomains:
             sub.indexset = sub._csg().eval() & self.indexset
         for sub in self.boundaries:
@@ -58,7 +59,7 @@ class BoxCollection(object):
         
     def create_geometry(self, lc=.5):
         self.compute_entities()
-        entities_to_gmsh(self.entities, self.indexset, lc=lc)
+        entities_to_gmsh(self.entities, self.indexsets, lc=lc)
         physical_to_gmsh(self.subdomains, self.boundaries)
         self.geo = to_mesh()
         self.geo.params = self.params
@@ -143,6 +144,12 @@ class Box(BoxCollection):
             self.a = a
             self.b = b
             
+        # determine topological dimension
+        self.dimt = 0
+        for i in self.intervals:
+            if not i[0] == i[1]:
+                self.dimt += 1
+        
         BoxCollection.__init__(self, self)
 
     def __str__(self):
@@ -250,6 +257,17 @@ class csgExpression(object):
             return self.A.eval() & self.B.eval()
         elif self.op == "-":
             return self.A.eval() - self.B.eval()
+    
+    # TODO: get rid of eval(). having an indexset for every dimension is better
+    def evalsets(self): # indexset for every dimension
+        if self.singleton:
+            return self.A.indexsets
+        if self.op == "|":
+            return [a | b for a, b in zip(self.A.evalsets(), self.B.evalsets())]
+        elif self.op == "&":
+            return [a & b for a, b in zip(self.A.evalsets(), self.B.evalsets())]
+        elif self.op == "-":
+            return [a - b for a, b in zip(self.A.evalsets(), self.B.evalsets())]
             
     # boolean operations    
     def __or__(self, other):
@@ -341,8 +359,6 @@ def multi_box_union(boxes, facets=[]):
     # get dimension; all boxes must have the same
     dim = boxes[0].dim
     assert all([dim == box.dim for box in boxes])
-    for box in allboxes:
-        box.indexset = set()
     
     # get list of disjoint intervals for every dimension
     nodes, nsets, intvs, isets = _map(multi_interval_union, izip(*allboxes))
@@ -351,6 +367,9 @@ def multi_box_union(boxes, facets=[]):
     D1 = range(dim+1) # [0,..,dim]
     entities = [[] for k in D1] # entity := d-tuple of tuples/floats <=> box
     esets = [[] for k in D1] # eset := {indices of the parent boxes of an entity}
+    for box in allboxes:
+        box.indexsets = [set() for i in D1]
+        #box.indexset = set()
     
     # collect all admissible k-entities for k = 1,...,d
     # 0-entity = vertex, 1-entity = edge, ...
@@ -364,6 +383,9 @@ def multi_box_union(boxes, facets=[]):
                 if eset:
                     entities[k].append(entity)
                     esets[k].append(eset)
+                    for ii in eset:
+                        allboxes[ii].indexsets[k].add(j)
+                    """
                     if k == (dim-1):
                         for ii in eset:
                             if allboxes[ii] in facets: # TODO: bad hack
@@ -372,10 +394,15 @@ def multi_box_union(boxes, facets=[]):
                         for ii in eset:
                             if allboxes[ii] in boxes:
                                 allboxes[ii].indexset.add(j)
+                    """
                     j += 1
                                
         #print "k=%s:"%k, entities[k]
         #print
+    # choose correct indexset for every box
+    for box in allboxes:
+        box.indexset = box.indexsets[box.dimt]
+    
     return dict(nodes=nodes, entities=entities, esets=esets)
     
 def _facets(box): # get facets from d-dimensional box, d >= 1
@@ -402,12 +429,18 @@ Entity = {
     3: py4gmsh.Volume
     }
 
-def entities_to_gmsh(entities, indexset, lc=.5):
+def entities_to_gmsh(entities, indexsets, lc=.5):
 
     global gmsh_entities
     global dim
+    global dimt
     
     dim = len(entities)-1
+    dimt = -1
+    for en in entities:
+        if en:
+            dimt += 1
+    
     gmsh_entities = [[None for e in k] for k in entities]
     
     # a shortcut
@@ -424,9 +457,9 @@ def entities_to_gmsh(entities, indexset, lc=.5):
     for k in range(1, dim+1):
         for i, e in enumerate(entities[k]):
             # TODO preliminary hack
-            if k == dim:
-                if i not in indexset:
-                    continue
+            #if k == dim:
+            if i not in indexsets[k]:
+                continue
                     
             # get surrounding facets (x,y,z in this order)
             facets = _facets(e)
@@ -441,14 +474,16 @@ def entities_to_gmsh(entities, indexset, lc=.5):
             # add entity
             gmsh_entities[k][i] = Entity[k](loop)
             
+    return gmsh_entities
+            
 def physical_to_gmsh(subdomains, boundaries):
     # call only after entities_to_gmsh
     for sub in subdomains:
-        vols = [gmsh_entities[dim][i] for i in sub.indexset]
-        py4gmsh.PhysicalVolume(vols, sub.name, dim)
+        vols = [gmsh_entities[dimt][i] for i in sub.indexset]
+        py4gmsh.PhysicalVolume(vols, sub.name, dimt)
     for sub in boundaries:
-        surfs = [gmsh_entities[dim-1][i] for i in sub.indexset]
-        py4gmsh.PhysicalSurface(surfs, sub.name, dim)
+        surfs = [gmsh_entities[dimt-1][i] for i in sub.indexset]
+        py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
     
 def to_mesh(clscale=1., pid=""):
     py4gmsh.raw_code(['General.ExpertMode = 1;'])
@@ -497,6 +532,6 @@ def to_mesh(clscale=1., pid=""):
         # TODO: no interface for synonymes yet. maybe isn't needed if geo.import_synonymes() is works well.
         return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
         
-    return nanopores.Geometry(None, mesh)
+    return nanopores.Geometry(None, mesh)   
     
  

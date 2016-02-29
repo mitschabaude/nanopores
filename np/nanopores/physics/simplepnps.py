@@ -191,6 +191,10 @@ class SimpleStokesProblem(GeneralLinearProblem):
                 inner(v, grad(p))*r + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
             L = inner(f, v - delta*grad(q))*r*pi2*dx
+        if not conservative and not cyl:
+            a = (eta*inner(grad(u), grad(v)) - inner(v, grad(p)) + q*div(u))*dx \
+                - delta*inner(grad(p), grad(q))*dx
+            L = inner(f, v - delta*grad(q))*dx
         
             #FIXME
             #p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx

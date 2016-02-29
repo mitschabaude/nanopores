@@ -266,17 +266,17 @@ class NonlinearPDE(PDESystem):
         self.solvers = {ProblemClass.__name__: solver}
         self.functionals = {}
         
-    def single_solve(self, tol=None, damp=None, imax=None, verbose=True, **other):
+    def single_solve(self, tol=None, damp=None, imax=None, verbose=True, inside_loop=_pass):
         if not tol: tol = self.tolnewton
         if not damp: damp = self.newtondamp
         if not imax: imax = self.imax
         S = self.solvers.values()[0]
-        return newtonsolve(S, tol, damp, imax, verbose)
+        return newtonsolve(S, tol, damp, imax, verbose, lambda: inside_loop(self))
         
       
 def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcells=1e4,
         marking_fraction=0.8, tolnewton=1e-2, newtondamp=1., iterative=None, visualize=False,
-        goals=(), inside_loop=None, **params):
+        inside_loop=_pass, goals=(), **params):
     """ very simple interface for quick tests """
     solverparams = dict(imax=imax, maxcells=maxcells, marking_fraction=marking_fraction,
         tolnewton=tolnewton, newtondamp=newtondamp)
@@ -290,7 +290,8 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
     pde.add_functionals(goals)
         
     t = Timer("solve")
-    pde.solve(refinement=refinement, inside_loop=inside_loop)
+    #pde.solve(refinement=refinement, inside_loop=inside_loop)
+    pde.single_solve(inside_loop=inside_loop)
     print "CPU time (solve): %s [s]" % (t.stop(),)
     
     if visualize:
