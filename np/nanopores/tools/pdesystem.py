@@ -25,7 +25,7 @@ class PDESystem(object):
         self.solvers = solvers
         self.functionals = functionals
 
-    def solve(self, refinement=False, verbose=True, inside_loop=None):
+    def solve(self, refinement=False, verbose=True, inside_loop=_pass):
 
         if verbose:
             print "Number of cells:",self.geo.mesh.num_cells()
@@ -226,14 +226,14 @@ def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass):
             if verbose:
                 print 'linf Norm of Newton update:', \
                         norm(S.problem.u.vector(),'linf'), \
-                        '<=', tol ,' \n  ==> break loop \n'
+                        '<=', tol ,' \n  ==> break loop'
             converged = True
             break
     else:
         if verbose: print "Did not reach tol."
         converged = False
-    print "---- Newton iterations:",i+1
-    print '---- Relative L2 Newton error:',S.relerror()
+    print "     Newton iterations:",i+1
+    print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
     
@@ -434,9 +434,9 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         
         a, L = _call(self.forms, params)
         AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
+
         
-        
-        
+# TODO: move this to its own module
 class CoupledProblem(object):
     """ Automated creation of coupled problems out of single ones.
     Designed for problems that subclass General(Non)LinearProblem;
@@ -557,24 +557,33 @@ class CoupledSolver(PDESystem):
         I = self.params["ipicard"]
         J = self.params["inewton"]
         nverbose = self.params["nverbose"]
+        times = {name : 0. for name in self.solvers}
     
         for i in range(1, I+1):
             if verbose:
                 print "\n-- Fixed-Point Loop %d of max. %d" % (i, I)
             for name, solver in self.solvers.items():
                 if verbose:
-                    print "--- Solving %s." % name
+                    print "    Solving %s." % name
+                t = Timer(name)
                 if solver.is_linear:
                     solver.solve()
+                    times[name] += t.stop()
                 else:
                     j, con = newtonsolve(solver, tol, damp, J, nverbose, lambda: inside_loop(self))
+                    times[name] += t.stop()
                     if j==1 and con:
-                        print "Break at iteration %d because Newton stopped changing." %i
+                        print " Break at iteration %d because Newton stopped changing." %i
                         break
             else: 
                 inside_loop(self)
                 continue
             break
+        Tt = sum(times.values())
+        if verbose:
+            print "\n CPU Time (solve): %.2f s" % Tt
+            for name in self.solvers:
+                print "  -) %s: %.2f s" %(name, times[name])
             
 
 

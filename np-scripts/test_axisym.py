@@ -12,7 +12,7 @@ r0 = 1.
 r1 = 2.5
 lc = 1.
 
-domain = Box([0, -Rz], [Rx, Rz])
+domain = Box([0, -Rz], [Rx, Rz]) #| Box([0+1., -Rz+1.], [Rx+1., Rz+1.])
 dna = Box([r0, -l0/2], [r1, l0/2])
 membrane = Box([r1, -l1/2], [Rx, l1/2])
 
@@ -28,6 +28,7 @@ domain.addsubdomains(
     porecenter = porecenter,
     porebottom = porebottom,
     fluid = domain - (dna | membrane | pore),
+    #fluid = domain - dna
 )
 
 domain.addboundaries(
@@ -37,8 +38,23 @@ domain.addboundaries(
     dnab = dna.boundary() - membrane.boundary("left"),
     membraneb = membrane.boundary("top", "bottom"),
 )
-
-domain = rotate_z(domain)
+domain2D = domain
+domain2D.plot()
+domain = rotate_z(domain, nrot=3)
+"""
+print "DOMAIN 2D BEFORE"
+for item in domain.__dict__.items():
+    print "%s : %s" % item
+print
+print "DOMAIN 3D"
+for item in domain.__dict__.items():
+    print "%s : %s" % item
+print
+print "DOMAIN 2D AFTER"
+for item in domain2D.__dict__.items():
+    print "%s : %s" % item
+print
+"""
 geo = domain.create_geometry(lc=lc)
 #plot(geo.mesh)
 print "\nBoundaries:\n",geo._physical_boundary
@@ -46,12 +62,11 @@ print "\nSubdomains:\n",geo._physical_domain
 domain.plot()
 
 for k in 0, 1, 2, 3:
-    print "Entities[%d]" %k
+    print "\nEntities[%d]" %k
     for i, (en, st) in enumerate(zip(domain.entities[k], domain.esets[k])):
         print i,":",en,":",st
-    print
 
-print "domain:", domain.indexset
+print "\ndomain:", domain.indexset
 if hasattr(domain, "indexsets"):
         print domain.indexsets  
 for sub in domain.subdomains + domain.boundaries:

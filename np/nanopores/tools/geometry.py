@@ -415,7 +415,7 @@ class PhysicalBC(object):
             self.bcs = [AdaptableBC(self.V, self.g, boundaries, i) for i in numbers]
         #else:
         except RuntimeError:
-            warning("PhysicalBC: boundary '%s' not found; no bcs will be assigned." % (self.description,))
+            warning("PhysicalBC for '%s' could not be assigned; maybe the boundary was not found." % (self.description,))
             self.bcs = []
         self.boundaries = boundaries
         self.real = True

@@ -1,9 +1,9 @@
 """
-python tools for creating axisymmetric geometries automatically from their half-plane.
+python tools for creating axisymmetric geometries automatically from their half-plane sections.
 """
 from .. import py4gmsh
 from . import box
-from .box import BoxCollection, entities_to_gmsh, to_mesh
+from .box import BoxCollection, Box, entities_to_gmsh, to_mesh
 import dolfin
 
 __all__ = ["rotate_z"]
@@ -29,8 +29,8 @@ class CylinderCollection(BoxCollection):
     def create_geometry(self, lc=.5):
         self.compute_entities()
         gmsh_entities = entities_to_gmsh(self.entities, self.indexsets, lc=lc)
-        rotate_surfs(gmsh_entities, self.boundaries, 1)
-        rotate_surfs(gmsh_entities, self.subdomains, 2)
+        rotate_surfs(gmsh_entities, self.boundaries, 1, self.nrot)
+        rotate_surfs(gmsh_entities, self.subdomains, 2, self.nrot)
         self.geo = to_mesh()
         self.geo.params = self.params
         if hasattr(self, "synonymes"):
@@ -43,12 +43,12 @@ PhysSurf = {
     2 : lambda vol, name: py4gmsh.PhysicalVolume(vol, name, 3)
 } 
         
-def rotate_surfs(gmsh_entities, subdomains=[], k=2):
+def rotate_surfs(gmsh_entities, subdomains=[], k=2, nrot=4):
     # this rotates surfaces or lines with Extrude around z axis
     rot_axis = [0.0, 0.0, 1.0]
     point_on_axis = [0.0, 0.0, 0.0]
     angle = 'Pi/2'
-    n_rotations = 4
+    n_rotations = nrot
     surfs = gmsh_entities[k]
     vols = [[] for s in surfs]
     
@@ -64,26 +64,32 @@ def rotate_surfs(gmsh_entities, subdomains=[], k=2):
         PhysSurf[k](physvol, sub.name)
     return vols
 
-def rotate_z(domain):
+def rotate_z(domain, nrot=4):
     """take BoxCollection and return equivalent CylinderCollection by
     rotating about the second axis. thus, transform coordinates of
     points like (x, z) --> (x, 0, z)."""
-    return rotate(domain, d=1)
+    return rotate(domain, d=1, nrot=nrot)
 
-def rotate(domain, d=2):
-    # TODO: this shouldn't mess with original domain
+def rotate(domain, d=2, nrot=4):
+    # create deep copy of original domain
+    domain_copy = copy_boxcollection(domain)
     # create empty CylinderCollection
     cyl = CylinderCollection()
     
-    # copy everything from domain #FIXME
-    cyl.__dict__ = dict(domain.__dict__)
+    # shallow-copy everything from copied domain
+    cyl.__dict__ = dict(domain_copy.__dict__)
 
     # add csg to make it compatible with Box
-    cyl.csg = domain._csg()
+    # (because cyl is not an instance of Box even if it comes from one)
+    cyl.csg = domain_copy._csg()
     
-    # add dummy y dimension to make it 3D
+    # add dummy dimension to make it 3D
     for box in cyl.boxes + cyl.facets:
         add_dim(box, d)
+        
+    # specify number of rotations by 90 degrees
+    # (usually 4, but e.g. 3 make a nice picture)
+    cyl.nrot = nrot
     return cyl
         
 def add_dim(box, d):
@@ -92,4 +98,25 @@ def add_dim(box, d):
     box.a = tuple(x for x,y in box.intervals)
     box.b = tuple(y for x,y in box.intervals)
     box.dim = box.dim + 1
+    
+def copy_box(box):
+    return Box(intervals=box.intervals)
+    
+def copy_boxcollection(col):
+    # reconstruct collection
+    newcol = eval(repr(col))
+    # reconstruct subdomains
+    for sub in col.subdomains:
+        newsub = eval(repr(sub))
+        newcol.addsubdomain(newsub, sub.name)
+    for sub in col.boundaries:
+        newsub = eval(repr(sub))
+        newcol.addboundary(newsub, sub.name)
+    # copy other stuff
+    newcol.params = dict(col.params)
+    newcol.indexset = set(col.indexset)
+    if hasattr(col, "synonymes"):
+        newcol.synonymes = dict(col.synonymes)
+    return newcol
+    
 

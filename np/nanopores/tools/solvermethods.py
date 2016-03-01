@@ -19,10 +19,12 @@ bicgstab = dict(
     ks = "bicgstab",
     kp = "hypre_euclid",
     kparams = dict(
-        maximum_iterations = 300,
+        maximum_iterations = 600,
         monitor_convergence = False,
+        nonzero_initial_guess = True,
+        error_on_nonconvergence = False,
         absolute_tolerance = 1e-5,
-        relative_tolerance = 1e-4,
+        relative_tolerance = 1e-6,
         preconditioner = dict(
             ilu = dict(fill_level = 1)))
 )
@@ -58,7 +60,7 @@ stokes = dict(
     fieldsplit = False, #True,
     kparams = dict(
         maximum_iterations = 5000,
-        monitor_convergence = True,
+        monitor_convergence = False,
         # large rel.tol. together with nonzero initial guess = bad idea!!!
         relative_tolerance = 1e-8,
         # absolute tolerance must not be too large compared with newton tol

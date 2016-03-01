@@ -6,16 +6,17 @@ from nanopores import *
 from nanopores.physics.simplepnps import *
 
 # --- define parameters ---
-bV = -0.1 # [V]
-rho = -0.05 # [C/m**2]
-initialh = .05
-Nmax = 1e5
-damp = 1.
-bulkcon = 300
-
+add_params(
+bV = -0.1, # [V]
+rho = -0.05, # [C/m**2]
+h2D = .05,
+Nmax = 1e5,
+damp = 1.,
+bulkcon = 300.,
+)
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
-R = 2. # [nm] pore radius
+R = 1. # [nm] pore radius
 hcross = .2
 
 domain2D = Box([0., -Rz], [R, Rz])
@@ -41,7 +42,7 @@ domain2D.synonymes = dict(
     bulk = {"upperb", "lowerb"},
     #nocbc = {"lowerb"},
 )
-geo2D = domain2D.create_geometry(lc=initialh)
+geo2D = domain2D.create_geometry(lc=h2D)
 print "Number of cells:", geo2D.mesh.num_cells()
 #mesh = geo2D.mesh
 #boundary = MeshFunction("size_t", mesh, 1)
@@ -226,12 +227,13 @@ plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m
 plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 #plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 #plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-#plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-#plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
 pnps.estimators["(J_h - J)/J"].newtonplot()
 pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
-#showplots()
+saveplots("anaPNPS_2D", meta=PARAMS)
+showplots()
 

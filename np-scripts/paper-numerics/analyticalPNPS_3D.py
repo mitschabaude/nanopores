@@ -14,8 +14,8 @@ h3D = .5,
 Nmax = 1e5,
 damp = 1.,
 bulkcon = 300.,
+iterative = True,
 )
-print PARAMS
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -58,7 +58,7 @@ domain2D.synonymes = dict(
 domain3D = rotate_z(domain2D)
 geo3D = domain3D.create_geometry(lc=h3D)
 print "Number of cells (3D):", geo3D.mesh.num_cells()
-#domain3D.plot()
+domain3D.plot()
 
 # --- create geometry for 1D crossection ---
 # TODO: it would be cool if the 1D domain could be extracted from the 2D one
@@ -119,6 +119,12 @@ class JpPB(Expression):
 class JmPB(Expression):
     def eval(self, value, x):
         value[0] = (-D/UT*E0 + uPB(r(x)))*cmPB(r(x))
+class cpPBEx(Expression):
+    def eval(self, value, x):
+        value[0] = cpPB(r(x))
+class cmPBEx(Expression):
+    def eval(self, value, x):
+        value[0] = cmPB(r(x))
 class pPBEx(Expression):
     def eval(self, value, x):
         value[0] = pPB(r(x))
@@ -141,14 +147,18 @@ print "   J_u : %s [A]" % J_PB_u
 # constant Dirichlet BCs for v, cp, cm on wall,
 # non-zero flux BCs on top/bottom
 # non-standard pressure BC
-n3D = FacetNormal(geo3D.mesh)
+#n3D = FacetNormal(geo3D.mesh)
 lscale = Constant(phys.lscale)
 phys_params.update(
-    cp0 = dict(wall = c0*exp(-phi(R)/UT)),
-    cm0 = dict(wall = c0*exp(+phi(R)/UT)),
+    cp0 = dict(
+        wall = c0*exp(-phi(R)/UT),
+        bulk = cpPBEx()),
+    cm0 = dict(
+        wall = c0*exp(+phi(R)/UT),
+        bulk = cmPBEx()),
     v0 = dict(wall = vPB()),
-    cpflux = dict(bulk = JpPB()*n3D[2]),
-    cmflux = dict(bulk = JmPB()*n3D[2]),
+    #cpflux = dict(bulk = JpPB()*n3D[2]),
+    #cmflux = dict(bulk = JmPB()*n3D[2]),
     pressure = dict(bulk = pPBEx()),
     surfcharge = dict(
         wall = rho,
@@ -223,6 +233,8 @@ couplers = dict(
 )
 
 problem = CoupledProblem(problems, couplers, geo3D, phys, cyl=False, conservative=False, ku=1, beta=1.)
+problem.problems["pnp"].method["iterative"] = iterative
+problem.problems["stokes"].method["iterative"] = iterative
 pnps = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
 pnps.single_solve(inside_loop=saveJ)
 

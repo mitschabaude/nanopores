@@ -93,7 +93,8 @@ class Physics(object):
             return result
             
         elif name in self.maps:
-            m = self.maps.pop(name)
+            m0 = self.maps.pop(name)
+            self.base[name] = m = dict(m0)
             for k in m:
                 if isinstance(m[k], str):
                     m[k] = getattr(self, m[k])

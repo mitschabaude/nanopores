@@ -6,6 +6,8 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 
 # TODO: customizable length scales
 # TODO: reduce number of boxes in disjoint union when there is no intersection
+# TODO: it would be nice to have some sort of "interactive mode" where you add
+#       domains and boundaries in order and they are plotted immediately -- for showing off.
 
 from itertools import izip, product, combinations
 from .. import py4gmsh
@@ -81,6 +83,7 @@ class BoxCollection(object):
         sub.name = name
         self.subdomains.append(sub)
         self.boxes = list(set(self.boxes + sub._boxes()))
+        #self.boxes = _unique(self.boxes + sub._boxes())
         
     def addsubdomains(self, **subdomains):
         for name, sub in subdomains.items():
@@ -91,6 +94,7 @@ class BoxCollection(object):
         sub.name = name
         self.boundaries.append(sub)
         self.facets = list(set(self.facets + sub._boxes()))
+        #self.facets = _unique(self.facets + sub._boxes())
         
     def addboundaries(self, **boundaries):
         for name, sub in boundaries.items():
@@ -117,6 +121,9 @@ class BoxCollection(object):
         coll = BoxCollection(*boxes)
         coll.csg = self._csg() - other._csg()
         return coll
+        
+    def __repr__(self):
+        return str(self._csg())
         
 def Interval(a, b):
     # simple wrapper for Box
@@ -235,18 +242,23 @@ class csgExpression(object):
     
     def sginit(self, A):
         self.A = A
-        self.string = repr(A)
+        #self.string = repr(A)
         self.singleton = True
     
     def opinit(self, op, A, B):
         self.op = op
         self.A = A
         self.B = B
-        self.string = "(%s %s %s)" %(repr(A), op, repr(B))
+        #self.string = "(%s %s %s)" %(repr(A), op, repr(B))
+        #self.string = "(%s %s %s)" %("%s", op, "%s")
         self.singleton = False
         
     def __repr__(self):
-        return self.string
+        if self.singleton:
+            return repr(self.A)
+        else:
+            return "(%s %s %s)" %(repr(self.A), self.op, repr(self.B))
+        #return self.string
         
     def eval(self): # is designed to return a set
         if self.singleton:

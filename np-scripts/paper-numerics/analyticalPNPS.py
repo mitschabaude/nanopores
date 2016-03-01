@@ -9,18 +9,18 @@ from nanopores.physics.simplepnps import *
 add_params(
 bV = -0.1, # [V]
 rho = -0.05, # [C/m**2]
-h2D = .1,
-h3D = .5,
+h2D = .2,
+h3D = .2,
 Nmax = 1e5,
 damp = 1.,
-bulkcon = 300,
+bulkcon = 300.,
+iterative = True,
 )
-print PARAMS
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
-R = 2. # [nm] pore radius
-hcross = .2
+R = 1. # [nm] pore radius
+hcross = .2 # [nm] height of crossection
 
 domain2D = Box([0., -Rz], [R, Rz])
 cross = Box([0., 0.], [R, hcross])
@@ -39,7 +39,7 @@ domain2D.params["lscale"] = 1e9
 domain2D.synonymes = dict(
     fluid = {"main", "cross"},
     pore = "fluid",
-    chargedmembraneb = "wall",
+    #chargedmembraneb = "wall",
     noslip = "wall",
     nopressure = "center",
     bulk = {"upperb", "lowerb"},
@@ -48,11 +48,6 @@ domain2D.synonymes = dict(
 
 geo2D = domain2D.create_geometry(lc=h2D)
 print "Number of cells (2D):", geo2D.mesh.num_cells()
-#mesh = geo2D.mesh
-#boundary = MeshFunction("size_t", mesh, 1)
-#boundary.set_all(0)
-#DomainBoundary().mark(boundary, 2)
-#plot(boundary)
 #domain2D.plot()
 
 # --- create 3D geometry by rotating ---
@@ -88,7 +83,7 @@ phys = Physics("pore", geo1D, **phys_params)
 # --- solve 1D problem for "exact" solution ---
 pb = solve_pde(SimplePBProblem, geo1D, phys, cyl=True, iterative=False, tolnewton=1e-10)
 
-# define expressions for interpolation into 2D
+# define expressions for interpolation into 2D/3D
 phi = pb.solution
 UT = phys.UT
 c0 = phys.bulkcon
@@ -99,7 +94,8 @@ eps = phys.permittivity["water"]
 eta = phys.eta
 
 print "Diffusion constant in pore:", D*1e9, "[nm**2/ns]"
-print "Constant electric field:", E0, "[V/m]"
+print "Constant electric field:", E0*1e-9, "[V/nm]"
+
 def cpPB(x):
     return c0*exp(-phi(x)/UT)
 def cmPB(x):
@@ -109,18 +105,40 @@ def pPB(x):
 def uPB(x):
     return eps*E0/eta*(phi(x) - phi(R))
     
+def r(x): # radius for 2D AND 3D:
+    return sqrt(sum(t**2 for t in x[:-1]))
+    
 class vPB(Expression):
     def eval(self, value, x):
-        value[0] = bV*x[1]/(2.*Rz) + phi(x[0])
+        value[0] = bV*x[-1]/(2.*Rz) + phi(r(x))
 class JpPB(Expression):
     def eval(self, value, x):
-        value[0] = (+D/UT*E0 + uPB(x[0]))*cpPB(x[0])
+        value[0] = (+D/UT*E0 + uPB(r(x)))*cpPB(r(x))
 class JmPB(Expression):
     def eval(self, value, x):
-        value[0] = (-D/UT*E0 + uPB(x[0]))*cmPB(x[0])
+        value[0] = (-D/UT*E0 + uPB(r(x)))*cmPB(r(x))
+class cpPBEx(Expression):
+    def eval(self, value, x):
+        value[0] = cpPB(r(x))
+class cmPBEx(Expression):
+    def eval(self, value, x):
+        value[0] = cmPB(r(x))
 class pPBEx(Expression):
     def eval(self, value, x):
-        value[0] = pPB(x[0])
+        value[0] = pPB(r(x))
+
+class vPB3D(Expression):
+    def eval(self, value, x):
+        value[0] = bV*x[-1]/(2.*Rz) + phi(r(x))        
+class cpPBEx3D(Expression):
+    def eval(self, value, x):
+        value[0] = cpPB(r(x))
+class cmPBEx3D(Expression):
+    def eval(self, value, x):
+        value[0] = cmPB(r(x))
+class pPBEx3D(Expression):
+    def eval(self, value, x):
+        value[0] = pPB(r(x))
 
 # compute "exact" current
 r2pi = Expression("2*pi*x[0]")
@@ -134,45 +152,65 @@ print "J (PB): %s [A]" % J_PB
 print "   J_el: %s [A]" % J_PB_el
 print "   J_u : %s [A]" % J_PB_u
 
-
 # --- define physical parameters and customized BCs of 2D problem ---
 
 # constant Dirichlet BCs for v, cp, cm on wall,
 # non-zero flux BCs on top/bottom
 # non-standard pressure BC
-n2D = FacetNormal(geo2D.mesh)
 lscale = Constant(phys.lscale)
 phys_params.update(
-    cp0 = dict(wall = c0*exp(-phi(R)/UT)),
-    cm0 = dict(wall = c0*exp(+phi(R)/UT)),
+    cp0 = dict(
+        wall = c0*exp(-phi(R)/UT),
+        bulk = cpPBEx()),
+    cm0 = dict(
+        wall = c0*exp(+phi(R)/UT),
+        bulk = cmPBEx()),
     v0 = dict(wall = vPB()),
-    cpflux = dict(bulk = JpPB()*n2D[1]),
-    cmflux = dict(bulk = JmPB()*n2D[1]),
+    #cpflux = dict(bulk = JpPB()*n3D[2]),
+    #cmflux = dict(bulk = JmPB()*n3D[2]),
     pressure = dict(bulk = pPBEx()),
     surfcharge = dict(
         wall = rho,
         upperb = lscale*eps*bV/(2.*Rz),
         lowerb = -lscale*eps*bV/(2.*Rz),)
 )
-phys = Physics("pore", geo2D, **phys_params)
-
+phys2D = Physics("pore", geo2D, **phys_params)
+"""
+phys_params.update(
+    cp0 = dict(
+        wall = c0*exp(-phi(R)/UT),
+        bulk = cpPBEx3D()),
+    cm0 = dict(
+        wall = c0*exp(+phi(R)/UT),
+        bulk = cmPBEx3D()),
+    v0 = dict(wall = vPB3D()),
+    #cpflux = dict(bulk = JpPB()*n3D[2]),
+    #cmflux = dict(bulk = JmPB()*n3D[2]),
+    pressure = dict(bulk = pPBEx3D()),
+)
+"""
+phys3D = Physics("pore", geo3D, **phys_params)
 # --- define goal functional: current through crosssection ---
-grad = phys.grad
+grad = phys2D.grad
 
 def J_PNP(U, geo):
     v, cp, cm = U
+    dim = geo.physics.dim
+    coeff = Constant(1.) if dim==3 else r2pi
     Jp = Constant(D)*(-grad(cp) - Constant(1/UT)*cp*grad(v))
     Jm = Constant(D)*(-grad(cm) + Constant(1/UT)*cm*grad(v))
-    Jsurf = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[1] * r2pi) * geo.dS("cross")
-    Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[1] * r2pi * geo.dx("cross")
+    Jsurf = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[dim-1] * coeff) * geo.dS("cross")
+    Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[dim-1] * coeff * geo.dx("cross")
     return dict(Jsurf=Jsurf, Jvol=Jvol)
     
 def J(U, geo):
     v, cp, cm, u, p = U
+    dim = geo.physics.dim
+    coeff = Constant(1.) if dim==3 else r2pi
     Jp = Constant(D)*(-grad(cp) - Constant(1/UT)*cp*grad(v)) + cp*u
     Jm = Constant(D)*(-grad(cm) + Constant(1/UT)*cm*grad(v)) + cm*u
-    Jsurf = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[1] * r2pi) * geo.dS("cross")
-    Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[1] * r2pi * geo.dx("cross")
+    Jsurf = avg(Constant(cFarad/lscale**2)*(Jp - Jm)[dim-1] * coeff) * geo.dS("cross")
+    Jvol = Constant(cFarad/lscale**2/hcross)*(Jp - Jm)[dim-1] * coeff * geo.dx("cross")
     return dict(Jsurf=Jsurf, Jvol=Jvol)
 """
 def saveJ(self):
@@ -191,18 +229,12 @@ def saveJ(self):
 def saveJ(self):
     #i = self.geo.mesh.num_vertices()
     i = len(self.functionals["Jvol"].values)
-    self.save_estimate("(Jsing_h - J)/J", abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
-    self.save_estimate("(J_h - J)/J", abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("(Jsing_h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("(J_h - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
     print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
     print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
 
-# --- solve 2D PNP+Stokes problem ---
-
-# solve    
-#pnp = solve_pde(SimplePNPProblem, geo2D, phys, cyl=True, newtondamp=1., goals=[J_PNP], inside_loop=saveJ, 
-#    refinement=False, marking_fraction=.5, maxcells=Nmax, iterative=False, verbose=False)
-#v, cp, cm = pnp.solutions()
-#stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=1, beta=10.)
+# --- set up PNP+Stokes problem ---
 
 problems = OrderedDict([
     ("pnp", SimplePNPProblem),
@@ -221,48 +253,62 @@ couplers = dict(
     stokes = couple_stokes
 )
 
-#problem = CoupledProblem(problems, couplers, geo2D, phys, cyl=True, conservative=False, ku=1, beta=10.)
-#pnps = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-#pnps.single_solve(inside_loop=saveJ)
+# --- solve 2D problem ---
+Dstr = " (2D)"
+problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
+pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
+pnps2D.single_solve(inside_loop=saveJ)
 
 # --- solve 3D problem ---
-n3D = FacetNormal(geo3D.mesh)
-phys_params.update(
-    v0 = dict(wall = vPB()),
-    cpflux = dict(bulk = JpPB()*n3D[1]),
-    cmflux = dict(bulk = JmPB()*n3D[1]),
-    pressure = dict(bulk = pPBEx()),
-)
-phys = Physics("pore", geo3D, **phys_params)
-problem = CoupledProblem(problems, couplers, geo3D, phys, cyl=True, conservative=False, ku=1, beta=10.)
-pnps = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-pnps.single_solve(inside_loop=saveJ)
+Dstr = " (3D)"
+problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservative=False, ku=1, beta=1.)
+problem.problems["pnp"].method["iterative"] = iterative
+problem.problems["stokes"].method["iterative"] = iterative
+pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
+pnps3D.single_solve(inside_loop=saveJ)
 
 # --- visualization ---
-(v, cp, cm, u, p) = pnps.solutions()
-#plot(-cFarad*(cp-cm)*grad(v)[1]/(lscale**2*eta), title="electroosmotic forcing [m/s]")
-pnps.visualize()
+pnps2D.visualize()
+pnps3D.visualize()
+
+(v0, cp0, cm0, u0, p0) = pnps2D.solutions()
+(v, cp, cm, u, p) = pnps3D.solutions()
 
 #plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
-#plot1D({"phi PNP (2D)": v}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), newfig=False)
+#plot1D({"phi (2D)": v0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), newfig=False)
+#plot1D({"phi (3D)": v}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "potential [V]"), newfig=False)
 
 plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
-plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm}, (0., R, 101), "x", origin=(0.,-Rz), dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False)
+plot1D({"c+ (2D)": cp0, "c- (2D)": cm0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False)
+plot1D({"c+ (3D)": cp, "c- (3D)": cm}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False, legend="upper left")
 
-#plot1D({"c+ PNP (2D)": cp, "c- PNP (2D)": cm, "c+ PB":lambda x: cpPB(0.), "c- PB":lambda x: cmPB(0.)}, 
-#    (-Rz, Rz, 101), "y", origin=(.0*R, 0.), dim=2, axlabels=("z [nm]", "concentration [mol/m**3]"))
+"""
+plot1D({
+    "c+ (2D)": cp0,
+    "c- (2D)": cm0,
+    "c+ PB":lambda x: cpPB(0.),
+    "c- PB":lambda x: cmPB(0.)}, 
+    (-Rz, Rz, 101), "y", origin=(.0, 0.), dim=2, axlabels=("z [nm]", "concentration [mol/m**3]"))
+plot1D({"c+ (2D)": cp, "c- PNP (2D)": cm}, 
+    (-Rz, Rz, 101), "z", origin=(.0, 0., 0.), dim=3, axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
+"""
+plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+plot1D({"uz (2D)":u0[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"uz (3D)":u[2]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
-#plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-#plot1D({"uz PNP (2D)":u[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-#plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-#plot1D({"ur PNP (2D)":u[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"ur (3D)":u[0]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+
 plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"p PNP (2D)":p}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
-pnps.estimators["(J_h - J)/J"].newtonplot()
+pnps2D.estimators["(J_h - J)/J (2D)"].newtonplot()
+pnps3D.estimators["(J_h - J)/J (3D)"].newtonplot(fig=False)
 #pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
-saveplots("anaPNPS_2D", meta=PARAMS)
+saveplots("anaPNPS", meta=PARAMS)
 showplots()
 
