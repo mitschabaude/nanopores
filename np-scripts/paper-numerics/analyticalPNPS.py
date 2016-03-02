@@ -127,19 +127,6 @@ class pPBEx(Expression):
     def eval(self, value, x):
         value[0] = pPB(r(x))
 
-class vPB3D(Expression):
-    def eval(self, value, x):
-        value[0] = bV*x[-1]/(2.*Rz) + phi(r(x))        
-class cpPBEx3D(Expression):
-    def eval(self, value, x):
-        value[0] = cpPB(r(x))
-class cmPBEx3D(Expression):
-    def eval(self, value, x):
-        value[0] = cmPB(r(x))
-class pPBEx3D(Expression):
-    def eval(self, value, x):
-        value[0] = pPB(r(x))
-
 # compute "exact" current
 r2pi = Expression("2*pi*x[0]")
 u_PB = Constant(eps/eta)*(phi - Constant(phi(R)))
@@ -175,21 +162,8 @@ phys_params.update(
         lowerb = -lscale*eps*bV/(2.*Rz),)
 )
 phys2D = Physics("pore", geo2D, **phys_params)
-"""
-phys_params.update(
-    cp0 = dict(
-        wall = c0*exp(-phi(R)/UT),
-        bulk = cpPBEx3D()),
-    cm0 = dict(
-        wall = c0*exp(+phi(R)/UT),
-        bulk = cmPBEx3D()),
-    v0 = dict(wall = vPB3D()),
-    #cpflux = dict(bulk = JpPB()*n3D[2]),
-    #cmflux = dict(bulk = JmPB()*n3D[2]),
-    pressure = dict(bulk = pPBEx3D()),
-)
-"""
 phys3D = Physics("pore", geo3D, **phys_params)
+
 # --- define goal functional: current through crosssection ---
 grad = phys2D.grad
 

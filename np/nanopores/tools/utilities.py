@@ -50,6 +50,13 @@ def save_dict(data, dir=".", name="file"):
     with open(os.path.join(dir, name + ".txt"), 'w') as f:
         f.write(repr(data))
         
+def load_dict(dir, name):
+    from numpy import array
+    fname = os.path.join(dir, name + ".txt")
+    with open(fname, 'r') as f:
+        data = f.read()
+    return eval("".join(data.split("\n")))
+        
 def _call(f, params):
     # call f without knowing its arguments --
     # they just have to be subset of dict params.
@@ -97,6 +104,7 @@ def showplots():
     plt.show()
     
 def saveplots(name="plot", meta=None, uid=False):
+    # TODO: kind of plot??? e.g. loglog
     # collect data from every open figure
     plots = []
     figs = map(plt.figure, plt.get_fignums())
@@ -122,6 +130,25 @@ def saveplots(name="plot", meta=None, uid=False):
     name = name + "_" + str(unique_id()) if uid else name
     save_dict(data, DIR, name)
     return plots
+    
+def loadplots(name, show=True):
+    # TODO: kind of plot??? e.g. loglog
+    style = "-x"
+    DIR = os.path.join(DATADIR, "plots")
+    dic = load_dict(DIR, name)
+    meta = dic["meta"]
+    plots = dic["plots"]
+    for plot in plots:
+        plt.figure()
+        for line in plot["data"]:
+            x, y, label = tuple(line.values())
+            plt.plot(line["x"], line["y"], style, label=line["label"])
+        plt.xlabel(plot["xlabel"])
+        plt.ylabel(plot["ylabel"])
+        plt.legend()
+    if show: plt.show()
+    return meta
+        
     
 def add_params(**params):
     # this is some magic to attach a set of parameters to a module
