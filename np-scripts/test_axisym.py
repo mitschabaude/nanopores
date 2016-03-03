@@ -21,6 +21,7 @@ porecenter = Box([0, -l1/2], [r0, l1/2])
 poretop = Box([0, l1/2], [r0, l0/2])
 pore = poretop | porecenter | porebottom
 
+# TODO: this seems to need a subdomain to work
 domain.addsubdomains(
     dna = dna,
     membrane = membrane,

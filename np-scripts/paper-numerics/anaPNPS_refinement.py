@@ -10,7 +10,7 @@ add_params(
 bV = -0.1, # [V]
 rho = -0.05, # [C/m**2]
 h2D = .2,
-h3D = .2,
+h3D = 1.,
 Nmax = 1e5,
 damp = 1.,
 bulkcon = 300.,
@@ -181,6 +181,7 @@ def J_PNP(U, geo):
     
 def J(U, geo):
     v, cp, cm, u, p = U
+    #u, p, v, cp, cm = U
     dim = geo.physics.dim
     coeff = Constant(1.) if dim==3 else r2pi
     Jp = Constant(D)*(-grad(cp) - Constant(1/UT)*cp*grad(v)) + cp*u
@@ -205,8 +206,8 @@ def saveJ(self):
 def saveJ(self):
     #i = self.geo.mesh.num_vertices()
     i = len(self.functionals["Jvol"].values)
-    self.save_estimate("(Jsing_h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
-    self.save_estimate("(J_h - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("(J*h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("(Jh - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
     print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
     print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
 
@@ -214,7 +215,7 @@ def saveJ(self):
 
 problems = OrderedDict([
     ("pnp", SimplePNPProblem),
-    ("stokes", SimpleStokesProblem)])
+    ("stokes", SimpleStokesProblem),])
 
 def couple_pnp(ustokes):
     return dict(ustokes = ustokes.sub(0))
@@ -233,7 +234,8 @@ couplers = dict(
 Dstr = " (2D)"
 problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
 pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-pnps2D.single_solve(inside_loop=saveJ)
+pnps2D.uniform_refinement = True
+pnps2D.solve(refinement=True, inside_loop=saveJ)
 
 # --- solve 3D problem ---
 Dstr = " (3D)"
@@ -241,12 +243,13 @@ problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservat
 problem.problems["pnp"].method["iterative"] = iterative
 problem.problems["stokes"].method["iterative"] = iterative
 pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-pnps3D.single_solve(inside_loop=saveJ)
+pnps3D.uniform_refinement = True
+pnps3D.solve(refinement=True, inside_loop=saveJ)
 
 # --- visualization ---
 pnps2D.visualize()
 pnps3D.visualize()
-
+exit()
 (v0, cp0, cm0, u0, p0) = pnps2D.solutions()
 (v, cp, cm, u, p) = pnps3D.solutions()
 
@@ -276,15 +279,15 @@ plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "vel
 plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 plot1D({"ur (3D)":u[0]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
-plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1)
+plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, newfig=False)
+plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "pressure [Pa s]"), newfig=False)
 
-pnps2D.estimators["(J_h - J)/J (2D)"].newtonplot()
-pnps3D.estimators["(J_h - J)/J (3D)"].newtonplot(fig=False)
+pnps2D.estimators["(Jh - J)/J (2D)"].newtonplot()
+pnps3D.estimators["(Jh - J)/J (3D)"].newtonplot(fig=False)
 #pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
-saveplots("anaPNPS", meta=PARAMS)
+#saveplots("anaPNPSrefine", meta=PARAMS)
 showplots()
 

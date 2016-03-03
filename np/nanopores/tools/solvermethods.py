@@ -48,6 +48,7 @@ poisson = dict(
 )
 
 stokes = dict(
+    #reuse = False, # DEBUG
     reuse = True,
     iterative = False,
     lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
@@ -70,6 +71,6 @@ stokes = dict(
         error_on_nonconvergence = False,
         preconditioner = dict(
             report = False,
-            structure = "same_nonzero_pattern",
+            #structure = "same_nonzero_pattern",
             ilu = dict(fill_level = 1)))
 )

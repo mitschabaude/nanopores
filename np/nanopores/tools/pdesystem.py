@@ -18,6 +18,7 @@ class PDESystem(object):
     imax = 100
     maxcells = 10000
     marking_fraction = 0.8
+    uniform_refinement = False
 
     def __init__(self, geo=None, solvers={}, functions={}, functionals={}):
         self.geo = geo
@@ -67,24 +68,35 @@ class PDESystem(object):
             N = self.geo.mesh.num_cells()
         self.estimators[string] += N, err
 
-    def estimate(self):
+    def estimate_uniform(self):
+        "the trivial indicator"
+        # for uniform refinement 
+        # TODO: does not work with doerfler marking
+        return None, 1.
+    
+    def estimate_zz(self):
         """ simple zz indicator, estimator """
         # just to have a basic estimation tool when nothing is defined
         u = self.solutions()[0]
         mesh = self.geo.mesh
         ind, err = zz_indicator(u)
         return ind, err
+        
+    estimate = estimate_uniform
 
     def single_solve(self, **other):
         for S in self.solvers.values(): S.solve()
 
-    def refine(self,ind):
+    def refine(self, ind):
         mesh0 = self.geo.mesh
         mesh = self.refine_mesh(ind)
+
+        #plot(mesh0)
+        #plot(mesh, interactive=True)
         #self.adapt(mesh)
 
         if mesh.num_cells() > self.maxcells:
-            self.geo.mesh = mesh0
+            #self.geo.mesh = mesh0
             return False
 
         self.adapt(mesh)
@@ -93,14 +105,15 @@ class PDESystem(object):
     def refine_mesh(self, ind):
         mesh = self.geo.mesh
 
-        markers = CellFunction("bool",mesh)
-        indicators = CellFunction("double",mesh)
-        # TODO: parallel + efficient
-        for c in cells(mesh):
-            indicators[c] = ind(c.midpoint())
+        markers = CellFunction("bool", mesh, True)
+        if not self.uniform_refinement:
+            indicators = CellFunction("double", mesh)
+            # TODO: parallel + efficient
+            for c in cells(mesh):
+                indicators[c] = ind(c.midpoint())
 
-        # MARK
-        dorfler_mark(markers, indicators, self.marking_fraction)
+            # MARK
+            dorfler_mark(markers, indicators, self.marking_fraction)
 
         # REFINE
         # TODO: use refine? adapt seems to crash more easily
@@ -110,9 +123,13 @@ class PDESystem(object):
 
     def adapt(self, mesh):
         self.geo.adapt(mesh)
-
-        for S in self.solvers.values():
+        
+        for name, S in self.solvers.items():
+            print "Adapting %s." % name
             S.adapt(mesh)
+
+        #for S in self.solvers.values():
+        #    S.adapt(mesh)
 
         functions = tuple(self.functions.values())
         for S in self.solvers.values():

@@ -12,7 +12,7 @@ __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
 
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
-    stab = 1e9
+    stab = 1e0 #1e9 #TODO ???
 
     def __init__(self, problem, **method):
         if not isinstance(problem, AdaptableLinearProblem):
@@ -41,7 +41,8 @@ class IllposedLinearSolver(object):
     def assemble_A(self):
         #print ("Process %s: I'm assembling a system of size %s now!" % 
         #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
-        A = assemble(self.problem.a,keep_diagonal=True)
+        #print "DEBUG, form:\n", self.problem.a
+        A = assemble(self.problem.a, keep_diagonal=True)
         for bc in self.problem.bcs:
             bc.apply(A)
         if self.illposed:
@@ -129,6 +130,8 @@ class IllposedLinearSolver(object):
             self.S.solve(u.vector(),b)
                            
     def adapt(self,mesh):
+        """NOTE TO SELF: if assemble isn't working after adapt,
+        check if in adaptform() EVERYTHING in this form is adapted to new mesh."""
         # adapt problem to new mesh.
         # RETURNS adapted SOLUTION because it may be needed by user
         # ATTENTION: doesn't adapt functions, calling replace() may be
@@ -367,11 +370,33 @@ def adaptform(form,mesh,adapt_coefficients=False):
             adaptcoefficient(coeff,mesh) #MOD
             #newcoeff = adaptcoefficient(coeff,mesh)
             #mapping[coeff] = newcoeff
+    
+    # TODO: is there more? is there a better way to ensure everything is adapted?
     # adapt FacetNormal
     mapping[FacetNormal(oldmesh)] = FacetNormal(mesh)
+    # adapt CellSize -- have to use ufl.Circumradius or replace() complains
+    mapping[ufl.Circumradius(oldmesh)] = ufl.Circumradius(mesh)
     
-    newform = replace(newform,mapping)
+    newform = replace(newform, mapping)
     return newform
+    
+def _compute_renumbering(self):
+    # Include integration domains and coefficients in renumbering
+    dn = self.domain_numbering()
+    cn = self.coefficient_numbering()
+    renumbering = {}
+    renumbering.update(dn)
+    renumbering.update(cn)
+
+    # Add domains of coefficients, these may include domains not among integration domains
+    k = len(dn)
+    for c in cn:
+        d = c.domain()
+        if d is not None and d not in renumbering:
+            renumbering[d] = k
+            k += 1
+
+    return renumbering
 
 def adaptmeshfunction(meshfunction,mesh):
     #print "Meshfunction has child:", meshfunction.has_child()
