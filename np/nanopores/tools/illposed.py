@@ -207,7 +207,8 @@ class AdaptableLinearProblem(object):
         self.bcs = [bc.adapt(mesh,V,self.boundaries) for bc in self.bcs]
         self.a = adaptform(self.a,mesh)
         self.L = adaptform(self.L,mesh)		
-        adaptfunction(self.u,mesh,interpolate=False,assign=True)
+        adaptfunction(self.u, mesh, interpolate=False, assign=True)
+        return V
         
     def solution(self):
         return self.u
@@ -217,14 +218,23 @@ class AdaptableLinearProblem(object):
     
 class AdaptableNonlinearProblem(AdaptableLinearProblem):
     # TODO: compute Jacobian automatically, tolnewton etc.
-    def __init__(self,a,L,uold,bcs=None,boundaries=None):		
+    def __init__(self, a, L, uold, bcs=None, boundaries=None):
         self.uold = _extract_u(uold)
+        self.bcs1 = _extract_bcs(bcs)
+        bcs0 = []
+        for bc in bcs:
+            bc.apply(self.uold.vector())
+            bcs0.append(bc.homogenized()) # FIXME: this severely limits bcs to PhysicalBC type
+    	
         u = Function(self.uold.function_space())
-        AdaptableLinearProblem.__init__(self,a,L,u,bcs,boundaries)
+        AdaptableLinearProblem.__init__(self, a, L, u, bcs0, boundaries)
         
-    def adapt(self,mesh):
-        AdaptableLinearProblem.adapt(self,mesh)
-        adaptfunction(self.uold,mesh,interpolate=True,assign=True)
+    def adapt(self, mesh):
+        V = AdaptableLinearProblem.adapt(self, mesh)
+        adaptfunction(self.uold, mesh, interpolate=True, assign=True)
+        self.bcs1 = [bc.adapt(mesh, V, self.boundaries) for bc in self.bcs1]
+        for bc in self.bcs1:
+            bc.apply(self.uold.vector())
         
     def increment(self):
         return self.u
@@ -241,6 +251,7 @@ class AdaptableBC(DirichletBC):
                          "Currently only implements BC defined by a MeshFunctionSizet")
         self.boundaries = boundaries
         self.i = i
+        self.g = g
         DirichletBC.__init__(self, V, g, boundaries, i, method)
             
     def adapt(self,mesh,V=None,boundaries=None):
@@ -257,9 +268,14 @@ class AdaptableBC(DirichletBC):
         if not boundaries:
             boundaries = adaptmeshfunction(self.boundaries,mesh)
         self.boundaries = boundaries
-        g = self.value()		
-        if isinstance(g,Function):
-            g = adaptfunction(g,mesh)
+        g = self.g #value()
+        print g.__class__    
+        if isinstance(g, Function):
+            g = adaptfunction(g, mesh)
+        elif isinstance(g, GenericFunction) and not isinstance(g, Constant):  
+            #print g.__dict__
+            g = g.__class__()
+        
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())
             
 class Functional(object):

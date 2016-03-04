@@ -1,8 +1,3 @@
-#FIXME: the current still does not converge, but the potential seems to do.
-# plot the other solutions as well! where is the solution not accurate?
-
-
-
 " analytical test problem to validate 2D and 3D solvers "
 import math
 from collections import OrderedDict
@@ -15,8 +10,8 @@ from nanopores.geometries.curved import Cylinder
 add_params(
 bV = -0.1, # [V]
 rho = -0.05, # [C/m**2]
-h2D = .4,
-h3D = .4,
+h2D = .5,
+h3D = .5,
 nmax2D = 1e5,
 nmax3D = 1e4,
 damp = 1.,
@@ -29,7 +24,7 @@ set_log_level(100)
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
 R = 1. # [nm] pore radius
-hcross = .2 # [nm] height of crossection
+hcross = .5 # [nm] height of crossection
 
 domain2D = Box([0., -Rz], [R, Rz])
 cross = Box([0., 0.], [R, hcross])
@@ -159,6 +154,8 @@ print "   J_u : %s [A]" % J_PB_u
 # constant Dirichlet BCs for v, cp, cm on wall,
 # non-zero flux BCs on top/bottom
 # non-standard pressure BC
+
+# FIXME something is truly fishy with the Expressions
 lscale = Constant(phys.lscale)
 phys_params.update(
     cp0 = dict(
@@ -222,13 +219,11 @@ def saveJ(self):
 """
 def saveJ(self):
     i = self.geo.mesh.num_vertices()
-    (v, cp, cm, u, p) = self.solutions()
-    plot1D({"phi (3D), N=%s" %i: v}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "potential [V]"), newfig=False)
     #i = len(self.functionals["Jvol"].values)
     self.save_estimate("(J*h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
     self.save_estimate("(Jh - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
-    print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
-    print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
+    #print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
+    #print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
 
 # --- set up PNP+Stokes problem ---
 
@@ -254,48 +249,47 @@ Dstr = " (2D)"
 problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
 pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2, verbose=False)
 #pnps2D.uniform_refinement = True
-pnps2D.marking_fraction = .5
+pnps2D.marking_fraction = .25
 pnps2D.maxcells = nmax2D
-#pnps2D.solve(refinement=True, inside_loop=saveJ)
-#pnps2D.visualize()
-#(v0, cp0, cm0, u0, p0) = pnps2D.solutions()
+pnps2D.solve(refinement=True, inside_loop=saveJ)
+(v0, cp0, cm0, u0, p0) = pnps2D.solutions()
+pnps2D.visualize()
 
+"""
 # --- solve 3D problem ---
 Dstr = " (3D)"
 problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservative=False, ku=1, beta=1.)
 problem.problems["pnp"].method["iterative"] = iterative
 problem.problems["stokes"].method["iterative"] = iterative
-pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2, verbose=True)
-#pnps3D.uniform_refinement = True
-pnps3D.marking_fraction = 1.
+pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2, verbose=False)
+pnps3D.uniform_refinement = True
 pnps3D.maxcells = nmax3D
-plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
 pnps3D.solve(refinement=True, inside_loop=saveJ)
-
+"""
 # --- visualization ---
-pnps3D.estimators["(Jh - J)/J (3D)"].plot(rate=-2./3)
-showplots()
-exit()
-pnps3D.visualize()
-(v, cp, cm, u, p) = pnps3D.solutions()
+
+#pnps3D.visualize()
+
+
+#(v, cp, cm, u, p) = pnps3D.solutions()
 
 #plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
 #plot1D({"phi (2D)": v0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), newfig=False)
 #plot1D({"phi (3D)": v}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "potential [V]"), newfig=False)
-
+"""
 plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
 plot1D({"c+ (2D)": cp0, "c- (2D)": cm0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False)
 plot1D({"c+ (3D)": cp, "c- (3D)": cm}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False, legend="upper left")
-
+"""
 
 plot1D({
     "c+ (2D)": cp0,
-    "c-- (2D)": cm0,
+    "c- (2D)": cm0,
     "c+ PB":lambda x: cpPB(0.),
-    "c-- PB":lambda x: cmPB(0.)}, 
+    "c- PB":lambda x: cmPB(0.)}, 
     (-Rz, Rz, 101), "y", origin=(.0, 0.), dim=2, axlabels=("z [nm]", "concentration [mol/m**3]"))
-plot1D({"c+ (3D)": cp, "c-- (3D)": cm}, 
-    (-Rz, Rz, 101), "z", origin=(.0, 0., 0.), dim=3, axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
+#plot1D({"c+ (2D)": cp, "c- PNP (2D)": cm}, 
+#    (-Rz, Rz, 101), "z", origin=(.0, 0., 0.), dim=3, axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
 
 """
 plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
@@ -305,18 +299,18 @@ plot1D({"uz (3D)":u[2]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity
 plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 plot1D({"ur (3D)":u[0]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-"""
+
 plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1)
 plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, newfig=False)
 plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "pressure [Pa s]"), newfig=False)
-
+"""
 #pnps2D.estimators["(Jh - J)/J (2D)"].newtonplot()
 #pnps3D.estimators["(Jh - J)/J (3D)"].newtonplot(fig=False)
 pnps2D.estimators["(Jh - J)/J (2D)"].plot(rate=-1.)
-pnps3D.estimators["(Jh - J)/J (3D)"].plot(rate=-2./3)
+#pnps3D.estimators["(Jh - J)/J (3D)"].plot(rate=-2./3)
 
 pnps2D.estimators["(J*h - J)/J (2D)"].plot(rate=-1.)
-pnps3D.estimators["(J*h - J)/J (3D)"].plot(rate=-2./3)
+#pnps3D.estimators["(J*h - J)/J (3D)"].plot(rate=-2./3)
 #pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)

@@ -37,7 +37,7 @@ class PDESystem(object):
             if verbose:
                 print '\n- Loop ' +str(i+1) + ' of max.', self.imax
 
-            self.single_solve(inside_loop=inside_loop)
+            self.single_solve() #inside_loop=inside_loop)
             if verbose:
                 self.print_functionals()
             if inside_loop is not None:
@@ -82,7 +82,7 @@ class PDESystem(object):
         ind, err = zz_indicator(u)
         return ind, err
         
-    estimate = estimate_uniform
+    estimate = estimate_zz #uniform
 
     def single_solve(self, **other):
         for S in self.solvers.values(): S.solve()
@@ -249,8 +249,9 @@ def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass):
     else:
         if verbose: print "Did not reach tol."
         converged = False
-    print "     Newton iterations:",i+1
-    print '     Relative L2 Newton error:',S.relerror()
+    if verbose:
+        print "     Newton iterations:",i+1
+        print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
     
@@ -307,8 +308,8 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
     pde.add_functionals(goals)
         
     t = Timer("solve")
-    #pde.solve(refinement=refinement, inside_loop=inside_loop)
-    pde.single_solve(inside_loop=inside_loop)
+    pde.solve(refinement=refinement, inside_loop=inside_loop)
+    #pde.single_solve(inside_loop=inside_loop)
     print "CPU time (solve): %s [s]" % (t.stop(),)
     
     if visualize:
@@ -445,9 +446,6 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         
         if not bcs:
             bcs = _call(self.bcs, params)
-        for bc in bcs:
-            bc.apply(u.vector())
-            bc.homogenize()
         
         a, L = _call(self.forms, params)
         AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
@@ -545,7 +543,7 @@ class CoupledProblem(object):
         
 class CoupledSolver(PDESystem):
     params = dict(inewton = 10, ipicard = 10,
-        tolnewton = 1e-4, damp = 1., nverbose=False)
+        tolnewton = 1e-4, damp = 1., verbose=True, nverbose=False)
 
     def __init__(self, coupled, goals=[], **solverparams):
                 
@@ -568,12 +566,13 @@ class CoupledSolver(PDESystem):
     
     # TODO: good stopping criterion
     # TODO: explore possibility to choose newton tol adaptively
-    def single_solve(self, tol=None, damp=None, verbose=True, inside_loop=_pass):
+    def single_solve(self, tol=None, damp=None, inside_loop=_pass):
         if tol is None: tol = self.params["tolnewton"]
         if damp is None: damp = self.params["damp"]
         I = self.params["ipicard"]
         J = self.params["inewton"]
         nverbose = self.params["nverbose"]
+        verbose = self.params["verbose"]
         times = {name : 0. for name in self.solvers}
     
         for i in range(1, I+1):

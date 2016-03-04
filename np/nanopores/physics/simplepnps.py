@@ -71,11 +71,10 @@ class SimplePNPProblem(GeneralNonlinearProblem):
     
     @staticmethod
     def bcs(V, geo, phys):
-        bcs = geo.pwBC(V.sub(0), "v0")
-        bcs += geo.pwBC(V.sub(1), "cp0")
-        bcs += geo.pwBC(V.sub(2), "cm0")
-        return bcs
-        
+        return geo.pwBC(V.sub(0), "v0") + \
+               geo.pwBC(V.sub(1), "cp0") + \
+               geo.pwBC(V.sub(2), "cm0")
+               
         
 class SimplePBProblem(GeneralNonlinearProblem):
     method = dict(solvermethods.bicgstab)

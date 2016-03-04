@@ -9,7 +9,7 @@ from nanopores.geometries.curved import Cylinder
 # Define cylindrical domain
 Rz = 1.
 R = 1.
-h = .5
+h = 1.
 
 domain = Box([0., -Rz], [R, Rz])
 domain.addsubdomains(
@@ -22,34 +22,36 @@ domain.addboundaries(
 )
 domain = rotate_z(domain)
 geo = domain.create_geometry(lc=h)
+
+# define cylinder
+cyl = Cylinder(R=R, L=2.*Rz)
+# this causes geo to automatically snap boundaries when adapting
+geo.curved = dict(wall = cyl.snap)
+
+plot(geo.mesh, title=("Mesh 0"))
 mesh = geo.mesh
-
-# add cylinder boundary subdomain
-cyl = Cylinder(R=R, L=2.*Rz, frac=0.9)
-mesh.snap_boundary(cyl)
-
-# Refine and snap mesh
-print "N =", mesh.num_cells()
-plot(mesh, title="Mesh 0")
 
 num_refinements = 3
 for i in range(num_refinements):
 
     # Mark cells for refinement
-    markers = MeshFunction("bool", mesh, mesh.topology().dim())
-    markers.set_all(True)
+    markers = CellFunction("bool", mesh, True)
 
     # Refine mesh
     mesh = refine(mesh, markers)
-    cyl.frac = 1 - 0.5*(1. - cyl.frac)
+    geo.adapt(mesh)
+    #geo.snap_to_boundary("wall", cyl.snap)
+    """
+    cyl.frac = 1 - 0.5*(1. - cyl.frac) # TODO maybe halving is to much
 
     # Snap boundary
     try:
         mesh.snap_boundary(cyl, True)
     except Exception:
         mesh.snap_boundary(cyl, False)
-
+    """
     # Plot mesh
-    plot(mesh, title=("Mesh %d" % (i + 1)))
+    #domain.plot()
+    plot(geo.mesh, title=("Mesh %d" % (i + 1)))
 
 interactive()
