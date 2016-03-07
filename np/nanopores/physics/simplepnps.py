@@ -34,7 +34,8 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         n = FacetNormal(geo.mesh)
-        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        print "DEBUG", r2pi([0.0, 0.0])
         lscale = Constant(phys.lscale)
         grad = phys.grad
 

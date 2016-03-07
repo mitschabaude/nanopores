@@ -9,7 +9,88 @@ from importlib import import_module
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
-__all__ = ["PNPSAxisymNewton","PNPSProblemAxisym"]
+__all__ = ["PNPSAxisymNewton","PNPSProblemAxisym", "SimplePNPSProblem"]
+
+class SimplePNPSProblem(GeneralNonlinearProblem):
+    method = dict(solvermethods.bicgstab)
+    method["iterative"] = False
+    
+    @staticmethod
+    def space(mesh, k=1):
+        V = FunctionSpace(mesh, 'CG', k)
+        U = VectorFunctionSpace(mesh, 'CG', k+1)
+        return MixedFunctionSpace((V, V, V, U, V))
+        
+    @staticmethod
+    def initial_u(V, geo, phys):
+        u = Function(V)
+        c = [0. for i in range(4+phys.dim)]
+        c[1] = c[2] = phys.bulkcon
+        u.interpolate(Constant(tuple(c)))
+        (v, cp, cm, uu, p) = u.split()
+        return u
+        
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwBC(V.sub(0), "v0") + geo.pwBC(V.sub(1), "cp0") + geo.pwBC(V.sub(2), "cm0") + \
+               geo.pwBC(V.sub(3), "noslip") + geo.pwBC(V.sub(4), "pressure")
+
+    @staticmethod
+    def forms(V, geo, phys, u, cyl=False, beta=0.01):
+        dx = geo.dx()
+        dx_ions = geo.dx("fluid")
+        n = FacetNormal(geo.mesh)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+
+        eps = geo.pwconst("permittivity")
+        Dp = geo.pwconst("Dp")
+        Dm = geo.pwconst("Dm")
+        kT = Constant(phys.kT)
+        qq = Constant(phys.qq)
+        F = Constant(phys.cFarad)
+        
+        (v, cp, cm, uu, p) = u.split()
+        (w, dp, dm, vv, q) = TestFunctions(V)
+        
+        Jm = -Dm*(grad(cm) - qq/kT*cm*grad(v)) + cm*uu
+        Jp = -Dp*(grad(cp) + qq/kT*cp*grad(v)) + cp*uu
+        
+        apoisson = inner(eps*grad(v), grad(w))*r2pi*dx - F*(cp - cm)*w*r2pi*dx_ions
+        aJm = inner(Jm, grad(dm))*r2pi*dx_ions
+        aJp = inner(Jp, grad(dp))*r2pi*dx_ions
+        
+        f = -F*(cp - cm)*grad(v)
+        
+        dx = geo.dx("fluid")
+        r = Expression("x[0]")
+        pi2 = Constant(2.*pi)
+        h = CellSize(geo.mesh)
+        delta = Constant(beta/lscale**2)*h**2
+        eta = Constant(phys.eta)
+        def eps(uu): return Constant(2.)*sym(grad(uu))
+        
+        if cyl:
+            astokes = (eta*inner(eps(uu), eps(vv))*r + Constant(2.)*eta*uu[0]*vv[0]/r \
+                + (div(vv)*r+vv[0])*p + q*(uu[0] + div(uu)*r))*pi2*dx \
+                - delta*inner(grad(p), grad(q))*r*pi2*dx \
+                - inner(f, vv - delta*grad(q))*r*pi2*dx
+        else:
+            astokes = (eta*inner(eps(uu), eps(vv)) + div(vv)*p + q*div(uu))*dx \
+                 - delta*inner(grad(p), grad(q))*dx \
+                 - inner(f, vv - delta*grad(q))*dx
+            
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        LJm = lscale*geo.NeumannRHS(dm*r2pi, "cmflux")
+        LJp = lscale*geo.NeumannRHS(dp*r2pi, "cpflux")
+        
+        L = apoisson + aJm + aJp + astokes - Lqvol - Lqsurf - LJm - LJp
+        a = derivative(L, (v, cp, cm, uu, p))
+
+        return a, L
+
 
 class PNPSAxisymNewton(PNPS):
 
@@ -146,6 +227,7 @@ class PNPSAxisymNewton(PNPS):
 
             else:
                 self.single_solve()
+                self.visualize()
                 tt0 = timer.stop()
                 tt += tt0
                 nerror = self.solvers["PNPS"].relerror()
@@ -294,18 +376,14 @@ class PNPSProblemAxisym(AdaptableNonlinearProblem):
         Lq = Lqvol + Lqsurf
 
         L = Lstokes + Lpoisson + LJm + LJp - Lq
-
-        if not bcs:
-            try:
-                bcs = [geo.BC(X.sub(0), Constant(0.0), "bV")] if phys.bV else []
-                bcs = bcs + [geo.BC(X.sub(0), Constant(0.0), "ground"),
-                             geo.BC(X.sub(1), Constant(0.0), "bulk"),
-                             geo.BC(X.sub(2), Constant(0.0), "bulk"),
-                             geo.BC(X.sub(3), Constant((0.0,0.0)), "noslip"),
-                             geo.BC(X.sub(4), Constant(0.0), "nopressure"),                ]
-
-            except:
-                warning("No boundary conditions have been assigned to %s" %type(self).__name__)
-
+        
+        bcs = [geo.BC(X.sub(0), Constant(0.), "ground"),
+               geo.BC(X.sub(1), Constant(phys.bulkcon), "bulk"),
+               geo.BC(X.sub(2), Constant(phys.bulkcon), "bulk"),
+               geo.BC(X.sub(3), Constant((0.,0.)), "noslip"),
+               geo.BC(X.sub(4), Constant(0.), "nopressure")]
+               
+        if phys.bV is not None:
+            bcs += [geo.BC(X.sub(0), Constant(phys.bV), "bV")]
 
         AdaptableNonlinearProblem.__init__(self, a, L, x, bcs, geo.boundaries)

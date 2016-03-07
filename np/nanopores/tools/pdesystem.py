@@ -36,6 +36,7 @@ class PDESystem(object):
         for i in range(self.imax):
             if verbose:
                 print '\n- Loop ' +str(i+1) + ' of max.', self.imax
+                print "  Degrees of freedom: %d" % (sum(u.function_space().dim() for u in self.solutions()),)
 
             self.single_solve() #inside_loop=inside_loop)
             if verbose:

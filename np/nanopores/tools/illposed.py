@@ -124,6 +124,13 @@ class IllposedLinearSolver(object):
             print "Solving system iteratively with PETSc fieldsplit ..."
             self.S.solve(l, x)
             u.vector().set_local(x.array.astype("float_"))
+        elif isinstance(self.S, PETScKrylovSolver):
+            i = self.S.solve(u.vector(),b)
+            # print DEBUG
+            if not "kparams" in self.method or i < self.method["kparams"]["maximum_iterations"]:
+                print "    PETSc Krylov solver converged in %d iterations." %i
+            else:
+                print "    PETSc Krylov solver failed to converge in %d iterations." %i
         else:
             #print "DEBUG: dim u", u.vector().array().shape
             #print "DEBUG: dim b", b.array().shape
@@ -269,11 +276,11 @@ class AdaptableBC(DirichletBC):
             boundaries = adaptmeshfunction(self.boundaries,mesh)
         self.boundaries = boundaries
         g = self.g #value()
-        print g.__class__    
+        #print g.__class__    
         if isinstance(g, Function):
             g = adaptfunction(g, mesh)
         elif isinstance(g, GenericFunction) and not isinstance(g, Constant):  
-            #print g.__dict__
+            #print g.__dict__ # FIXME
             g = g.__class__()
         
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())

@@ -8,7 +8,7 @@ from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
-           "crange", "plot1D", "showplots", "saveplots", "add_params"]
+           "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -104,22 +104,27 @@ def showplots():
     plt.show()
     
 def saveplots(name="plot", meta=None, uid=False):
-    # TODO: kind of plot??? e.g. loglog
     # collect data from every open figure
     plots = []
     figs = map(plt.figure, plt.get_fignums())
     for fig in figs:
         for ax in fig.axes:
-            plot = dict()
-            plot["xlabel"] = ax.get_xlabel()
-            plot["ylabel"] = ax.get_ylabel()
-            plot["data"] = []
+            plot = dict(
+                xlabel = ax.get_xlabel(),
+                ylabel = ax.get_ylabel(),
+                xscale = ax.get_xscale(),
+                yscale = ax.get_yscale(),
+                data = [])
             for line in ax.lines:
-                data = dict()
                 x, y = line.get_data()
-                data["x"] = x
-                data["y"] = y
-                data["label"] = line.get_label()
+                marker = line.get_marker()
+                if marker == "None":
+                    marker = ""
+                data = dict(
+                    x = x,
+                    y = y,
+                    style = marker + line.get_linestyle(),
+                    label = line.get_label())
                 plot["data"].append(data)
             plots.append(plot)
     # add metadata if provided
@@ -132,8 +137,7 @@ def saveplots(name="plot", meta=None, uid=False):
     return plots
     
 def loadplots(name, show=True):
-    # TODO: kind of plot??? e.g. loglog
-    style = "-x"
+    defaultstyle = "-x"
     DIR = os.path.join(DATADIR, "plots")
     dic = load_dict(DIR, name)
     meta = dic["meta"]
@@ -141,10 +145,14 @@ def loadplots(name, show=True):
     for plot in plots:
         plt.figure()
         for line in plot["data"]:
-            x, y, label = tuple(line.values())
+            style = line["style"] if "style" in line else defaultstyle
             plt.plot(line["x"], line["y"], style, label=line["label"])
         plt.xlabel(plot["xlabel"])
         plt.ylabel(plot["ylabel"])
+        if "xscale" in plot:
+            plt.xscale(plot["xscale"])
+        if "yscale" in plot:
+            plt.yscale(plot["yscale"])
         plt.legend()
     if show: plt.show()
     return meta

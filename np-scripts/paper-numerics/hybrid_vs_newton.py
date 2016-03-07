@@ -13,7 +13,7 @@ boxfields = True,
 )
 
 phys_params = dict(
-Membraneqs = -0.0,
+Membraneqs = -0.01,
 bulkcon = 3e2,
 bV = -.1,
 dnaqsdamp = .25
@@ -32,13 +32,26 @@ if geo.parameter("x0") is None:
     geo.import_synonymes({"moleculeb":set()})
     geo.import_synonymes(synonymes)
 
-pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys) #, cyl=True)
+# solve with hybrid method
+pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys, axisymmetric=True)
 pnps.imax = 20
 pnps.newtondamp = 1.
 pnps.maxcells = 5e4
 t = Timer("solve")
-pnps.solve(refinement=False)
+pnps.single_solve()
 print "CPU time (solve): %s [s]" % (t.stop(),)
+print phys
+pnps.visualize()
+exit()
+
+# solve with newton's method
+pnps = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True)
+pnps.imax = 20
+pnps.newtondamp = .5
+t = Timer("solve")
+pnps.single_solve()
+print "CPU time (solve): %s [s]" % (t.stop(),)
+pnps.visualize()
 """
 tol = 1e-2
 damp = 1.
@@ -61,5 +74,4 @@ print 'Relative L2 Newton error:',S.relerror()
 pnps.print_results()
 #pnps.estimators["est"].plot(rate=-.5)
 plot(geo.boundaries)
-pnps.visualize()
 

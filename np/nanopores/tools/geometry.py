@@ -345,7 +345,7 @@ class Geometry(object):
             return CallableMeshFunction(chi)
         return chi
         
-    def snap_to_boundary(self, name, snap):
+    def snap_to_boundary(self, name, snap, smooth=False):
         mesh = self.mesh
         # get vertices that lie on the boundary (via BC for CG1 function)
         V = FunctionSpace(mesh, 'CG', 1)
@@ -360,8 +360,8 @@ class Geometry(object):
             x = mesh.coordinates()[v]
             snap(x)
             mesh.geometry().set(v, x)
-
-        mesh.smooth(1)
+        if smooth:
+            mesh.smooth(1)
 
     def _neumann_lookup(self, bou2phys, value):
         bou2value = {}
@@ -467,7 +467,7 @@ class PhysicalBC(object):
 
     def homogenized(self): # TODO: arbitrary tensors
         shape = self.g.shape()
-        c = tuple(0. for i in range(shape[0])) if shape else 0.
+        c = Constant(tuple(0. for i in range(shape[0])) if shape else 0.)
         return PhysicalBC(self.V, c, self.description, self.geo)
 
 

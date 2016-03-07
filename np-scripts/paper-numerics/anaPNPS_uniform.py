@@ -55,21 +55,10 @@ domain2D.synonymes = dict(
     #nocbc = {"lowerb"},
 )
 
-geo2D = domain2D.create_geometry(lc=h2D)
-print "Number of cells (2D):", geo2D.mesh.num_cells()
-#domain2D.plot()
-
 # --- create 3D geometry by rotating ---
 domain3D = rotate_z(domain2D)
-geo3D = domain3D.create_geometry(lc=h3D)
-print "Number of cells (3D):", geo3D.mesh.num_cells()
-#domain3D.plot()
-plot(geo3D.subdomains, title="initial")
-
 # define cylinder
 cyl = Cylinder(R=R, L=2.*Rz)
-# this causes geo to automatically snap boundaries when adapting
-geo3D.curved = dict(wall = cyl.snap)
 
 # --- create geometry for 1D crossection ---
 # TODO: it would be cool if the 1D domain could be extracted from the 2D one
@@ -181,16 +170,13 @@ phys_params.update(
         upperb = lscale*eps*bV/(2.*Rz),
         lowerb = -lscale*eps*bV/(2.*Rz),)
 )
-phys2D = Physics("pore", geo2D, **phys_params)
-phys3D = Physics("pore", geo3D, **phys_params)
-
 # --- define goal functional: current through crosssection ---
-grad = phys2D.grad
 
 def J(U, geo):
     v, cp, cm, u, p = U
     #u, p, v, cp, cm = U
     dim = geo.physics.dim
+    grad = geo.physics.grad
     coeff = Constant(1.) if dim==3 else r2pi
     Jp = Constant(D)*(-grad(cp) - Constant(1/UT)*cp*grad(v)) + cp*u
     Jm = Constant(D)*(-grad(cm) + Constant(1/UT)*cm*grad(v)) + cm*u
@@ -212,7 +198,7 @@ def saveJ(self):
     self.save_estimate("(Jh - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
     print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
     print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
-
+    
 # --- set up PNP+Stokes problem ---
 
 problems = OrderedDict([
@@ -231,31 +217,53 @@ couplers = dict(
     pnp = couple_pnp,
     stokes = couple_stokes
 )
+    
+# --- END OF INITIALIZATION ---
 
-# --- solve 2D problem ---
-Dstr = " (2D)"
-problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
-pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=20, tolnewton=1e-2, verbose=False)
-#pnps2D.uniform_refinement = True
-pnps2D.marking_fraction = 1.
-pnps2D.maxcells = nmax2D
-pnps2D.solve(refinement=True, inside_loop=saveJ)
 
-# --- solve 3D problem ---
-Dstr = " (3D)"
-problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservative=False, ku=1, beta=1.)
-problem.problems["pnp"].method["iterative"] = iterative
-problem.problems["stokes"].method["iterative"] = iterative
-pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=inewton, ipicard=ipicard, tolnewton=1e-2, verbose=True, nverbose=True)
-#pnps3D.uniform_refinement = True
-pnps3D.marking_fraction = 1.
-pnps3D.maxcells = nmax3D
-#plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
-#plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1)
-#plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"c+ PB":lambda x: cpPB(0.)}, (-Rz, Rz, 101), "y", dim=2, 
-            axlabels=("z [nm]", "concentration [mol/m**3]"))
-pnps3D.solve(refinement=True, inside_loop=saveJ)
+# --- define 2D and 3D problem ---
+def solve_pnps_2D(domain2D, h2D):
+    global Dstr
+    Dstr = " (2D)"
+    geo2D = domain2D.create_geometry(lc=h2D)
+    print "Number of cells (2D):", geo2D.mesh.num_cells()
+    
+    phys2D = Physics("pore", geo2D, **phys_params)
+    
+    problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
+    pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=20, tolnewton=1e-2, verbose=False)
+    pnps2D.single_solve()
+    return pnps2D
+
+def solve_pnps_3D(domain3D, h3D):
+    global Dstr
+    Dstr = " (3D)"
+    geo3D = domain3D.create_geometry(lc=h3D)
+    print "Number of cells (3D):", geo3D.mesh.num_cells()
+    #domain3D.plot()
+    plot(geo3D.subdomains, title="initial")
+    # this causes geo to automatically snap boundaries when adapting
+    geo3D.curved = dict(wall = cyl.snap)
+    phys3D = Physics("pore", geo3D, **phys_params)
+    problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservative=False, ku=1, beta=1.)
+    problem.problems["pnp"].method["iterative"] = iterative
+    problem.problems["stokes"].method["iterative"] = iterative
+    pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=inewton, ipicard=ipicard, tolnewton=1e-2, verbose=True, nverbose=True)
+    #plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
+    #plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1)
+    #plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+    plot1D({"c+ PB":lambda x: cpPB(0.)}, (-Rz, Rz, 101), "y", dim=2, 
+                axlabels=("z [nm]", "concentration [mol/m**3]"))
+    pnps3D.single_solve()
+    return pnps3D
+
+# --- uniform refinement loop ---
+# FIXME: unfinished
+def uniform_loop(domain, hrange, solve):
+    for h in hrange:
+        pnps = solve(domain, h)
+        saveJ(pnps)
+
 
 # --- visualization ---
 pnps2D.estimators["(Jh - J)/J (2D)"].plot(rate=-1.)
