@@ -14,7 +14,7 @@ print "Number of elements:", geo.mesh.num_cells()
 print "Number of vertices:", geo.mesh.num_vertices()
 #finfet.plot()
 t = dolfin.Timer("init")
-phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=.2, vG=.2)
+phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=None, vG=None, vS=None)
 phys.add_dopants
 #print phys
 #dolfin.plot(geo.submesh("sourcendrain"))
@@ -42,7 +42,10 @@ mun = 1000*cm**2
 mup = 100*cm**2
 L = geo.params["length"]
 Lfin = geo.params["lfin"]
-E = (phys.vD - phys.vS)/L
+try:
+    E = (phys.vD - phys.vS)/L
+except:
+    E = 0.
 
 jn = Constant(mun*qq*E)*n
 jp = Constant(mup*qq*E)*p

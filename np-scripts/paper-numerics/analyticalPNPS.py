@@ -292,23 +292,23 @@ plot1D({
 plot1D({"c+ (2D)": cp, "c- PNP (2D)": cm}, 
     (-Rz, Rz, 101), "z", origin=(.0, 0., 0.), dim=3, axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
 """
-plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"uz (2D)":u0[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-plot1D({"uz (3D)":u[2]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#plot1D({"uz (2D)":u0[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"uz (3D)":u[2]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
-plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-plot1D({"ur (3D)":u[0]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"ur (3D)":u[0]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
-plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
+#plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+#plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 
 pnps2D.estimators["(J_h - J)/J (2D)"].newtonplot()
 pnps3D.estimators["(J_h - J)/J (3D)"].newtonplot(fig=False)
 #pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
-saveplots("anaPNPS", meta=PARAMS)
+#saveplots("anaPNPS", meta=PARAMS)
 showplots()
 

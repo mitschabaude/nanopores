@@ -541,7 +541,7 @@ def to_mesh(clscale=1., pid=""):
             f.write(repr(meta))
         physdom = meta.pop("physical_domain")
         physbou = meta.pop("physical_boundary")
-        # TODO: no interface for synonymes yet. maybe isn't needed if geo.import_synonymes() is works well.
+        # TODO: no interface for synonymes yet. maybe isn't needed if geo.import_synonymes() works well.
         return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
         
     return nanopores.Geometry(None, mesh)   

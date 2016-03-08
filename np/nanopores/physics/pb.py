@@ -58,7 +58,7 @@ class NonstandardPBProblem(GeneralNonlinearProblem):
     
     @staticmethod
     def bcs(V, geo):
-        return geo.pwconstBC(V, "bV")
+        return geo.pwBC(V, "bV")
     
         
 class LinearNonstandardPBProblem(GeneralLinearProblem):
