@@ -13,7 +13,7 @@ boxfields = True,
 )
 
 phys_params = dict(
-Membraneqs = -0.0,
+Membraneqs = -0.01,
 bulkcon = 3e2,
 bV = -.1,
 dnaqsdamp = .25
@@ -31,14 +31,25 @@ if geo.parameter("x0") is None:
     exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
     geo.import_synonymes({"moleculeb":set()})
     geo.import_synonymes(synonymes)
-
-pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys) #, cyl=True)
+"""
+# solve with hybrid method
+pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys, cyl=True)
 pnps.imax = 20
 pnps.newtondamp = 1.
-pnps.maxcells = 5e4
 t = Timer("solve")
-pnps.solve(refinement=False)
+pnps.solve()
 print "CPU time (solve): %s [s]" % (t.stop(),)
+print phys
+pnps.visualize()
+"""
+# solve with newton's method
+pnps = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True)
+pnps.imax = 20
+pnps.newtondamp = 1.
+t = Timer("solve")
+pnps.solve()
+print "CPU time (solve): %s [s]" % (t.stop(),)
+pnps.visualize()
 """
 tol = 1e-2
 damp = 1.
@@ -48,6 +59,7 @@ S.newtondamp = damp
 for i in range(20):
     #plot(pnps.functions.values()[0].sub(0)) # for debugging
     #interactive()
+    pnps.visualize()
     S.solve()
     print 'Relative L2 Newton error:',S.relerror()
     if S.convergence(tol):
@@ -57,9 +69,10 @@ for i in range(20):
         break
 print "Newton iterations:",i+1
 print 'Relative L2 Newton error:',S.relerror()
+
+pnps.visualize()
+
 """
 pnps.print_results()
 #pnps.estimators["est"].plot(rate=-.5)
-plot(geo.boundaries)
-pnps.visualize()
 

@@ -48,6 +48,7 @@ poisson = dict(
 )
 
 stokes = dict(
+    #reuse = False, # DEBUG
     reuse = True,
     iterative = False,
     lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
@@ -59,7 +60,7 @@ stokes = dict(
     kp = "hypre_euclid",
     fieldsplit = False, #True,
     kparams = dict(
-        maximum_iterations = 5000,
+        maximum_iterations = 100,
         monitor_convergence = False,
         # large rel.tol. together with nonzero initial guess = bad idea!!!
         relative_tolerance = 1e-8,
@@ -70,6 +71,6 @@ stokes = dict(
         error_on_nonconvergence = False,
         preconditioner = dict(
             report = False,
-            structure = "same_nonzero_pattern",
+            #structure = "same_nonzero_pattern",
             ilu = dict(fill_level = 1)))
 )

@@ -8,7 +8,7 @@ from nanopores.physics.simplepnps import *
 bV = -0.05 # [V]
 rho = -0.025 # [C/m**2]
 initialh = .1
-Nmax = 1e1
+Nmax = 1e4
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -147,9 +147,11 @@ def saveJ(self):
     self.save_estimate("(J_h - J)/J", abs((self.functionals["Jvol"].value()-J_PB)/J_PB), 
     N=self.solution.function_space().dim())
 
-# solve    
-pnps = solve_pde(SimplePNPProblem, geo2D, phys, cyl=True, newtondamp=1., goals=[J], inside_loop=saveJ, 
+# solve    #inside_loop=saveJ, 
+pnps = solve_pde(SimplePNPProblem, geo2D, phys, cyl=True, newtondamp=1., goals=[J], 
     refinement=True, marking_fraction=.5, maxcells=Nmax, iterative=False)
+pnps.visualize()
+exit()
 v, cp, cm = pnps.solutions()
 stokes = solve_pde(SimpleStokesProblem, geo2D, phys, cyl=True, conservative=False, f=-cFarad*(cp-cm)*grad(v), ku=2, beta=0.)
 

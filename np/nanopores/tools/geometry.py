@@ -162,6 +162,8 @@ class Geometry(object):
             for key, val in value.items():
                 if val is not None:
                     if isinstance(val, GenericFunction):
+                        #print type(val)
+                        #print val.__class__
                         bcs.append(self.BC(V, val, key))
                     elif isinstance(val, float) or isinstance(val, tuple):
                         bcs.append(self.BC(V, Constant(val), key))
@@ -248,14 +250,25 @@ class Geometry(object):
                 "This geometry has not implemented '%s'" %string)
 
     def adapt(self,mesh):
+        # save history of past meshes and meshfunctions
+        # --> to prevent segfaults because the old stuff gets garbage-collected!
+        if not hasattr(self, "old"):
+            self.old = []
+        self.old.append((self.mesh, self.subdomains, self.boundaries))
+        
         self.mesh = mesh
         #print "subdomain id (geo):",self.subdomains.id()
-        self.subdomains = adaptmeshfunction(self.subdomains,mesh)
-        self.boundaries = adaptmeshfunction(self.boundaries,mesh)
+        self.subdomains = adaptmeshfunction(self.subdomains, mesh)
+        self.boundaries = adaptmeshfunction(self.boundaries, mesh)
         #plot(self.boundaries, interactive=True)
         #print "subdomain id (geo):",self.subdomains.id()
         for f in self.dg.values():
             adaptfunction(f, mesh, interpolate=True, assign=True)
+            
+        # if curved boundaries are defined, snap back those
+        if hasattr(self, "curved"):
+            for boundary, snap in self.curved.items():
+                self.snap_to_boundary(boundary, snap)
 
     # alternative to adapt, should be overwritten dynamically
     rebuild = adapt
@@ -331,6 +344,24 @@ class Geometry(object):
         if callable:
             return CallableMeshFunction(chi)
         return chi
+        
+    def snap_to_boundary(self, name, snap, smooth=False):
+        mesh = self.mesh
+        # get vertices that lie on the boundary (via BC for CG1 function)
+        V = FunctionSpace(mesh, 'CG', 1)
+        bc = self.BC(V, 1., name)
+        u = Function(V)
+        bc.apply(u.vector())
+        d2v = dof_to_vertex_map(V)
+        vertices_on_boundary = d2v[u.vector() == 1.0]
+
+        # snap those vertices
+        for v in vertices_on_boundary:
+            x = mesh.coordinates()[v]
+            snap(x)
+            mesh.geometry().set(v, x)
+        if smooth:
+            mesh.smooth(1)
 
     def _neumann_lookup(self, bou2phys, value):
         bou2value = {}
@@ -434,14 +465,11 @@ class PhysicalBC(object):
     def function_space(self):
         return self.bcs[0].function_space() if self.bcs else self.V
 
-    def homogenize(self): # TODO: arbitrary tensors
+    def homogenized(self): # TODO: arbitrary tensors
         shape = self.g.shape()
-        c = tuple(0. for i in range(shape[0])) if shape else 0.
-        self.g = Constant(c)
-        self.realize(self.geo)
-            
-        #for bc in self.bcs:
-        #    bc.homogenize()
+        c = Constant(tuple(0. for i in range(shape[0])) if shape else 0.)
+        return PhysicalBC(self.V, c, self.description, self.geo)
+
 
 
 def _wrapf(f):
@@ -449,7 +477,7 @@ def _wrapf(f):
 # for easy specification of Dirichlet or Neumann data
     if isinstance(f, GenericFunction) or isinstance(f, ufl.core.expr.Expr):
         return f
-    elif isinstance(f, float) or isinstance(f, tuple):
+    elif isinstance(f, float) or isinstance(f, int) or isinstance(f, tuple):
         return Constant(f)
     else:
         dolfin_error(__name__+".py", "use given function",

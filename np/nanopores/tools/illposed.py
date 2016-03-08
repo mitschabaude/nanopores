@@ -12,7 +12,7 @@ __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
 
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
-    stab = 1e9
+    stab = 1e9 #TODO ???
 
     def __init__(self, problem, **method):
         if not isinstance(problem, AdaptableLinearProblem):
@@ -27,7 +27,7 @@ class IllposedLinearSolver(object):
                                lusolver="mumps",)
         if method:
             self.method.update(method)
-                               
+                       
         self.illposed = ("illposed" not in self.method) or self.method["illposed"]
         self.problem = problem
         
@@ -41,7 +41,8 @@ class IllposedLinearSolver(object):
     def assemble_A(self):
         #print ("Process %s: I'm assembling a system of size %s now!" % 
         #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
-        A = assemble(self.problem.a,keep_diagonal=True)
+        #print "DEBUG, form:\n", self.problem.a
+        A = assemble(self.problem.a, keep_diagonal=True)
         for bc in self.problem.bcs:
             bc.apply(A)
         if self.illposed:
@@ -123,12 +124,21 @@ class IllposedLinearSolver(object):
             print "Solving system iteratively with PETSc fieldsplit ..."
             self.S.solve(l, x)
             u.vector().set_local(x.array.astype("float_"))
+        elif isinstance(self.S, PETScKrylovSolver):
+            i = self.S.solve(u.vector(),b)
+            # print DEBUG
+            if not "kparams" in self.method or i < self.method["kparams"]["maximum_iterations"]:
+                print "    PETSc Krylov solver converged in %d iterations." %i
+            else:
+                print "    PETSc Krylov solver failed to converge in %d iterations." %i
         else:
             #print "DEBUG: dim u", u.vector().array().shape
             #print "DEBUG: dim b", b.array().shape
             self.S.solve(u.vector(),b)
                            
     def adapt(self,mesh):
+        """NOTE TO SELF: if assemble isn't working after adapt,
+        check if in adaptform() EVERYTHING in this form is adapted to new mesh."""
         # adapt problem to new mesh.
         # RETURNS adapted SOLUTION because it may be needed by user
         # ATTENTION: doesn't adapt functions, calling replace() may be
@@ -204,7 +214,8 @@ class AdaptableLinearProblem(object):
         self.bcs = [bc.adapt(mesh,V,self.boundaries) for bc in self.bcs]
         self.a = adaptform(self.a,mesh)
         self.L = adaptform(self.L,mesh)		
-        adaptfunction(self.u,mesh,interpolate=False,assign=True)
+        adaptfunction(self.u, mesh, interpolate=False, assign=True)
+        return V
         
     def solution(self):
         return self.u
@@ -214,14 +225,23 @@ class AdaptableLinearProblem(object):
     
 class AdaptableNonlinearProblem(AdaptableLinearProblem):
     # TODO: compute Jacobian automatically, tolnewton etc.
-    def __init__(self,a,L,uold,bcs=None,boundaries=None):		
+    def __init__(self, a, L, uold, bcs=None, boundaries=None):
         self.uold = _extract_u(uold)
+        self.bcs1 = _extract_bcs(bcs)
+        bcs0 = []
+        for bc in bcs:
+            bc.apply(self.uold.vector())
+            bcs0.append(bc.homogenized()) # FIXME: this severely limits bcs to PhysicalBC type
+    	
         u = Function(self.uold.function_space())
-        AdaptableLinearProblem.__init__(self,a,L,u,bcs,boundaries)
+        AdaptableLinearProblem.__init__(self, a, L, u, bcs0, boundaries)
         
-    def adapt(self,mesh):
-        AdaptableLinearProblem.adapt(self,mesh)
-        adaptfunction(self.uold,mesh,interpolate=True,assign=True)
+    def adapt(self, mesh):
+        V = AdaptableLinearProblem.adapt(self, mesh)
+        adaptfunction(self.uold, mesh, interpolate=True, assign=True)
+        self.bcs1 = [bc.adapt(mesh, V, self.boundaries) for bc in self.bcs1]
+        for bc in self.bcs1:
+            bc.apply(self.uold.vector())
         
     def increment(self):
         return self.u
@@ -238,6 +258,7 @@ class AdaptableBC(DirichletBC):
                          "Currently only implements BC defined by a MeshFunctionSizet")
         self.boundaries = boundaries
         self.i = i
+        self.g = g
         DirichletBC.__init__(self, V, g, boundaries, i, method)
             
     def adapt(self,mesh,V=None,boundaries=None):
@@ -254,9 +275,14 @@ class AdaptableBC(DirichletBC):
         if not boundaries:
             boundaries = adaptmeshfunction(self.boundaries,mesh)
         self.boundaries = boundaries
-        g = self.value()		
-        if isinstance(g,Function):
-            g = adaptfunction(g,mesh)
+        g = self.g #value()
+        #print g.__class__    
+        if isinstance(g, Function):
+            g = adaptfunction(g, mesh)
+        elif isinstance(g, GenericFunction) and not isinstance(g, Constant):  
+            #print g.__dict__ # FIXME
+            g = g.__class__()
+        
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())
             
 class Functional(object):
@@ -367,11 +393,33 @@ def adaptform(form,mesh,adapt_coefficients=False):
             adaptcoefficient(coeff,mesh) #MOD
             #newcoeff = adaptcoefficient(coeff,mesh)
             #mapping[coeff] = newcoeff
+    
+    # TODO: is there more? is there a better way to ensure everything is adapted?
     # adapt FacetNormal
     mapping[FacetNormal(oldmesh)] = FacetNormal(mesh)
+    # adapt CellSize -- have to use ufl.Circumradius or replace() complains
+    mapping[ufl.Circumradius(oldmesh)] = ufl.Circumradius(mesh)
     
-    newform = replace(newform,mapping)
+    newform = replace(newform, mapping)
     return newform
+    
+def _compute_renumbering(self):
+    # Include integration domains and coefficients in renumbering
+    dn = self.domain_numbering()
+    cn = self.coefficient_numbering()
+    renumbering = {}
+    renumbering.update(dn)
+    renumbering.update(cn)
+
+    # Add domains of coefficients, these may include domains not among integration domains
+    k = len(dn)
+    for c in cn:
+        d = c.domain()
+        if d is not None and d not in renumbering:
+            renumbering[d] = k
+            k += 1
+
+    return renumbering
 
 def adaptmeshfunction(meshfunction,mesh):
     #print "Meshfunction has child:", meshfunction.has_child()

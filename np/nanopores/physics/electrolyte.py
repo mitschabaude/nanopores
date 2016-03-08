@@ -8,12 +8,12 @@ T = 293 # temperature [K]
 bulkcon = 300. # bulk concentration of ions [mol/m**3]
 D = 1.9e-9  # diffusivity [m^2/s]
 
-kT = lambda: kB*T
-UT = lambda: kB*T/qq
-mu = lambda: D*qq/(kB*T) # mobility [m^2/Vs]
-cFarad = lambda: qq*mol  # Faraday constant [C/mol]
-debye = lambda: dolfin.sqrt(rpermw*eperm*kB*T/qq**2/2/mol/bulkcon)  # debye length [m]
-bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrolyte bulk conductivity [S/m]
+kT = lambda T: kB*T
+UT = lambda kT: kT/qq
+mu = lambda D, kT: D*qq/kT # mobility [m^2/Vs]
+cFarad = qq*mol  # Faraday constant [C/mol]
+debye = lambda bulkcon, kT: dolfin.sqrt(rpermw*eperm*kT/qq**2/2/mol/bulkcon)  # debye length [m]
+bulkconduct = lambda bulkcon, mu: 2.*bulkcon*cFarad*mu # electrolyte bulk conductivity [S/m]
 
 
 # piece-wise boundary conditions

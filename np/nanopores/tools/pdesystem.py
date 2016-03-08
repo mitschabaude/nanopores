@@ -18,6 +18,7 @@ class PDESystem(object):
     imax = 100
     maxcells = 10000
     marking_fraction = 0.8
+    uniform_refinement = False
 
     def __init__(self, geo=None, solvers={}, functions={}, functionals={}):
         self.geo = geo
@@ -35,8 +36,9 @@ class PDESystem(object):
         for i in range(self.imax):
             if verbose:
                 print '\n- Loop ' +str(i+1) + ' of max.', self.imax
+                print "  Degrees of freedom: %d" % (sum(u.function_space().dim() for u in self.solutions()),)
 
-            self.single_solve(inside_loop=inside_loop)
+            self.single_solve() #inside_loop=inside_loop)
             if verbose:
                 self.print_functionals()
             if inside_loop is not None:
@@ -67,24 +69,35 @@ class PDESystem(object):
             N = self.geo.mesh.num_cells()
         self.estimators[string] += N, err
 
-    def estimate(self):
+    def estimate_uniform(self):
+        "the trivial indicator"
+        # for uniform refinement 
+        # TODO: does not work with doerfler marking
+        return None, 1.
+    
+    def estimate_zz(self):
         """ simple zz indicator, estimator """
         # just to have a basic estimation tool when nothing is defined
         u = self.solutions()[0]
         mesh = self.geo.mesh
         ind, err = zz_indicator(u)
         return ind, err
+        
+    estimate = estimate_zz #uniform
 
     def single_solve(self, **other):
         for S in self.solvers.values(): S.solve()
 
-    def refine(self,ind):
+    def refine(self, ind):
         mesh0 = self.geo.mesh
         mesh = self.refine_mesh(ind)
+
+        #plot(mesh0)
+        #plot(mesh, interactive=True)
         #self.adapt(mesh)
 
         if mesh.num_cells() > self.maxcells:
-            self.geo.mesh = mesh0
+            #self.geo.mesh = mesh0
             return False
 
         self.adapt(mesh)
@@ -93,14 +106,15 @@ class PDESystem(object):
     def refine_mesh(self, ind):
         mesh = self.geo.mesh
 
-        markers = CellFunction("bool",mesh)
-        indicators = CellFunction("double",mesh)
-        # TODO: parallel + efficient
-        for c in cells(mesh):
-            indicators[c] = ind(c.midpoint())
+        markers = CellFunction("bool", mesh, True)
+        if not self.uniform_refinement:
+            indicators = CellFunction("double", mesh)
+            # TODO: parallel + efficient
+            for c in cells(mesh):
+                indicators[c] = ind(c.midpoint())
 
-        # MARK
-        dorfler_mark(markers, indicators, self.marking_fraction)
+            # MARK
+            dorfler_mark(markers, indicators, self.marking_fraction)
 
         # REFINE
         # TODO: use refine? adapt seems to crash more easily
@@ -110,9 +124,13 @@ class PDESystem(object):
 
     def adapt(self, mesh):
         self.geo.adapt(mesh)
-
-        for S in self.solvers.values():
+        
+        for name, S in self.solvers.items():
+            print "Adapting %s." % name
             S.adapt(mesh)
+
+        #for S in self.solvers.values():
+        #    S.adapt(mesh)
 
         functions = tuple(self.functions.values())
         for S in self.solvers.values():
@@ -232,8 +250,9 @@ def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass):
     else:
         if verbose: print "Did not reach tol."
         converged = False
-    print "     Newton iterations:",i+1
-    print '     Relative L2 Newton error:',S.relerror()
+    if verbose:
+        print "     Newton iterations:",i+1
+        print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
     
@@ -290,8 +309,8 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
     pde.add_functionals(goals)
         
     t = Timer("solve")
-    #pde.solve(refinement=refinement, inside_loop=inside_loop)
-    pde.single_solve(inside_loop=inside_loop)
+    pde.solve(refinement=refinement, inside_loop=inside_loop)
+    #pde.single_solve(inside_loop=inside_loop)
     print "CPU time (solve): %s [s]" % (t.stop(),)
     
     if visualize:
@@ -428,9 +447,6 @@ class GeneralNonlinearProblem(AdaptableNonlinearProblem):
         
         if not bcs:
             bcs = _call(self.bcs, params)
-        for bc in bcs:
-            bc.apply(u.vector())
-            bc.homogenize()
         
         a, L = _call(self.forms, params)
         AdaptableNonlinearProblem.__init__(self, a, L, u, bcs, geo.boundaries)
@@ -528,7 +544,7 @@ class CoupledProblem(object):
         
 class CoupledSolver(PDESystem):
     params = dict(inewton = 10, ipicard = 10,
-        tolnewton = 1e-4, damp = 1., nverbose=False)
+        tolnewton = 1e-4, damp = 1., verbose=True, nverbose=False)
 
     def __init__(self, coupled, goals=[], **solverparams):
                 
@@ -551,12 +567,13 @@ class CoupledSolver(PDESystem):
     
     # TODO: good stopping criterion
     # TODO: explore possibility to choose newton tol adaptively
-    def single_solve(self, tol=None, damp=None, verbose=True, inside_loop=_pass):
+    def single_solve(self, tol=None, damp=None, inside_loop=_pass):
         if tol is None: tol = self.params["tolnewton"]
         if damp is None: damp = self.params["damp"]
         I = self.params["ipicard"]
         J = self.params["inewton"]
         nverbose = self.params["nverbose"]
+        verbose = self.params["verbose"]
         times = {name : 0. for name in self.solvers}
     
         for i in range(1, I+1):
