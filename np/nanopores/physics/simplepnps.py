@@ -6,7 +6,8 @@ from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProbl
 from nanopores.physics.params_physical import *
 
 #__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
-__all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "PNPSHybrid"]
+__all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "SimplePoissonProblem",
+           "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint"]
 
 # --- Problems ---
 
@@ -120,24 +121,68 @@ class SimplePoissonProblem(GeneralLinearProblem):
         return FunctionSpace(mesh, 'CG', k)
 
     @staticmethod
-    def forms(V, geo, phys, u, cyl=False):
+    def forms(V, geo, phys, f=None, dxf=None, cyl=False):
         dx = geo.dx()
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
         eps = geo.pwconst("permittivity")
         
+        v = TrialFunction(V)
         w = TestFunction(V)
-        apoisson = inner(eps*grad(u), grad(w))*r2pi*dx
+        
+        a = inner(eps*grad(v), grad(w))*r2pi*dx
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
-        L = apoisson - Lqvol - Lqsurf
-        a = derivative(L, u)
+        L = Lqvol + Lqsurf
+        if f is not None:
+            L = L + f*w*r2pi*dxf
         return a, L
     
     @staticmethod
     def bcs(V, geo, phys):
-        return geo.pwconstBC(V, "v0")  
+        return geo.pwBC(V, "v0")
+        
+        
+class SimpleNernstPlanckProblem(GeneralLinearProblem):
+    method = dict(solvermethods.bicgstab)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, "CG", k)
+        
+    @staticmethod
+    def initial_u(V, phys):
+        u = Function(V)
+        u.interpolate(Constant(phys.bulkcon))
+        return u
+
+    @staticmethod
+    def forms(V, geo, phys, z, E, D=None, ustokes=None, cyl=False):
+        if ustokes is None:
+            dim = phys.dim
+            ustokes = Constant(tuple(0. for i in range(dim)))
+        if D is None:
+            D = geo.pwconst("D")
+            
+        dx = geo.dx("fluid")
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+        kT = Constant(phys.kT)
+        q = Constant(phys.qq)
+        
+        c = TrialFunction(V)
+        d = TestFunction(V)
+        
+        J = -D*grad(c) + z*q*D/kT*E*c + c*ustokes
+        a = inner(J, grad(d))*r2pi*dx
+        L = Constant(0.)*d*dx
+        return a, L
+            
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwBC(V, "c0")  
 
 
 class SimpleStokesProblem(GeneralLinearProblem):
@@ -225,5 +270,69 @@ class PNPSHybrid(CoupledSolver):
         problem.problems["stokes"].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
     
+# --- fixed-point solvers ---
 
+class PNPFixedPoint(CoupledSolver):
+
+    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+        problems = OrderedDict([
+            ("poisson", SimplePoissonProblem),
+            ("npp", SimpleNernstPlanckProblem),
+            ("npm", SimpleNernstPlanckProblem),
+            ])
+
+        def couple_poisson(unpp, unpm, geo, phys):
+            f = phys.cFarad*(unpp - unpm)
+            dxf = geo.dx("fluid")
+            return dict(f=f, dxf=dxf)   
+        def couple_npp(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dp")
+            return dict(z=1., E=E, D=D)
+        def couple_npm(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dm")
+            return dict(z=-1., E=E, D=D)
+            
+        couplers = dict(poisson = couple_poisson, npp = couple_npp, npm = couple_npm)
+    
+        problem = CoupledProblem(problems, couplers, geo, phys, **params)
+        for name in problems:
+            problem.problems[name].method["iterative"] = iterative
+        CoupledSolver.__init__(self, problem, goals, **params)
+        
+
+class PNPSFixedPoint(CoupledSolver):
+
+    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+        problems = OrderedDict([
+            ("poisson", SimplePoissonProblem),
+            ("npp", SimpleNernstPlanckProblem),
+            ("npm", SimpleNernstPlanckProblem),
+            ("stokes", SimpleStokesProblem),])
+
+        def couple_poisson(unpp, unpm, geo, phys):
+            f = phys.cFarad*(unpp - unpm)
+            dxf = geo.dx("fluid")
+            return dict(f=f, dxf=dxf)   
+        def couple_npp(upoisson, ustokes, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dp")
+            return dict(z=1., E=E, D=D, ustokes=ustokes.sub(0))
+        def couple_npm(upoisson, ustokes, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dm")
+            return dict(z=-1., E=E, D=D, ustokes=ustokes.sub(0))
+        def couple_stokes(upoisson, unpp, unpm, phys):
+            v, cp, cm = upoisson, unpp, unpm
+            f = -phys.cFarad*(cp - cm)*grad(v)
+            return dict(f = f)
+            
+        couplers = dict(poisson = couple_poisson, npp = couple_npp,
+                        npm = couple_npm, stokes = couple_stokes)
+    
+        problem = CoupledProblem(problems, couplers, geo, phys, **params)
+        for name in problems:
+            problem.problems[name].method["iterative"] = iterative
+        CoupledSolver.__init__(self, problem, goals, **params)
 
