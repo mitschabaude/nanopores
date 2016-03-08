@@ -1,12 +1,12 @@
 """ Stripped-down, cleaner variants of PNPS allowing more general geometries """
 
 from dolfin import *
-
-from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem, GeneralLinearProblem
+from collections import OrderedDict
+from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver
 from nanopores.physics.params_physical import *
 
 #__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
-#__all__ = ["SimplePNPProblem", "SimplePBProblem"]
+__all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "PNPSHybrid"]
 
 # --- Problems ---
 
@@ -151,7 +151,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         return U*P
 
     @staticmethod
-    def forms(V, geo, phys, f=None, cyl=False, beta=0.01, conservative=True):
+    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True):
         # beta = stabilization parameter, TODO: better lower in 2D?
         mesh = geo.mesh
         if f is None:
@@ -171,7 +171,6 @@ class SimpleStokesProblem(GeneralLinearProblem):
         h = CellSize(mesh)
         delta = Constant(beta/lscale**2)*h**2
         eta = Constant(phys.eta)
-        
         def eps(u): return Constant(2.)*sym(grad(u))
 
         # conservative formulation for correct BC, with added stabilization term
@@ -204,6 +203,27 @@ class SimpleStokesProblem(GeneralLinearProblem):
     def bcs(V, geo):
         return geo.pwBC(V.sub(0), "noslip") + geo.pwBC(V.sub(1), "pressure")
         
-        
+# --- hybrid solver ---
+
+class PNPSHybrid(CoupledSolver):
+    
+    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+        problems = OrderedDict([
+            ("pnp", SimplePNPProblem),
+            ("stokes", SimpleStokesProblem),])
+
+        def couple_pnp(ustokes):
+            return dict(ustokes = ustokes.sub(0))
+        def couple_stokes(upnp, phys):
+            v, cp, cm = upnp.split()
+            f = -phys.cFarad*(cp - cm)*grad(v)
+            return dict(f = f)
+        couplers = dict(pnp = couple_pnp, stokes = couple_stokes)
+    
+        problem = CoupledProblem(problems, couplers, geo, phys, **params)
+        problem.problems["pnp"].method["iterative"] = iterative
+        problem.problems["stokes"].method["iterative"] = iterative
+        CoupledSolver.__init__(self, problem, goals, **params)
+    
 
 

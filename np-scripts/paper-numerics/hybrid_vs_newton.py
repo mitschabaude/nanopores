@@ -1,6 +1,23 @@
 from dolfin import *
 from nanopores import *
 from nanopores.physics.simplepnps import *
+from mysolve import hybrid_solve, newton_solve
+
+add_params(
+bV = -0.1, # [V]
+dnaqsdamp = .25,
+h = .5,
+damp = 1.,
+bulkcon = 300.,
+tol = 1e-15,
+imax = 10,
+taylorhood = False,
+Rx = 8e-9,
+Ry = 8e-9,
+l0 = 9e-9,
+iterative = False,
+)
+print PARAMS
 
 geo_name = "H_geo"
 nm = 1e-9
@@ -8,71 +25,77 @@ nm = 1e-9
 geo_params = dict(
 x0 = None,
 boxfields = True,
-#Rx = 300*nm,
-#Ry = 30*nm,
+Rx = Rx,
+Ry = Ry,
+l0 = l0
 )
 
 phys_params = dict(
-Membraneqs = -0.01,
-bulkcon = 3e2,
-bV = -.1,
-dnaqsdamp = .25
+Membraneqs = -0.00,
+bulkcon = bulkcon,
+bV = bV,
+dnaqsdamp = dnaqsdamp,
 )
 
-generate_mesh(.5, geo_name, **geo_params)
+generate_mesh(h, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore", geo, **phys_params)
 
-plot(geo.subdomains)
 plot(geo.boundaries)
-print geo
+print "number of elements: ", geo.mesh.num_cells()
+print "number of vertices: ", geo.mesh.num_vertices()
 
 if geo.parameter("x0") is None:
     exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
     geo.import_synonymes({"moleculeb":set()})
     geo.import_synonymes(synonymes)
-"""
-# solve with hybrid method
-pnps = NonlinearPDE(geo, SimplePNPProblem, phys=phys, cyl=True)
-pnps.imax = 20
-pnps.newtondamp = 1.
+    
+if not taylorhood:
+    ku = 1
+    beta = .01
+else:
+    ku = 2
+    beta = .0
+
+print
+print "# solve with hybrid method"
+pnps = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
+    inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True, iterative=iterative)
 t = Timer("solve")
-pnps.solve()
+hybrid_solve(pnps)
 print "CPU time (solve): %s [s]" % (t.stop(),)
-print phys
-pnps.visualize()
-"""
-# solve with newton's method
-pnps = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True)
-pnps.imax = 20
-pnps.newtondamp = 1.
+#pnps.visualize()
+
+print
+print "# solve with newton's method"
+SimplePNPSProblem.method["iterative"] = iterative
+pnpsN = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True, beta=beta, ku=ku)
+pnpsN.imax = imax
+pnpsN.newtondamp = damp
+pnpsN.tolnewton = tol
 t = Timer("solve")
-pnps.solve()
+newton_solve(pnpsN)
 print "CPU time (solve): %s [s]" % (t.stop(),)
-pnps.visualize()
-"""
-tol = 1e-2
-damp = 1.
-S = pnps.solvers.values()[0] 
-S.newtondamp = damp
+#pnps.visualize()
 
-for i in range(20):
-    #plot(pnps.functions.values()[0].sub(0)) # for debugging
-    #interactive()
-    pnps.visualize()
-    S.solve()
-    print 'Relative L2 Newton error:',S.relerror()
-    if S.convergence(tol):
-        print 'linf Norm of Newton update:', \
-                    norm(S.problem.u.vector(),'linf'), \
-                    '<=', tol ,' \n  ==> break loop \n'
-        break
-print "Newton iterations:",i+1
-print 'Relative L2 Newton error:',S.relerror()
+v, cp, cm, u, p = pnps.solutions()
+vN, cpN, cmN, uN, pN = pnpsN.solutions()
+#plot(v - vN)
+#plot(u - uN)
+#interactive()
 
-pnps.visualize()
+# plot
+from matplotlib import pyplot
+pnps.estimators["err hybrid i"].newtonplot()
+pnpsN.estimators["err newton i"].newtonplot(fig=False)
 
-"""
-pnps.print_results()
-#pnps.estimators["est"].plot(rate=-.5)
+pnps.estimators["err hybrid time"].newtonplot()
+pnpsN.estimators["err newton time"].newtonplot(fig=False)
+pyplot.xlabel("time [s]")
+pyplot.xscale("log")
+
+#saveplots("hybrid_vs_newton", PARAMS)
+showplots()
+
+
 

@@ -239,20 +239,17 @@ def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass):
         #plot(self.solution) # for debugging
         inside_loop()
         if verbose:
-            print 'Relative L2 Newton error:',S.relerror()
+            print '     Relative L2 Newton error:',S.relerror()
         if S.convergence(tol):
             if verbose:
-                print 'linf Norm of Newton update:', \
-                        norm(S.problem.u.vector(),'linf'), \
-                        '<=', tol ,' \n  ==> break loop'
+                print "     Break loop because tolerance %s was reached." %tol
             converged = True
             break
     else:
-        if verbose: print "Did not reach tol."
+        if verbose: print "     Did not reach tolerance %s." %tol
         converged = False
-    if verbose:
-        print "     Newton iterations:",i+1
-        print '     Relative L2 Newton error:',S.relerror()
+    print "     Newton iterations:",i+1
+        #print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
     
@@ -590,7 +587,7 @@ class CoupledSolver(PDESystem):
                     j, con = newtonsolve(solver, tol, damp, J, nverbose, lambda: inside_loop(self))
                     times[name] += t.stop()
                     if j==1 and con:
-                        print " Break at iteration %d because Newton stopped changing." %i
+                        print "- Break at iteration %d because Newton stopped changing." %i
                         break
             else: 
                 inside_loop(self)

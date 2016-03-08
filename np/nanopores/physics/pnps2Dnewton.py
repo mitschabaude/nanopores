@@ -12,7 +12,7 @@ parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 __all__ = ["PNPSAxisymNewton","PNPSProblemAxisym", "SimplePNPSProblem"]
 
 class SimplePNPSProblem(GeneralNonlinearProblem):
-    method = dict(solvermethods.bicgstab)
+    method = dict(solvermethods.gmres)
     method["iterative"] = False
     
     @staticmethod

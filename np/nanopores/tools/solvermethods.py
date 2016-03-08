@@ -16,6 +16,10 @@ bicgstab = dict(
     reuse = False,
     iterative = True,
     lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+    luparams = dict(
+        symmetric = False,
+        same_nonzero_pattern = True,
+        reuse_factorization = False,),
     ks = "bicgstab",
     kp = "hypre_euclid",
     kparams = dict(
@@ -48,8 +52,8 @@ poisson = dict(
 )
 
 stokes = dict(
-    #reuse = False, # DEBUG
-    reuse = True,
+    reuse = False, # DEBUG
+    #reuse = True,
     iterative = False,
     lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
     luparams = dict(
@@ -64,6 +68,32 @@ stokes = dict(
         monitor_convergence = False,
         # large rel.tol. together with nonzero initial guess = bad idea!!!
         relative_tolerance = 1e-8,
+        # absolute tolerance must not be too large compared with newton tol
+        # (but also not too low since that would be inefficient)
+        absolute_tolerance = 1e-5,
+        nonzero_initial_guess = True,
+        error_on_nonconvergence = False,
+        preconditioner = dict(
+            report = False,
+            #structure = "same_nonzero_pattern",
+            ilu = dict(fill_level = 1)))
+)
+
+gmres = dict(
+    reuse = False,
+    iterative = False,
+    lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+    luparams = dict(
+        symmetric = False,
+        same_nonzero_pattern = True,
+        reuse_factorization = False,),
+    ks = "gmres",
+    kp = "hypre_euclid",
+    kparams = dict(
+        maximum_iterations = 500,
+        monitor_convergence = False,
+        # large rel.tol. together with nonzero initial guess = bad idea!!!
+        relative_tolerance = 1e-12,
         # absolute tolerance must not be too large compared with newton tol
         # (but also not too low since that would be inefficient)
         absolute_tolerance = 1e-5,

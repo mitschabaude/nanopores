@@ -15,7 +15,7 @@ def solve(h):
     print "Number of elements:", geo.mesh.num_cells()
     print "Number of vertices:", geo.mesh.num_vertices()
     #finfet.plot()
-    phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=None, vG=None, vS=None)
+    phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=None, vG=0., vS=None)
     #phys.add_dopants
     t.stop()
 
@@ -79,8 +79,9 @@ print "Time for last solution:", tlast, "s"
 
 def err(uh):
     return errornorm(u, uh, "H1", degree_rise=deg)
-
+tic()
 errors = [err(uh) for uh in solutions]
+print "Time for norms:", toc(), "s"
 
 hplot("error", hs, errors, xlab="h [nm]", ylab="H1 error", rate=1.)
 hplot("work", hs, times, xlab="h [nm]", ylab="work [s]", rate=-3.)
