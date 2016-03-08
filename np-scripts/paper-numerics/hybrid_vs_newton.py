@@ -59,6 +59,7 @@ else:
 
 print
 print "# solve with hybrid method"
+SimpleStokesProblem.method["reuse"] = False
 pnps = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
     inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True, iterative=iterative)
 t = Timer("solve")

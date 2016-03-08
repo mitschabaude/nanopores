@@ -52,8 +52,8 @@ poisson = dict(
 )
 
 stokes = dict(
-    reuse = False, # DEBUG
-    #reuse = True,
+    #reuse = False, # DEBUG
+    reuse = True,
     iterative = False,
     lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
     luparams = dict(
