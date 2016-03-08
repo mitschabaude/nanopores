@@ -262,6 +262,6 @@ pnps2D.estimators["(Jh - J)/J (2D)"].plot(rate=-1.)
 pnps3D.estimators["(Jh - J)/J (3D)"].plot(rate=-2./3, fig=False)
 
 pnps3D.visualize("cross")
-saveplots("anaPNPSrefine", meta=PARAMS)
+#saveplots("anaPNPSrefine", meta=PARAMS)
 showplots()
 

@@ -35,7 +35,6 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         dx_ions = geo.dx("fluid")
         n = FacetNormal(geo.mesh)
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
-        print "DEBUG", r2pi([0.0, 0.0])
         lscale = Constant(phys.lscale)
         grad = phys.grad
 
@@ -186,6 +185,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
                  - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
             
+        # optional non-conservative formulation with neumann BC n*grad(u) = 0
         if not conservative and cyl:
             a = (eta*inner(grad(u), grad(v))*r + eta*u[0]*v[0]/r - \
                 inner(v, grad(p))*r + q*(u[0] + div(u)*r))*pi2*dx - \
@@ -196,9 +196,8 @@ class SimpleStokesProblem(GeneralLinearProblem):
                 - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
         
-            #FIXME
-            #p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
-        # TODO: include preconditioning form in some way
+        # TODO: be able to include preconditioning form
+        # p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         return a, L
         
     @staticmethod

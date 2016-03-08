@@ -12,7 +12,7 @@ __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
 
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
-    stab = 1e0 #1e9 #TODO ???
+    stab = 1e9 #TODO ???
 
     def __init__(self, problem, **method):
         if not isinstance(problem, AdaptableLinearProblem):
@@ -27,7 +27,7 @@ class IllposedLinearSolver(object):
                                lusolver="mumps",)
         if method:
             self.method.update(method)
-                               
+                       
         self.illposed = ("illposed" not in self.method) or self.method["illposed"]
         self.problem = problem
         

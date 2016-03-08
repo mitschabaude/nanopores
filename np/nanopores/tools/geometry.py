@@ -477,7 +477,7 @@ def _wrapf(f):
 # for easy specification of Dirichlet or Neumann data
     if isinstance(f, GenericFunction) or isinstance(f, ufl.core.expr.Expr):
         return f
-    elif isinstance(f, float) or isinstance(f, tuple):
+    elif isinstance(f, float) or isinstance(f, int) or isinstance(f, tuple):
         return Constant(f)
     else:
         dolfin_error(__name__+".py", "use given function",
