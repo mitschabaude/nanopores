@@ -12,9 +12,9 @@ rDNA = 1.1*nm
 # molecule radius
 rMolecule = 0.5*nm
 # effective pore radius
-r0 = 2.5*nm
+r0 = 1.*nm
 # barrel outer radius
-r1 = 4.5*nm
+r1 = 2.5*nm
 # pore length
 l0 = 9.0*nm
 # membrane thickness

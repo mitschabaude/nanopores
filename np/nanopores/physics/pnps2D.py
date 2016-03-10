@@ -322,7 +322,16 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
         Lq = Lqvol + Lqsurf
 
         L = Lpoisson + LJm + LJp - Lq
-
+        
+        if not bcs:
+            try:
+                bcs = [geo.BC(X.sub(0), Constant(phys.bV), "bV")] if phys.bV else []
+                bcs += [geo.BC(X.sub(0), Constant(0.0), "ground"),
+                        geo.BC(X.sub(1), Constant(phys.bulkcon), "bulk"),
+                        geo.BC(X.sub(2), Constant(phys.bulkcon), "bulk")]
+            except:
+                warning("No boundary conditions have been assigned to %s" %type(self).__name__)
+        """
         if not bcs:
             try:
                 bcs = [geo.BC(X.sub(0), Constant(0.0), "bV")] if phys.bV else []
@@ -331,7 +340,7 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
                         geo.BC(X.sub(2), Constant(0.0), "bulk")]
             except:
                 warning("No boundary conditions have been assigned to %s" %type(self).__name__)
-
+        """
         AdaptableNonlinearProblem.__init__(self, a, L, x, bcs, geo.boundaries)
 
 

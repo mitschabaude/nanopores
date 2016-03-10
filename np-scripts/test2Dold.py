@@ -4,7 +4,7 @@ from dolfin import *
 
 geo_name = "H_geo"
 nm = 1e-9
-z0 = 2.*nm
+z0 = 7.5*nm
 
 geo_params = dict(
 #x0 = None,
@@ -13,7 +13,7 @@ x0 = [0.,0.,z0],
 rMolecule = 0.4*nm,
 #lcMolecule = nm*0.1,
 moleculeblayer = True,
-boxfields = False, #True,
+boxfields = True,
 #Rx = 300*nm,
 #Ry = 30*nm,
 )
@@ -25,7 +25,7 @@ Qmol = -1.*qq,
 bulkcon = 3e2,
 #lowerpbias = .01,
 #lowermbias = -.01,
-dnaqsdamp = 1.,
+dnaqsdamp = 0.1,
 bulkconFluo = 10e-3, # bulk concentration of fluorophore [mol/m**3]
 hReservoir = 1e-8, # height of cylindrical upper reservoir [m]
 #applylowerqs = True,
@@ -39,8 +39,6 @@ phys = Physics("pore_molecule", geo, **phys_params)
 print phys.charge
 
 plot(geo.mesh)
-plot(geo.subdomains)
-print geo
 #plot(geo.pwconst("initial_ions"))
 #plot(geo.pwconst("permittivity"))
 #interactive()
@@ -52,7 +50,6 @@ if geo.parameter("x0") is None:
     geo.import_synonymes(synonymes)
 
 IllposedNonlinearSolver.newtondamp = 1.
-StokesProblemAxisymEqualOrder.beta = .01
 
 PNPSAxisym.imax = 50
 PNPSAxisym.tolnewton = 1e-2
@@ -61,14 +58,13 @@ PNPSAxisym.alwaysstokes = True
 PNPProblemAxisym.method["iterative"] = False
 PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 
-phys.bV = 0.
 #pb = LinearPBAxisym(geo, phys)
 goal = (lambda v : phys.Fbare(v, 1)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = lambda v : phys.CurrentPB(v)
 pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
 
-pb.maxcells = 2e4
+pb.maxcells = 1e4
 pb.marking_fraction = 0.5
 pb.solve(refinement=True)
 
@@ -76,7 +72,7 @@ geo = pb.geo
 v0 = pb.solution
 
 #plot_on_sub(v0, geo, "pore", expr=-grad(v0)[1], title="E")
-phys.bV = -0.1
+
 #pnps = PNPSAxisym(geo, phys)
 pnps = PNPSAxisym(geo, phys, v0=v0)
 pnps.maxcells = 20e4
