@@ -3,7 +3,7 @@ from dolfin import *
 
 geo_name = "H_geo"
 nm = 1e-9
-z0 = 7.5*nm
+z0 = 0.5*nm
 
 geo_params = dict(
 #x0 = None,
@@ -12,7 +12,7 @@ x0 = [0.,0.,z0],
 rMolecule = 0.4*nm,
 #lcMolecule = nm*0.1,
 moleculeblayer = True,
-boxfields = True,
+boxfields = False, #True,
 #Rx = 300*nm,
 #Ry = 30*nm,
 )
@@ -20,19 +20,20 @@ boxfields = True,
 phys_params = dict(
 Membraneqs = -0.0,
 #bV = .1,
-Qmol = -1.*qq,
+#Qmol = -1.*qq,
 bulkcon = 3e2,
 #lowerpbias = .01,
 #lowermbias = -.01,
-dnaqsdamp = 0.1,
-bulkconFluo = 10e-3, # bulk concentration of fluorophore [mol/m**3]
-hReservoir = 1e-8, # height of cylindrical upper reservoir [m]
+dnaqsdamp = 0.25,
+#bulkconFluo = 10e-3, # bulk concentration of fluorophore [mol/m**3]
+#hReservoir = 1e-8, # height of cylindrical upper reservoir [m]
 #applylowerqs = True,
-couplebVtoQmol = True,
-bV0 = 0.01,
+#couplebVtoQmol = True,
+#bV0 = -0.1,
+bV = -0.1,
 )
 
-meshgen_dict = generate_mesh(.9, geo_name, **geo_params)
+meshgen_dict = generate_mesh(1., geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore_molecule", geo, **phys_params)
 print phys.charge
@@ -61,6 +62,7 @@ PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 goal = (lambda v : phys.Fbare(v, 1)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = lambda v : phys.CurrentPB(v)
+phys.bV = -0.0001
 pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
 
 pb.maxcells = 1e4
@@ -71,7 +73,7 @@ geo = pb.geo
 v0 = pb.solution
 
 #plot_on_sub(v0, geo, "pore", expr=-grad(v0)[1], title="E")
-
+phys.bV = phys_params["bV"]
 #pnps = PNPSAxisym(geo, phys)
 pnps = PNPSAxisym(geo, phys, v0=v0)
 pnps.maxcells = 20e4
