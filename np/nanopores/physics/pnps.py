@@ -307,7 +307,7 @@ class PNPS(PDESystem):
                 adaptfunction(f,mesh,assign=True)
 
         U = Function(v.function_space())
-        U.vector()[:] = (-1./self.phys.UT)*v.vector()[:]
+        U.vector()[:] = (1./self.phys.UT)*v.vector()[:]
         plot(mesh,title="final mesh"+on)
         plot(U, title='el. energy [kT]'+on)
         plot(cm, title='negative ion concentration'+on)

@@ -3,9 +3,8 @@ from nanopores import *
 from dolfin import *
 
 geo_name = "H_geo"
-nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
+nm = 1e-9
 z0 = 2.*nm
-bV = -0.1
 
 geo_params = dict(
 #x0 = None,
@@ -28,7 +27,7 @@ bulkcon = 3e2,
 #lowermbias = -.01,
 dnaqsdamp = 1.,
 bulkconFluo = 10e-3, # bulk concentration of fluorophore [mol/m**3]
-hReservoir = 10*nm, # height of cylindrical upper reservoir [nm]
+hReservoir = 1e-8, # height of cylindrical upper reservoir [m]
 #applylowerqs = True,
 couplebVtoQmol = True,
 bV0 = 0.01,
@@ -52,9 +51,8 @@ if geo.parameter("x0") is None:
     geo.import_synonymes({"moleculeb":set()})
     geo.import_synonymes(synonymes)
 
-IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.
-StokesProblemAxisymEqualOrder.beta = 0. #1e-18
+StokesProblemAxisymEqualOrder.beta = .01
 
 PNPSAxisym.imax = 50
 PNPSAxisym.tolnewton = 1e-2
@@ -78,7 +76,7 @@ geo = pb.geo
 v0 = pb.solution
 
 #plot_on_sub(v0, geo, "pore", expr=-grad(v0)[1], title="E")
-phys.bV = bV
+phys.bV = -0.1
 #pnps = PNPSAxisym(geo, phys)
 pnps = PNPSAxisym(geo, phys, v0=v0)
 pnps.maxcells = 20e4
@@ -133,7 +131,6 @@ else:
 print "hmin [nm]: ", geo.mesh.hmin()*1e9
 #plot(pnps.geo.mesh)
 #interactive()
-pnps.visualize()
-pb.visualize()
 pb.estimators["err"].plot(rate=-1.)
-showplots()
+pb.visualize()
+pnps.visualize()

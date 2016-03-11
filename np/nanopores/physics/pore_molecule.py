@@ -72,7 +72,8 @@ bV = lambda: -bV0*Qmol/qq if couplebVtoQmol else None
 def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:
         lscale = geo.parameter("nm")/nm
-        r = dolfin.Expression("2*pi*x[0]") if geo.params["dim"] == 2 else dolfin.Constant(1.0/lscale**2)
+        scale = dolfin.Constant(1.0/lscale**2)
+        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
         MolArea = dolfin.assemble(r('+')*geo.dS("moleculeb"))
         return Qmol/MolArea if MolArea > 0. else 0.
     except Exception:
@@ -81,7 +82,8 @@ def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
 def Moleculeqv(geo, Qmol): # Molecule volume charge density [C/m**3]
     try:
         lscale = geo.parameter("nm")/nm
-        r = dolfin.Expression("2*pi*x[0]") if geo.params["dim"] == 2 else dolfin.Constant(1.0/lscale**3)
+        scale = dolfin.Constant(1.0/lscale**3)
+        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
         MolVol = dolfin.assemble(r*geo.dx("molecule"))
         return Qmol/MolVol if MolVol > 0. else 0.
     except Exception:
@@ -133,9 +135,9 @@ initial_ions = {
     "solid": "bulkcon",
 }
 
-def r2pi(geo):
+def r2pi(geo, dim):
     try:
-        return dolfin.Expression("2*pi*x[0]") if geo.params["dim"] == 2 else dolfin.Constant(1.0)
+        return dolfin.Expression("2*pi*x[0]") if dim == 2 else dolfin.Constant(1.0)
     except:
         return None
 
@@ -146,7 +148,7 @@ in our package all volume forms are in fact scaled with
 1./lscale**3, thus this is the reference for all forms,
 this means surfaces and grad need to be scaled by lscale
 '''
-def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad):
+def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad, lscale):
     try: # to make geo not necessary
         if len(geo.physicalboundary("moleculeb"))==0:
             return
@@ -158,10 +160,11 @@ def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad):
             #def gradT(v): # tangential gradient
             #    return tang(dolfin.grad(v))
             #return dolfin.Constant(Moleculeqs)*(-r*gradT(v)[i])('-')*dS
-            return dolfin.Constant(Moleculeqs) * (-r2pi*grad(v)[i])('-') * lscale*dS
+            return dolfin.Constant(Moleculeqs) * (-r2pi*grad(v)[i])('-')*dS
         def Fbarevol(v, i):
             dx = geo.dx("molecule")
-            return dolfin.Constant(Moleculeqv) * (-r2pi*grad(v)[i]) * dx
+            scale = dolfin.Constant(lscale**(-3))
+            return dolfin.Constant(Moleculeqv) * (-r2pi*grad(v)[i])*dx
 
         if geo.params["x0"]:
             Fbare0 = Fbarevol if smearMolCharge else Fbaresurf

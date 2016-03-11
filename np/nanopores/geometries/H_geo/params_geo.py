@@ -1,6 +1,6 @@
 """ --- geometry parameters for Howorka --- """
 
-nm = 1e-9
+nm = 1e0 #-9
 
 # @TODO maybe include tolc in parent file
 tolc = 1e-10*nm  # tolerance for coordinate comparisons

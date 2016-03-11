@@ -6,6 +6,7 @@ from .pnps import PNPS
 from .params_physical import *
 from warnings import warn
 from importlib import import_module
+from .simplepnps import SimpleStokesProblem
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
@@ -17,7 +18,7 @@ class PNPSAxisym(PNPS):
     def __init__(self, geo, phys, v0=None):
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem2D = StokesProblemAxisymEqualOrder
+        StokesProblem2D = StokesProblemAxisym #StokesProblemAxisymEqualOrder
 
         # set up spaces and functions
         X = PNPProblemAxisym.space(mesh)
@@ -62,6 +63,7 @@ class PNPSAxisym(PNPS):
         (v, cp, cm) = x.split()
         (u, p) = w.split()
 
+        grad = phys.grad
         fstokes = -cFarad*(cp - cm)*grad(v)
 
         # Problem Definitions
@@ -226,6 +228,8 @@ class StokesProblemAxisym(AdaptableLinearProblem):
         dx = geo.dx("fluid")
         r = Expression("x[0]")
         pi = 3.14159265359
+        grad = geo.physics.grad
+        div = geo.physics.div
 
         # conservative formulation for correct BC
         a = (2*eta*inner(sym(grad(u)),sym(grad(v)))*r + 2*eta*u[0]*v[0]/r + \
@@ -304,6 +308,8 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
         dx = geo.dx()
         dx_ions = geo.dx('ions')
         r2pi = Expression("2*pi*x[0]")
+        grad = phys.grad
+        lscale = Constant(phys.lscale)
 
         Aperm = geo.pwconst('permittivity')
         C = geo.pwconst('diffusion_factor')
@@ -318,7 +324,7 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
         LJm = inner(C*(D*grad(cmold) - mu*cmold*grad(vold)) - SD*cmold*uold, grad(dm))*r2pi*dx_ions
         LJp = inner(C*(D*grad(cpold) + mu*cpold*grad(vold)) - SD*cpold*uold, grad(dp))*r2pi*dx_ions
         Lqvol = geo.linearRHS(vv*r2pi, "volcharge")
-        Lqsurf = geo.NeumannRHS(vv*r2pi, "surfcharge")
+        Lqsurf = geo.NeumannRHS(lscale*vv*r2pi, "surfcharge")
         Lq = Lqvol + Lqsurf
 
         L = Lpoisson + LJm + LJp - Lq
@@ -352,11 +358,13 @@ class PoissonProblemAxisym(PoissonProblem):
         v = TestFunction(V)
         dx = geo.dx()
         r2pi = Expression("2*pi*x[0]")
+        grad = geo.physics.grad
+        lscale = Constant(geo.physics.lscale)
 
         eps = geo.pwconst('permittivity')
         a = inner(eps*grad(u), grad(v))*r2pi*dx
         Lqvol = geo.linearRHS(v*r2pi, "volcharge")
-        Lqsurf = geo.NeumannRHS(v*r2pi, "surfcharge")
+        Lqsurf = geo.NeumannRHS(lscale*v*r2pi, "surfcharge")
         Lq = Lqvol + Lqsurf
         L = f*v*r2pi*dx + Lq
         return (a, L)
@@ -378,11 +386,14 @@ class LinearPBProblemAxisym(PoissonProblem):
         r2pi = Expression("2*pi*x[0]")
         c0 = geo.physics.bulkcon
         UT = geo.physics.UT
+        grad = geo.physics.grad
+        lscale = Constant(geo.physics.lscale)
+        print "DEBUG:", geo.physics.lscale
 
         eps = geo.pwconst('permittivity')
         a = eps*inner(grad(u), grad(v))*r2pi*dx  + Constant(cFarad*2*c0/UT)*u*v*r2pi*dx0
         Lqvol = geo.linearRHS(v*r2pi, "volcharge")
-        Lqsurf = geo.NeumannRHS(v*r2pi, "surfcharge")
+        Lqsurf = geo.NeumannRHS(lscale*v*r2pi, "surfcharge")
         Lq = Lqvol + Lqsurf
         L = f*v*r2pi*dx + Lq
 
@@ -461,10 +472,18 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
         (v, q) = TestFunctions(W)
 
         dx = geo.dx("fluid")
+        grad = geo.physics.grad
+        div = geo.physics.div
+        lscale = geo.physics.lscale
+        
         r = Expression("x[0]")
         pi = 3.14159265359
         h = CellSize(mesh)
-        delta = StokesProblemAxisymEqualOrder.beta*h**2
+        
+        beta = StokesProblemAxisymEqualOrder.beta
+        print "DEBUG: beta = ", beta
+        print "DEBUG: lscale = ", lscale
+        delta = Constant(beta/lscale**2)*h**2
 
         # conservative formulation for correct BC, with added stabilization term
         a = (2*eta*inner(sym(grad(u)),sym(grad(v)))*r + 2*eta*u[0]*v[0]/r + \
@@ -475,4 +494,4 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
             f = Constant((0.0,0.0))
 
         L = 2*pi*inner(f,v - delta*grad(q))*r*dx
-        return (a,L)
+        return (a, L)
