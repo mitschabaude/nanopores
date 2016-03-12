@@ -18,7 +18,7 @@ class PNPSAxisym(PNPS):
     def __init__(self, geo, phys, v0=None):
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem2D = StokesProblemAxisym #StokesProblemAxisymEqualOrder
+        StokesProblem2D = StokesProblemAxisymEqualOrder #StokesProblemAxisym #
 
         # set up spaces and functions
         X = PNPProblemAxisym.space(mesh)
@@ -226,10 +226,11 @@ class StokesProblemAxisym(AdaptableLinearProblem):
         (v, q) = TestFunctions(W)
 
         dx = geo.dx("fluid")
-        r = Expression("x[0]")
         pi = 3.14159265359
         grad = geo.physics.grad
         div = geo.physics.div
+        lscale = geo.physics.lscale
+        r = Expression("x[0]/L", L=lscale)
 
         # conservative formulation for correct BC
         a = (2*eta*inner(sym(grad(u)),sym(grad(v)))*r + 2*eta*u[0]*v[0]/r + \
@@ -476,7 +477,7 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
         div = geo.physics.div
         lscale = geo.physics.lscale
         
-        r = Expression("x[0]")
+        r = Expression("x[0]/L", L=lscale)
         pi = 3.14159265359
         h = CellSize(mesh)
         

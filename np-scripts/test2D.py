@@ -1,5 +1,5 @@
-# this works with geo_params_old
 from nanopores import *
+from nanopores.geometries.curved import Circle
 from dolfin import *
 
 geo_name = "H_geo"
@@ -13,7 +13,7 @@ x0 = [0.,0.,z0],
 #x0 = [0., 0., -8.372*nm],
 rMolecule = 0.4*nm,
 #lcMolecule = nm*0.1,
-moleculeblayer = True,
+moleculeblayer = False, #True,
 boxfields = False, #True,
 #Rx = 300*nm,
 #Ry = 30*nm,
@@ -34,13 +34,21 @@ couplebVtoQmol = True,
 bV0 = 0.01,
 )
 
-meshgen_dict = generate_mesh(.9, geo_name, **geo_params)
+meshgen_dict = generate_mesh(.1, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
+
+print geo.params
+# define circle for molecule
+molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"])
+# this causes geo to automatically snap boundaries when adapting
+geo.curved = dict(moleculeb = molec.snap)
+
 phys = Physics("pore_molecule", geo, **phys_params)
 print phys.charge
 
-plot(geo.mesh)
+plot(geo.boundaries)
 plot(geo.subdomains)
+interactive()
 print geo
 #plot(geo.pwconst("initial_ions"))
 #plot(geo.pwconst("permittivity"))
@@ -54,7 +62,7 @@ if geo.parameter("x0") is None:
 
 IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.
-StokesProblemAxisymEqualOrder.beta = 0. #1e-18
+StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 
 PNPSAxisym.imax = 50
 PNPSAxisym.tolnewton = 1e-2
@@ -75,6 +83,7 @@ pb.marking_fraction = 0.5
 pb.solve(refinement=True)
 
 geo = pb.geo
+plot(geo.boundaries)
 v0 = pb.solution
 
 #plot_on_sub(v0, geo, "pore", expr=-grad(v0)[1], title="E")
@@ -130,7 +139,7 @@ else:
     print "Fdrag [pN]:", Fdrag
     print "F [pN]:", Fdrag + Fel
 
-print "hmin [nm]: ", geo.mesh.hmin()*1e9
+print "hmin [nm]: ", geo.mesh.hmin()/nm
 #plot(pnps.geo.mesh)
 #interactive()
 pnps.visualize()
