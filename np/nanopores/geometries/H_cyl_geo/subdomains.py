@@ -19,7 +19,7 @@ def boundaries_list(**params):
     rMolecule = params["rMolecule"]
     #return [UpperB(), LowerB(), SideB(), ChargedDNAB(), UnchargedDNAB(),
     return [UpperB(), LowerB(), SideB(), InnerDNAB(), OuterDNAB(), UnchargedDNAB(), MembraneDNAB(),
-            MembraneB(), CrossTop2D(), CrossCenterTop2D(),
+            OuterMembraneB(), MembraneB(), CrossTop2D(), CrossCenterTop2D(),
             CrossCenterBottom2D(), CrossBottom2D(), MoleculeB(x0, rMolecule), ]
 
 synonymes = {

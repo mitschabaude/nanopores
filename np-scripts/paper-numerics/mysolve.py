@@ -4,36 +4,53 @@ from dolfin import *
 from nanopores.tools.pdesystem import newtonsolve
 from nanopores import *
 
-def adaptive_pbpnps2D(geo, phys, frac=0.5, Nmax=1e4, Felref=None, Fdragref=None, Fpbref=None):
+def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdragref=None, Fpbref=None):
+    LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
+    PNPStokes = PNPSAxisym if cyl else PNPS
+    z = phys.dim - 1
+    
     bV = phys.bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)
-    pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal, ref=Fpbref)
+    goal = lambda v : phys.Fbare(v, z) #+ phys.CurrentPB(v)
+    pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax
     pb.marking_fraction = frac
     refined = True
+    i = 0
     
-    print "Number of cells:",pb.geo.mesh.num_cells()
-    if pb.geo.mesh.num_cells() > pb.maxcells:
-        refined = False
+    print "Number of cells:", pb.geo.mesh.num_cells()
+        
     while refined:
+        i += 1
         print "\n\nSolving PB."
         # solve pb
         pb.single_solve()
         pb.print_functionals()
         
         # define and solve pnps
+        if i==1:
+            pnps = PNPStokes(pb.geo, phys, v0=pb.solution)
+        else:
+            pnps.geo = pb.geo
+            mesh = pb.geo.mesh
+            for name, S in pnps.solvers.items():
+                print "Adapting %s." % name
+                S.adapt(mesh)
+            functions = tuple(pnps.functions.values())
+            for S in pnps.solvers.values():
+                S.replace(functions,functions)
         print "\nSolving PNPS."
-        pnps = PNPSAxisym(pb.geo, phys, v0=pb.solution)
         dofs = sum(u.function_space().dim() for u in pnps.solutions())
         print "  Degrees of freedom: %d" % (dofs,)
-        newton_iter = pnps.newton_solve()
-        print "  Newton iterations:", newton_iter
+        pnps.solve()
+        #newton_iter = pnps.newton_solve()
+        #print "  Newton iterations:", newton_iter
         print
+        pnps.visualize("pore")
         fs = pnps.get_functionals()
-        Fdrag = fs["Fp1"] + fs["Fshear1"]
-        Fel = fs["Fbarevol1"]
+        Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
+        Fel = fs["Fbarevol%d" %z]
         F = Fdrag + Fel
         print "Fbare [pN]:", Fel
         print "Fdrag [pN]:", Fdrag
@@ -51,7 +68,7 @@ def adaptive_pbpnps2D(geo, phys, frac=0.5, Nmax=1e4, Felref=None, Fdragref=None,
         if not refined:
             print "Maximal number of cells reached."
         else:
-            print "New total number of cells:",pb.geo.mesh.num_cells()
+            print "New total number of cells:", pb.geo.mesh.num_cells()
 
     return pb, pnps
 

@@ -4,6 +4,7 @@ from importlib import import_module
 import inspect, os, sys
 import matplotlib.pyplot as plt
 import numpy as np
+import dolfin
 from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
 
@@ -44,23 +45,22 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
     plot(u0, title=title)
     
 def plot_sliced(geo):
-    from dolfin import plot, SubDomain, SubMesh, CellFunction, cells, Cell, interactive
-    tol = 0.1
-    class Back(SubDomain):
+    tol = 1e-5
+    class Back(dolfin.SubDomain):
         def inside(self, x, on_boundary):
             return x[1] >= -tol
-    back = CellFunction("size_t", geo.mesh, 0)
+    back = dolfin.CellFunction("size_t", geo.mesh, 0)
     Back().mark(back, 1)
-    submesh = SubMesh(geo.mesh, back, 1)
-    plot(submesh)
+    submesh = dolfin.SubMesh(geo.mesh, back, 1)
+    #plot(submesh)
     bb = geo.mesh.bounding_box_tree()
-    subsub = CellFunction("size_t", submesh, 0)
+    subsub = dolfin.CellFunction("size_t", submesh, 0)
     sub = geo.subdomains
-    for cell in cells(submesh):
+    for cell in dolfin.cells(submesh):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
-    plot(subsub)
-    interactive()
+    dolfin.plot(subsub)
+    dolfin.interactive()
     
 def save_dict(data, dir=".", name="file"):
     # works for all data that can be recovered from their repr()

@@ -463,7 +463,7 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         if self.ref is not None:
             ref = self.ref
             err = abs((Jval-ref)/ref)
-            self.save_estimate("err ref", err) # FIXME: error: list index out of range
+            self.save_estimate("err ref", err)
             self.save_estimate("goal ref", ref)
         print "Goal (*1e12):", Jval*1e12
 

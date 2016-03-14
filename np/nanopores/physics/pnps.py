@@ -205,6 +205,9 @@ class PNPS(PDESystem):
                 else:
                     self.single_solve()
                     PNPSsc = PNPSsc + 1
+                    
+                print "Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
+                #plot(self.functions["Stokes"].sub(0))
 
                 tt0 = timer.stop()
                 tt += tt0
@@ -219,8 +222,8 @@ class PNPS(PDESystem):
                         '<=', self.tolnewton ,' \n  ==> break loop \n'
                     break
 
-            print 'Relative l2 Newton error:',\
-                            self.solvers["PNP"].relerror()
+            #print 'Relative l2 Newton error:',\
+            #                self.solvers["PNP"].relerror()
 
             #plot(sqrt(ind), title="sqrt(ind) "+str(i+1))
             #interactive()
@@ -262,6 +265,9 @@ class PNPS(PDESystem):
         for i in range(self.imax):
             #self.visualize()
             self.single_solve()
+            print "Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
+            #print "Newton L2 Error:", self.solvers["PNP"].relerror()
+            plot(self.functions["Stokes"].sub(0))
             if self.solvers["PNP"].convergence(tol):
                 break
         return i+1
@@ -373,6 +379,8 @@ class PNPS(PDESystem):
 
 class StokesProblem(AdaptableLinearProblem):
     k = 2
+    method = dict(solvermethods.stokes)
+    """
     method = dict(
         reuse = True,
         iterative = True,
@@ -399,6 +407,7 @@ class StokesProblem(AdaptableLinearProblem):
                 structure = "same_nonzero_pattern",
                 ilu = dict(fill_level = 1)))
     )
+    """
 
     @staticmethod
     def space(mesh):
@@ -438,7 +447,7 @@ class StokesProblem(AdaptableLinearProblem):
             f = C0
 
         a, L, p = self.forms(W, geo, f)
-        self.method["preconditioning_form"] = p
+        #self.method["preconditioning_form"] = p
 
         if not w:
             w = Function(W)
@@ -456,6 +465,8 @@ class StokesProblem(AdaptableLinearProblem):
 class PNPProblem(AdaptableNonlinearProblem):
     k = 1
     dnaqsdamp = 0.8
+    method = dict(solvermethods.bicgstab)
+    """
     method = dict(
         reuse = False,
         iterative = True,
@@ -470,9 +481,10 @@ class PNPProblem(AdaptableNonlinearProblem):
             maximum_iterations = 200,
             monitor_convergence = False,
             relative_tolerance = 1e-4,
+            error_on_nonconvergence = False,
             preconditioner = dict(
                 ilu = dict(fill_level = 1)))
-    )
+    )"""
 
     @staticmethod
     def space(mesh):
@@ -631,22 +643,31 @@ class LinearPBProblem(PoissonProblem):
         return (a, L)
 
 class LinearPBGoalOriented(GoalAdaptivePDE):
-    def __init__(self, geo, phys, goal=None):
+    def __init__(self, geo, phys, goal=None, ref=None):
         if goal is None and geo.params["x0"]:
             goal = lambda v : phys.Fbare(v, 2)
+        self.ref = ref # reference value for functional
         GoalAdaptivePDE.__init__(self, geo, phys, LinearPBProblem, goal)
 
     def estimate(self):
         u = self.functions["primal"]
         z = self.functions["dual"]
-        ind, err = pb_indicator_GO(self.geo, self.phys, u, z)
+        ind, err, rep, errc, gl, glx = pb_indicator_GO(self.geo, self.phys, u, z)
         self.save_estimate("err", err)
-        return ind, err
+        self.save_estimate("rep", rep)
+        self.save_estimate("goal", gl)
+        self.save_estimate("goal ex", glx)
+        return ind, rep
 
     def print_functionals(self):
         J = self.functionals["goal"]
-        # assuming volume form as goal
-        print "Goal (*1e12):", J()*1e12/(self.phys.lscale**3)
+        Jval = J.evaluate()
+        if self.ref is not None:
+            ref = self.ref
+            err = abs((Jval-ref)/ref)
+            self.save_estimate("err ref", err)
+            self.save_estimate("goal ref", ref)
+        print "Goal (*1e12):", Jval*1e12
 
 class LinearPB(LinearPDE):
     def __init__(self, geo, phys):

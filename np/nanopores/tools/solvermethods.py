@@ -28,7 +28,7 @@ bicgstab = dict(
         nonzero_initial_guess = True,
         error_on_nonconvergence = False,
         absolute_tolerance = 1e-5,
-        relative_tolerance = 1e-6,
+        relative_tolerance = 1e-8,
         preconditioner = dict(
             ilu = dict(fill_level = 1)))
 )

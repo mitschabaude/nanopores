@@ -69,9 +69,9 @@ class Sphere(SubDomain):
         
     def snap(self, x):
         r = self.r(x)
-        if self.inside(x, False):
-            x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
-            x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
+        x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
+        x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
+        x[2] = self.c[2] + (self.R / r)*(x[2] - self.c[2])
 
 
 # associate the actual boundary with every SubDomain that has .on_boundary()            

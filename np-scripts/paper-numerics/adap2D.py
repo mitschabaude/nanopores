@@ -1,7 +1,7 @@
 from nanopores import *
 from nanopores.geometries.curved import Circle
 from dolfin import *
-from mysolve import adaptive_pbpnps2D
+from mysolve import adaptive_pbpnps
 
 geo_name = "H_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
@@ -45,7 +45,8 @@ IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 PNPSAxisym.tolnewton = 1e-2
 
-pb, pnps = adaptive_pbpnps2D(geo, phys, frac=.5, Nmax=Nmax, Felref=1.211487, Fdragref=-7.675373, Fpbref=-3.7167680e+17)
+pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax,
+    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.5237907e+14)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
