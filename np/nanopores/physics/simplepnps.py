@@ -211,7 +211,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         lscale = phys.lscale
         
         dx = geo.dx("fluid")
-        r = Expression("x[0]")
+        r = Expression("x[0]/L", L=lscale)
         pi2 = Constant(2.*pi)
         h = CellSize(mesh)
         delta = Constant(beta/lscale**2)*h**2

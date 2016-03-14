@@ -82,6 +82,8 @@ class PNPSAxisym(PNPS):
         r2pi = Expression("2*pi*x[0]")
         def tang(x):
             return x - inner(x,n)*n
+        scl2 = Constant(Fmult/phys.lscale**2)
+        scl3 = Constant(Fmult/phys.lscale**3)
 
         try:
             x0 = geo.parameter("x0")
@@ -92,12 +94,13 @@ class PNPSAxisym(PNPS):
             dS = geo.dS("moleculeb")
             dx = geo.dx("molecule")
             rho = phys.Moleculeqs
-
+            rho0 = phys.Moleculeqv
+            
             for i in range(dim):
-                Fp = Fmult*(-r2pi*p*n[i])('-') *dS
-                Fshear = Fmult*(r2pi*eta*2.0*dot(sym(grad(u)),-n)[i])('-') * dS
-                Fbare = Constant(Fmult*rho)*(-r2pi*grad(v)[i])('-') * dS
-                Fbarevol = Constant(Fmult*phys.Moleculeqv)*(-r2pi*grad(v)[i]) * dx
+                Fp = (-r2pi*p*n[i])('-') *scl2*dS
+                Fshear = (r2pi*eta*2.0*dot(sym(grad(u)),-n)[i])('-') *scl2*dS
+                Fbare = Constant(rho)*(-r2pi*grad(v)[i])('-') * scl2*dS
+                Fbarevol = Constant(rho0)*(-r2pi*grad(v)[i]) * scl3*dx
 
                 for F in ["Fp","Fshear","Fbare", "Fbarevol"]:
                     F_dict[F+str(i)] = Functional(locals()[F])
@@ -128,7 +131,7 @@ class PNPSAxisym(PNPS):
         SD = geo.pwconst('stokes_damp')
         Jm = cFarad*(C*(D*grad(cm) - mu*cm*grad(v)) - SD*cm*u)
         Jp = cFarad*(C*(-D*grad(cp) - mu*cp*grad(v)) + SD*cp*u)
-        Jz = Fmult*(Jp + Jm)[1]
+        Jz = scl2*(Jp + Jm)[1]
 
         if geo.parameter("name") == "P_geo" or geo.parameter("name") == "H_geo":
             ltop = -(geo.parameter("l1") - geo.parameter("l0"))/2
@@ -389,7 +392,6 @@ class LinearPBProblemAxisym(PoissonProblem):
         UT = geo.physics.UT
         grad = geo.physics.grad
         lscale = Constant(geo.physics.lscale)
-        print "DEBUG:", geo.physics.lscale
 
         eps = geo.pwconst('permittivity')
         a = eps*inner(grad(u), grad(v))*r2pi*dx  + Constant(cFarad*2*c0/UT)*u*v*r2pi*dx0
@@ -411,17 +413,24 @@ class LinearPBAxisym(LinearPDE):
         return ind, err
 
 class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
-    def __init__(self, geo, phys, goal=None):
+    
+    def __init__(self, geo, phys, goal=None, ref=None):
         if goal is None:
             goal = lambda v : phys.Fbare(v, 1)
+        self.ref = ref # reference value for functional
         GoalAdaptivePDE.__init__(self, geo, phys, LinearPBProblemAxisym, goal)
 
     def estimate(self):
         u = self.functions["primal"]
         z = self.functions["dual"]
-        ind, err = pb_indicator_GO(self.geo, self.phys, u, z, cyl=True)
+        ind, err, rep, errc, gl, glx = pb_indicator_GO(self.geo, self.phys, u, z, cyl=True)
         self.save_estimate("err", err)
-        return ind, err
+        self.save_estimate("rep", rep)
+        self.save_estimate("err cheap", errc)
+        
+        self.save_estimate("goal", gl)
+        self.save_estimate("goal ex", glx)
+        return ind, rep
 
     def estimate0(self):
         # primal and dual indicators
@@ -450,8 +459,13 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
 
     def print_functionals(self):
         J = self.functionals["goal"]
-        # self.save_estimate("Fbare", 1e12*self.functionals["goal"].value()) # FIXME: error: list index out of range
-        print "Goal (*1e12):", J()*1e12
+        Jval = J.evaluate()
+        if self.ref is not None:
+            ref = self.ref
+            err = abs((Jval-ref)/ref)
+            self.save_estimate("err ref", err) # FIXME: error: list index out of range
+            self.save_estimate("goal ref", ref)
+        print "Goal (*1e12):", Jval*1e12
 
 
 class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
@@ -482,8 +496,6 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
         h = CellSize(mesh)
         
         beta = StokesProblemAxisymEqualOrder.beta
-        print "DEBUG: beta = ", beta
-        print "DEBUG: lscale = ", lscale
         delta = Constant(beta/lscale**2)*h**2
 
         # conservative formulation for correct BC, with added stabilization term

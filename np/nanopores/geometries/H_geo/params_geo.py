@@ -31,8 +31,8 @@ ncbp = 6.0*36  # 6 scaffold strands of DNA with 36 charged base pairs
 
 # length scales
 lc = nm
-lcMolecule = lc*0.1
-lcCenter = lc/2
+lcMolecule = lc*.5 #lc*0.1
+lcCenter = lc*.5 #lc*0.3
 lcOuter = lc
 
 boxfields = True

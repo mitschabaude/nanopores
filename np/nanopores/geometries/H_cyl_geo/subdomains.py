@@ -17,7 +17,8 @@ def boundaries_list(**params):
     globals().update(params)
     x0 = params.get('x0')
     rMolecule = params["rMolecule"]
-    return [UpperB(), LowerB(), SideB(), ChargedDNAB(), UnchargedDNAB(),
+    #return [UpperB(), LowerB(), SideB(), ChargedDNAB(), UnchargedDNAB(),
+    return [UpperB(), LowerB(), SideB(), InnerDNAB(), OuterDNAB(), UnchargedDNAB(), MembraneDNAB(),
             MembraneB(), CrossTop2D(), CrossCenterTop2D(),
             CrossCenterBottom2D(), CrossBottom2D(), MoleculeB(x0, rMolecule), ]
 
@@ -32,6 +33,7 @@ synonymes = {
     #"ions":{"fluid", "dna", "membrane"},
     "bulk":{"upperb", "lowerb"}, #, "sideb"},
     #"chargeddnab":{"chargeddnab","unchargeddnab"},
+    "chargeddnab":{"innerdnab", "outerdnab"},
     "dnab":{"chargeddnab", "unchargeddnab"},
     "chargedmembraneb":"membraneb",
     "crosssections2d":{"crosstop2d", "crosscentertop2d", "crosscenterbottom2d", "crossbottom2d"},
@@ -96,6 +98,26 @@ class MoleculeB(SubDomain):
             return False
 
 # DNA boundaries
+class InnerDNAB(SubDomain):
+    def inside(self, x, on_boundary):
+        return between(norm2(x[0], x[1]), (r0 -tolc, r0 +tolc))  \
+               and between(abs(x[2]), (-tolc, l0/2 +tolc))
+
+class OuterDNAB(SubDomain):
+    def inside(self, x, on_boundary):
+        return between(norm2(x[0], x[1]), (r1 -tolc, r1 +tolc))  \
+               and between(abs(x[2]), (l1/2 -tolc, l0/2 +tolc))
+               
+class MembraneDNAB(SubDomain):
+    def inside(self, x, on_boundary):
+        return between(norm2(x[0], x[1]), (r1 -tolc, r1 +tolc))  \
+               and between(abs(x[2]), (-tolc, l1/2 +tolc))
+               
+class OuterMembraneB(SubDomain):
+    def inside(self, x, on_boundary):
+        return between(norm2(x[0], x[1]), (R -tolc, R +tolc))  \
+               and between(abs(x[2]), (-tolc, l1/2 +tolc))
+
 class ChargedDNAB(SubDomain):
     def inside(self, x, on_boundary):
         #return ( between(norm2(x[0], x[1]), (r0 -tolc, r0 +tolc))  \
@@ -107,7 +129,7 @@ class ChargedDNAB(SubDomain):
                  or ( between(norm2(x[0], x[1]), (r0 -tolc, r0 +tolc))  \
                  and between(abs(x[2]), (-tolc, l1/2 +tolc)) )
 
-class UnchargedDNAB(SubDomain):
+class UnchargedDNAB(SubDomain): # = upper and lower part
     def inside(self, x, on_boundary):
         return ( between(norm2(x[0], x[1]), (r0 -tolc, r1 +tolc))  \
                  and between(abs(x[2]), (l0/2 -tolc, l0/2 +tolc)) )

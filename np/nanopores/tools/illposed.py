@@ -335,7 +335,7 @@ class Functional(object):
     def __call__(self,f=None):
         if f:
             f0 = self.firstfunction()
-            J = replace(self.form,{f0:f})
+            replace(self.form,{f0:f})
         else:
             J = self.form
         e = assemble_scalar(J)

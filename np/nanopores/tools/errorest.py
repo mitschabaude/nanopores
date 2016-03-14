@@ -163,7 +163,7 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
     EW = FunctionSpace(mesh, "CG", 2)
     Ez = Function(EW)
     Ez.extrapolate(z)
-    w = Ez - interpolate(Ez, W)
+    w = Ez - z #interpolate(Ez, W)
 
     v = TestFunction(V)
     n = FacetNormal(mesh)
@@ -185,7 +185,8 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
     flux = eps*phys.grad(u)
 
     # local residuals
-    rform = -v*phys.div(flux)*w*r*dx \
+    def rform(w):
+        return -v*phys.div(flux)*w*r*dx \
         +v*Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
         -geo.linearRHS(v*w*r, "volcharge") \
         +Clscale(1)*(
@@ -200,22 +201,42 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
             +Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
             -geo.linearRHS(w*r, "volcharge")
             -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
+            
+    # global functional value
+    def J(w):
+        return assemble(
+            inner(flux, phys.grad(w))*r*dx \
+            +Constant(cFarad*2*c0/UT)*u*w*r*dx0)
 
     indicators = Function(V)
     vec = indicators.vector()
-    assemble(rform, tensor=vec)
-    vec[:] = numpy.abs(vec[:]) #vec[:]*vec[:] #
-    #plotind = plot(indicators, title="indicator pb GO", elevate=0.0)
+    assemble(rform(w), tensor=vec)
+    vec[:] = numpy.abs(vec[:])
 
-    errormult = 1e12  # Fmult
-    error_res = R(z)*(1./phys.lscale**3)
-    error_rep = R(Ez)*errormult*(1./phys.lscale**3)
-    error_sum = sum(vec)*errormult*(1./phys.lscale**3)
+    goal = J(z)
+    goal_ex = J(Ez)
+    scale = abs(1./goal) # precise relevant scale for error (abs value of functional)
+    #scale = 1e12*(1./phys.lscale**3) # rough scale (cheaper)
+    
+    error_res = abs(R(z))*scale
+    error_rep = abs(R(Ez))*scale
+    error_sum = sum(vec)*scale
+    
+    # cheaper estimator without extrapolation
+    indicators2 = Function(V)
+    vec2 = indicators2.vector()
+    assemble(rform(z), tensor=vec2)
+    vec2[:] = numpy.abs(vec2[:])
+    cheap_sum = sum(vec2)*scale
+    #plotind = plot(indicators2, title="indicator pb GO", elevate=0.0, interactive=True)
 
     # FIXME ?
-    print "This should be zero (dual global residual) :", error_res
-    print "Extrapolated dual residual :", error_rep
-    print "indicator sum :", error_sum
+    print "Goal (dual):", goal
+    print "Goal (extrapolated dual):", goal_ex
+    print "This should be zero (dual global residual):", error_res
+    print "Extrapolated dual residual:", error_rep
+    print "indicator sum:", error_sum
+    print "ind sum w/o extrap:", cheap_sum
 
     # return indicators, error_rep, error_sum
-    return indicators, error_sum
+    return indicators, error_sum, error_rep, cheap_sum, goal, goal_ex

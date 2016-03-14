@@ -4,17 +4,21 @@ from dolfin import *
 
 geo_name = "H_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
-z0 = 2.*nm
-bV = -0.1
+
+add_params(
+z0 = 0.*nm,
+bV = -0.1,
+Nmax = 1e4,
+)
 
 geo_params = dict(
 #x0 = None,
 x0 = [0.,0.,z0],
 #x0 = [0., 0., -8.372*nm],
-rMolecule = 0.4*nm,
+rMolecule = 0.5*nm,
 #lcMolecule = nm*0.1,
-moleculeblayer = False, #True,
-boxfields = False, #True,
+moleculeblayer = False,
+membraneblayer = False,
 #Rx = 300*nm,
 #Ry = 30*nm,
 )
@@ -34,12 +38,12 @@ couplebVtoQmol = True,
 bV0 = 0.01,
 )
 
-meshgen_dict = generate_mesh(.1, geo_name, **geo_params)
+meshgen_dict = generate_mesh(1., geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 
 print geo.params
 # define circle for molecule
-molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"])
+molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"][::2])
 # this causes geo to automatically snap boundaries when adapting
 geo.curved = dict(moleculeb = molec.snap)
 
@@ -48,7 +52,6 @@ print phys.charge
 
 plot(geo.boundaries)
 plot(geo.subdomains)
-interactive()
 print geo
 #plot(geo.pwconst("initial_ions"))
 #plot(geo.pwconst("permittivity"))
@@ -73,13 +76,14 @@ PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 
 phys.bV = 0.
 #pb = LinearPBAxisym(geo, phys)
-goal = (lambda v : phys.Fbare(v, 1)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
+goal = (lambda v : phys.Fbare(v, 0) + phys.Fbare(v, 1)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 #goal = lambda v : phys.CurrentPB(v)
 pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
 
-pb.maxcells = 2e4
-pb.marking_fraction = 0.5
+#pb.imax = 20 # maximal refinements
+pb.maxcells = Nmax
+pb.marking_fraction = 0.25
 pb.solve(refinement=True)
 
 geo = pb.geo
@@ -145,4 +149,9 @@ print "hmin [nm]: ", geo.mesh.hmin()/nm
 pnps.visualize()
 pb.visualize()
 pb.estimators["err"].plot(rate=-1.)
+#pb.estimators["err cheap"].plot(fig=False)
+pb.estimators["rep"].plot(fig=False)
+
+pb.estimators["goal"].plot()
+pb.estimators["goal ex"].plot(fig=False)
 showplots()

@@ -2,6 +2,59 @@
 
 from dolfin import *
 from nanopores.tools.pdesystem import newtonsolve
+from nanopores import *
+
+def adaptive_pbpnps2D(geo, phys, frac=0.5, Nmax=1e4, Felref=None, Fdragref=None, Fpbref=None):
+    bV = phys.bV
+    phys.bV = 0.
+    goal = lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)
+    pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal, ref=Fpbref)
+    phys.bV = bV
+    pb.maxcells = Nmax
+    pb.marking_fraction = frac
+    refined = True
+    
+    print "Number of cells:",pb.geo.mesh.num_cells()
+    if pb.geo.mesh.num_cells() > pb.maxcells:
+        refined = False
+    while refined:
+        print "\n\nSolving PB."
+        # solve pb
+        pb.single_solve()
+        pb.print_functionals()
+        
+        # define and solve pnps
+        print "\nSolving PNPS."
+        pnps = PNPSAxisym(pb.geo, phys, v0=pb.solution)
+        dofs = sum(u.function_space().dim() for u in pnps.solutions())
+        print "  Degrees of freedom: %d" % (dofs,)
+        newton_iter = pnps.newton_solve()
+        print "  Newton iterations:", newton_iter
+        print
+        fs = pnps.get_functionals()
+        Fdrag = fs["Fp1"] + fs["Fshear1"]
+        Fel = fs["Fbarevol1"]
+        F = Fdrag + Fel
+        print "Fbare [pN]:", Fel
+        print "Fdrag [pN]:", Fdrag
+        print "F     [pN]:", F
+        if Felref is not None:
+            pb.save_estimate("Fel", abs((Fel-Felref)/Felref), N=dofs)
+            pb.save_estimate("Fdrag", abs((Fdrag-Fdragref)/Fdragref), N=dofs)
+            Fref = Felref + Fdragref
+            pb.save_estimate("F", abs((F-Fref)/Fref), N=dofs)
+        
+        print "\nAdaptive refinement."
+        (ind, err) = pb.estimate()
+        pb.save_estimate("Fpb est", err, N=dofs)
+        refined = pb.refine(ind)
+        if not refined:
+            print "Maximal number of cells reached."
+        else:
+            print "New total number of cells:",pb.geo.mesh.num_cells()
+
+    return pb, pnps
+
 
 def newton_solve(self, tol=None, damp=None, verbose=True):
     if tol is None: tol = self.tolnewton

@@ -268,6 +268,7 @@ class Geometry(object):
         # if curved boundaries are defined, snap back those
         if hasattr(self, "curved"):
             for boundary, snap in self.curved.items():
+                print "Adapting curved boundary '%s'." % boundary
                 self.snap_to_boundary(boundary, snap)
 
     # alternative to adapt, should be overwritten dynamically
@@ -354,14 +355,27 @@ class Geometry(object):
         bc.apply(u.vector())
         d2v = dof_to_vertex_map(V)
         vertices_on_boundary = d2v[u.vector() == 1.0]
-
+        
+        # DEBUG plot for check
+        '''
+        testf = VertexFunction("bool", mesh, False)
+        testf.array()[vertices_on_boundary] = True        
+        R = self.params["rMolecule"]
+        C = self.params["x0"][::2]
+        '''
+        
         # snap those vertices
         for v in vertices_on_boundary:
             x = mesh.coordinates()[v]
+            #r0 = sqrt((x[0]-C[0])**2 + (x[1]-C[1])**2)
             snap(x)
+            #r1 = sqrt((x[0]-C[0])**2 + (x[1]-C[1])**2)
+            #print "DEBUG Radius: %s --> %s" %(r0, r1)
             mesh.geometry().set(v, x)
         if smooth:
             mesh.smooth(1)
+        #plot(testf, title="after snap")
+        #interactive()
 
     def _neumann_lookup(self, bou2phys, value):
         bou2value = {}

@@ -7,7 +7,7 @@ import numpy as np
 from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
 
-__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
+__all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params"]
 
 def crange(a, b, N): # continuous range with step 1/N
@@ -42,6 +42,25 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
     adaptfunction(u, submesh, assign=True)
     u0 = u if expr is None else expr
     plot(u0, title=title)
+    
+def plot_sliced(geo):
+    from dolfin import plot, SubDomain, SubMesh, CellFunction, cells, Cell, interactive
+    tol = 0.1
+    class Back(SubDomain):
+        def inside(self, x, on_boundary):
+            return x[1] >= -tol
+    back = CellFunction("size_t", geo.mesh, 0)
+    Back().mark(back, 1)
+    submesh = SubMesh(geo.mesh, back, 1)
+    plot(submesh)
+    bb = geo.mesh.bounding_box_tree()
+    subsub = CellFunction("size_t", submesh, 0)
+    sub = geo.subdomains
+    for cell in cells(submesh):
+        iparent = bb.compute_first_entity_collision(cell.midpoint())
+        subsub[cell] = sub[int(iparent)]
+    plot(subsub)
+    interactive()
     
 def save_dict(data, dir=".", name="file"):
     # works for all data that can be recovered from their repr()

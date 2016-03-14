@@ -50,6 +50,28 @@ class Circle(SubDomain):
         if self.inside(x, False):
             x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
             x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
+            
+            
+class Sphere(SubDomain):
+    # cylinder aligned with z axis
+    # actually the curved part of its boundary
+
+    def __init__(self, R, center=(0.,0.,0.), frac=0.75):
+        # R, L ... radius and length
+        SubDomain.__init__(self)
+        self.R, self.c, self.frac = R, center, frac
+        
+    def r(self, x):
+        return sqrt(sum((xi - ci)**2 for xi, ci in zip(x, self.c)))
+
+    def inside(self, x, _):
+        return between(self.r(x), (self.frac*self.R, 1./self.frac*self.R))
+        
+    def snap(self, x):
+        r = self.r(x)
+        if self.inside(x, False):
+            x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
+            x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
 
 
 # associate the actual boundary with every SubDomain that has .on_boundary()            
