@@ -28,8 +28,8 @@ ncbp = 6.0*36  # 6 scaffold strands of DNA with 36 charged base pairs
 
 # characteristic length / mesh size h
 lc = nm
-lcMolecule = lc*0.5
-lcCenter = lc*0.5
+lcMolecule = lc*3e-2 #*0.5
+lcCenter = lc*5e-2 #0.5
 lcOuter = lc
 
 # provide default values for boundary layer around membrane/molecule

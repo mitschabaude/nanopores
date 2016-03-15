@@ -3,6 +3,7 @@ from nanopores import *
 from nanopores.physics.simplepnps import *
 from mysolve import hybrid_solve, newton_solve
 
+# FIXME scaling
 add_params(
 bV = -0.1, # [V]
 dnaqsdamp = .25,

@@ -43,7 +43,7 @@ class Physics(object):
                 pass
             else:
                 self.base[k] = v
-                setattr(mod, k, v)
+                setattr(mod, k, v) # TODO ????
 
         #self.precalculate(mod) # could be optional at some point, for performance
         self.mod = mod
@@ -64,6 +64,8 @@ class Physics(object):
                 syns = self.maps.pop("synonymes")
                 self.base["synonymes"] = syns
                 geo.import_synonymes(syns, conservative=True)
+            
+            self.toadapt = self.base.pop("toadapt") if "toadapt" in self.base else []
 
     def precalculate(self, mod):
         for fstr, f in self.functions.items():
@@ -84,7 +86,7 @@ class Physics(object):
             return self.base[name]
             
         elif name in self.functions:
-            f = self.functions.pop(name)
+            f = self.functions[name] #.pop(name)
             argnames = inspect.getargspec(f).args
             args = [getattr(self, k) for k in argnames]
             result = f(*args)
@@ -93,7 +95,7 @@ class Physics(object):
             return result
             
         elif name in self.maps:
-            m0 = self.maps.pop(name)
+            m0 = self.maps[name] #.pop(name)
             self.base[name] = m = dict(m0)
             for k in m:
                 if isinstance(m[k], str):
@@ -101,6 +103,39 @@ class Physics(object):
             self.base[name] = m
             setattr(self.mod, name, m)
             return m
+            
+    # FIXME this next to functions were never tried out because we did not actually need them
+    # could be useful at some time though
+    """
+    def _getfunction(self, name):
+        f = self.functions[name]
+        argnames = inspect.getargspec(f).args
+        args = [getattr(self, k) for k in argnames]
+        result = f(*args)
+        self.base[name] = result
+        setattr(self.mod, name, result)
+        return result
+        
+    def _getmap(self, name):
+        m0 = self.maps[name]
+        self.base[name] = m = dict(m0)
+        for k in m:
+            if isinstance(m[k], str):
+                m[k] = getattr(self, m[k])
+        self.base[name] = m
+        setattr(self.mod, name, m)
+        return m
+          
+    def adapt(self):
+        # simply recalculate stuff in self.toadapt
+        print "Adapting Physics."
+        for name in self.toadapt:
+            if name in self.functions:
+                res = self._getfunction(name)
+            elif name in self.maps:
+                res = self._getmap(name)
+            print "   %s: %s" %(name, res)
+    """    
             
     def __str__(self):
         output = ["","Physics:"]

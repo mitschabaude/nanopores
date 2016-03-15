@@ -19,7 +19,6 @@ r1 = 2.5*nm
 l0 = 9.0*nm
 # membrane thickness
 l1 = 2.2*nm
-
 # Radius of domain
 Rz = 10.0*nm
 R = 10.0*nm

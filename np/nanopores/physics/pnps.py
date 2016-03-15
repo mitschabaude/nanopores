@@ -464,7 +464,6 @@ class StokesProblem(AdaptableLinearProblem):
 
 class PNPProblem(AdaptableNonlinearProblem):
     k = 1
-    dnaqsdamp = 0.8
     method = dict(solvermethods.bicgstab)
     """
     method = dict(
@@ -658,6 +657,14 @@ class LinearPBGoalOriented(GoalAdaptivePDE):
         self.save_estimate("goal", gl)
         self.save_estimate("goal ex", glx)
         return ind, rep
+
+    def estimate_cheap(self):
+        u = self.functions["primal"]
+        z = self.functions["dual"]
+        ind, err, gl = pb_indicator_GO_cheap(self.geo, self.phys, u, z)
+        self.save_estimate("err", err)
+        self.save_estimate("goal", gl)
+        return ind, err
 
     def print_functionals(self):
         J = self.functionals["goal"]

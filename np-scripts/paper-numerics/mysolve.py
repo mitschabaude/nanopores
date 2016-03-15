@@ -71,6 +71,48 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdrag
             print "New total number of cells:", pb.geo.mesh.num_cells()
 
     return pb, pnps
+    
+def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=None, cheapest=False):
+    LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
+    z = phys.dim - 1
+    bV = phys.bV
+    phys.bV = 0.
+    goal = lambda v : phys.Fbare(v, z) #+ phys.CurrentPB(v)
+    pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
+    phys.bV = bV
+    pb.maxcells = Nmax
+    pb.marking_fraction = frac
+    if cheapest:
+        pb.estimate = pb.estimate_cheap
+    refined = True
+    i = 0
+    
+    print "Number of cells:", pb.geo.mesh.num_cells()
+    while refined:
+        i += 1
+        print "\nSolving PB."
+        # solve pb
+        pb.single_solve()
+        pb.print_functionals()
+        
+        #plot(pb.geo.mesh)
+        plot(pb.geo.submesh("membrane"))
+        #plot(pb.geo.submesh("dna"))
+        plot(pb.geo.submesh("pore"))
+        #plot(pb.geo.submesh("molecule"))
+        if mesh2D is not None:
+            plot_cross(pb.functions["primal"], mesh2D, title="pb primal")
+            plot_cross(pb.functions["dual"], mesh2D, title="pb dual")
+        
+        print "\nError estimation."
+        (ind, err) = pb.estimate()
+        print "\nMesh refinement."
+        refined = pb.refine(ind)
+        if not refined:
+            print "Maximal number of cells reached."
+        else:
+            print "New total number of cells:", pb.geo.mesh.num_cells()
+    return pb
 
 
 def newton_solve(self, tol=None, damp=None, verbose=True):

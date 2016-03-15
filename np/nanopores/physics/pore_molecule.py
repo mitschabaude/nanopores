@@ -48,6 +48,8 @@ bulkconFluo = 0. # bulk concentration of fluorophore [mol/m**3]
 hReservoir = 0.01 # height of cylindrical upper reservoir
 applylowerqs = False
 couplebVtoQmol = False
+exactMqv = False
+adaptMqv = False
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!
@@ -79,7 +81,16 @@ def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     except Exception:
         return None
 
-def Moleculeqv(geo, Qmol): # Molecule volume charge density [C/m**3]
+def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge density [C/m**3]
+    if exactMqv:
+        r = geo.parameter("rMolecule")/lscale
+        vol = 4.*dolfin.pi/3.*r**3
+        #print "MQV", Qmol/vol
+        return Qmol/vol if vol > 0. else 0.
+    elif adaptMqv:
+        cvol, vol = geo.volume("molecule")
+        #print Qmol*lscale**3*vol
+        return dolfin.Constant(Qmol*lscale**3)/cvol
     try:
         lscale = geo.parameter("nm")/nm
         scale = dolfin.Constant(1.0/lscale**3)

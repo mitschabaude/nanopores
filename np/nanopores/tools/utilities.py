@@ -9,7 +9,8 @@ from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
-           "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params"]
+           "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
+           "plot_cross"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -60,7 +61,25 @@ def plot_sliced(geo):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
     dolfin.plot(subsub)
-    dolfin.interactive()
+    
+class uCross(dolfin.Expression):
+    def __init__(self, u, axis=1):
+        self.u = u
+        self.i = axis
+        dolfin.Expression.__init__(self)
+    def eval(self, value, x):
+        y = list(x)
+        y.insert(self.i, 0.)
+        value[0] = self.u(y)
+    
+def plot_cross(u, mesh2D, title="", axis=1):
+    # create Expression to evaluate u on a hyperplane
+    ucross = uCross(u=u, axis=axis)
+    # interpolate u onto the 2D mesh
+    V = dolfin.FunctionSpace(mesh2D, "CG", 1)
+    u2D = dolfin.Function(V)
+    u2D.interpolate(ucross)
+    dolfin.plot(u2D, title=title)
     
 def save_dict(data, dir=".", name="file"):
     # works for all data that can be recovered from their repr()

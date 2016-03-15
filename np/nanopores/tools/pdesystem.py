@@ -44,6 +44,7 @@ class PDESystem(object):
             if inside_loop is not None:
                 inside_loop(self)
             #plot(self.solvers.values()[0].problem.solution(), interactive=True)
+            #self.visualize()
             if refinement:
                 (ind,err) = self.estimate()
                 self.save_estimate("est", err)

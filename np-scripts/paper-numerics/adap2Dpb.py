@@ -1,7 +1,7 @@
 from nanopores import *
 from nanopores.geometries.curved import Circle
 from dolfin import *
-from mysolve import adaptive_pbpnps
+from mysolve import adaptive_pb
 
 geo_name = "H_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
@@ -11,6 +11,7 @@ h = 1.,
 z0 = 2.*nm,
 bV = -0.1,
 Nmax = 1e4,
+cheapest = False,
 )
 
 geo_params = dict(
@@ -24,8 +25,9 @@ phys_params = dict(
 Membraneqs = -0.0,
 Qmol = -1.*qq,
 bulkcon = 3e2,
-dnaqsdamp = 1.,
+dnaqsdamp = .0,
 bV = bV,
+exactMqv = True,
 )
 
 meshgen_dict = generate_mesh(h, geo_name, **geo_params)
@@ -45,22 +47,22 @@ IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 PNPSAxisym.tolnewton = 1e-2
 
-pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax,
-    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.5237907e+14)
+pb = adaptive_pb(geo, phys, cyl=True, frac=.5, Nmax=Nmax, Fpbref=6.08430894614e+14)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
+#print phys
 plot(geo.boundaries)
-pnps.visualize()
-pb.estimators["Fel"].plot()
-pb.estimators["Fdrag"].plot(fig=False)
-pb.estimators["F"].plot(rate=-1., fig=False)
+pb.visualize()
+interactive()
 
-pb.estimators["rep"].plot()
-pb.estimators["err ref"].plot(fig=False)
+pb.estimators["err ref"].plot()
+if not cheapest:
+    pb.estimators["rep"].plot(fig=False)
 pb.estimators["err"].plot(rate=-1., fig=False)
 
-#pb.estimators["goal"].plot()
-#pb.estimators["goal ex"].plot(fig=False)
-#pb.estimators["goal ref"].plot(fig=False)
-saveplots("adap2D")
+pb.estimators["goal"].plot()
+if not cheapest:
+    pb.estimators["goal ex"].plot(fig=False)
+pb.estimators["goal ref"].plot(fig=False)
+#saveplots("adap3D")
 showplots()

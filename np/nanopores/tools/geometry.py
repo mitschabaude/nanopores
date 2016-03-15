@@ -1,7 +1,8 @@
 from dolfin import *
 import ufl
 import nanopores
-from nanopores.tools.illposed import AdaptableBC,adaptmeshfunction,adaptfunction
+from nanopores.tools.illposed import AdaptableBC, adaptmeshfunction, adaptfunction
+from nanopores.tools.physicsclass import Physics
 from nanopores.physics import params_physical
 
 from warnings import warn
@@ -80,6 +81,7 @@ class Geometry(object):
         self.import_synonymes((synonymes if synonymes else {}))
             
         self.dg = {}
+        self.volumes = {}
 
     def physicalboundary(self, string):
         try:
@@ -218,9 +220,9 @@ class Geometry(object):
         
         if isinstance(value, dict):
             dom2value = self._pwconst_lookup(self._dom2phys, value)
-            return sum([inner(Constant(dom2value[i]), v) * dx(i) for i in dom2value])
+            return sum([inner(_wrapf(dom2value[i]), v) * dx(i) for i in dom2value])
         else:
-            return inner(Constant(value), v) * dx
+            return inner(_wrapf(value), v) * dx
 
     def pwconst(self, string, value=None, DG=True): #TODO: should also work as in docstring
         if DG and self.dg.has_key(string):
@@ -236,6 +238,18 @@ class Geometry(object):
             return dgfun
         else:
             return value
+            
+    def volume(self, string, dx="dx"):
+        if dx in self.volumes and string in self.volumes[dx]:
+            return self.volumes[dx][string]
+        dmu = getattr(self, dx)(string)
+        vol = assemble(Constant(1.0)*dmu)
+        cvol = Constant(vol)
+        if dx in self.volumes:
+            self.volumes[dx][string] = cvol
+        else:
+            self.volumes[dx] = {string: cvol}
+        return cvol, vol
             
     def avg(self, u, string, dx="dx"):
         meas = getattr(self, dx)(string)
@@ -264,12 +278,25 @@ class Geometry(object):
         #print "subdomain id (geo):",self.subdomains.id()
         for f in self.dg.values():
             adaptfunction(f, mesh, interpolate=True, assign=True)
+        for meas in self.volumes:
+            for name in self.volumes[meas]:
+                dmu = getattr(self, meas)(name)
+                vol = assemble(Constant(1.0)*dmu)
+                print "DEBUG New volume:", vol
+                self.volumes[meas][name].assign(vol)
+        #print self.volumes
             
         # if curved boundaries are defined, snap back those
         if hasattr(self, "curved"):
             for boundary, snap in self.curved.items():
                 print "Adapting curved boundary '%s'." % boundary
                 self.snap_to_boundary(boundary, snap)
+        
+        # TODO maybe needed some time        
+        # adapt self.Physics if we have one
+        #if isinstance(self.physics, Physics):
+        #    self.physics.adapt()
+            
 
     # alternative to adapt, should be overwritten dynamically
     rebuild = adapt

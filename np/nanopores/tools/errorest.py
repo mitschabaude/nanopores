@@ -1,8 +1,8 @@
 from dolfin import *
-import math
+import math, numpy
 
 __all__ = ["edge_residual_indicator", "poisson_indicator", "zz_indicator",
-           "pb_indicator", "Estimator", "pb_indicator_GO"]
+           "pb_indicator", "Estimator", "pb_indicator_GO", "pb_indicator_GO_cheap"]
 
 class Estimator(object):
     ''' object consisting of pairs (N, f(N)) describing convergence of an error or similar '''
@@ -155,7 +155,6 @@ def pb_indicator(geo, phys, u, cyl=False):
 def pb_indicator_GO(geo, phys, u, z, cyl=False):
     # u .. primal solution
     # z .. dual solution
-    import numpy
 
     mesh = geo.mesh
     V = FunctionSpace(mesh, "DG", 0)
@@ -240,3 +239,76 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
 
     # return indicators, error_rep, error_sum
     return indicators, error_sum, error_rep, cheap_sum, goal, goal_ex
+    
+def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
+    # u .. primal solution
+    # z .. dual solution
+
+    mesh = geo.mesh
+    V = FunctionSpace(mesh, "DG", 0)
+    v = TestFunction(V)
+    n = FacetNormal(mesh)
+    h = CellSize(mesh)
+
+    r = Expression("2*pi*x[0]") if cyl else Constant(1.)
+    dS = geo.dS() # interior facets
+    ds = geo.ds() # exterior facets
+    dx0 = geo.dx("ions")
+    dx = geo.dx()
+
+    c0 = phys.bulkcon
+    cFarad = phys.cFarad
+    UT = phys.UT
+    eps = geo.pwconst('permittivity')
+    def Clscale(i):
+        return Constant( (phys.lscale)**i )
+
+    flux = eps*phys.grad(u)
+
+    # local residuals
+    def rform(w):
+        return -v*phys.div(flux)*w*r*dx \
+        +v*Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
+        -geo.linearRHS(v*w*r, "volcharge") \
+        +Clscale(1)*(
+            +avg(v)*jump(n, flux*w)*r('+')*dS \
+            +v*inner(n, flux)*w*r*ds \
+            -geo.NeumannRHS(v*w*r, "surfcharge"))
+
+    # global residual
+    def R(w):
+        return assemble(
+            inner(flux, phys.grad(w))*r*dx \
+            +Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
+            -geo.linearRHS(w*r, "volcharge")
+            -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
+            
+    # global functional value
+    def J(w):
+        return assemble(
+            inner(flux, phys.grad(w))*r*dx \
+            +Constant(cFarad*2*c0/UT)*u*w*r*dx0)
+
+
+    goal = J(z)
+    scale = abs(1./goal) # precise relevant scale for error (abs value of functional)
+    #scale = 1e12*(1./phys.lscale**3) # rough scale (cheaper)
+    
+    error_res = abs(R(z))*scale
+    
+    # cheap estimator without extrapolation
+    indicators = Function(V)
+    vec = indicators.vector()
+    assemble(rform(z), tensor=vec)
+    vec[:] = numpy.abs(vec[:])
+    error_sum = sum(vec)*scale
+    #plotind = plot(indicators2, title="indicator pb GO", elevate=0.0, interactive=True)
+
+    print "Goal (dual):", goal
+    print "This should be zero (dual global residual):", error_res
+    print "indicator sum (does not make sense as error estimate):", error_sum
+
+    # return indicators, error_rep, error_sum
+    return indicators, error_sum, goal
+    
+
