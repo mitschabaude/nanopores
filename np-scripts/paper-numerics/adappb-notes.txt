@@ -1,7 +1,12 @@
 dnadamp 1.: 6.08430894614e+14
 
-dnadamp 0.: 2.66438346218e+24
+goal: 2.66156503111e+12 (dnaq 0., exactMqv, 2D 6e5 cells, h 1.)
+
 primal at -0.150
 dual at +-8.6e7
 
 Mvol = 0.5235987755982988
+
+Molqv = -305959462.6 (exact)
+Molqv = -305959545.378 (2D 6e5 cells)
+Molqv = -327926363.681 (2D 1e3 cells)

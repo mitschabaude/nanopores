@@ -431,6 +431,14 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         self.save_estimate("goal", gl)
         self.save_estimate("goal ex", glx)
         return ind, rep
+        
+    def estimate_cheap(self):
+        u = self.functions["primal"]
+        z = self.functions["dual"]
+        ind, err, gl = pb_indicator_GO_cheap(self.geo, self.phys, u, z, cyl=True)
+        self.save_estimate("err", err)
+        self.save_estimate("goal", gl)
+        return ind, err
 
     def estimate0(self):
         # primal and dual indicators
@@ -457,15 +465,15 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         '''
         return ind, err
 
-    def print_functionals(self):
-        J = self.functionals["goal"]
-        Jval = J.evaluate()
+    def print_functionals(self, name="goal"):
+        PDESystem.print_functionals(self)
+        J = self.functionals[name]
+        Jval = J.value()
         if self.ref is not None:
             ref = self.ref
             err = abs((Jval-ref)/ref)
             self.save_estimate("err ref", err)
             self.save_estimate("goal ref", ref)
-        print "Goal (*1e12):", Jval*1e12
 
 
 class StokesProblemAxisymEqualOrder(StokesProblemAxisym):

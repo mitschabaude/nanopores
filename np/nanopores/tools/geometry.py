@@ -81,6 +81,7 @@ class Geometry(object):
         self.import_synonymes((synonymes if synonymes else {}))
             
         self.dg = {}
+        self.constants = {}
         self.volumes = {}
 
     def physicalboundary(self, string):
@@ -239,17 +240,25 @@ class Geometry(object):
         else:
             return value
             
-    def volume(self, string, dx="dx"):
+    def constant(self, name, compute=None):
+        # compute has to be provided the first time the constant is requested
+        if not name in self.constants:
+            self.constants[name] = GeometricConstant(name, compute, self)
+        return self.constants[name].function
+        
+        
+    def volume(self, string, dx="dx", cyl=True):
         if dx in self.volumes and string in self.volumes[dx]:
             return self.volumes[dx][string]
         dmu = getattr(self, dx)(string)
-        vol = assemble(Constant(1.0)*dmu)
+        r = Constant(1.0) #if not cyl else Expression("2*pi*x[0]")
+        vol = assemble(r*dmu)
         cvol = Constant(vol)
         if dx in self.volumes:
             self.volumes[dx][string] = cvol
         else:
             self.volumes[dx] = {string: cvol}
-        return cvol, vol
+        return cvol
             
     def avg(self, u, string, dx="dx"):
         meas = getattr(self, dx)(string)
@@ -274,10 +283,20 @@ class Geometry(object):
         #print "subdomain id (geo):",self.subdomains.id()
         self.subdomains = adaptmeshfunction(self.subdomains, mesh)
         self.boundaries = adaptmeshfunction(self.boundaries, mesh)
-        #plot(self.boundaries, interactive=True)
-        #print "subdomain id (geo):",self.subdomains.id()
+        # adapt functions and constants
         for f in self.dg.values():
             adaptfunction(f, mesh, interpolate=True, assign=True)
+        
+        # if curved boundaries are defined, snap back those
+        if hasattr(self, "curved"):
+            for boundary, snap in self.curved.items():
+                print "Adapting curved boundary '%s'." % boundary
+                self.snap_to_boundary(boundary, snap)
+                
+        for const in self.constants.values():
+            const.recompute()
+            print "Recomputed %s." %const
+            
         for meas in self.volumes:
             for name in self.volumes[meas]:
                 dmu = getattr(self, meas)(name)
@@ -285,13 +304,7 @@ class Geometry(object):
                 print "DEBUG New volume:", vol
                 self.volumes[meas][name].assign(vol)
         #print self.volumes
-            
-        # if curved boundaries are defined, snap back those
-        if hasattr(self, "curved"):
-            for boundary, snap in self.curved.items():
-                print "Adapting curved boundary '%s'." % boundary
-                self.snap_to_boundary(boundary, snap)
-        
+
         # TODO maybe needed some time        
         # adapt self.Physics if we have one
         #if isinstance(self.physics, Physics):
@@ -464,8 +477,24 @@ class CallableMeshFunction(object):
     def __call__(self, x):
         i = self.btree.compute_first_entity_collision(Point(array(x)))
         return self.f[int(i)]
-    
 
+        
+class GeometricConstant(object):
+    def __init__(self, name, compute, geo):
+        c = compute(geo)
+        self.name = name
+        self.function = Constant(c)
+        self.value = c
+        self.compute = compute
+        self.geo = geo
+    def recompute(self):
+        c = self.compute(self.geo)
+        self.function.assign(c)
+        self.value = c
+    def __str__(self):
+        return "(%s, %s)" %(self.name, self.value)
+    
+    
 class PhysicalBC(object):
     """ boundary condition defined by its physical meaning
         together with a geometry object to interprete that.

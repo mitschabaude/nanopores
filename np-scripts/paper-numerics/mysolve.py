@@ -11,7 +11,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdrag
     
     bV = phys.bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, z) #+ phys.CurrentPB(v)
+    goal = lambda v : phys.Fbare(v, z) + phys.Fbare(v, 0)
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax
@@ -72,18 +72,36 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdrag
 
     return pb, pnps
     
+
+def QmolEff(U, geo):
+    phi, phidual = U
+    phys = geo.physics
+    dim = phys.dim
+    coeff = Constant(1.) if dim==3 else Expression("2*pi*x[0]")
+    molqv = phys.Moleculeqv
+    dnaqs = phys.DNAqs
+    lscale = phys.lscale
+    grad = phys.grad
+    q = phys.qq
+    #qmol = coeff*molqv/lscale**3/q*geo.dx("molecule")
+    qmol = (1./lscale**3/q)*geo.linearRHS(coeff, "volcharge")
+    Fbare = molqv * (-coeff*grad(phi)[dim-1]) *geo.dx("molecule")
+    return dict(qmol=qmol, Fbare=Fbare, qDNA=qDNA)
+
+    
 def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=None, cheapest=False):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     z = phys.dim - 1
     bV = phys.bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, z) #+ phys.CurrentPB(v)
+    goal = lambda v : phys.Fbare(v, z) #- phys.CurrentPB(v)
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax
     pb.marking_fraction = frac
     if cheapest:
         pb.estimate = pb.estimate_cheap
+    pb.add_functionals([QmolEff])
     refined = True
     i = 0
     
@@ -93,16 +111,13 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=No
         print "\nSolving PB."
         # solve pb
         pb.single_solve()
-        pb.print_functionals()
+        pb.print_functionals(name="Fbare")
         
         #plot(pb.geo.mesh)
         plot(pb.geo.submesh("membrane"))
         #plot(pb.geo.submesh("dna"))
         plot(pb.geo.submesh("pore"))
         #plot(pb.geo.submesh("molecule"))
-        if mesh2D is not None:
-            plot_cross(pb.functions["primal"], mesh2D, title="pb primal")
-            plot_cross(pb.functions["dual"], mesh2D, title="pb dual")
         
         print "\nError estimation."
         (ind, err) = pb.estimate()

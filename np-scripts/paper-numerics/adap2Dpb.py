@@ -12,6 +12,8 @@ z0 = 2.*nm,
 bV = -0.1,
 Nmax = 1e4,
 cheapest = False,
+ref = 6.08430894614e+14, #2.66339790473e+12, 
+adaptq = True,
 )
 
 geo_params = dict(
@@ -25,9 +27,10 @@ phys_params = dict(
 Membraneqs = -0.0,
 Qmol = -1.*qq,
 bulkcon = 3e2,
-dnaqsdamp = .0,
+dnaqsdamp = 1.,
 bV = bV,
-exactMqv = True,
+exactMqv = not adaptq,
+adaptMqv = adaptq,
 )
 
 meshgen_dict = generate_mesh(h, geo_name, **geo_params)
@@ -47,22 +50,21 @@ IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 PNPSAxisym.tolnewton = 1e-2
 
-pb = adaptive_pb(geo, phys, cyl=True, frac=.5, Nmax=Nmax, Fpbref=6.08430894614e+14)
+pb = adaptive_pb(geo, phys, cyl=True, frac=.5, Nmax=Nmax, Fpbref=ref, cheapest=cheapest)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 #print phys
 plot(geo.boundaries)
-pb.visualize()
-interactive()
+#pb.visualize()
 
-pb.estimators["err ref"].plot()
+pb.estimators["err ref"].plot(rate=-1.)
 if not cheapest:
     pb.estimators["rep"].plot(fig=False)
-pb.estimators["err"].plot(rate=-1., fig=False)
+    pb.estimators["err"].plot(fig=False)
 
 pb.estimators["goal"].plot()
 if not cheapest:
     pb.estimators["goal ex"].plot(fig=False)
 pb.estimators["goal ref"].plot(fig=False)
-#saveplots("adap3D")
+#saveplots("adap2Dpb")
 showplots()

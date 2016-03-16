@@ -85,12 +85,18 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
     if exactMqv:
         r = geo.parameter("rMolecule")/lscale
         vol = 4.*dolfin.pi/3.*r**3
-        #print "MQV", Qmol/vol
+        print "Molqv: ", Qmol/vol
         return Qmol/vol if vol > 0. else 0.
+        #return -327926363.681 #-305959545.378
     elif adaptMqv:
-        cvol, vol = geo.volume("molecule")
-        #print Qmol*lscale**3*vol
-        return dolfin.Constant(Qmol*lscale**3)/cvol
+        scale = dolfin.Constant(1.0/lscale**3)
+        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
+        def compute(geo):
+            vol = dolfin.assemble(r*geo.dx("molecule"))
+            return Qmol/vol if vol > 0. else 0.
+        const = geo.constant("Moleculeqv", compute)
+        print "Molqv: ", geo.constants["Moleculeqv"].value
+        return const
     try:
         lscale = geo.parameter("nm")/nm
         scale = dolfin.Constant(1.0/lscale**3)
@@ -99,6 +105,29 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
         return Qmol/MolVol if MolVol > 0. else 0.
     except Exception:
         return None
+        
+def DNAArea(geo, lscale):
+    # this is for Howorka DNA nanopores
+    h = geo.params["l0"] # height of DNA
+    h1 = geo.params["l1"] # height of membrane
+    r0 = geo.params["r0"] # inner radius
+    r1 = geo.params["r1"] # outer radius
+    pi = dolfin.pi
+    return 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2
+    
+def QDNA(DNAqs, DNAArea):
+    # total charge on DNA if boundary is exactly cylindrical, i.e. in 2D
+    return DNAqs*DNAArea
+        
+def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
+    #if dim == 2:
+    #    return DNAqs
+    # calculate total charge on DNA if boundary is exactly cylindrical
+    def compute(geo):
+        scale = dolfin.Constant(1.0/lscale**2)
+        area = dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab"))
+        return QDNA/area if area > 0. else 0.
+    return geo.constant("DNAqs", compute)
 
 # 3. -- piecewise maps connecting physical domains to parameters
 #    -- these are DICTIONARIES of the form {"domain": "parameter_name"} OR
@@ -115,7 +144,7 @@ smearMolCharge = True # note: this is no parameter
 surfcharge = { # surface charge densities for Neumann RHS
     "moleculeb": (0. if smearMolCharge else "Moleculeqs"),
     "chargedmembraneb": "Membraneqs",
-    "chargeddnab": "DNAqs",
+    "chargeddnab": "DNAqsHoworka", #"DNAqs",
     "chargedsinb": "SiNqs",
     "chargedsamb": "SAMqs",
     "lowerb": "lowerqs",
@@ -147,10 +176,8 @@ initial_ions = {
 }
 
 def r2pi(geo, dim):
-    try:
-        return dolfin.Expression("2*pi*x[0]") if dim == 2 else dolfin.Constant(1.0)
-    except:
-        return None
+    return dolfin.Expression("2*pi*x[0]") if dim == 2 else dolfin.Constant(1.0)
+
 
 # TODO: i don't know yet how we should handle functionals
 '''
@@ -175,7 +202,7 @@ def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad, lscale):
         def Fbarevol(v, i):
             dx = geo.dx("molecule")
             scale = dolfin.Constant(lscale**(-3))
-            return dolfin.Constant(Moleculeqv) * (-r2pi*grad(v)[i])*dx
+            return Moleculeqv * (-r2pi*grad(v)[i])*dx
 
         if geo.params["x0"]:
             Fbare0 = Fbarevol if smearMolCharge else Fbaresurf

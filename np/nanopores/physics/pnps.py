@@ -666,15 +666,15 @@ class LinearPBGoalOriented(GoalAdaptivePDE):
         self.save_estimate("goal", gl)
         return ind, err
 
-    def print_functionals(self):
-        J = self.functionals["goal"]
-        Jval = J.evaluate()
+    def print_functionals(self, name="goal"):
+        PDESystem.print_functionals(self)
+        J = self.functionals[name]
+        Jval = J.value()
         if self.ref is not None:
             ref = self.ref
             err = abs((Jval-ref)/ref)
             self.save_estimate("err ref", err)
             self.save_estimate("goal ref", ref)
-        print "Goal (*1e12):", Jval*1e12
 
 class LinearPB(LinearPDE):
     def __init__(self, geo, phys):
