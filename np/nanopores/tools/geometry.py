@@ -244,6 +244,7 @@ class Geometry(object):
         # compute has to be provided the first time the constant is requested
         if not name in self.constants:
             self.constants[name] = GeometricConstant(name, compute, self)
+            print "Computed %s." %(self.constants[name],)
         return self.constants[name].function
         
         

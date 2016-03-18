@@ -113,6 +113,7 @@ def DNAArea(geo, lscale):
     r0 = geo.params["r0"] # inner radius
     r1 = geo.params["r1"] # outer radius
     pi = dolfin.pi
+    geo.constant("DNAArea0", lambda geo: 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2)
     return 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2
     
 def QDNA(DNAqs, DNAArea):
@@ -123,10 +124,12 @@ def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
     #if dim == 2:
     #    return DNAqs
     # calculate total charge on DNA if boundary is exactly cylindrical
+    scale = dolfin.Constant(1.0/lscale**2)
     def compute(geo):
-        scale = dolfin.Constant(1.0/lscale**2)
         area = dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab"))
         return QDNA/area if area > 0. else 0.
+    geo.constant("DNAArea", lambda geo: dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab")))
+    
     return geo.constant("DNAqs", compute)
 
 # 3. -- piecewise maps connecting physical domains to parameters

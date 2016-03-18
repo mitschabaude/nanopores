@@ -41,7 +41,7 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
     from nanopores.tools.illposed import adaptfunction
     from dolfin import plot
     submesh = geo.submesh(sub)
-    adaptfunction(u, submesh, assign=True)
+    u = adaptfunction(u, submesh, assign=False, interpolate=True)
     u0 = u if expr is None else expr
     plot(u0, title=title)
     

@@ -1,5 +1,6 @@
 """ General-purpose PDE System class """
 
+import numpy
 from dolfin import *
 from .illposed import *
 from .errorest import *
@@ -106,20 +107,31 @@ class PDESystem(object):
 
     def refine_mesh(self, ind):
         mesh = self.geo.mesh
-
+        
+        # MARK
         markers = CellFunction("bool", mesh, True)
-        if not self.uniform_refinement:
+        if not self.uniform_refinement and not self.marking_fraction == 1.:
+            #tic()
             indicators = CellFunction("double", mesh)
-            # TODO: parallel + efficient
-            for c in cells(mesh):
-                indicators[c] = ind(c.midpoint())
-
-            # MARK
+            # ind is a DG0 Function
+            dofmap = ind.function_space().dofmap()
+            cell_to_dof = numpy.array([dofmap.cell_dofs(i)[0] for i in range(mesh.num_cells())])
+            indicators.array()[:] = ind.vector()[cell_to_dof]
+            
+            # This version is about 30x slower than the one above:
+            # (and only about 0.5x faster than the refine() step
+            #  which should dominate this function)
+            #for c in cells(mesh):
+            #    indicators[c] = ind(c.midpoint())
+            #print "TIME DG0 -> CellFunction: %s s" % (toc(),)
+            #tic()
             dorfler_mark(markers, indicators, self.marking_fraction)
+            #print "TIME Marking: %s s" % (toc(),)
+        #tic()
 
         # REFINE
-        # TODO: use refine? adapt seems to crash more easily
         mesh = refine(mesh, markers)
+        #print "TIME Refinement: %s s" % (toc(),)
         #mesh = adapt(mesh, markers)
         return mesh
 
@@ -218,6 +230,9 @@ class PDESystem(object):
         for x in self.functions:
             t = t + self.solutions(x, deepcopy=deepcopy)
         return t
+
+    def dofs(self):
+        return sum(u.function_space().dim() for u in self.solutions())
 
     def save_mesh(self, mesh_name=None):
         geo_name = self.geo.parameter("name")

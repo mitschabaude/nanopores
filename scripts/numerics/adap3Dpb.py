@@ -23,7 +23,7 @@ geo_params = dict(
 x0 = [0.,0.,z0],
 rMolecule = 0.5*nm,
 lcCenter = 0.1,
-lcMolecule = 0.025,
+lcMolecule = 0.1,
 )
 geo_params2D = dict(
 x0 = [0.,0.,z0],
@@ -57,8 +57,8 @@ outerdna = Cylinder(R=geo.params["r1"], L=geo.params["l0"])
 side = Cylinder(R=geo.params["R"], L=2.*geo.params["Rz"])
 # this causes geo to automatically snap boundaries when adapting
 geo.curved = dict(
-    #moleculeb = molec.snap,
-    #innerdnab = innerdna.snap,
+    moleculeb = molec.snap,
+    innerdnab = innerdna.snap,
     #outerdnab = outerdna.snap,
     #membranednab = outerdna.snap,
     #sideb = side.snap,
@@ -80,11 +80,8 @@ StokesProblemEqualOrder.beta = 1. #True
 LinearPBProblem.method["ks"] = "bicgstab"
 LinearPBProblem.method["kparams"]["relative_tolerance"] = 1e-10
 LinearPBProblem.method["kparams"]["absolute_tolerance"] = 1e-6
-#LinearPBProblem.method["kparams"]["monitor_convergence"] = True
+LinearPBProblem.method["kparams"]["monitor_convergence"] = True
 LinearPBProblem.method["kparams"]["nonzero_intial_guess"] = True
-#LinearPBProblem.method["iterative"] = False
-#set_log_level(100)
-
 PNPS.tolnewton = 1e-4
 
 PNPSAxisym.tolnewton = 1e-4
@@ -93,33 +90,10 @@ PNPSAxisym.tolnewton = 1e-4
 pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D, Fpbref=ref, cheapest=cheapest)
 mesh2D = geo2D.mesh
 
-# 1D visualization
-Rz = geo.params["Rz"]
-r0 = geo.params["r0"]
-plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(r0, 0.))
-#plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(0., 0.))
-
 # solve 3D
 #pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax, 
 #    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.523790e+14)
-
 pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref, mesh2D=mesh2D, cheapest=cheapest)
- 
-# assess mesh quality           
-mesh = pb.geo.mesh
-vertex = VertexFunction("bool", mesh, False)
-for c in cells(mesh):
-    if c.radius_ratio() < 1e-3:
-        if c.radius_ratio() < 1e-6:
-            print 'Degenerate cell', c.index(), ', radius ratio', c.radius_ratio()
-        for v in vertices(c):
-            vertex[v] = True
-            if c.radius_ratio() < 1e-6:
-                print '  ', v.point().str()
-            
-print 'Minimal radius ratio of mesh:', MeshQuality.radius_ratio_min_max(mesh)[0]
-#exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200))
-plot(vertex)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 
@@ -133,7 +107,6 @@ if mesh2D is not None:
 plot_sliced(geo)
 
 # 1D visualization
-'''
 Rz = geo.params["Rz"]
 r0 = geo.params["r0"]
 plot1D({"phi (2D)": phi2D}, (-Rz, Rz, 101), "y", dim=2, origin=(r0, 0.))
@@ -142,7 +115,6 @@ plot1D({"phi (3D)": phi},   (-Rz, Rz, 101), "z", dim=3, origin=(0., -r0, 0.), ne
 plot1D({"phi (3D)": phi},   (-Rz, Rz, 101), "z", dim=3, origin=(-r0, 0., 0.), newfig=False)
 plot1D({"phi (3D)": phi},   (-Rz, Rz, 101), "z", dim=3, origin=(r0, 0., 0.), axlabels=("z [nm]", "potential [V]"),
 newfig=False)
-'''
 
 # convergence plots
 #pnps.visualize("pore")

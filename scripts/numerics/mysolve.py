@@ -4,18 +4,38 @@ from dolfin import *
 from nanopores.tools.pdesystem import newtonsolve
 from nanopores import *
 
-def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdragref=None, Fpbref=None):
+def QmolEff(U, geo):
+    phi, phidual = U
+    phys = geo.physics
+    dim = phys.dim
+    coeff = Constant(1.) if dim==3 else Expression("2*pi*x[0]")
+    molqv = phys.Moleculeqv
+    dnaqs = phys.DNAqs
+    lscale = phys.lscale
+    grad = phys.grad
+    q = phys.qq
+    #qmol = coeff*molqv/lscale**3/q*geo.dx("molecule")
+    qDNA = (1./lscale**2/q)*geo.NeumannRHS(coeff, "surfcharge")
+    qmol = (1./lscale**3/q)*geo.linearRHS(coeff, "volcharge")
+    Fbare = molqv * (-coeff*grad(phi)[dim-1]) *geo.dx("molecule")
+    return dict(qmol=qmol, Fbare=Fbare, qDNA=qDNA)
+
+def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheapest=False,
+     Felref=None, Fdragref=None, Fpbref=None):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
     z = phys.dim - 1
     
     bV = phys.bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, z) + phys.Fbare(v, 0)
+    goal = lambda v : phys.Fbare(v, z)
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax
     pb.marking_fraction = frac
+    if cheapest:
+        pb.estimate = pb.estimate_cheap
+    pb.add_functionals([QmolEff])
     refined = True
     i = 0
     
@@ -72,23 +92,6 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Felref=None, Fdrag
 
     return pb, pnps
     
-
-def QmolEff(U, geo):
-    phi, phidual = U
-    phys = geo.physics
-    dim = phys.dim
-    coeff = Constant(1.) if dim==3 else Expression("2*pi*x[0]")
-    molqv = phys.Moleculeqv
-    dnaqs = phys.DNAqs
-    lscale = phys.lscale
-    grad = phys.grad
-    q = phys.qq
-    #qmol = coeff*molqv/lscale**3/q*geo.dx("molecule")
-    qmol = (1./lscale**3/q)*geo.linearRHS(coeff, "volcharge")
-    Fbare = molqv * (-coeff*grad(phi)[dim-1]) *geo.dx("molecule")
-    return dict(qmol=qmol, Fbare=Fbare, qDNA=qDNA)
-
-    
 def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=None, cheapest=False):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     z = phys.dim - 1
@@ -114,10 +117,18 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=No
         pb.print_functionals(name="Fbare")
         
         #plot(pb.geo.mesh)
-        plot(pb.geo.submesh("membrane"))
+        #plot(pb.geo.submesh("membrane"))
+        #plot(pb.geo.submesh("pore"))
         #plot(pb.geo.submesh("dna"))
-        plot(pb.geo.submesh("pore"))
-        #plot(pb.geo.submesh("molecule"))
+        if phys.dim == 3:
+            dofs = pb.dofs()
+            #plot_on_sub(pb.solution, geo, "dna", title="N=%s" %dofs)
+            #geo_debug(pb.geo)
+            Rz = pb.geo.params["Rz"]
+            r0 = pb.geo.params["r0"]
+            plot1D({"phi, N=%s" %dofs: pb.solution}, (-Rz, Rz, 101), "z", dim=3,
+                origin=(r0, 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
+            #     origin=(0., 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
         
         print "\nError estimation."
         (ind, err) = pb.estimate()
@@ -128,7 +139,6 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=No
         else:
             print "New total number of cells:", pb.geo.mesh.num_cells()
     return pb
-
 
 def newton_solve(self, tol=None, damp=None, verbose=True):
     if tol is None: tol = self.tolnewton
@@ -213,5 +223,18 @@ def hybrid_solve(self, tol=None, damp=None):
         print "\n CPU Time (solve): %.2f s" % Tt
         for name in self.solvers:
             print "  -) %s: %.2f s" %(name, times[name])
+            
+def geo_debug(geo):
+    print "Boundaries:"
+    for i in geo._bou2phys:
+        print "%d: %s" %(i, str(geo._bou2phys[i]))
+        
+    for subd in geo._physical_domain:
+        submesh = geo.submesh(subd)
+        geo_sub = geo_from_subdomains(submesh,
+                    "nanopores.geometries.%s.subdomains" %geo.params["name"], **geo.params)
+        plot(geo_sub.boundaries, title=("boundaries on %s" %subd), elevate=-3e1)
+        #plot(submesh, title=("initial mesh on %s" %subd), wireframe=True, elevate=-3e1)
+    interactive()
             
             
