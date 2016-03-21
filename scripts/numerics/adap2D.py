@@ -43,7 +43,7 @@ plot(geo.subdomains)
 IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
-PNPSAxisym.tolnewton = 1e-2
+PNPSAxisym.tolnewton = 1e-4
 
 pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax,
     Felref=1.211487, Fdragref=-7.675373, Fpbref=6.5237907e+14)

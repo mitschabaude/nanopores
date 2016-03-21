@@ -67,7 +67,8 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         #newton_iter = pnps.newton_solve()
         #print "  Newton iterations:", newton_iter
         print
-        pnps.visualize("pore")
+        if phys.dim == 3:
+            pnps.visualize("pore")
         fs = pnps.get_functionals()
         Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
         Fel = fs["Fbarevol%d" %z]

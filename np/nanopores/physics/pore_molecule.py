@@ -49,7 +49,7 @@ hReservoir = 0.01 # height of cylindrical upper reservoir
 applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
-adaptMqv = False
+adaptMqv = True
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!
@@ -121,8 +121,8 @@ def QDNA(DNAqs, DNAArea):
     return DNAqs*DNAArea
         
 def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
-    #if dim == 2:
-    #    return DNAqs
+    if dim == 2:
+        return DNAqs
     # calculate total charge on DNA if boundary is exactly cylindrical
     scale = dolfin.Constant(1.0/lscale**2)
     def compute(geo):

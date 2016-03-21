@@ -100,7 +100,7 @@ class PNPSAxisym(PNPS):
                 Fp = (-r2pi*p*n[i])('-') *scl2*dS
                 Fshear = (r2pi*eta*2.0*dot(sym(grad(u)),-n)[i])('-') *scl2*dS
                 Fbare = Constant(rho)*(-r2pi*grad(v)[i])('-') * scl2*dS
-                Fbarevol = Constant(rho0)*(-r2pi*grad(v)[i]) * scl3*dx
+                Fbarevol = rho0*(-r2pi*grad(v)[i]) * scl3*dx
 
                 for F in ["Fp","Fshear","Fbare", "Fbarevol"]:
                     F_dict[F+str(i)] = Functional(locals()[F])
