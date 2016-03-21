@@ -24,9 +24,9 @@ class Cylinder(SubDomain):
 
     def snap(self, x):
         r = self.r(x)
-        if self.inside(x, False):
-            x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
-            x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
+        #if self.inside(x, False):
+        x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
+        x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
             
             
 class Circle(SubDomain):

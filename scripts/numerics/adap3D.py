@@ -7,7 +7,7 @@ geo_name = "H_cyl_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
 
 add_params(
-h = 7.,
+h = 5.,
 h2D = 1.,
 z0 = 2.*nm,
 bV = -0.1,
@@ -17,13 +17,15 @@ frac = .5,
 cheapest = True,
 ref = 6.08430894614e+14, #2.66339790473e+12
 adaptq = True,
+ratio = .01,
 )
+print PARAMS
 
 geo_params = dict(
 x0 = [0.,0.,z0],
 rMolecule = 0.5*nm,
-lcCenter = 0.1,
-lcMolecule = 0.025,
+lcCenter = 0.5,
+lcMolecule = 0.5, #025,
 )
 geo_params2D = dict(
 x0 = [0.,0.,z0],
@@ -57,12 +59,12 @@ outerdna = Cylinder(R=geo.params["r1"], L=geo.params["l0"])
 side = Cylinder(R=geo.params["R"], L=2.*geo.params["Rz"])
 # this causes geo to automatically snap boundaries when adapting
 geo.curved = dict(
-    #moleculeb = molec.snap,
-    #innerdnab = innerdna.snap,
-    #outerdnab = outerdna.snap,
-    #membranednab = outerdna.snap,
-    #sideb = side.snap,
-    #outermembraneb = side.snap,
+    moleculeb = molec.snap,
+    innerdnab = innerdna.snap,
+    outerdnab = outerdna.snap,
+    membranednab = outerdna.snap,
+    sideb = side.snap,
+    outermembraneb = side.snap,
     )
 
 phys2D = Physics("pore_molecule", geo2D, **phys_params)
@@ -90,7 +92,9 @@ PNPS.tolnewton = 1e-4
 PNPSAxisym.tolnewton = 1e-4
 
 # solve 2D
-pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D, Fpbref=ref, cheapest=cheapest)
+print "\n---- SOLVE 2D PROBLEM ----"
+pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D,
+    Fpbref=ref, cheapest=cheapest, ratio=ratio)
 mesh2D = geo2D.mesh
 
 # 1D visualization
@@ -100,27 +104,43 @@ plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(r0, 0.))
 #plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(0., 0.))
 
 # solve 3D
+print "\n---- SOLVE 3D PROBLEM ----"
 #pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax, 
 #    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.523790e+14)
 
-pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref, mesh2D=mesh2D, cheapest=cheapest)
- 
+pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref,
+    mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
+
+""" 
 # assess mesh quality           
 mesh = pb.geo.mesh
 vertex = VertexFunction("bool", mesh, False)
+dgncells = CellFunction("size_t", mesh, 0)
+ndegc = 0
+smallrat = 1e-3
 for c in cells(mesh):
-    if c.radius_ratio() < 1e-3:
-        if c.radius_ratio() < 1e-6:
-            print 'Degenerate cell', c.index(), ', radius ratio', c.radius_ratio()
-        for v in vertices(c):
-            vertex[v] = True
-            if c.radius_ratio() < 1e-6:
-                print '  ', v.point().str()
-            
-print 'Minimal radius ratio of mesh:', MeshQuality.radius_ratio_min_max(mesh)[0]
-#exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200))
-plot(vertex)
+    if c.radius_ratio() < smallrat:
+        dgncells[c] = 1
+        ndegc += 1
 
+print "%s degenerate cells of radius ratio below %ds" % (ndegc, smallrat)
+minrr = MeshQuality.radius_ratio_min_max(mesh)[0]
+print 'Minimal radius ratio of mesh:', minrr
+from matplotlib import pyplot
+pyplot.figure()
+print MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200)
+exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200))
+# plot degenerate cells
+if minrr < 1e-3:
+    plot(SubMesh(mesh, dgncells, 1))
+    # find degenerate cells before snapping
+    if frac == 1.:
+        oldmesh = pb.geo.old[-1][0]
+        oldmesh = refine(oldmesh)
+        oldcells = CellFunction("size_t", oldmesh, 0)
+        oldcells.array()[:] = dgncells.array()
+        plot(SubMesh(oldmesh, oldcells, 1))
+"""
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 
 # 2D visualization
@@ -130,7 +150,7 @@ if mesh2D is not None:
     plot_cross(phi, mesh2D, title="pb primal")
     plot(phi2D, title="pb primal 2D")
     #plot_cross(pb.functions["dual"], mesh2D, title="pb dual")
-plot_sliced(geo)
+#plot_sliced(geo)
 
 # 1D visualization
 '''

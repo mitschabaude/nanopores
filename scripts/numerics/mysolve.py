@@ -92,7 +92,8 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
 
     return pb, pnps
     
-def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=None, cheapest=False):
+def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
+        ratio=.01, mesh2D=None, cheapest=False):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     z = phys.dim - 1
     bV = phys.bV
@@ -111,6 +112,9 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None, mesh2D=No
     print "Number of cells:", pb.geo.mesh.num_cells()
     while refined:
         i += 1
+        if phys.dim == 3:
+            print "\nAssessing mesh quality."
+            mesh_quality(pb.geo.mesh, ratio=ratio, geo=pb.geo, plothist=False)
         print "\nSolving PB."
         # solve pb
         pb.single_solve()
@@ -236,5 +240,37 @@ def geo_debug(geo):
         plot(geo_sub.boundaries, title=("boundaries on %s" %subd), elevate=-3e1)
         #plot(submesh, title=("initial mesh on %s" %subd), wireframe=True, elevate=-3e1)
     interactive()
+    
+def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True):
+    #vertex = VertexFunction("bool", mesh, False)
+    dgncells = CellFunction("size_t", mesh, 0)
+    
+    ndeg = 0
+    for c in cells(mesh):
+        if c.radius_ratio() < ratio:
+            dgncells[c] = 1
+            ndeg += 1
+    
+    print "%s degenerate cells of radius ratio < %s." % (ndeg, ratio)            
+    minrr = MeshQuality.radius_ratio_min_max(mesh)[0]
+    print "Minimal radius ratio of mesh:", minrr
+    if plothist:
+        from matplotlib import pyplot
+        pyplot.figure()
+        exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200), locals())
+    # plot degenerate cells
+    if minrr < ratio:
+        submesh = SubMesh(mesh, dgncells, 1)
+        title = "degenerate N=%s" %mesh.num_cells()
+        #plot(submesh, title=title)
+        geo_sub = geo_from_subdomains(submesh,
+                    "nanopores.geometries.%s.subdomains" %geo.params["name"], **geo.params)
+        plot(geo_sub.boundaries, title="boundaries "+title)
+        # find degenerate cells before snapping
+        if oldmesh is not None:
+            oldmesh = refine(oldmesh)
+            oldcells = CellFunction("size_t", oldmesh, 0)
+            oldcells.array()[:] = dgncells.array()
+            plot(SubMesh(oldmesh, oldcells, 1), "old degenerate cells N=%s" %mesh.num_cells())
             
             

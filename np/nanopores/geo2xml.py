@@ -4,7 +4,7 @@ import os
 import nanopores
 from nanopores.meshconvert import convert2xml
 
-def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
+def generate_mesh(clscale, gid, xml=True, pid="", dim=3, optimize=True, **params):
     """
     python function that writes geo for given geometry and xml for fenics
 
@@ -39,8 +39,11 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, **params):
     del geo_dict["geo_code"]
 
     # after writing the geo file, call gmsh
-    gmsh_out = subprocess.call(["gmsh", "-%s" %dim, "-v", "1","-clscale", "%f" %clscale,
-                     fid_dict["fid_geo"], "-o", fid_dict["fid_msh"]])
+    callstr = ["gmsh", "-%s" %dim, "-v", "1","-clscale", "%f" %clscale,
+                     fid_dict["fid_geo"], "-o", fid_dict["fid_msh"]]
+    if optimize:
+        callstr.append("-optimize")
+    gmsh_out = subprocess.call(callstr)
 
     if gmsh_out != 0:
         raise RuntimeError('Gmsh failed in generating this geometry')
