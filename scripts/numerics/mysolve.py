@@ -27,6 +27,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     z = phys.dim - 1
     
     bV = phys.bV
+    print "biased voltage:", bV
     phys.bV = 0.
     goal = lambda v : phys.Fbare(v, z)
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
@@ -49,6 +50,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         pb.print_functionals()
         
         # define and solve pnps
+        '''
         if i==1:
             pnps = PNPStokes(pb.geo, phys, v0=pb.solution)
         else:
@@ -60,15 +62,18 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             functions = tuple(pnps.functions.values())
             for S in pnps.solvers.values():
                 S.replace(functions,functions)
+        '''
+        pnps = PNPStokes(pb.geo, phys, v0=pb.solution)
+
         print "\nSolving PNPS."
-        dofs = sum(u.function_space().dim() for u in pnps.solutions())
-        print "  Degrees of freedom: %d" % (dofs,)
-        pnps.solve()
-        #newton_iter = pnps.newton_solve()
-        #print "  Newton iterations:", newton_iter
+        dofs = pnps.dofs()
+        print "  Degrees of freedom: %d" % dofs
+        #pnps.solve()
+        newton_iter = pnps.newton_solve()
+        print "  Newton iterations:", newton_iter
         print
-        if phys.dim == 3:
-            pnps.visualize("pore")
+        #if phys.dim == 3:
+        #    pnps.visualize("pore")
         fs = pnps.get_functionals()
         Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
         Fel = fs["Fbarevol%d" %z]

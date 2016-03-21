@@ -265,9 +265,9 @@ class PNPS(PDESystem):
         for i in range(self.imax):
             #self.visualize()
             self.single_solve()
-            print "Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
+            print "   Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
             #print "Newton L2 Error:", self.solvers["PNP"].relerror()
-            plot(self.functions["Stokes"].sub(0))
+            #plot(self.functions["Stokes"].sub(0))
             if self.solvers["PNP"].convergence(tol):
                 break
         return i+1
@@ -575,10 +575,10 @@ class PNPProblem(AdaptableNonlinearProblem):
         '''
         if not bcs:
             try:
-                bcs = [geo.BC(X.sub(0), Constant(0.0), "bV")] if phys.bV else []
+                bcs = [geo.BC(X.sub(0), Constant(phys.bV), "bV")] if phys.bV else []
                 bcs += [geo.BC(X.sub(0), Constant(0.0), "ground"),
-                        geo.BC(X.sub(1), Constant(0.0), "bulk"),
-                        geo.BC(X.sub(2), Constant(0.0), "bulk")]
+                        geo.BC(X.sub(1), Constant(phys.bulkcon), "bulk"),
+                        geo.BC(X.sub(2), Constant(phys.bulkcon), "bulk")]
             except:
                 warning("No boundary conditions have been assigned to %s" %type(self).__name__)
 

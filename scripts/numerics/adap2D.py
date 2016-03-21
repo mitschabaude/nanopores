@@ -46,7 +46,7 @@ IllposedNonlinearSolver.newtondamp = 1.
 PNPSAxisym.tolnewton = 1e-4
 
 pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax,
-    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.5237907e+14)
+    Felref=1.1424041805, Fdragref=-7.69122891958, Fpbref=6.08430894614e+14)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
