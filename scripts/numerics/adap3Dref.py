@@ -1,7 +1,7 @@
 from nanopores import *
 from nanopores.geometries.curved import Cylinder, Sphere, Circle
 from dolfin import *
-from mysolve import * #adaptive_pbpnps, adaptive_pb
+from mysolve import adaptive_pbpnps, adaptive_pb
 
 geo_name = "H_cyl_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
@@ -15,6 +15,7 @@ Nmax = 1e4,
 Nmax2D = 1e4,
 frac = .5,
 cheapest = True,
+ref = 6.08430894614e+14, #2.66339790473e+12
 adaptq = True,
 ratio = .01,
 )
@@ -22,8 +23,8 @@ ratio = .01,
 geo_params = dict(
 x0 = [0.,0.,z0],
 rMolecule = 0.5*nm,
-lcCenter = 0.5, #5,
-lcMolecule = 0.3, #025,
+lcCenter = 0.05, #5,
+lcMolecule = 0.03, #025,
 )
 geo_params2D = dict(
 x0 = [0.,0.,z0],
@@ -41,7 +42,8 @@ adaptMqv = adaptq,
 )
 
 set_log_level(100)
-ref = load_Fref()
+Felref = 1.1424041805
+Fdragref = -7.69122891958
 
 # 2D geometry
 generate_mesh(h2D, "H_geo", **geo_params2D)
@@ -49,7 +51,7 @@ geo2D = geo_from_name("H_geo", **geo_params)
 molec2D = Circle(R=geo2D.params["rMolecule"], center=geo2D.params["x0"][::2])
 geo2D.curved = dict(moleculeb = molec2D.snap)
 mesh2D = geo2D.mesh
-"""
+
 phys2D = Physics("pore_molecule", geo2D, **phys_params)
 
 IllposedLinearSolver.stab = 1e0
@@ -59,7 +61,7 @@ PNPSAxisym.tolnewton = 1e-4
 # solve 2D
 print "\n---- SOLVE 2D PROBLEM ----"
 pb2D, pnps2D = adaptive_pbpnps(geo2D, phys2D, cyl=True, frac=frac, Nmax=Nmax2D, 
-    cheapest=cheapest, **ref)
+    Felref=Felref, Fdragref=Fdragref, Fpbref=ref, cheapest=cheapest)   
 #pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D,
 #    Fpbref=ref, cheapest=cheapest, ratio=ratio)
 mesh2D = geo2D.mesh
@@ -92,7 +94,7 @@ w0 = w3D(u=u, p=p)
 #r0 = geo2D.params["r0"]
 #plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(r0, 0.))
 #plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(0., 0.))
-"""
+
 # 3D geometry
 meshgen_dict = generate_mesh(h, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
@@ -125,8 +127,8 @@ PNPProblem.method["kparams"]["nonzero_intial_guess"] = False #True
 PNPProblem.method["kparams"]["monitor_convergence"] = False #True
 PNPProblem.method["iterative"] = True #False
 
-StokesProblem.method["iterative"] = False
-#StokesProblemEqualOrder.beta = .001
+StokesProblem.method["iterative"] = True
+StokesProblemEqualOrder.beta = .001
 StokesProblem.method["kparams"].update(
     monitor_convergence = True,
     relative_tolerance = 1e-7,
@@ -154,11 +156,11 @@ PNPS.tolnewton = 1e-2
 
 # solve 3D
 print "\n---- SOLVE 3D PROBLEM ----"
-pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax,
-    cheapest=cheapest, **ref)
-#pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref,
-#    mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
-"""
+#pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax, w0=w0,
+#    Felref=Felref, Fdragref=Fdragref, Fpbref=ref, cheapest=cheapest)
+pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref,
+    mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
+
 pnps = PNPS(pb.geo, phys, v0=pb.solution, w0=w0)
 print "\nSolving PNPS."
 dofs = pnps.dofs()
@@ -172,7 +174,7 @@ F = Fdrag + Fel
 print "Fbare [pN]:", Fel
 print "Fdrag [pN]:", Fdrag
 print "F     [pN]:", F
-"""
+
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 
 # 2D visualization
@@ -202,11 +204,11 @@ newfig=False)
 
 # convergence plots
 #pnps.visualize("fluid")
+"""
 pb.estimators["Fel"].plot()
-pb.estimators["Fs"].plot(fig=False)
-pb.estimators["Fp"].plot(fig=False)
-pb.estimators["F"].plot(rate=-2./3., fig=False)
-
+pb.estimators["Fdrag"].plot(fig=False)
+pb.estimators["F"].plot(rate=-1., fig=False)
+"""
 pb.estimators["err ref"].plot(rate=-2./3.)
 if not cheapest:
     pb.estimators["rep"].plot(fig=False)

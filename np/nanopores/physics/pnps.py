@@ -18,7 +18,7 @@ class PNPS(PDESystem):
     Functional_mult = 1e12
     alwaysstokes = False
 
-    def __init__(self, geo, phys, v0=None):
+    def __init__(self, geo, phys, v0=None, w0=None):
         # TODO: initialization in 3D takes more than 3 seconds, even without assembling Stokes.
         #       where is the time spent? in the imports?
         mesh = geo.mesh
@@ -49,6 +49,10 @@ class PNPS(PDESystem):
         else:
             v = interpolate(Constant(0.0), V)
             assign(x, [v, c0, c0])
+            
+        # optional initial guess for stokes
+        if w0 is not None:
+            w.interpolate(w0)
 
         # apply BCs
         geo.BC(X.sub(0), Constant(0.), "ground").apply(x.vector())
@@ -379,12 +383,12 @@ class PNPS(PDESystem):
 
 class StokesProblem(AdaptableLinearProblem):
     k = 2
-    method = dict(solvermethods.stokes)
-    """
+    #method = dict(solvermethods.stokes)
+
     method = dict(
         reuse = True,
         iterative = True,
-        lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+        lusolver = ("mumps" if has_lu_solver_method("superlu_dist") else "default"),
         luparams = dict(
             symmetric = True,
             same_nonzero_pattern = True,
@@ -403,11 +407,11 @@ class StokesProblem(AdaptableLinearProblem):
             nonzero_initial_guess = True,
             error_on_nonconvergence = False,
             preconditioner = dict(
-                report = False,
+                #report = False,
                 structure = "same_nonzero_pattern",
-                ilu = dict(fill_level = 1)))
+                ilu = dict(fill_level = 2)))
     )
-    """
+
 
     @staticmethod
     def space(mesh):
@@ -447,7 +451,7 @@ class StokesProblem(AdaptableLinearProblem):
             f = C0
 
         a, L, p = self.forms(W, geo, f)
-        #self.method["preconditioning_form"] = p
+        self.method["preconditioning_form"] = p
 
         if not w:
             w = Function(W)
@@ -607,15 +611,17 @@ class StokesProblemEqualOrder(StokesProblem):
         grad = geo.physics.grad
         div = geo.physics.div
         lscale = geo.physics.lscale
+        eta = Constant(geo.physics.eta)
 
-        h = CellSize(mesh)/lscale
-        delta = StokesProblemEqualOrder.beta*h**2
+        h = CellSize(mesh)
+        delta = Constant(StokesProblemEqualOrder.beta/lscale**2)*h**2
+        def eps(u): return Constant(2.)*sym(grad(u))
 
         # added stabilization term
-        a = (2*eta*inner(sym(grad(u)), sym(grad(v))) + div(v)*p + q*div(u))*dx \
+        a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
              - delta*inner(grad(p),grad(q))*dx
         L = inner(f,v - delta*grad(q))*dx
-        p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx #- delta*inner(grad(p),grad(q))*dx
+        p = inner(eps(u), eps(v))*dx + lscale*inner(p, q)*dx #- delta*inner(grad(p),grad(q))*dx
         return (a, L, p)
 
 from .poisson import PoissonProblem

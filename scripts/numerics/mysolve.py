@@ -21,7 +21,7 @@ def QmolEff(U, geo):
     return dict(qmol=qmol, Fbare=Fbare, qDNA=qDNA)
 
 def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheapest=False,
-     Felref=None, Fdragref=None, Fpbref=None):
+     Felref=None, Fsref=None, Fpref=None, Fpbref=None, ratio=0.01):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
     z = phys.dim - 1
@@ -44,7 +44,10 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         
     while refined:
         i += 1
-        print "\n\nSolving PB."
+        if phys.dim == 3:
+            print "\nAssessing mesh quality."
+            mesh_quality(pb.geo.mesh, ratio=ratio, geo=pb.geo, plothist=False)
+        print "\nSolving PB."
         # solve pb
         pb.single_solve()
         pb.print_functionals()
@@ -75,16 +78,19 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         #if phys.dim == 3:
         #    pnps.visualize("pore")
         fs = pnps.get_functionals()
-        Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
+        Fp = fs["Fp%d" %z]
+        Fshear = fs["Fshear%d" %z]
+        Fdrag = Fp + Fshear
         Fel = fs["Fbarevol%d" %z]
         F = Fdrag + Fel
         print "Fbare [pN]:", Fel
-        print "Fdrag [pN]:", Fdrag
+        print "Fdrag [pN]:", Fdrag, " = %s (Fp) + %s (Fshear)" %(Fp, Fshear)
         print "F     [pN]:", F
         if Felref is not None:
+            pb.save_estimate("Fp", abs((Fp-Fpref)/Fpref), N=dofs)
             pb.save_estimate("Fel", abs((Fel-Felref)/Felref), N=dofs)
-            pb.save_estimate("Fdrag", abs((Fdrag-Fdragref)/Fdragref), N=dofs)
-            Fref = Felref + Fdragref
+            pb.save_estimate("Fs", abs((Fshear-Fsref)/Fsref), N=dofs)
+            Fref = Felref + Fsref + Fpref
             pb.save_estimate("F", abs((F-Fref)/Fref), N=dofs)
         
         print "\nAdaptive refinement."
@@ -278,5 +284,25 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True):
             oldcells = CellFunction("size_t", oldmesh, 0)
             oldcells.array()[:] = dgncells.array()
             plot(SubMesh(oldmesh, oldcells, 1), "old degenerate cells N=%s" %mesh.num_cells())
+            
+def save_Fref(pb, pnps):
+    z = pnps.phys.dim - 1
+    fs = pnps.get_functionals()
+    Fp = fs["Fp%d" %z]
+    Fshear = fs["Fshear%d" %z]
+    Fdrag = Fp + Fshear
+    Fel = fs["Fbarevol%d" %z]
+    F = Fdrag + Fel
+    Fpbref = pb.get_functionals()["goal"]
+    data = dict(
+        Fpref = Fp,
+        Fsref = Fshear,
+        Felref = Fel,
+        Fpbref = Fpbref,
+    )
+    save_dict(data, ".", "Fref")
+    
+def load_Fref():
+    return load_dict(".", "Fref")
             
             

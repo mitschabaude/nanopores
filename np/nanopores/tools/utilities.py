@@ -10,7 +10,7 @@ from nanopores.tools.protocol import unique_id
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
-           "plot_cross", "plot_cross_vector"]
+           "plot_cross", "plot_cross_vector", "load_dict"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -82,9 +82,8 @@ class uCrossVector(dolfin.Expression):
         i = self.i
         y.insert(i, 0.)
         ux = self.u(y)
-        for j in range(3):
-            if not j==i:
-                value[i] = ux[i]
+        value[0] = ux[0] # for axis=1
+        value[1] = ux[2]
     def value_shape(self):
         return (2,)
 
