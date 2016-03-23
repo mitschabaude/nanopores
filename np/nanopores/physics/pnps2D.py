@@ -15,10 +15,13 @@ __all__ = ["PNPSAxisym","PNPProblemAxisym","StokesProblemAxisym","LinearPBAxisym
 
 class PNPSAxisym(PNPS):
 
-    def __init__(self, geo, phys, v0=None):
+    def __init__(self, geo, phys, v0=None, taylorhood=False):
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem2D = StokesProblemAxisym #StokesProblemAxisymEqualOrder
+        if taylorhood:
+            StokesProblem2D = StokesProblemAxisym
+        else:
+            StokesProblem2D = StokesProblemAxisymEqualOrder
 
         # set up spaces and functions
         X = PNPProblemAxisym.space(mesh)

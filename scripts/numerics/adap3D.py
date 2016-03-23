@@ -117,7 +117,7 @@ geo.curved = dict(
 
 phys = Physics("pore_molecule", geo, **phys_params)
 
-IllposedLinearSolver.stab = 1e9
+IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = .9
 
 #PNPProblem.method["iterative"] = False
@@ -130,10 +130,10 @@ PNPProblem.method["iterative"] = True #False
 StokesProblem.method["iterative"] = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
-    monitor_convergence = True,
+    monitor_convergence = False,
     relative_tolerance = 1e-8,
-    absolute_tolerance = 1e-5,
-    maximum_iterations = 10000,
+    absolute_tolerance = 1e-3,
+    maximum_iterations = 2000,
     nonzero_initial_guess = True,
     )
 
@@ -144,7 +144,7 @@ LinearPBProblem.method["kparams"]["absolute_tolerance"] = 1e-6
 LinearPBProblem.method["kparams"]["nonzero_initial_guess"] = True
 #LinearPBProblem.method["iterative"] = False
 
-PNPS.tolnewton = 1e-2
+PNPS.tolnewton = 1e0
 PNPS.alwaysstokes = False
 # test
 #w = Function(StokesProblemEqualOrder.space(geo.mesh))

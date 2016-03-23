@@ -18,12 +18,15 @@ class PNPS(PDESystem):
     Functional_mult = 1e12
     alwaysstokes = False
 
-    def __init__(self, geo, phys, v0=None, w0=None):
+    def __init__(self, geo, phys, v0=None, w0=None, taylorhood=False):
         # TODO: initialization in 3D takes more than 3 seconds, even without assembling Stokes.
         #       where is the time spent? in the imports?
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem3D = StokesProblem #EqualOrder
+        if taylorhood:
+            StokesProblem3D = StokesProblem
+        else:
+            StokesProblem3D = StokesProblemEqualOrder
 
         # set up spaces and functions
         X = PNPProblem.space(mesh)

@@ -66,7 +66,8 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             for S in pnps.solvers.values():
                 S.replace(functions,functions)
         '''
-        pnps = PNPStokes(pb.geo, phys, v0=pb.solution)
+        print "Defining PNPS with Taylor-Hood elements."
+        pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=True)
 
         print "\nSolving PNPS."
         dofs = pnps.dofs()
