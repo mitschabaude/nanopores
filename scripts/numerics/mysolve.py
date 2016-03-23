@@ -29,7 +29,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     bV = phys.bV
     print "biased voltage:", bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, z)
+    goal = lambda v : phys.Fbare(v, z) #+ phys.Fbaresurf(v, z)
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax

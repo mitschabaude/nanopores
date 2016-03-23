@@ -24,7 +24,7 @@ phys_params = dict(
 Membraneqs = -0.0,
 Qmol = -1.*qq,
 bulkcon = 3e2,
-dnaqsdamp = 1.,
+dnaqsdamp = .25,
 bV = bV,
 )
 
@@ -58,7 +58,8 @@ pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax, **ref)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
-pnps.visualize()
+#pnps.visualize()
+interactive()
 pb.estimators["Fel"].plot()
 pb.estimators["Fs"].plot(fig=False)
 pb.estimators["Fp"].plot(fig=False)
@@ -71,6 +72,6 @@ pb.estimators["err"].plot(rate=-1., fig=False)
 #pb.estimators["goal"].plot()
 #pb.estimators["goal ex"].plot(fig=False)
 #pb.estimators["goal ref"].plot(fig=False)
-save_Fref(pb, pnps)
-saveplots("adap2D")
+#save_Fref(pb, pnps)
+#saveplots("adap2D")
 showplots()

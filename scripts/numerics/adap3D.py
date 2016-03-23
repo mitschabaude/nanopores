@@ -2,6 +2,7 @@ from nanopores import *
 from nanopores.geometries.curved import Cylinder, Sphere, Circle
 from dolfin import *
 from mysolve import * #adaptive_pbpnps, adaptive_pb
+from nanopores.physics.simplepnps import *
 
 geo_name = "H_cyl_geo"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
@@ -13,7 +14,7 @@ z0 = 2.*nm,
 bV = -0.1,
 Nmax = 1e4,
 Nmax2D = 1e4,
-frac = .5,
+frac = .2,
 cheapest = True,
 adaptq = True,
 ratio = .01,
@@ -23,7 +24,8 @@ geo_params = dict(
 x0 = [0.,0.,z0],
 rMolecule = 0.5*nm,
 lcCenter = 0.5, #5,
-lcMolecule = 0.3, #025,
+lcMolecule = 0.5, #025,
+#moleculeblayer = True,
 )
 geo_params2D = dict(
 x0 = [0.,0.,z0],
@@ -34,13 +36,13 @@ phys_params = dict(
 Membraneqs = -0.0,
 Qmol = -1.*qq,
 bulkcon = 3e2,
-dnaqsdamp = 1.,
+dnaqsdamp = .25,
 bV = bV,
 exactMqv = not adaptq,
 adaptMqv = adaptq,
 )
 
-set_log_level(100)
+set_log_level(30)
 ref = load_Fref()
 
 # 2D geometry
@@ -126,7 +128,7 @@ PNPProblem.method["kparams"]["monitor_convergence"] = False #True
 PNPProblem.method["iterative"] = True #False
 
 StokesProblem.method["iterative"] = False
-#StokesProblemEqualOrder.beta = .001
+#StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
     monitor_convergence = True,
     relative_tolerance = 1e-7,
@@ -156,15 +158,17 @@ PNPS.tolnewton = 1e-2
 print "\n---- SOLVE 3D PROBLEM ----"
 pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax,
     cheapest=cheapest, **ref)
-#pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref,
-#    mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
 """
-pnps = PNPS(pb.geo, phys, v0=pb.solution, w0=w0)
+pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref["Fpbref"],
+    mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
+    
+pnps = PNPSHybrid(pb.geo, phys_new, inewton=1, verbose=True, nverbose=True) #, v0=pb.solution)
 print "\nSolving PNPS."
 dofs = pnps.dofs()
 print "  Degrees of freedom: %d" % dofs
-newton_iter = pnps.newton_solve()
-print "  Newton iterations:", newton_iter
+pnps.single_solve(damp=.9)
+"""
+"""
 fs = pnps.get_functionals()
 Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
 Fel = fs["Fbarevol%d" %z]
@@ -181,7 +185,7 @@ print "hmin [nm]: ", geo.mesh.hmin()/nm
 (v, cp, cm, u, p) = pnps.solutions()
 if mesh2D is not None:
     plot_cross(v, mesh2D, title="potential")
-    plot_cross(cm, mesh2D, title="cm")
+    #plot_cross(cm, mesh2D, title="cm")
     plot_cross(p, mesh2D, title="p")
     plot_cross_vector(u, mesh2D, title="u")
     #plot(phi2D, title="pb primal 2D")

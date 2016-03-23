@@ -18,7 +18,7 @@ class PNPSAxisym(PNPS):
     def __init__(self, geo, phys, v0=None):
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem2D = StokesProblemAxisymEqualOrder #StokesProblemAxisym #
+        StokesProblem2D = StokesProblemAxisym #StokesProblemAxisymEqualOrder
 
         # set up spaces and functions
         X = PNPProblemAxisym.space(mesh)

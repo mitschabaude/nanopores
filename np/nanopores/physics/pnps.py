@@ -23,7 +23,7 @@ class PNPS(PDESystem):
         #       where is the time spent? in the imports?
         mesh = geo.mesh
         Fmult = self.Functional_mult
-        StokesProblem3D = StokesProblemEqualOrder
+        StokesProblem3D = StokesProblem #EqualOrder
 
         # set up spaces and functions
         X = PNPProblem.space(mesh)

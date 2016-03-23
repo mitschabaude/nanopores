@@ -214,24 +214,29 @@ def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad, lscale):
         return Fbare0
     except:
         return None
-
-def FbareE(geo, r2pi):
-    try:
-        # for gradient recovery, or testing with manifactured E field
-        def Fbaresurf(E, i):
+        
+def Fbaresurf(geo, r2pi, Moleculeqs, grad, lscale):
+    try: # to make geo not necessary
+        if len(geo.physicalboundary("moleculeb"))==0:
+            return None
+        def Fbaresurf(v, i):
             dS = geo.dS("moleculeb")
-            return dolfin.Constant(Moleculeqs) * (-r2pi*E[i])('-') * lscale*dS
-        def Fbarevol(E, i):
-            dx = geo.dx("molecule")
-            return dolfin.Constant(Moleculeqv) * (-r2pi*E[i]) * dx
+            n = dolfin.FacetNormal(geo.mesh)
+            #def tang(x):
+            #    return x - dolfin.inner(x,n)*n
+            #def gradT(v): # tangential gradient
+            #    return tang(dolfin.grad(v))
+            #return dolfin.Constant(Moleculeqs)*(-r*gradT(v)[i])('-')*dS
+            return dolfin.Constant(Moleculeqs) * (-r2pi*grad(v)[i])('-')*dS
 
         if geo.params["x0"]:
-            Fbare0 = Fbarevol if smearMolCharge else Fbaresurf
+            Fbare0 = Fbaresurf
         else: Fbare0 = None
 
         return Fbare0
     except:
         return None
+
 
 def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, bV, UT, lscale, cFarad):
     try:
