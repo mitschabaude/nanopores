@@ -127,13 +127,13 @@ PNPProblem.method["kparams"]["nonzero_intial_guess"] = False #True
 PNPProblem.method["kparams"]["monitor_convergence"] = False #True
 PNPProblem.method["iterative"] = True #False
 
-StokesProblem.method["iterative"] = False
+StokesProblem.method["iterative"] = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
     monitor_convergence = True,
-    relative_tolerance = 1e-7,
+    relative_tolerance = 1e-8,
     absolute_tolerance = 1e-5,
-    maximum_iterations = 500,
+    maximum_iterations = 10000,
     nonzero_initial_guess = True,
     )
 
@@ -145,6 +145,7 @@ LinearPBProblem.method["kparams"]["nonzero_initial_guess"] = True
 #LinearPBProblem.method["iterative"] = False
 
 PNPS.tolnewton = 1e-2
+PNPS.alwaysstokes = False
 # test
 #w = Function(StokesProblemEqualOrder.space(geo.mesh))
 #w.interpolate(w0)
@@ -222,6 +223,6 @@ if not cheapest:
     pb.estimators["goal ex"].plot(fig=False)
 pb.estimators["goal ref"].plot(fig=False)
 """
-#saveplots("adap3D")
+saveplots("adap3Diterative")
 interactive()
 showplots()

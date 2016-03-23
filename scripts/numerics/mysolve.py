@@ -71,9 +71,9 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         print "\nSolving PNPS."
         dofs = pnps.dofs()
         print "  Degrees of freedom: %d" % dofs
-        #pnps.solve()
-        newton_iter = pnps.newton_solve()
-        print "  Newton iterations:", newton_iter
+        pnps.solve()
+        #newton_iter = pnps.newton_solve()
+        #print "  Newton iterations:", newton_iter
         print
         #if phys.dim == 3:
         #    pnps.visualize("pore")
