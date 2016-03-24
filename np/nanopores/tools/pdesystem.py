@@ -203,10 +203,14 @@ class PDESystem(object):
             else:
                 print ("%s: " %Jstr) + str(J.evaluate())
 
-    def get_functionals(self):
-        Jdir = self.functionals
+    def get_functionals(self, Jlist=None):
+        if Jlist is None:
+            Jlist = sorted(self.functionals.keys())
+        Jdic = self.functionals
+        return OrderedDict([(J, Jdic[J].evaluate()) for J in Jlist])
+        """
         functionals = {}
-        for Jstr in sorted(self.functionals):
+        for Jstr in Jlist:
             J = Jdir[Jstr]
             if isinstance(J,list):
                 for ii in range(len(J)):
@@ -214,6 +218,7 @@ class PDESystem(object):
             else:
                 functionals[Jstr] = J.evaluate()
         return functionals
+        """
 
     def print_results(self, names=None):
         if not names:

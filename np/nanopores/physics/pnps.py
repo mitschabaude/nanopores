@@ -346,6 +346,39 @@ class PNPS(PDESystem):
         if string:
             return self.functions[string].split(deepcopy=deepcopy)
         return self.solutions("PNP", deepcopy) + self.solutions("Stokes", deepcopy)
+        
+    def zforces(self):
+        z = str(self.phys.dim - 1)
+        dic = self.get_functionals(["Fbarevol"+z, "Fshear"+z, "Fp"+z])
+        Fel = dic["Fbarevol"+z]
+        Fdrag = dic["Fshear"+z] + dic["Fp"+z]
+        F = Fel + Fdrag
+        return F, Fel, Fdrag
+        
+    def zforces_implicit(self, z0, cdrag=1.):
+        (v, cp, cm, u, p) = self.solutions()
+        lscale = self.phys.lscale
+        r = self.geo.params["rMolecule"]/lscale
+        R = self.geo.params["r0"]
+        dim = self.phys.dim
+        x0 = [0.]*dim
+        x0p = [0.]*dim
+        x0m = [0.]*dim
+        x0[-1] = z0
+        x0p[-1] = z0+r
+        x0m[-1] = z0-r
+        
+        Q = self.phys.Qmol
+        E = lscale*(v(x0m) - v(x0p))/(2.*r)
+        Fel = 1e12*Q*E
+        
+        eta = self.phys.eta
+        gamma = 6.*pi*eta*r*cdrag
+        U = u(x0)[dim-1]
+        Fdrag = 1e12*gamma*U
+        
+        F = Fdrag + Fel
+        return F, Fel, Fdrag
 
     def rebuild(self, mesh):
         """ Assumes geometry to have geo.rebuild """

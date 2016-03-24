@@ -15,7 +15,7 @@ bV = -0.1,
 Nmax = 1e4,
 Nmax2D = 1e4,
 frac = .2,
-cheapest = True,
+cheapest = False,
 adaptq = True,
 ratio = .01,
 )
@@ -117,8 +117,8 @@ geo.curved = dict(
 
 phys = Physics("pore_molecule", geo, **phys_params)
 
-IllposedLinearSolver.stab = 1e0
-IllposedNonlinearSolver.newtondamp = .9
+IllposedLinearSolver.stab = 1e9
+IllposedNonlinearSolver.newtondamp = 1.
 
 #PNPProblem.method["iterative"] = False
 PNPProblem.method["kparams"]["relative_tolerance"] = 1e-10
@@ -131,8 +131,8 @@ StokesProblem.method["iterative"] = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
     monitor_convergence = False,
-    relative_tolerance = 1e-8,
-    absolute_tolerance = 1e-3,
+    relative_tolerance = 1e-10,
+    absolute_tolerance = 1e-5,
     maximum_iterations = 2000,
     nonzero_initial_guess = True,
     )
@@ -144,8 +144,8 @@ LinearPBProblem.method["kparams"]["absolute_tolerance"] = 1e-6
 LinearPBProblem.method["kparams"]["nonzero_initial_guess"] = True
 #LinearPBProblem.method["iterative"] = False
 
-PNPS.tolnewton = 1e0
-PNPS.alwaysstokes = False
+PNPS.tolnewton = 1e-4
+PNPS.alwaysstokes = True
 # test
 #w = Function(StokesProblemEqualOrder.space(geo.mesh))
 #w.interpolate(w0)
@@ -223,6 +223,6 @@ if not cheapest:
     pb.estimators["goal ex"].plot(fig=False)
 pb.estimators["goal ref"].plot(fig=False)
 """
-saveplots("adap3Diterative")
+saveplots("adap3Diterative", meta=PARAMS)
 interactive()
 showplots()

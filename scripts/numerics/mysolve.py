@@ -156,6 +156,44 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
         else:
             print "New total number of cells:", pb.geo.mesh.num_cells()
     return pb
+    
+def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
+    LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
+    PNPStokes = PNPSAxisym if cyl else PNPS
+    z = phys.dim - 1
+    bV = phys.bV
+    phys.bV = 0.
+    goal = (lambda v : phys.Fbare(v, z)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
+    pb = LinearPB(geo, phys, goal=goal)
+    phys.bV = bV
+    pb.maxcells = Nmax
+    pb.marking_fraction = frac
+    if cheapest:
+        pb.estimate = pb.estimate_cheap
+    refined = True
+    i = 0
+    
+    print "Number of cells:", pb.geo.mesh.num_cells()
+    while refined:
+        i += 1
+        print "\nSolving PB."
+        pb.single_solve()
+        print "\nError estimation."
+        (ind, err) = pb.estimate()
+        print "\nMesh refinement."
+        refined = pb.refine(ind)
+        if not refined:
+            print "Maximal number of cells reached."
+        else:
+            print "New total number of cells:", pb.geo.mesh.num_cells()
+            
+    pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=True)
+    print "\nSolving PNPS."
+    dofs = pnps.dofs()
+    print "  Degrees of freedom: %d" % dofs
+    newton_iter = pnps.newton_solve()
+    print "  Newton iterations:", newton_iter
+    return pb, pnps
 
 def newton_solve(self, tol=None, damp=None, verbose=True):
     if tol is None: tol = self.tolnewton
@@ -305,5 +343,6 @@ def save_Fref(pb, pnps):
     
 def load_Fref():
     return load_dict(".", "Fref")
+    
             
             
