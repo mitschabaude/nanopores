@@ -139,6 +139,7 @@ permittivity.update(
     bulkfluid = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein",
+#    molecule = eperm*rpermw,
 )
 
 # determines how Molecule charge is implemented

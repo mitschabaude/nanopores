@@ -18,13 +18,15 @@ frac = .2,
 cheapest = False,
 adaptq = True,
 ratio = .01,
+stokesLU = False,
+preadapt = False,
 )
 
 geo_params = dict(
 x0 = [0.,0.,z0],
 rMolecule = 0.5*nm,
-lcCenter = 0.5, #5,
-lcMolecule = 0.5, #025,
+lcCenter = 0.05 if preadapt else 0.5,
+lcMolecule = 0.05 if preadapt else 0.5,
 #moleculeblayer = True,
 )
 geo_params2D = dict(
@@ -127,7 +129,8 @@ PNPProblem.method["kparams"]["nonzero_intial_guess"] = False #True
 PNPProblem.method["kparams"]["monitor_convergence"] = False #True
 PNPProblem.method["iterative"] = True #False
 
-StokesProblem.method["iterative"] = True
+if not stokesLU:
+    StokesProblem.method["iterative"] = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
     monitor_convergence = False,

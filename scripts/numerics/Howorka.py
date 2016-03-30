@@ -22,9 +22,11 @@ def geo_params(z0):
     x0 = None if z0 is None else [0., 0., z0]
     return dict(
 x0 = x0,
-rMolecule = 0.5*nm,
+rMolecule = 0.1*nm,
 moleculeblayer = False,
 membraneblayer = False,
+#Rx = 20.,
+#Ry = 20.,
 )
 
 def phys_params(bV): return dict(
@@ -56,6 +58,7 @@ def setup2D(**params):
         geo.curved = dict(moleculeb = molec.snap)
     
     phys = Physics(phys_name, geo, **physp)
+    phys.permittivity = {"default": phys.permittivity["water"]}
     return geo, phys
 
 def solve2D(geo, phys, **params):
