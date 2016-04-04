@@ -76,7 +76,7 @@ def add_dopants(geo, dopants):
         def inside(self, x, on_boundary):
             return any(dist(x, x0) <= rdop for x0 in self.xi)
 
-    if dopants:
+    if dopants is not []:
         geo.add_subdomain("dopants", Dopants(dopants))
     return
 

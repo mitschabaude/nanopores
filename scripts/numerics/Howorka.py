@@ -13,6 +13,7 @@ add_params(
 h = .5,
 z0 = 2.*nm,
 bV = -0.1,
+Qmol = -1.,
 Nmax = 1e4,
 frac = 0.5,
 cheapest = False,
@@ -22,16 +23,16 @@ def geo_params(z0):
     x0 = None if z0 is None else [0., 0., z0]
     return dict(
 x0 = x0,
-rMolecule = 0.1*nm,
+rMolecule = 0.5*nm,
 moleculeblayer = False,
 membraneblayer = False,
 #Rx = 20.,
 #Ry = 20.,
 )
 
-def phys_params(bV): return dict(
+def phys_params(bV, Qmol): return dict(
 Membraneqs = -0.0,
-Qmol = -1.*qq,
+Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = .25,
 bV = bV,
@@ -48,7 +49,7 @@ def setup2D(**params):
     if z0 is not None:
         z0 = round(z0, 4)
     geop = geo_params(z0)
-    physp = phys_params(bV)
+    physp = phys_params(bV, Qmol)
     
     generate_mesh(h, geo_name, **geop)
     geo = geo_from_name(geo_name, **geop)
@@ -58,7 +59,7 @@ def setup2D(**params):
         geo.curved = dict(moleculeb = molec.snap)
     
     phys = Physics(phys_name, geo, **physp)
-    phys.permittivity = {"default": phys.permittivity["water"]}
+    #phys.permittivity = {"default": phys.permittivity["water"]}
     return geo, phys
 
 def solve2D(geo, phys, **params):

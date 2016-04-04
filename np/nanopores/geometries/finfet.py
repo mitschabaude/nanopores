@@ -5,12 +5,12 @@ from random import random
 lb = 7.
 wb = 7.
 lw = 80. #length of the fin
-hw = hb = 12.
+hw = hb = 7.
 ww = 5.
 t1 = 1.5 #thickness of the oxide layer
 t2 = 3. #thickness of the gate
 ll = 10. #the length of the layers
-rdop = .8
+rdop = 1.
 Ndop = 12
 
 # build geometry
@@ -23,7 +23,8 @@ gate = Box(center=[0, 0, (t1 + t2)/2], l=ll, w= ww + 2*(t1 + t2), h= hw + (t1 + 
 finfet = fin | source | drain | oxide | gate
 
 finfet.addsubdomains(
-    sourcendrain = source | drain,
+    source = source,
+    drain = drain,
     fin = fin,
     oxide = oxide - fin,
     gate = gate - oxide,
@@ -35,6 +36,10 @@ finfet.addboundaries(
     drainb = drain.boundary("right"),
     crossl = fin.boundary("left"),
     crossr = fin.boundary("right"),
+)
+
+finfet.synonymes = dict(
+    sourcendrain = {"source", "drain"}
 )
 
 # add parameters (this should include params needed by physics module)

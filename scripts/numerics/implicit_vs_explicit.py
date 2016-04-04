@@ -11,15 +11,16 @@ hexp = .2,
 Nimp = 1e4,
 Nexp = 1e4,
 z0 = 2.,
+Qmol = -1.,
 )
 
 # simulate explicit molecule
 def explicit():
-    geo, phys = Howorka.setup2D(z0=z0, h=hexp)
+    geo, phys = Howorka.setup2D(z0=z0, h=hexp, Qmol=Qmol)
     #plot(geo.pwconst("permittivity"))
     pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nexp, cheapest=True)
     (v, cp, cm, u, p) = pnps.solutions()
-    #pnps.visualize("fluid")
+    pnps.visualize("fluid")
     return geo, phys, v, u
         
 # simulate implicit molecule
@@ -64,6 +65,20 @@ plot(v0, title="implicit")
 va.interpolate(vAna())
 plot(va, title="analytical")
 
-dv.vector()[:] = v.vector()[:] - v0.vector()[:] - va.vector()[:]
+dv.vector()[:] = v.vector()[:] - v0.vector()[:] #- va.vector()[:]
 plot(dv, title="difference")
+
+U = VectorFunctionSpace(mesh, "CG", 1)
+
+u = Function(U)
+u0 = Function(U)
+du = Function(U)
+
+u.interpolate(uexp)
+u0.interpolate(uimp)
+plot(u, title="explicit")
+plot(u0, title="implicit")
+
+du.vector()[:] = u.vector()[:] - u0.vector()[:]
+plot(du, title="difference")
 interactive()

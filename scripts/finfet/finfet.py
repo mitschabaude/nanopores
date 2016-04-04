@@ -1,23 +1,30 @@
 import dolfin, nanopores
 from dolfin import *
 from random import random
-from nanopores.geometries.finfet import finfet, dopants
+from nanopores.geometries.finfet import finfet
 from nanopores import eperm, cm, qq
+from collocation import dopants
 
-Ndop = 12
+Ndop = 4
 
 # --- create mesh and geometrical/physical context information
 t = dolfin.Timer("mesh")
-geo = finfet.create_geometry(lc=2.)
+geo = finfet.create_geometry(lc=.5)
 print "Mesh generation time:", t.stop()
 print "Number of elements:", geo.mesh.num_cells()
 print "Number of vertices:", geo.mesh.num_vertices()
 #finfet.plot()
 t = dolfin.Timer("init")
-phys = nanopores.Physics("finfet", geo, dopants=dopants(Ndop), vD=None, vG=None, vS=None)
+dops = dopants(Ndop)[0]
+print "Dopant positions:", dops
+
+phys = nanopores.Physics("finfet", geo,
+    dopants=dops,
+    vD=None, vG=None, vS=None)
 phys.add_dopants
 #print phys
-#dolfin.plot(geo.submesh("sourcendrain"))
+dolfin.plot(geo.submesh("source"))
+dolfin.plot(geo.submesh("drain"))
 #print geo._physical_domain
 
 # --- definition and solution of PDE

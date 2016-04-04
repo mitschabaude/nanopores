@@ -9,20 +9,21 @@ himp = .2,
 hexp = .5,
 Nimp = 1e5,
 Nexp = 2e4,
-z = (8., -8., 2)
+Qmol = -1.,
+Nz = 2,
 )
 
 # get force from explicit molecule
 def F_explicit(*lspace):
     for z0 in numpy.linspace(*lspace):
-        geo, phys = Howorka.setup2D(z0=z0, h=hexp)
+        geo, phys = Howorka.setup2D(z0=z0, h=hexp, Qmol=Qmol)
         dolfin.plot(geo.boundaries, key="b", title="boundaries")
         pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nexp, cheapest=True)
         yield pnps.zforces()
         
 # get force from implicit molecule
 def F_implicit(*lspace):
-    geo, phys = Howorka.setup2D(z0=None, h=himp)
+    geo, phys = Howorka.setup2D(z0=None, h=himp, Qmol=Qmol)
     pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nimp, cheapest=True)
     for z0 in numpy.linspace(*lspace):
         yield pnps.zforces_implicit(z0)
@@ -53,7 +54,7 @@ for i, ff in enumerate([u, uel, udrag, f, fel, fdrag]):
     plot(x, ff, "-", label="implicit")
 
 # plot force from explicit molecule and save figures
-space = z
+space = (8., -8., Nz)
 x = numpy.linspace(*space)
 y = list(PMF(F_explicit, *space))
 
@@ -73,7 +74,7 @@ def plotF(x, u, name, titl, ylab):
     global ifig
     figure(ifig)
     plot(x, u, style, label=label)
-    title(titl)
+    #title(titl)
     xlabel(xlab)
     ylabel(ylab)
     legend()
@@ -91,5 +92,5 @@ plotF(x, fdrag, "Fdrag", "Fdrag", ylabf)
 save_dict(PARAMS, folder, "meta")
 
 # save plots
-saveplots("HoworkaPMF", meta=PARAMS)
+saveplots("HoworkaPMFQminus1", meta=PARAMS)
 
