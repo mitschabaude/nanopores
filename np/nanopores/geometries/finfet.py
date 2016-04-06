@@ -2,15 +2,15 @@ from ..tools.box import Box, union
 from random import random
 
 # geo parameters
-lb = 7.
-wb = 7.
-lw = 80. #length of the fin
-hw = hb = 7.
+lb = 9.
+wb = 9.
+lw = 20. #length of the fin
+hw = hb = 9.
 ww = 5.
 t1 = 1.5 #thickness of the oxide layer
 t2 = 3. #thickness of the gate
-ll = 10. #the length of the layers
-rdop = 1.
+ll = 5. #the length of the layers
+rdop = 2.
 Ndop = 12
 
 # build geometry

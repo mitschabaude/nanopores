@@ -29,7 +29,8 @@ class NonstandardPBProblem(GeneralNonlinearProblem):
         kparams = dict(
             maximum_iterations = 500,
             monitor_convergence = False,
-            absolute_tolerance = 1e-7,
+            absolute_tolerance = 1e-10,
+            relative_tolerance = 1e-10,
             preconditioner = dict(
                 ilu = dict(fill_level = 1)))
     )

@@ -14,6 +14,7 @@ from .. import py4gmsh
 import dolfin
 
 __all__ = ["BoxCollection", "Box", "Interval"]
+MESHDIR = "/tmp/nanopores"
         
 class BoxCollection(object):
     " collection of disjoint boxes, and their vertices, edges, facets "
@@ -64,6 +65,13 @@ class BoxCollection(object):
         entities_to_gmsh(self.entities, self.indexsets, lc=lc)
         physical_to_gmsh(self.subdomains, self.boundaries)
         self.geo = to_mesh()
+        self.geo.params = self.params
+        if hasattr(self, "synonymes"):
+            self.geo.import_synonymes(self.synonymes)
+        return self.geo
+        
+    def recreate_geometry(self):
+        self.geo = geo_from_meshdir()
         self.geo.params = self.params
         if hasattr(self, "synonymes"):
             self.geo.import_synonymes(self.synonymes)
@@ -509,7 +517,7 @@ def to_mesh(clscale=1., pid=""):
     meshfile = "mesh%s.xml" %pid
 
     # create path/to/nanoporesdata/gid/mesh if not already there
-    meshdir = "/tmp/nanopores"
+    meshdir = MESHDIR
     if not os.path.exists(meshdir):
         os.makedirs(meshdir)
 
@@ -546,4 +554,17 @@ def to_mesh(clscale=1., pid=""):
         
     return nanopores.Geometry(None, mesh)   
     
+def geo_from_meshdir(DIR=MESHDIR):
+    import nanopores
+    mesh = dolfin.Mesh(DIR+"/mesh.xml")
+    subdomains = dolfin.MeshFunction("size_t", mesh, DIR+"/mesh_physical_region.xml")
+    boundaries = dolfin.MeshFunction("size_t", mesh, DIR+"/mesh_facet_region.xml")
+    
+    with open(DIR+"/meta.txt", "r") as f:
+        meta = eval(f.read())
+    
+    physdom = meta.pop("physical_domain")
+    physbou = meta.pop("physical_boundary")
+    
+    return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
  

@@ -1,4 +1,4 @@
-function [CENTER] = Collocation_method_sparse_grids( start,order,lw,hb, wb,radius,number_atom )
+function [CENTER,weight] = Collocation_method_sparse_grids( start,order,lw,hb, wb,radius,number_atom )
 
 % INPUTS:
  
@@ -51,7 +51,8 @@ level_max = LEVEL_MAX(order);
 level_weight = ones(dim,1);
 [sparse_XYPHI_new,sparse_weight_new] = test_sgmga(rule_type,dim,level_weight,level_max,false);
 sparss = (sparse_XYPHI_new+1)/2 ;
- 
+weight = sparse_weight_new/2^dim;
+
 nsamples=size(sparss,2); 
  
  

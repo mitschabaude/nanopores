@@ -1,0 +1,21 @@
+Apply (PETScMatrix)              |   2356   0.0019004      4.4773
+Apply (PETScVector)              |  12402  2.9937e-05     0.37128
+Assemble cells                   |   2364      5.0797       12008
+Build mesh number mesh entities  |   2954  1.5356e-06   0.0045363
+Build sparsity                   |   2356      0.1393      328.18
+Delete sparsity                  |   2356  1.9411e-06   0.0045731
+Init PETSc                       |      1  0.00018099  0.00018099
+Init dof vector                  |   3551    0.004601      16.338
+Init dofmap                      |   2954     0.47699        1409
+Init dofmap from UFC dofmap      |   2954     0.18722      553.04
+Init tensor                      |   2356   0.0015521      3.6567
+PETSc Krylov solver              |   1178      4.0373      4755.9
+SCOTCH graph ordering            |   2954    0.024138      71.303
+VTK construct grid               |    590    0.013202       7.789
+VTK render                       |    590    0.013833      8.1613
+VTK update                       |    590     0.27287      160.99
+compute connectivity 2 - 3       |    594    0.075159      44.644
+compute entities dim = 2         |    594      2.2479      1335.2
+init                             |    589      13.668      8050.7
+phys                             |    589      12.794      7535.4
+solve                            |    589       29.09       17134
