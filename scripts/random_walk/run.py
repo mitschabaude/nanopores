@@ -130,39 +130,44 @@ steps=1e8# 5 milliseconds = 1e8*tau
 C=1/(gamma)*tau # [s^2/kg]==>multiply force with 1e9 to convert from N to kg*nm/s^2
 coeff=sqrt(2*D*1e9*tau) # [nm]
 
-counter = np.array([0,0])
-EXIT_X, EXIT_Y, EXIT_Z, TIME = np.array([]), np.array([]), np.array([]), np.array([])
-Range = range(1)
+EXIT_X=np.load('exit_x.npy')
+EXIT_Y=np.load('exit_y.npy')
+EXIT_Z=np.load('exit_z.npy')
+TIME=np.load('timer.npy')
+counter=np.load('counter.npy')
+
+
+done=EXIT_X.shape[0]
+left=1000-done
+
+Range = range(left)
+start=time()
+timearray=[0.,0.,0.]
 for index in Range:
     print str(index)+" out of "+str(len(Range))
     X=np.zeros(steps)
     Y=np.zeros(steps)
     Z=np.zeros(steps)
-    xia_x=np.zeros(steps)
-    xia_y=np.zeros(steps)
-    xia_z=np.zeros(steps)
+#    xia_x=np.zeros(steps)
+#    xia_y=np.zeros(steps)
+#    xia_z=np.zeros(steps)
     Z[0] = 2.
-    time = 0.
+    timer = 0.
     redos = 0
     hbonds = 0
 
     i=0
-    timeend=5e6
+    timeend=4e3
     mean_hbond = 1e3 #1 microsec
     lambda_poisson = 10.
     boolexit=False
-    while time<timeend and Z[i]<1e6 and X[i]**2+Y[i]**2<1e12:
+    while timer<timeend and Z[i]<1e6 and X[i]**2+Y[i]**2<1e12:
+        faraway=False
         timefac=1.
         timefacsq = 1.
         timeadd = tau
-        b=time/5e4
+        b=timer/5e4
         rad=radius(X[i],Y[i])
-        print
-        print ">>>>>>>>>>>>>>>> progress %0.2f percent" %b
-        print 'RAD = %.0f , Z = %.1f '%(rad, Z[i])
-        sys.stdout.write("\033[F") # Cursor up one line
-        sys.stdout.write("\033[F") # Cursor up one line
-        sys.stdout.write("\033[F") # Cursor up one line
         xi_x=gauss(0,1)
         xi_y=gauss(0,1)
         xi_z=gauss(0,1)
@@ -170,12 +175,16 @@ for index in Range:
             xi_x *= 0.316228
             xi_y *= 0.316228
             xi_z *= 0.316228
+        time1=time()
         [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
+        time2=time()
         [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
+        time3=time()
         [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
-        if dsurf<0.5:
+        time4=time()
+        if False:#dsurf<0.5:
             hbonds+=1
-            time+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
+            timer+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             vec = np.array([fsurfx,fsurfy,fsurfz])
             vec *= 1./(LA.norm(vec))
             X[i+1]=X[i]+vec[0]
@@ -186,9 +195,9 @@ for index in Range:
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
-        if dmem<0.5:
+        if False:#dmem<0.5:
             hbonds+=1
-            time+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
+            timer+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             X[i+1]=X[i]
             Y[i+1]=Y[i]
             Z[i+1]=Z[i]+1.
@@ -201,28 +210,31 @@ for index in Range:
             timefac = 20.
             timefacsq = 4.47213
             timeadd = 1.
-        if Z[i]>100. and rad>100.:
+            faraway=True
+        if Z[i]>100.:
             timefac = 200.
             timefacsq = 14.142136
             timeadd = 10.
         X[i+1]=X[i] + coeff*xi_x*timefacsq + timefac*1e9*C*(Fx + fsurfx + fmemx)
         Y[i+1]=Y[i] + coeff*xi_y*timefacsq + timefac*1e9*C*(Fy + fsurfy + fmemy)
         Z[i+1]=Z[i] + coeff*xi_z*timefacsq + timefac*1e9*C*(Fz + fsurfz + fmemz)
-        xia_x[i]=xi_x
-        xia_y[i]=xi_y
-        xia_z[i]=xi_z
-        if LA.norm(F_surf(X[i+1],Y[i+1],Z[i+1])[0:3])+LA.norm(F_membrane(X[i+1],Y[i+1],Z[i+1])[0:3])>5e-10 or indicator_aHem(argument(X[i+1],Y[i+1],Z[i+1]))==1:
-            time-=timeadd
+#        xia_x[i]=xi_x
+#        xia_y[i]=xi_y
+#        xia_z[i]=xi_z
+        if faraway:
+            pass
+        elif LA.norm(F_surf(X[i+1],Y[i+1],Z[i+1])[0:3])+LA.norm(F_membrane(X[i+1],Y[i+1],Z[i+1])[0:3])>5e-10 or indicator_aHem(argument(X[i+1],Y[i+1],Z[i+1]))==1:
+            timer-=timeadd
             i-=1
             redos+=1
-        time += timeadd
+        timer += timeadd
         i+=1
         if indicator_poretop(argument(X[i],Y[i],Z[i]))==1 and Z[i]<-1.0:
             exit_x = X[i]
             exit_y = Y[i]
             exit_z = Z[i]
             counter[0] += 1
-            TIME = np.append(TIME,np.array([time]))
+            TIME = np.append(TIME,np.array([timer]))
             boolexit=True
             break
         if Z[i]<-5.41 or indicator_aHem(argument(X[i],Y[i],Z[i]))==1:
@@ -233,6 +245,9 @@ for index in Range:
             np.save('xia_y',xia_y)
             np.save('xia_z',xia_z)
             sys.exit()
+        timearray[0]+=time2-time1
+        timearray[1]+=time3-time2
+        timearray[2]+=time4-time3
     if not boolexit:
         counter[1] += 1
         exit_x = X[i]
@@ -241,19 +256,26 @@ for index in Range:
     EXIT_X = np.append(EXIT_X,np.array([exit_x]))
     EXIT_Y = np.append(EXIT_Y,np.array([exit_y]))
     EXIT_Z = np.append(EXIT_Z,np.array([exit_z]))
+    np.save('exit_x',EXIT_X)
+    np.save('exit_y',EXIT_Y)
+    np.save('exit_z',EXIT_Z)
+    np.save('timer',TIME)
+    np.save('counter',counter)
 
-X=X[:i]
-Y=Y[:i]
-Z=Z[:i]
+end=time()
+work=end-start
+workh=work/3600.
+print 'work = %.1f hours'%workh
+#X=X[:i]
+#Y=Y[:i]
+#Z=Z[:i]
 
-#print 'redos: ',redos
-#print 'hbonds: ',hbonds
-np.save('x',X)
-np.save('y',Y)
-np.save('z',Z)
-np.save('exit_x',EXIT_X)
-np.save('exit_y',EXIT_Y)
-np.save('exit_z',EXIT_Z)
-np.save('time',TIME)
-np.save('counter',counter)
-import plot3
+#np.save('x',X)
+#np.save('y',Y)
+#np.save('z',Z)
+#np.save('exit_x',EXIT_X)
+#np.save('exit_y',EXIT_Y)
+#np.save('exit_z',EXIT_Z)
+#np.save('timer',TIME)
+#np.save('counter',counter)
+#import plot2

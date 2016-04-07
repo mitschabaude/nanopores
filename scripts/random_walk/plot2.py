@@ -6,7 +6,7 @@ from math import sqrt, acos, sin
 x = np.load('exit_x.npy')
 y = np.load('exit_y.npy')
 z = np.load('exit_z.npy')
-time = np.load('time.npy')
+time = np.load('timer.npy')
 counter = np.load('counter.npy')
 
 X_aHem = np.array([[2.16, 0.0, 0.0],
@@ -107,8 +107,8 @@ X_aHem = np.array([[2.16, 0.0, 0.0],
                       [1.7 , 0.0, -0.31]])
 
 fineness = 500
-timestep=5e6/float(fineness)
-exittime = np.linspace(0.,1.,fineness)*5e6
+timestep=1e3/float(fineness)
+exittime = np.linspace(0.,1.,fineness)*1e3
 exitprop = np.zeros(fineness)
 for index in range(fineness):
     exitprop[index]=np.where(time<timestep*(index+1))[0].shape[0]
