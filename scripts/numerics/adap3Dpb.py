@@ -67,8 +67,8 @@ geo.curved = dict(
     outermembraneb = side.snap,
     )
 
-phys2D = Physics("pore_molecule", geo2D, **phys_params)
-phys = Physics("pore_molecule", geo, **phys_params)
+phys2D = Physics("howorka", geo2D, **phys_params)
+phys = Physics("howorka", geo, **phys_params)
 
 IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.

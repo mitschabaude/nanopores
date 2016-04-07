@@ -148,7 +148,7 @@ smearMolCharge = True # note: this is no parameter
 surfcharge = { # surface charge densities for Neumann RHS
     "moleculeb": (0. if smearMolCharge else "Moleculeqs"),
     "chargedmembraneb": "Membraneqs",
-    "chargeddnab": "DNAqs",
+    "chargeddnab": "DNAqsHoworka", #"DNAqs",
     "chargedsinb": "SiNqs",
     "chargedsamb": "SAMqs",
     "lowerb": "lowerqs",

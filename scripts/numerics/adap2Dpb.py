@@ -41,7 +41,7 @@ molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"][::2])
 # this causes geo to automatically snap boundaries when adapting
 geo.curved = dict(moleculeb = molec.snap)
 
-phys = Physics("pore_molecule", geo, **phys_params)
+phys = Physics("howorka", geo, **phys_params)
 plot(geo.boundaries)
 plot(geo.subdomains)
 

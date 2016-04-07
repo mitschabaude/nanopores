@@ -6,7 +6,7 @@ from mysolve import pbpnps
 __all__ = ["setup2D", "solve2D"]
 
 geo_name = "H_geo"
-phys_name = "pore_molecule"
+phys_name = "howorka"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
 
 add_params(

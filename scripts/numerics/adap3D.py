@@ -54,7 +54,7 @@ molec2D = Circle(R=geo2D.params["rMolecule"], center=geo2D.params["x0"][::2])
 geo2D.curved = dict(moleculeb = molec2D.snap)
 mesh2D = geo2D.mesh
 """
-phys2D = Physics("pore_molecule", geo2D, **phys_params)
+phys2D = Physics("howorka", geo2D, **phys_params)
 
 IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.
@@ -117,7 +117,7 @@ geo.curved = dict(
     outermembraneb = side.snap,
     )
 
-phys = Physics("pore_molecule", geo, **phys_params)
+phys = Physics("howorka", geo, **phys_params)
 
 IllposedLinearSolver.stab = 1e9
 IllposedNonlinearSolver.newtondamp = 1.
