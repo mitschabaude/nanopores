@@ -10,6 +10,8 @@ import sys
 from calculateforce import *
 from aHem_array import *
 F = calculateforce(clscale=6., tol=5e-3) # 6. 5e-3
+#file=File('force.pvd')
+#file << F
 #def F(vec):
 #    return [0.,0.,-1e-12]
 def radius(x,y):
@@ -157,7 +159,7 @@ for index in Range:
     hbonds = 0
 
     i=0
-    timeend=4e3
+    timeend=5e6
     mean_hbond = 1e3 #1 microsec
     lambda_poisson = 10.
     boolexit=False
@@ -171,7 +173,7 @@ for index in Range:
         xi_x=gauss(0,1)
         xi_y=gauss(0,1)
         xi_z=gauss(0,1)
-        if indicator_poretop(argument(X[i],Y[i],Z[i]))==1: #Targetmolecule in Pore=>diffusion damp factor 1/10
+        if False:#indicator_poretop(argument(X[i],Y[i],Z[i]))==1: #Targetmolecule in Pore=>diffusion damp factor 1/10
             xi_x *= 0.316228
             xi_y *= 0.316228
             xi_z *= 0.316228
@@ -182,7 +184,7 @@ for index in Range:
         time3=time()
         [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
         time4=time()
-        if False:#dsurf<0.5:
+        if dsurf<0.5:
             hbonds+=1
             timer+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             vec = np.array([fsurfx,fsurfy,fsurfz])
@@ -195,7 +197,7 @@ for index in Range:
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
-        if False:#dmem<0.5:
+        if dmem<0.5:
             hbonds+=1
             timer+=mean_hbond*np.random.poisson(lambda_poisson,1)[0]
             X[i+1]=X[i]
@@ -206,6 +208,7 @@ for index in Range:
             [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
             [fmemx, fmemy, fmemz, dmem] = F_membrane(X[i],Y[i],Z[i])
             [Fx, Fy, Fz] = FF(argument(X[i],Y[i],Z[i]))
+        #adaptive timestep
         if Z[i]>X_aHem[18][2]+12. and ( rad>10. or Z[i]>7.):
             timefac = 20.
             timefacsq = 4.47213

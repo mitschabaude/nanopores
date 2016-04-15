@@ -3,7 +3,7 @@ import numpy as np
 from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
-def calculateforce(clscale=6., tol=5e-3):
+def calculateforce(clscale=6., tol=5e-3,subdomain=None):
     geo_params = dict(
         l3 = 60.,
         l4 = 10.,
@@ -60,8 +60,10 @@ def calculateforce(clscale=6., tol=5e-3):
 
     (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
     F = phys.Feff(v, u)
-    plot(F)
-    interactive()
+#    file=File('force.pvd')
+#    file << F
+#    plot(F)
+#    interactive()
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
         print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
 
