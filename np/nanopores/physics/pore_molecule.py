@@ -274,3 +274,17 @@ def Feff(geo, grad, qTarget, rTarget):
         F = Fel + Fdrag
         return F
     return Feff0
+    
+def Forces(geo, grad, qTarget, rTarget):
+    def Forces0(v, u):
+        E = -grad(v)
+        pi = 3.141592653589793
+        Fel = dolfin.Constant(qTarget)*E
+        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*u
+        F = Fel + Fdrag
+        V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
+        Fel = dolfin.project(Fel, V)
+        Fdrag = dolfin.project(Fdrag, V)
+        F = dolfin.project(F, V)
+        return F, Fel, Fdrag
+    return Forces0

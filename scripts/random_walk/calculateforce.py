@@ -3,7 +3,7 @@ import numpy as np
 from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
-def calculateforce(clscale=6., tol=5e-3,subdomain=None):
+def calculateforce(clscale=6., subdomain=None):
     geo_params = dict(
         l3 = 60.,
         l4 = 10.,
@@ -17,40 +17,17 @@ def calculateforce(clscale=6., tol=5e-3,subdomain=None):
         rTarget = 0.5*nm,
         bulkcon = 1000.,
     )
-
-    badexit = {"upperbulkb"}
-    goodexit = {"exit"}
     skip_stokes = True
 
-
     t = Timer("meshing")
-    clscale = 8.
     meshdict = generate_mesh(clscale, "aHem", **geo_params)
-
     print "Mesh generation time:",t.stop()
 
     t = Timer("reading geometry")
     geo = geo_from_xml("aHem")
-
     print "Geo generation time:",t.stop()
 
     phys = Physics("pore_molecule", geo, **phys_params)
-
-    x0 = geo.params["x0"]
-    r0 = math.sqrt(sum(x**2 for x in x0))
-    rnear = r0 - geo.params["rMolecule"]
-    rfar = r0 + geo.params["rMolecule"]
-    xnear = map(lambda x: rnear/r0*x, x0)
-    xfar = map(lambda x: rfar/r0*x, x0)
-
-    def avg(u, meas):
-        return assemble(u*meas)/assemble(Constant(1.0)*meas)
-
-    def exit_times(tau):
-        Tmin = tau(xnear)
-        Tmax = tau(xfar)
-        Tavg = avg(tau, geo.dS("moleculeb"))
-        return (Tmin, Tavg, Tmax)
         
     pde = PNPS(geo, phys)
     pde.tolnewton = 1e-2
@@ -59,13 +36,30 @@ def calculateforce(clscale=6., tol=5e-3,subdomain=None):
     pde.solve()
 
     (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
-    F = phys.Feff(v, u)
-#    file=File('force.pvd')
-#    file << F
-#    plot(F)
-#    interactive()
+    F, Fel, Fdrag = phys.Forces(v, u)
+    
+    # save mesh and forces
+    File("mesh.xml") << geo.mesh
+    File("F.xml") << F
+    File("Fel.xml") << Fel
+    File("Fdrag.xml") << Fdrag
+
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
         print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
 
-    VV = VectorFunctionSpace(geo.mesh, "CG", 1)
-    return project(F, VV)
+    return F
+    #VV = VectorFunctionSpace(geo.mesh, "CG", 1)
+    #return project(F, VV)
+    
+def loadforces():
+    mesh = Mesh("mesh.xml")
+    V = VectorFunctionSpace(mesh, "CG", 1)
+    F = Function(V, "F.xml")
+    Fel = Function(V, "Fel.xml")
+    Fdrag = Function(V, "Fdrag.xml")
+    return F, Fel, Fdrag
+    
+if __name__ == "__main__":
+    add_params(scale = 10.)
+    calculateforce(clscale=scale)    
+

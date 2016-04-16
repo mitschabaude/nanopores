@@ -14,6 +14,10 @@ ffc_form*.h
 *.pos
 *.geo
 
+# ignore dolfin xml data files
+*.xml
+
+
 # ignore numpy saves
 *.npy
 
