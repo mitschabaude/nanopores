@@ -17,7 +17,7 @@ def calculateforce(clscale=6., subdomain=None):
         rTarget = 0.5*nm,
         bulkcon = 1000.,
     )
-    skip_stokes = True
+    skip_stokes = False
 
     t = Timer("meshing")
     meshdict = generate_mesh(clscale, "aHem", **geo_params)

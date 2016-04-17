@@ -7,9 +7,10 @@ from nanopores import *
 from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 import sys
-from calculateforce import *
+from calculateforce import loadforces
 from aHem_array import *
-F = calculateforce(clscale=6., tol=5e-3) # 6. 5e-3
+F, Fel, Fdrag = loadforces()
+#F = calculateforce(clscale=6., tol=5e-3) # 6. 5e-3
 #file=File('force.pvd')
 #file << F
 #def F(vec):
@@ -168,15 +169,11 @@ for index in Range:
         timefac=1.
         timefacsq = 1.
         timeadd = tau
-        b=timer/5e4
+#        b=timer/5e4
         rad=radius(X[i],Y[i])
         xi_x=gauss(0,1)
         xi_y=gauss(0,1)
         xi_z=gauss(0,1)
-        if False:#indicator_poretop(argument(X[i],Y[i],Z[i]))==1: #Targetmolecule in Pore=>diffusion damp factor 1/10
-            xi_x *= 0.316228
-            xi_y *= 0.316228
-            xi_z *= 0.316228
         time1=time()
         [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
         time2=time()
@@ -240,7 +237,7 @@ for index in Range:
             TIME = np.append(TIME,np.array([timer]))
             boolexit=True
             break
-        if Z[i]<-5.41 or indicator_aHem(argument(X[i],Y[i],Z[i]))==1:
+        if False:#Z[i]<-5.41 or indicator_aHem(argument(X[i],Y[i],Z[i]))==1:
             np.save('x',X)
             np.save('y',Y)
             np.save('z',Z)
