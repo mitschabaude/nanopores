@@ -49,7 +49,7 @@ hReservoir = 0.01 # height of cylindrical upper reservoir
 applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
-adaptMqv = True
+adaptMqv = False
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!

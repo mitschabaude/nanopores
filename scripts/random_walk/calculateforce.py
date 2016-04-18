@@ -8,7 +8,7 @@ def calculateforce(clscale=6., subdomain=None):
         l3 = 60.,
         l4 = 10.,
         R = 60.,
-        x0 = [5., 0., 10.], # |x0| > 2.2
+        x0 = None, #[5., 0., 10.], # |x0| > 2.2
         exit_i = 1,
     )
     phys_params = dict(
@@ -18,6 +18,16 @@ def calculateforce(clscale=6., subdomain=None):
         bulkcon = 1000.,
     )
     skip_stokes = False
+    StokesProblem.method["iterative"] = True
+    taylorhood = True # if True, use P2-P1 discretization for Stokes instead of P1-P1.
+    # (True leads too much bigger system but better convergence of iterative solver)
+    StokesProblem.method["kparams"].update(
+        monitor_convergence = False,
+        relative_tolerance = 1e-10,
+        absolute_tolerance = 1e-5,
+        maximum_iterations = 2000,
+        nonzero_initial_guess = True,
+    )
 
     t = Timer("meshing")
     meshdict = generate_mesh(clscale, "aHem", **geo_params)
@@ -29,7 +39,7 @@ def calculateforce(clscale=6., subdomain=None):
 
     phys = Physics("pore_molecule", geo, **phys_params)
         
-    pde = PNPS(geo, phys)
+    pde = PNPS(geo, phys, taylorhood=taylorhood)
     pde.tolnewton = 1e-2
     if skip_stokes:
         pde.solvers.pop("Stokes")
