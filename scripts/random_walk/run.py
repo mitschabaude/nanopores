@@ -139,9 +139,20 @@ EXIT_Z=np.load('exit_z.npy')
 TIME=np.load('timer.npy')
 counter=np.load('counter.npy')
 
-
+Vecx=np.load('Vecx.npy')
+Vecy=np.load('Vecy.npy')
+Vecz=np.load('Vecz.npy')
+Vecx2=np.load('Vecx2.npy')
+Vecy2=np.load('Vecy2.npy')
+Vecz2=np.load('Vecz2.npy')
+timesteps=6e5/100
+timecounter=0
+sims=100
 done=EXIT_X.shape[0]
-left=1000-done
+left=sims-done
+
+
+
 
 Range = range(left)
 start=time()
@@ -160,11 +171,20 @@ for index in Range:
     hbonds = 0
 
     i=0
-    timeend=5e6
-    mean_hbond = 1e3 #1 microsec
+    timeend=6e5
+    mean_hbond = 1e2 #1 microsec
     lambda_poisson = 10.
     boolexit=False
+    timecounter=0
     while timer<timeend and Z[i]<1e6 and X[i]**2+Y[i]**2<1e12:
+        if timer>=timecounter*timesteps and timecounter<=100:
+            Vecx[timecounter]+=X[i]
+            Vecy[timecounter]+=Y[i]
+            Vecz[timecounter]+=Z[i]
+            Vecx2[timecounter]+=X[i]**2
+            Vecy2[timecounter]+=Y[i]**2
+            Vecz2[timecounter]+=Z[i]**2
+            timecounter+=1
         faraway=False
         timefac=1.
         timefacsq = 1.
@@ -261,11 +281,39 @@ for index in Range:
     np.save('exit_z',EXIT_Z)
     np.save('timer',TIME)
     np.save('counter',counter)
+    np.save('Vecx',Vecx)
+    np.save('Vecy',Vecy)
+    np.save('Vecz',Vecz)
+    np.save('Vecx2',Vecx2)
+    np.save('Vecy2',Vecy2)
+    np.save('Vecz2',Vecz2)
 
 end=time()
 work=end-start
 workh=work/3600.
 print 'work = %.1f hours'%workh
+#Vecx*=1./float(sims)
+#Vecy*=1./float(sims)
+#Vecz*=1./float(sims)
+#Vecx2*=1./float(sims)
+#Vecy2*=1./float(sims)
+#Vecz2*=1./float(sims)
+#Vecx2=Vecx2-Vecx**2
+#Vecy2=Vecy2-Vecy**2
+#Vecz2=Vecz2-Vecz**2
+#xaxis=np.linspace(0.,6e5,Vecx.shape[0])
+#plt.plot(xaxis,Vecx)
+#plt.show()
+#plt.plot(xaxis,Vecy)
+#plt.show()
+#plt.plot(xaxis,Vecz)
+#plt.show()
+#plt.plot(xaxis,Vecx2)
+#plt.show()
+#plt.plot(xaxis,Vecy2)
+#plt.show()
+#plt.plot(xaxis,Vecz2)
+#plt.show()
 #X=X[:i]
 #Y=Y[:i]
 #Z=Z[:i]

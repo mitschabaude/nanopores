@@ -23,7 +23,7 @@ def sgn(x):
     else:
         return 0
 
-leftend=10.
+leftend=20.
 x_mem=np.linspace(X_aHem_2d[18][0],leftend,100)
 y_mem=np.zeros(x_mem.shape[0])+X_aHem_2d[18][1]
 x_mem_2=-x_mem
@@ -65,5 +65,5 @@ for y in range(Ny):
             V[y][x] = F[2]
 
 plt.streamplot(X,Y,U,V,arrowsize=2, linewidth=1., density=4., cmap=colormaps.viridis, color=np.log10(np.sqrt(U*U+V*V)))
-plt.savefig('el.eps')
-#plt.show()
+#plt.savefig('el.eps')
+plt.show()
