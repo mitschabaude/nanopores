@@ -107,8 +107,8 @@ X_aHem = np.array([[2.16, 0.0, 0.0],
                       [1.7 , 0.0, -0.31]])
 
 fineness = 500
-timestep=1e3/float(fineness)
-exittime = np.linspace(0.,1.,fineness)*1e3
+timestep=1e4/float(fineness)
+exittime = np.linspace(0.,1.,fineness)*1e4
 exitprop = np.zeros(fineness)
 for index in range(fineness):
     exitprop[index]=np.where(time<timestep*(index+1))[0].shape[0]

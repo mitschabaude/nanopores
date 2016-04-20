@@ -154,18 +154,18 @@ left=sims-done
 
 
 
-Range = range(left)
+Range = range(done,sims)
 start=time()
 timearray=[0.,0.,0.]
 for index in Range:
-    print str(index)+" out of "+str(len(Range))
+    print str(index)+" out of "+str(sims)
     X=np.zeros(steps)
     Y=np.zeros(steps)
     Z=np.zeros(steps)
 #    xia_x=np.zeros(steps)
 #    xia_y=np.zeros(steps)
 #    xia_z=np.zeros(steps)
-    Z[0] = 2.
+    Z[0] = 0.
     timer = 0.
     redos = 0
     hbonds = 0

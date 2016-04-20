@@ -8,5 +8,5 @@ counter=np.load('counter.npy')
 print 'size_x = %d'%exit_x.shape[0]
 print 'size_y = %d'%exit_y.shape[0]
 print 'size_z = %d'%exit_z.shape[0]
-print 'size_timer = %d'%timer.shap[0]
-#print 'counter = 'counter
+print 'size_timer = %d'%timer.shape[0]
+print counter
