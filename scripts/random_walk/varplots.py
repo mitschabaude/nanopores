@@ -1,3 +1,4 @@
+from sys import path
 from scipy import special
 from scipy import integrate
 import numpy as np
@@ -5,23 +6,16 @@ from math import pi, sqrt,exp
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 sims=np.sum(np.load('counter.npy'))
-time=6e5
-
-color1 = '#1B9E77'
-color2 = '#D95F02'
-color3 = '#7570B3'
-color4 = '#E7298A'
-color7 = '#66A61E'
-color6 = '#E6AB02'
-color5 = '#A6761D'
-color8 = '#666666'
+time=5e6
+path.append('/home/benjamin/projekt/texfiles/')
+from colors import *
 
 
 kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
 visc=1e-3 #[Pa*s]
 D=(kb*T)/(6*pi*0.5e-9*visc)*1e9 #diffusion[nm^2/ns]
-d=0.+5.41
+d=2.+5.41
 def f(x,t):
     return exp(-x**2/(4*D*t))/sqrt(4*D*pi*t)
 def g(x,t):
@@ -68,8 +62,8 @@ ax.set_xlabel('Time [microsec]')
 ax.set_ylabel('Distance [nm]')
 first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
 plt.title('x')
-#plt.show()
-plt.savefig('compareplots/x.png')
+plt.show()
+#plt.savefig('compareplots/x.png')
 
 fig=plt.figure(num=None, figsize=(12,7), dpi=100)
 label1='Sample mean'
@@ -85,8 +79,8 @@ ax.set_xlabel('Time [microsec]')
 ax.set_ylabel('Distance [nm]')
 first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
 plt.title('y')
-#plt.show()
-plt.savefig('compareplots/y.png')
+plt.show()
+#plt.savefig('compareplots/y.png')
 
 fig=plt.figure(num=None, figsize=(12,7), dpi=100)
 label1='Sample mean'
@@ -102,5 +96,5 @@ ax.set_xlabel('Time [microsec]')
 ax.set_ylabel('Distance [nm]')
 first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
 plt.title('z')
-#plt.show()
-plt.savefig('compareplots/z.png')
+plt.show()
+#plt.savefig('compareplots/z.png')

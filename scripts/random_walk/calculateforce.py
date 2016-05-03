@@ -5,9 +5,9 @@ from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 def calculateforce(clscale=6., subdomain=None):
     geo_params = dict(
-        l3 = 60.,
+        l3 = 15.,#60
         l4 = 10.,
-        R = 60.,
+        R = 15.,#60
         x0 = None, #[5., 0., 10.], # |x0| > 2.2
         exit_i = 1,
     )
@@ -17,7 +17,7 @@ def calculateforce(clscale=6., subdomain=None):
         rTarget = 0.5*nm,
         bulkcon = 1000.,
     )
-    skip_stokes = False
+    skip_stokes = True
     StokesProblem.method["iterative"] = True
     taylorhood = True # if True, use P2-P1 discretization for Stokes instead of P1-P1.
     # (True leads too much bigger system but better convergence of iterative solver)
@@ -49,10 +49,10 @@ def calculateforce(clscale=6., subdomain=None):
     F, Fel, Fdrag = phys.Forces(v, u)
     
     # save mesh and forces
-    File("mesh.xml") << geo.mesh
-    File("F.xml") << F
-    File("Fel.xml") << Fel
-    File("Fdrag.xml") << Fdrag
+    File("mesh_test.xml") << geo.mesh
+    File("F_test.xml") << F
+    File("Fel_test.xml") << Fel
+    File("Fdrag_test.xml") << Fdrag
 
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
         print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
@@ -62,14 +62,13 @@ def calculateforce(clscale=6., subdomain=None):
     #return project(F, VV)
     
 def loadforces():
-    mesh = Mesh("mesh.xml")
+    mesh = Mesh("mesh_test.xml")
     V = VectorFunctionSpace(mesh, "CG", 1)
-    F = Function(V, "F.xml")
-    Fel = Function(V, "Fel.xml")
-    Fdrag = Function(V, "Fdrag.xml")
+    F = Function(V, "F_test.xml")
+    Fel = Function(V, "Fel_test.xml")
+    Fdrag = Function(V, "Fdrag_test.xml")
     return F, Fel, Fdrag
     
 if __name__ == "__main__":
     add_params(scale = 10.)
     calculateforce(clscale=scale)    
-

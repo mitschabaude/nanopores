@@ -145,9 +145,9 @@ Vecz=np.load('Vecz.npy')
 Vecx2=np.load('Vecx2.npy')
 Vecy2=np.load('Vecy2.npy')
 Vecz2=np.load('Vecz2.npy')
-timesteps=6e5/100
+timesteps=5e6/100
 timecounter=0
-sims=100
+sims=1000
 done=EXIT_X.shape[0]
 left=sims-done
 
@@ -165,13 +165,13 @@ for index in Range:
 #    xia_x=np.zeros(steps)
 #    xia_y=np.zeros(steps)
 #    xia_z=np.zeros(steps)
-    Z[0] = 0.
+    Z[0] = 2.
     timer = 0.
     redos = 0
     hbonds = 0
 
     i=0
-    timeend=6e5
+    timeend=5e6
     mean_hbond = 1e2 #1 microsec
     lambda_poisson = 10.
     boolexit=False
@@ -194,6 +194,10 @@ for index in Range:
         xi_x=gauss(0,1)
         xi_y=gauss(0,1)
         xi_z=gauss(0,1)
+#        if indicator_poretop(argument(X[i],Y[i],Z[i]))==1: #Targetmolecule in Pore=>diffusion damp factor 1/10
+#            xi_x *= 0.316228
+#            xi_y *= 0.316228
+#            xi_z *= 0.316228
         time1=time()
         [fsurfx,fsurfy,fsurfz,dsurf] = F_surf(X[i],Y[i],Z[i])
         time2=time()
@@ -249,7 +253,7 @@ for index in Range:
             redos+=1
         timer += timeadd
         i+=1
-        if indicator_poretop(argument(X[i],Y[i],Z[i]))==1 and Z[i]<-1.0:
+        if indicator_poretop(argument(X[i],Y[i],Z[i]))==1:# and Z[i]<-1.0:
             exit_x = X[i]
             exit_y = Y[i]
             exit_z = Z[i]

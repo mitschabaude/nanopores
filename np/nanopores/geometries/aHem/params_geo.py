@@ -32,7 +32,8 @@ synonymes = {
 lc = nm
 lcMolecule = lc*3e-2
 lcCenter = lc*5e-2
-lcOuter = lc
+lcOuter = lc*1e-1
+lcMembrane = lc*5e-3
 
 # provide default values for boundary layer around membrane/molecule
 membraneblayer = None

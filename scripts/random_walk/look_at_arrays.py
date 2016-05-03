@@ -10,3 +10,5 @@ print 'size_y = %d'%exit_y.shape[0]
 print 'size_z = %d'%exit_z.shape[0]
 print 'size_timer = %d'%timer.shape[0]
 print counter
+prop=float(counter[0])/float(np.sum(counter))*100
+print 'prop = %.2f percent' %prop

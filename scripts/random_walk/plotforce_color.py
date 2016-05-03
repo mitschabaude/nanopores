@@ -23,7 +23,7 @@ def sgn(x):
     else:
         return 0
 
-leftend=20.
+leftend=15.
 x_mem=np.linspace(X_aHem_2d[18][0],leftend,100)
 y_mem=np.zeros(x_mem.shape[0])+X_aHem_2d[18][1]
 x_mem_2=-x_mem
@@ -40,8 +40,8 @@ X_2=-X
 # whole domain: fac=0.1,p2=[
 
 axes=plt.gca()
-axes.set_ylim([-10,20])
-axes.set_xlim([-20,20])
+axes.set_ylim([-10,15])
+axes.set_xlim([-15,15])
 
 bbPath=mplPath.Path(X_aHem_2d)
 Ny = 40
@@ -51,7 +51,7 @@ plt.plot(X_2,Y,linewidth=2,color='black')
 plt.plot(x_mem,y_mem,color='black',linewidth=1)
 plt.plot(x_mem_2,y_mem,color='black',linewidth=1)
 
-Y, X = np.mgrid[-5:20:Ny*1j, -20:20:Nx*1j]
+Y, X = np.mgrid[-5:15:Ny*1j, -15:15:Nx*1j]
 U = np.zeros((Ny,Nx))
 V = np.zeros((Ny,Nx))
 for y in range(Ny):

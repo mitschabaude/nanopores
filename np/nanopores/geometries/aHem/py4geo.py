@@ -168,7 +168,9 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     e_aHem = [Line(p_aHem[k], p_aHem[k+1]) for k in range(len(p_aHem)-1)]
     e_aHem.append(Line(p_aHem[-1], p_aHem[0]))
 
-    e_Membrane = [Line(p_aHem[ap1],p_Fluid[2]), Line(p_Fluid[3], p_aHem[ap2])]
+#    e_Membrane = [Line(p_aHem[ap1],p_Fluid[2]), Line(p_Fluid[3], p_aHem[ap2])]
+    e_Membrane = [Line(Point(X_aHem[ap1],lcMembrane), Point(numpy.array([R,0.,X_aHem[ap1][2]]),lcMembrane)),\
+                  Line(Point(numpy.array([R,0.,X_aHem[ap2][2]]),lcMembrane),Point(X_aHem[ap2],lcMembrane))]
 
     edges_to_rot = [e_Fluid[0:5], e_aHem, e_Membrane]
 
