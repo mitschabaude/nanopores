@@ -58,7 +58,8 @@ if not taylorhood:
 else:
     ku = 2
     beta = .0
-
+    
+SimpleStokesProblem.method["reuse"] = False
 #print
 #print "# solve pnp with fixed point method"
 #pnp = PNPFixedPoint(geo, phys, cyl=True, inewton=1, ipicard=imax, verbose=True, iterative=iterative)
@@ -76,10 +77,8 @@ pnps = PNPSFixedPoint(geo, phys, cyl=True, beta=beta, ku=ku,
 t = Timer("solve")
 hybrid_solve(pnps)
 print "CPU time (solve): %s [s]" % (t.stop(),)
-#pnps.visualize()
 
 print "# solve with hybrid method"
-SimpleStokesProblem.method["reuse"] = False
 pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
     inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True, iterative=iterative)
 t = Timer("solve")
@@ -96,13 +95,12 @@ pnpsN.tolnewton = tol
 t = Timer("solve")
 newton_solve(pnpsN)
 print "CPU time (solve): %s [s]" % (t.stop(),)
-#pnps.visualize()
 
-v, cp, cm, u, p = pnps.solutions()
-vN, cpN, cmN, uN, pN = pnpsH.solutions()
-plot(v - vN)
-plot(u - uN)
-interactive()
+#v, cp, cm, u, p = pnps.solutions()
+#vN, cpN, cmN, uN, pN = pnpsH.solutions()
+#plot(v - vN)
+#plot(u - uN)
+#interactive()
 
 # plot
 pnps.estimators["err hybrid i"].name = "fixed point"
