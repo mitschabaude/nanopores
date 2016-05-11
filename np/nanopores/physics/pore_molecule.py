@@ -288,3 +288,24 @@ def Forces(geo, grad, qTarget, rTarget):
         F = dolfin.project(F, V)
         return F, Fel, Fdrag
     return Forces0
+
+def Forces2D(geo, grad, qTarget, rTaret):
+    def Forces2D0(v, u):
+        V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
+#        x0 = dolfin.Expression('x[0]/sqrt(x[0]*x[0]+x[1]*x[1])')
+#        x1 = dolfin.Expression('x[1]/sqrt(x[0]*x[0]+x[1]*x[1])')
+#        E=-dolfin.as_vector((x0*u.dx(0),x1*u.dx(0)))
+        pi = 3.141592653589793
+        x0=u.dx(0)
+        x1=u.dx(1)
+        der0 = dolfin.Constant(qTarget)*x0
+        der1 = dolfin.Constant(qTarget)*x1
+#        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*u
+#        F = Fel + Fdrag
+        Der0=dolfin.project(der0,V)
+        Der1=dolfin.project(der1,V)
+#        Fel = dolfin.project(Fel, V)
+#        Fdrag = dolfin.project(Fdrag, V)
+#        F = dolfin.project(F, V)
+        return Der0,Der1
+    return Forces2D0

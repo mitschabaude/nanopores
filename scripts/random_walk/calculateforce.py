@@ -57,7 +57,7 @@ def calculateforce(clscale=6., subdomain=None):
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
         print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
 
-    return F
+    return geo.mesh, v
     #VV = VectorFunctionSpace(geo.mesh, "CG", 1)
     #return project(F, VV)
     
@@ -71,4 +71,4 @@ def loadforces():
     
 if __name__ == "__main__":
     add_params(scale = 10.)
-    calculateforce(clscale=scale)    
+    mesh, v = calculateforce(clscale=scale)    
