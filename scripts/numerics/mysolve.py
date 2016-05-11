@@ -266,7 +266,7 @@ def hybrid_solve(self, tol=None, damp=None):
             tcum += tloop.stop()
             # calculate the error
             U = self.solutions(deepcopy=True)
-            err = sum(errornorm(u, uold, "L2", degree_rise=0) for u, uold in zip(U, Uold)) / sum(norm(u, "L2") for u in U) 
+            err = sum(errornorm(u, uold, "L2", degree_rise=0)/norm(u, "L2") for u, uold in zip(U, Uold)) #/ sum(norm(u, "L2") for u in U) 
             Uold = U
             self.save_estimate("err hybrid i", err, N=i)
             self.save_estimate("err hybrid time", err, N=tcum)

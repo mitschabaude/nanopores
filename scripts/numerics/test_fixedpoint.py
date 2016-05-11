@@ -59,26 +59,32 @@ else:
     ku = 2
     beta = .0
 
-print
-print "# solve pnp with fixed point method"
-pnp = PNPFixedPoint(geo, phys, cyl=True, inewton=1, ipicard=imax, verbose=True, iterative=iterative)
-t = Timer("solve")
-hybrid_solve(pnp)
-print "CPU time (solve): %s [s]" % (t.stop(),)
-pnp.visualize()
-exit()
+#print
+#print "# solve pnp with fixed point method"
+#pnp = PNPFixedPoint(geo, phys, cyl=True, inewton=1, ipicard=imax, verbose=True, iterative=iterative)
+#t = Timer("solve")
+#hybrid_solve(pnp)
+#print "CPU time (solve): %s [s]" % (t.stop(),)
+#pnp.visualize()
 
 print
-print "# solve with fixed point method"
+print "# solve pnps with fixed point method"
 #SimplePoissonProblem.method["reuse"] = False
 #SimpleStokesProblem.method["reuse"] = False
 pnps = PNPSFixedPoint(geo, phys, cyl=True, beta=beta, ku=ku,
-    inewton=1, ipicard=imax, tolnewton=tol, verbose=True, iterative=iterative)
+    inewton=1, ipicard=imax+10, tolnewton=tol, verbose=True, iterative=iterative)
 t = Timer("solve")
 hybrid_solve(pnps)
 print "CPU time (solve): %s [s]" % (t.stop(),)
-pnps.visualize()
-exit()
+#pnps.visualize()
+
+print "# solve with hybrid method"
+SimpleStokesProblem.method["reuse"] = False
+pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
+    inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True, iterative=iterative)
+t = Timer("solve")
+hybrid_solve(pnpsH)
+print "CPU time (solve): %s [s]" % (t.stop(),)
 
 print
 print "# solve with newton's method"
@@ -93,17 +99,26 @@ print "CPU time (solve): %s [s]" % (t.stop(),)
 #pnps.visualize()
 
 v, cp, cm, u, p = pnps.solutions()
-vN, cpN, cmN, uN, pN = pnpsN.solutions()
-#plot(v - vN)
-#plot(u - uN)
-#interactive()
+vN, cpN, cmN, uN, pN = pnpsH.solutions()
+plot(v - vN)
+plot(u - uN)
+interactive()
 
 # plot
+pnps.estimators["err hybrid i"].name = "fixed point"
+pnps.estimators["err hybrid time"].name = "fixed point"
+pnpsH.estimators["err hybrid i"].name = "hybrid"
+pnpsH.estimators["err hybrid time"].name = "hybrid"
+pnpsN.estimators["err newton i"].name = "newton"
+pnpsN.estimators["err newton time"].name = "newton"
+
 from matplotlib import pyplot
 pnps.estimators["err hybrid i"].newtonplot()
+pnpsH.estimators["err hybrid i"].newtonplot(fig=False)
 pnpsN.estimators["err newton i"].newtonplot(fig=False)
 
 pnps.estimators["err hybrid time"].newtonplot()
+pnpsH.estimators["err hybrid time"].newtonplot(fig=False)
 pnpsN.estimators["err newton time"].newtonplot(fig=False)
 pyplot.xlabel("time [s]")
 pyplot.xscale("log")

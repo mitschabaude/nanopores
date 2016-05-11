@@ -328,7 +328,7 @@ class PNPSHybrid(CoupledSolver):
             v, cp, cm = upnp.split()
             f = -phys.cFarad*(cp - cm)*grad(v)
             return dict(f = f)
-        couplers = dict(pnp = couple_pnp, stokes = couple_stokes)
+        couplers = dict(pnp=couple_pnp, stokes=couple_stokes)
     
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         problem.problems["pnp"].method["iterative"] = iterative
@@ -414,7 +414,7 @@ class PNPFixedPointNaive(CoupledSolver):
             D = geo.pwconst("Dm")
             return dict(z=-1., E=E, D=D)
             
-        couplers = dict(poisson = couple_poisson, npp = couple_npp, npm = couple_npm)
+        couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
     
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
@@ -427,15 +427,13 @@ class PNPSFixedPoint(CoupledSolver):
 
     def __init__(self, geo, phys, goals=[], iterative=False, **params):
         problems = OrderedDict([
-            ("poisson", SimplePoissonProblem),
+            ("poisson", LinearSGPoissonProblem),
             ("npp", SimpleNernstPlanckProblem),
             ("npm", SimpleNernstPlanckProblem),
             ("stokes", SimpleStokesProblem),])
 
-        def couple_poisson(unpp, unpm, geo, phys):
-            f = phys.cFarad*(unpp - unpm)
-            dxf = geo.dx("fluid")
-            return dict(f=f, dxf=dxf)   
+        def couple_poisson(unpp, unpm, geo):
+            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))     
         def couple_npp(upoisson, ustokes, geo, phys):
             E = -phys.grad(upoisson)
             D = geo.pwconst("Dp")
@@ -449,8 +447,8 @@ class PNPSFixedPoint(CoupledSolver):
             f = -phys.cFarad*(cp - cm)*grad(v)
             return dict(f = f)
             
-        couplers = dict(poisson = couple_poisson, npp = couple_npp,
-                        npm = couple_npm, stokes = couple_stokes)
+        couplers = dict(poisson=couple_poisson, npp=couple_npp,
+                        npm=couple_npm, stokes=couple_stokes)
     
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
