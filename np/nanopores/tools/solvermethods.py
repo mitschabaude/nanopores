@@ -1,4 +1,4 @@
-from dolfin import *
+from dolfin import has_lu_solver_method
 
 direct = dict(
     reuse = False,

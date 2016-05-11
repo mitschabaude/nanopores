@@ -523,6 +523,7 @@ class CoupledProblem(object):
         # keys are important! (see class docstring)
         
         self.solutions = OrderedDict()
+        self.oldsolutions = OrderedDict()
         self.problems = OrderedDict()
         self.geo = geo
         
@@ -539,25 +540,37 @@ class CoupledProblem(object):
                 u = _call(Problem.initial_u, dict(params, V=V))
             else:
                 u = Function(V)
+            # and backup function for solution in last iteration
+            uold = Function(V)
                 
             self.solutions[name] = u
+            self.oldsolutions[name] = uold
             params.update({"u" + name: u})
             
         # now we have all solutions in hand and can actually create the problems
         for name, Problem in problems.items():
             u = self.solutions[name]
+            uold = self.oldsolutions[name]
             
             # obtain parameters coupled to other problems
-            problem_specific_params = dict(params, u=u)
+            problem_specific_params = dict(params, u=u, uold=uold)
             problem_specific_params.update(_call(couplers[name], problem_specific_params))
             
             # actually instantiate the problem
             self.problems[name] = Problem(**problem_specific_params)
+            
+    def update_uold(self):
+        # useful to e.g. change timestep and reassemble matrices
+        # this assumes that coupled parameters are *not* changed
+        for name in self.problems:
+            uold = self.oldsolutions[name]
+            u = self.solutions[name]
+            uold.vector()[:] = u.vector()[:]
         
     def update_forms(self, **new_params):
         # useful to e.g. change timestep and reassemble matrices
         # this assumes that coupled parameters are *not* changed
-        for name, problem in problems.items():
+        for name, problem in self.problems.items():
             problem.update_forms(**new_params)
         
 class CoupledSolver(PDESystem):
@@ -578,6 +591,7 @@ class CoupledSolver(PDESystem):
             
         self.geo = coupled.geo
         self.functions = coupled.solutions
+        self.coupled = coupled
         self.problems = coupled.problems
         self.functionals = {}
         self.add_functionals(goals)
@@ -612,6 +626,7 @@ class CoupledSolver(PDESystem):
                         break
             else: 
                 inside_loop(self)
+                self.coupled.update_uold()
                 continue
             break
         Tt = sum(times.values())

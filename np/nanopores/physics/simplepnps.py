@@ -3,11 +3,11 @@
 from dolfin import *
 from collections import OrderedDict
 from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver
-from nanopores.physics.params_physical import *
+#from nanopores.physics.params_physical import *
 
 #__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
 __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "SimplePoissonProblem",
-           "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint"]
+           "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint", "PNPFixedPointNonlinear"]
 
 # --- Problems ---
 
@@ -143,6 +143,72 @@ class SimplePoissonProblem(GeneralLinearProblem):
     def bcs(V, geo, phys):
         return geo.pwBC(V, "v0")
         
+class LinearSGPoissonProblem(GeneralLinearProblem):
+    "Linearized Scharfetter-Gummel-type Poisson problem for fixed point PNP"
+    method = dict(solvermethods.bicgstab)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, 'CG', k)
+
+    @staticmethod
+    def forms(V, geo, phys, u, cp, cm, dx_ions, cyl=False):
+        dx = geo.dx()
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+        eps = geo.pwconst("permittivity")
+        UT = Constant(phys.UT)
+        F = Constant(phys.cFarad)
+        
+        v = TrialFunction(V)
+        w = TestFunction(V)
+        
+        a = inner(eps*grad(v), grad(w))*r2pi*dx + F*v/UT*(cp + cm)*w*r2pi*dx_ions
+        
+        Lqions = F*((cp - cm) + u/UT*(cp + cm))*w*r2pi*dx_ions
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        L = Lqions + Lqvol + Lqsurf
+        return a, L
+    
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwBC(V, "v0")
+
+class SGPoissonProblem(GeneralNonlinearProblem):
+    "Scharfetter-Gummel-type Poisson problem for fixed point PNP"
+    method = dict(solvermethods.bicgstab)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, 'CG', k)
+
+    @staticmethod
+    def forms(V, geo, phys, u, uold, cp, cm, dx_ions, cyl=False):
+        dx = geo.dx()
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+        eps = geo.pwconst("permittivity")
+        UT = Constant(phys.UT)
+        F = Constant(phys.cFarad)
+
+        w = TestFunction(V)
+        
+        apoisson = inner(eps*grad(u), grad(w))*r2pi*dx \
+            - F*(exp(-(u-uold)/UT)*cp - exp((u-uold)/UT)*cm)*w*r2pi*dx_ions
+
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        
+        L = apoisson - (Lqvol + Lqsurf)
+        a = derivative(L, u)
+        return a, L
+    
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwBC(V, "v0")        
         
 class SimpleNernstPlanckProblem(GeneralLinearProblem):
     method = dict(solvermethods.bicgstab)
@@ -167,7 +233,6 @@ class SimpleNernstPlanckProblem(GeneralLinearProblem):
             
         dx = geo.dx("fluid")
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
-        lscale = Constant(phys.lscale)
         grad = phys.grad
         kT = Constant(phys.kT)
         q = Constant(phys.qq)
@@ -270,9 +335,64 @@ class PNPSHybrid(CoupledSolver):
         problem.problems["stokes"].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
     
-# --- fixed-point solvers ---
-
+# --- PNP fixed-point solvers ---
+    
 class PNPFixedPoint(CoupledSolver):
+
+    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+        problems = OrderedDict([
+            ("poisson", LinearSGPoissonProblem),
+            ("npp", SimpleNernstPlanckProblem),
+            ("npm", SimpleNernstPlanckProblem),
+            ])
+
+        def couple_poisson(unpp, unpm, geo):
+            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))   
+        def couple_npp(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dp")
+            return dict(z=1., E=E, D=D)
+        def couple_npm(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dm")
+            return dict(z=-1., E=E, D=D)
+            
+        couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
+    
+        problem = CoupledProblem(problems, couplers, geo, phys, **params)
+        for name in problems:
+            problem.problems[name].method["iterative"] = iterative
+        CoupledSolver.__init__(self, problem, goals, **params)
+        
+class PNPFixedPointNonlinear(CoupledSolver):
+
+    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+        problems = OrderedDict([
+            ("poisson", SGPoissonProblem),
+            ("npp", SimpleNernstPlanckProblem),
+            ("npm", SimpleNernstPlanckProblem),
+            ])
+
+        def couple_poisson(upoisson, unpp, unpm, geo):
+            return dict(v0=upoisson, cp=unpp, cm=unpm,
+                        dx_ions=geo.dx("fluid"))   
+        def couple_npp(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dp")
+            return dict(z=1., E=E, D=D)
+        def couple_npm(upoisson, geo, phys):
+            E = -phys.grad(upoisson)
+            D = geo.pwconst("Dm")
+            return dict(z=-1., E=E, D=D)
+            
+        couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
+    
+        problem = CoupledProblem(problems, couplers, geo, phys, **params)
+        for name in problems:
+            problem.problems[name].method["iterative"] = iterative
+        CoupledSolver.__init__(self, problem, goals, **params)
+
+class PNPFixedPointNaive(CoupledSolver):
 
     def __init__(self, geo, phys, goals=[], iterative=False, **params):
         problems = OrderedDict([
@@ -301,6 +421,7 @@ class PNPFixedPoint(CoupledSolver):
             problem.problems[name].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
         
+# --- PNPS fixed-point solvers ---        
 
 class PNPSFixedPoint(CoupledSolver):
 

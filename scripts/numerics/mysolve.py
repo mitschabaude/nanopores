@@ -270,6 +270,7 @@ def hybrid_solve(self, tol=None, damp=None):
             Uold = U
             self.save_estimate("err hybrid i", err, N=i)
             self.save_estimate("err hybrid time", err, N=tcum)
+            self.coupled.update_uold()
             continue
         break
         

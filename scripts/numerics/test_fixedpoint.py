@@ -3,24 +3,26 @@ from nanopores import *
 from nanopores.physics.simplepnps import *
 from mysolve import hybrid_solve, newton_solve
 
+nm = 1.
+
 add_params(
-bV = -0.01, # [V]
-dnaqsdamp = .1,
+bV = -0.05, # [V]
+dnaqsdamp = .5,
 h = .5,
 damp = 1.,
 bulkcon = 300.,
 tol = 1e-15,
 imax = 10,
 taylorhood = False,
-Rx = 8e-9,
-Ry = 8e-9,
-l0 = 9e-9,
+Rx = 8*nm,
+Ry = 8*nm,
+l0 = 9*nm,
 iterative = False,
 )
 print PARAMS
 
 geo_name = "H_geo"
-nm = 1e-9
+
 
 geo_params = dict(
 x0 = None,

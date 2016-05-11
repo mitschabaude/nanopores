@@ -1,13 +1,21 @@
-from dolfin import *
+"""test (linearized) Scharfetter-Gummel-inspired fixed point PNP.
+
+surprising conclusion: linearized is more robust numerically,
+probably due to the exponential terms in nonlinear version.
+for small applied voltage (bV=-0.1), both versions almost coincide.
+
+the linear version converges for bV < 1.0. """
+
 from nanopores import *
 from nanopores.physics.simplepnps import *
-from mysolve import hybrid_solve, newton_solve
 
 add_params(
 bV = -0.1, # [V]
-rho = -0.05,
+rho = -0.0,
 bulkcon = 300.,
 imax = 10,
+linearize = True,
+inewton = 10,
 )
 
 # --- create 1D geometry ---
@@ -45,17 +53,15 @@ phys_params = dict(
 phys = Physics("pore", geo, **phys_params)
 
 # --- define and solve PDE ---
-#p = solve_pde(SimplePoissonProblem, geo, phys)
-
-pnp = PNPFixedPoint(geo, phys, inewton=1, ipicard=imax, verbose=True)
+PNP = PNPFixedPoint if linearize else PNPFixedPointNonlinear
+pnp = PNP(geo, phys, inewton=inewton, ipicard=imax, tolnewton=1e-4,
+                    verbose=True, nverbose=True)
 #t = Timer("solve")
-hybrid_solve(pnp)
+pnp.solve()
 #print "CPU time (solve): %s [s]" % (t.stop(),)
 #pnp.visualize()
 
 v, cp, cm = pnp.solutions()
-#cp, cm, v = pnp.solutions()
-#v  = p.solution
 plot1D({"potential": v}, (-h/2, h/2, 101), "x", dim=1, axlabels=("z [nm]", "potential [V]"))
 plot1D({"c+": cp, "c-":cm},  (hmem/2, h/2, 101), "x", dim=1, axlabels=("z [nm]", "concentrations [mol/m^3]"))       
 showplots()
