@@ -61,7 +61,7 @@ adaptMqv = False
 DNAqs = lambda: DNAqsPure*dnaqsdamp
 permPore = lambda: eperm*rpermPore
 permProtein = lambda: eperm*rpermProtein
-kT = lambda: kB*T
+kT = lambda kB, T: kB*T
 UT = lambda: kB*T/qq
 mu = lambda: D*qq/(kB*T) # mobility [m^2/Vs]
 cFarad = lambda: qq*mol  # Faraday constant [C/mol]
@@ -289,23 +289,20 @@ def Forces(geo, grad, qTarget, rTarget):
         return F, Fel, Fdrag
     return Forces0
 
-def Forces2D(geo, grad, qTarget, rTaret):
+def Forces2D(geo, lscale, qTarget, rTarget):
     def Forces2D0(v, u):
-        V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
-#        x0 = dolfin.Expression('x[0]/sqrt(x[0]*x[0]+x[1]*x[1])')
-#        x1 = dolfin.Expression('x[1]/sqrt(x[0]*x[0]+x[1]*x[1])')
-#        E=-dolfin.as_vector((x0*u.dx(0),x1*u.dx(0)))
+        W = dolfin.FunctionSpace(geo.mesh, "CG", 1)
+        V = dolfin.MixedFunctionSpace((W, W, W))
+        x0 = dolfin.Expression('x[0]/sqrt(x[0]*x[0]+x[1]*x[1])')
+        x1 = dolfin.Expression('x[1]/sqrt(x[0]*x[0]+x[1]*x[1])')
+        E = -lscale*dolfin.as_vector((x0*v.dx(0), x1*v.dx(0), v.dx(1)))
         pi = 3.141592653589793
-        x0=u.dx(0)
-        x1=u.dx(1)
-        der0 = dolfin.Constant(qTarget)*x0
-        der1 = dolfin.Constant(qTarget)*x1
-#        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*u
-#        F = Fel + Fdrag
-        Der0=dolfin.project(der0,V)
-        Der1=dolfin.project(der1,V)
-#        Fel = dolfin.project(Fel, V)
-#        Fdrag = dolfin.project(Fdrag, V)
-#        F = dolfin.project(F, V)
-        return Der0,Der1
+        U = dolfin.as_vector(((x0*u[0], x1*u[0], u[1])))
+        Fel = dolfin.Constant(qTarget)*E
+        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*U
+        F = Fel + Fdrag
+        Fel = dolfin.project(Fel, V)
+        Fdrag = dolfin.project(Fdrag, V)
+        F = dolfin.project(F, V)
+        return F, Fel, Fdrag
     return Forces2D0

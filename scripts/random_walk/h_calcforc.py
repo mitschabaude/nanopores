@@ -3,13 +3,12 @@ import numpy as np
 from nanopores import *
 #from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
-h = .5
-z0 = 2.*nm
-bV = -.1
-Qmol = -1.
-Nmax = 1e4
-frac = 0.5
-cheapest = False
+
+add_params(
+Qmol = -1.,
+bV = -0.1,
+)
+
 def calculateforce(clscale=6., subdomain=None):
     geo_params = dict(
         x0 = None, 
@@ -23,10 +22,11 @@ def calculateforce(clscale=6., subdomain=None):
         bulkcon = 3e2,
         dnaqsdamp = .25,
         bV = bV,
+        qTarget = lambda Qmol: Qmol,
     )
 
     t = Timer("meshing")
-    meshdict = generate_mesh(clscale, "H_geo", **geo_params)
+    generate_mesh(clscale, "H_geo", **geo_params)
     print "Mesh generation time:",t.stop()
 
     t = Timer("reading geometry")
@@ -35,19 +35,21 @@ def calculateforce(clscale=6., subdomain=None):
 
     phys = Physics("pore_molecule", geo, **phys_params)
         
-    pde = PNPS(geo, phys)
+    pde = PNPSAxisym(geo, phys)
     pde.tolnewton = 1e-2
     pde.solve()
 
     (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
-    Der0,Der1 = phys.Forces2D(v, u)
+    F, Fel, Fdrag = phys.Forces2D(v, u)
+    
+    plot(F)
+    interactive()
     
     # save mesh and forces
     File("mesh2.xml") << geo.mesh
-#    File("F2.xml") << F
-    File("Der0.xml") << Der0
-    File("Der1.xml") << Der1
-#    File("Fdrag2.xml") << Fdrag
+    File("F2.xml") << F
+    File("Fel2.xml") << Fel
+    File("Fdrag2.xml") << Fdrag
 
     #return F
     #VV = VectorFunctionSpace(geo.mesh, "CG", 1)
@@ -63,6 +65,6 @@ def h_loadforces():
     return Der0,Der1
     
 if __name__ == "__main__":
-    add_params(scale = 10.)
+    add_params(scale = .25)
     calculateforce(clscale=scale)    
 

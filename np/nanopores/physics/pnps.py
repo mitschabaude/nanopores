@@ -148,7 +148,7 @@ class PNPS(PDESystem):
 
         Jm = cFarad*(C*(D*grad(cm) - mu*cm*grad(v)) - SD*cm*u)
         Jp = cFarad*(C*(-D*grad(cp) - mu*cp*grad(v)) + SD*cp*u)
-        Jz = (Jm + Jp)[2] #in case of H_geo [1] instead of [2]
+        Jz = (Jm + Jp)[2]
 
         # FIXME: this is just ugly, also because geo has to have "name" in params
         """ up until now, a geo that "supports" some feature (e.g. currents) 
@@ -156,7 +156,7 @@ class PNPS(PDESystem):
         this is tricky for derived quantities...
         the solution is to have the derived quantity functionality in py4geo
         and always use some meta.txt as in geo_from_xml. """
-        if geo.parameter("name") == "H_cyl_geo" or geo.parameter("name") == "H_geo":
+        if geo.parameter("name") == "H_cyl_geo":
             ltop = (geo.parameter("l0")-geo.parameter("l1"))/2
             lctr = geo.parameter("l1")
             lbtm = ltop
