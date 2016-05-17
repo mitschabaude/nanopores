@@ -42,9 +42,6 @@ def calculateforce(clscale=6., subdomain=None):
     (v, cp, cm, u, p) = pde.solutions(deepcopy=True)
     F, Fel, Fdrag = phys.Forces2D(v, u)
     
-    plot(F)
-    interactive()
-    
     # save mesh and forces
     File("mesh2.xml") << geo.mesh
     File("F2.xml") << F
@@ -57,12 +54,12 @@ def calculateforce(clscale=6., subdomain=None):
     
 def h_loadforces():
     mesh = Mesh("mesh2.xml")
-    V = VectorFunctionSpace(mesh, "CG", 1)
-#    F = Function(V, "F2.xml")
-    Der0=Function(V, "Der0.xml")
-    Der1=Function(V, "Der1.xml")
-#    Fdrag = Function(V, "Fdrag2.xml")
-    return Der0,Der1
+    W = dolfin.FunctionSpace(mesh, "CG", 1)
+    V = dolfin.MixedFunctionSpace((W, W, W))
+    F = Function(V, "F2.xml")
+    Fel = Function(V, "Fel2.xml")
+    Fdrag = Function(V, "Fdrag2.xml")
+    return F, Fel, Fdrag
     
 if __name__ == "__main__":
     add_params(scale = .25)

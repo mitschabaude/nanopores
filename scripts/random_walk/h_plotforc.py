@@ -6,15 +6,15 @@ import matplotlib.path as mplPath
 import numpy as np
 from aHem_array_2d import *
 from h_calcforc import h_loadforces
-Der0,Der1 = h_loadforces()
-def Fel(x,y,z):
-    if x==0. and y==0.:
-        return [0.,0.,Der1(np.array([0.,z]))]
-    else:
-        rad=sqrt(x**2+y**2)
-        x0=x/rad
-        y0=y/rad
-        return [x0*Der0(np.array([rad,z])),y0*Der0(np.array([rad,z])),Der1(np.array([rad,z]))]
+F, Fel, Fdrag = h_loadforces()
+#def Fel(x,y,z):
+#    if x==0. and y==0.:
+#        return [0.,0.,Der1(np.array([0.,z]))]
+#    else:
+#        rad=sqrt(x**2+y**2)
+#        x0=x/rad
+#        y0=y/rad
+#        return [x0*Der0(np.array([rad,z])),y0*Der0(np.array([rad,z])),Der1(np.array([rad,z]))]
 #plt.ion()
 #fig1=plt.figure(figsize=(18,12))
 #fig=fig1.add_subplot()
@@ -73,13 +73,13 @@ for y in range(Ny):
             V[y][x] = 0
         else:
             if False:#Y[y][x]<2. and (X[y][x]<-3. or X[y][x]>3.):
-                F=Fel(argument(X[y][x],0,2))
+                F=Fel(argument(X[y][x],2))
                 U[y][x] = F[0]
                 V[y][x] = F[2]
             else:
-                F=Fel(X[y][x],0,Y[y][x])
+                F=Fdrag(X[y][x],Y[y][x])
                 U[y][x] = F[0]
-                V[y][x] = F[1]
+                V[y][x] = F[2]
 #for y in range(Ny):
 #    for x in range(Nx):
 #        if bbPath.contains_point((X[y][x],Y[y][x])) or bbPath.contains_point((-X[y][x],Y[y][x])):
