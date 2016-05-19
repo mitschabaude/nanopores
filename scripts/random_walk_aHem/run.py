@@ -4,17 +4,13 @@ import math
 import numpy as np
 from numpy import linalg as LA
 from nanopores import *
-from nanopores.physics.exittime import ExitTimeProblem
+#from nanopores.physics.exittime import ExitTimeProblem
 from dolfin import *
 import sys
 from calculateforce import loadforces
 from aHem_array import *
 F, Fel, Fdrag = loadforces()
-#F = calculateforce(clscale=6., tol=5e-3) # 6. 5e-3
-#file=File('force.pvd')
-#file << F
-#def F(vec):
-#    return [0.,0.,-1e-12]
+
 def radius(x,y):
     return sqrt(x**2+y**2)
 def argument(x,y,z):
@@ -296,38 +292,3 @@ end=time()
 work=end-start
 workh=work/3600.
 print 'work = %.1f hours'%workh
-#Vecx*=1./float(sims)
-#Vecy*=1./float(sims)
-#Vecz*=1./float(sims)
-#Vecx2*=1./float(sims)
-#Vecy2*=1./float(sims)
-#Vecz2*=1./float(sims)
-#Vecx2=Vecx2-Vecx**2
-#Vecy2=Vecy2-Vecy**2
-#Vecz2=Vecz2-Vecz**2
-#xaxis=np.linspace(0.,6e5,Vecx.shape[0])
-#plt.plot(xaxis,Vecx)
-#plt.show()
-#plt.plot(xaxis,Vecy)
-#plt.show()
-#plt.plot(xaxis,Vecz)
-#plt.show()
-#plt.plot(xaxis,Vecx2)
-#plt.show()
-#plt.plot(xaxis,Vecy2)
-#plt.show()
-#plt.plot(xaxis,Vecz2)
-#plt.show()
-#X=X[:i]
-#Y=Y[:i]
-#Z=Z[:i]
-
-#np.save('x',X)
-#np.save('y',Y)
-#np.save('z',Z)
-#np.save('exit_x',EXIT_X)
-#np.save('exit_y',EXIT_Y)
-#np.save('exit_z',EXIT_Z)
-#np.save('timer',TIME)
-#np.save('counter',counter)
-#import plot2

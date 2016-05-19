@@ -52,14 +52,15 @@ def calculateforce(clscale=6., subdomain=None):
     #VV = VectorFunctionSpace(geo.mesh, "CG", 1)
     #return project(F, VV)
     
-def h_loadforces():
+def loadforces():
     mesh = Mesh("mesh2.xml")
     W = dolfin.FunctionSpace(mesh, "CG", 1)
-    V = dolfin.MixedFunctionSpace((W, W, W))
-    F = Function(V, "F2.xml")
+#    V = dolfin.MixedFunctionSpace((W, W, W))
+    V = dolfin.MixedFunctionSpace((W, W))
+#    F = Function(V, "F2.xml")
     Fel = Function(V, "Fel2.xml")
     Fdrag = Function(V, "Fdrag2.xml")
-    return F, Fel, Fdrag
+    return Fel, Fdrag
     
 if __name__ == "__main__":
     add_params(scale = .25)
