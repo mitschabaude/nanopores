@@ -1,47 +1,20 @@
 from dolfin import *
 from nanopores import *
 from nanopores.physics.simplepnps import *
-from mysolve import hybrid_solve, newton_solve
+import Howorka
 
 nm = 1.
 
 add_params(
-bV = -0.05, # [V]
-dnaqsdamp = .25,
 h = .5,
 damp = 1.,
-bulkcon = 300.,
-tol = 1e-15,
+tol = 1e-5,
 imax = 10,
-imaxfp = 20,
-taylorhood = False,
-Rx = 8*nm,
-Ry = 8*nm,
-l0 = 9*nm,
-iterative = False,
-)
-print PARAMS
-
-geo_name = "H_geo"
-
-geo_params = dict(
-x0 = None,
-boxfields = True,
-Rx = Rx,
-Ry = Ry,
-l0 = l0
+imaxfp = 15,
 )
 
-phys_params = dict(
-Membraneqs = -0.00,
-bulkcon = bulkcon,
-bV = bV,
-dnaqsdamp = dnaqsdamp,
-)
 
-generate_mesh(h, geo_name, **geo_params)
-geo = geo_from_name(geo_name, **geo_params)
-phys = Physics("pore", geo, **phys_params)
+geo, phys = Howorka.setup2D(z0=None, h=h)
 
 plot(geo.boundaries)
 print "number of elements: ", geo.mesh.num_cells()

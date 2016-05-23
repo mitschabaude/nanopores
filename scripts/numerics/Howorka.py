@@ -1,4 +1,3 @@
-import dolfin
 from nanopores import *
 from nanopores.geometries.curved import Circle
 from mysolve import pbpnps
@@ -17,6 +16,7 @@ Qmol = -1.,
 Nmax = 1e4,
 frac = 0.5,
 cheapest = False,
+dnaqsdamp = .25,
 )
 
 def geo_params(z0): 
@@ -30,11 +30,11 @@ membraneblayer = False,
 #Ry = 20.,
 )
 
-def phys_params(bV, Qmol): return dict(
+def phys_params(bV, Qmol, dnaqsdamp): return dict(
 Membraneqs = -0.0,
 Qmol = Qmol*qq,
 bulkcon = 3e2,
-dnaqsdamp = .25,
+dnaqsdamp = dnaqsdamp,
 bV = bV,
 )
 
@@ -49,7 +49,7 @@ def setup2D(**params):
     if z0 is not None:
         z0 = round(z0, 4)
     geop = geo_params(z0)
-    physp = phys_params(bV, Qmol)
+    physp = phys_params(bV, Qmol, dnaqsdamp)
     
     generate_mesh(h, geo_name, **geop)
     geo = geo_from_name(geo_name, **geop)

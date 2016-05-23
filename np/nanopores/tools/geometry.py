@@ -531,7 +531,7 @@ class PhysicalBC(object):
         return self
 
     def value(self):
-        return self.bcs[0].value() if self.bcs else self.g
+        return self.g
 
     def function_space(self):
         return self.bcs[0].function_space() if self.bcs else self.V
@@ -540,7 +540,13 @@ class PhysicalBC(object):
         shape = self.g.shape()
         c = Constant(tuple(0. for i in range(shape[0])) if shape else 0.)
         return PhysicalBC(self.V, c, self.description, self.geo)
-
+        
+    def damp(self, scalar):
+        if scalar == 0.:
+            raise Exception("PhysicalBC: Cannot damp with 0.")
+        new = scalar/self.damping if hasattr(self, "damping") else scalar
+        self.damping = scalar
+        self.bcs = [bc.damped(new) for bc in self.bcs]
 
 
 def _wrapf(f):

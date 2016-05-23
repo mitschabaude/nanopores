@@ -1,7 +1,7 @@
 import numpy, dolfin
 from dolfin import *
 from dolfin.fem.solving import _extract_u
-import petsc4py, mpi4py
+import petsc4py #, mpi4py
 import ufl
 from warnings import warn
 
@@ -93,7 +93,7 @@ class IllposedLinearSolver(object):
             else:
                 ks = (self.method["ks"] if ("ks" in self.method) else "default")
                 kp = (self.method["kp"] if ("kp" in self.method) else "default")
-                self.S = PETScKrylovSolver(self.method["ks"], kp)
+                self.S = PETScKrylovSolver(ks, kp)
                 try:
                     self.S.parameters.update(self.method["kparams"])
                 except KeyError:
@@ -146,6 +146,12 @@ class IllposedLinearSolver(object):
         self.problem.adapt(mesh)
         if(self.method["reuse"]): self.assemble_A()
         return self.problem.u
+        
+    # TODO: I have the feeling that somehow this could be done cleaner
+    def damp_bcs(self, scalar):
+        self.problem.damp_bcs(scalar)
+        if self.method["reuse"]:
+            self.assemble_A()
     
     def replace(self,functions,newfunctions):
         # INPUT is a tuple of the functions to be replaced by newfunctions
@@ -217,6 +223,10 @@ class AdaptableLinearProblem(object):
         adaptfunction(self.u, mesh, interpolate=False, assign=True)
         return V
         
+    def damp_bcs(self, scalar): # works only for PhysicalBC
+        for bc in self.bcs:
+            bc.damp(scalar)
+        
     def solution(self):
         return self.u
         
@@ -284,6 +294,14 @@ class AdaptableBC(DirichletBC):
             g = g.__class__()
         
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())
+        
+    # FIXME: this should work at least also with non-scalar Constants ...
+    def damped(self, scalar):
+        if not isinstance(self.g, Constant):
+            raise Exception("Only boundary conditions of type Constant can be damped.")
+        self.g.assign(scalar*self.g(0.))
+        V = self.function_space()
+        return AdaptableBC(V, self.g, self.boundaries, self.i, self.method())
             
 class Functional(object):
     # TODO: Functional should also be useable as linear form

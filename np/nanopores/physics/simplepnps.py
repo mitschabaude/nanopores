@@ -1,11 +1,10 @@
 """ Stripped-down, cleaner variants of PNPS allowing more general geometries """
-
+import numpy
 from dolfin import *
 from collections import OrderedDict
-from nanopores.tools import CoupledProblem, solvermethods, GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver
-#from nanopores.physics.params_physical import *
+from nanopores.tools import CoupledProblem, solvermethods, \
+    GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver
 
-#__all__ = ["SimplePNPS", "SimplePNPSAxisym"]
 __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "SimplePoissonProblem",
            "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint", "PNPFixedPointNonlinear"]
 
@@ -21,9 +20,19 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         return MixedFunctionSpace((V, V, V))
         
     @staticmethod
-    def initial_u(V, geo, phys, v0=None, vPB=None): # TODO incorporate initial guesses
+    def initial_u(V, geo, phys, v0=None): # TODO incorporate initial guesses
         u = Function(V)
-        u.interpolate(Constant((0.0, phys.bulkcon, phys.bulkcon)))
+        if v0 is None:
+            u.interpolate(Constant((0.0, phys.bulkcon, phys.bulkcon)))
+        else:
+            W = V.sub(0).collapse()
+            v = interpolate(v0, W)
+            c0 = phys.bulkcon
+            cp = Function(W)
+            cm = Function(W)
+            cp.vector()[:] = c0*numpy.exp(-v.vector()[:]/phys.UT)
+            cm.vector()[:] = c0*numpy.exp(v.vector()[:]/phys.UT)
+            assign(u, [v, cp, cm])
         return u
 
     @staticmethod
@@ -430,7 +439,8 @@ class PNPSFixedPoint(CoupledSolver):
             ("poisson", LinearSGPoissonProblem),
             ("npp", SimpleNernstPlanckProblem),
             ("npm", SimpleNernstPlanckProblem),
-            ("stokes", SimpleStokesProblem),])
+            ("stokes", SimpleStokesProblem),
+        ])
 
         def couple_poisson(unpp, unpm, geo):
             return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))     

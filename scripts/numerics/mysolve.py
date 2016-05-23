@@ -231,6 +231,14 @@ def newton_solve(self, tol=None, damp=None, verbose=True):
     
 
 def hybrid_solve(self, tol=None, damp=None):
+    for _ in self.fixedpoint():
+        try:        
+            v = self.functions["poisson"]
+            plot(v)
+            #interactive()
+        except: pass
+    
+"""
     if tol is None: tol = self.params["tolnewton"]
     if damp is None: damp = self.params["damp"]
     I = self.params["ipicard"]
@@ -239,11 +247,20 @@ def hybrid_solve(self, tol=None, damp=None):
     verbose = self.params["verbose"]
     times = {name : 0. for name in self.solvers}
     tcum = 0.
-    Uold = self.solutions(deepcopy=True)
+    U = self.coupled.solutions
+    Uold = self.coupled.oldsolutions
+    #Uold = self.solutions(deepcopy=True)
+    def error(u, uold):
+        if norm(u, "L2")==0.:
+            return 1.
+        return errornorm(u, uold, "L2", degree_rise=0)/norm(u, "L2")
 
     for i in range(1, I+1):
-        #v = self.functions["npm"]
-        #plot(v)
+        try:        
+            v = self.functions["poisson"]
+            plot(v)
+            #interactive()
+        except: pass
         #self.visualize()
         if verbose:
             print "\n-- Fixed-Point Loop %d of max. %d" % (i, I)
@@ -265,9 +282,12 @@ def hybrid_solve(self, tol=None, damp=None):
             # cumulative time 
             tcum += tloop.stop()
             # calculate the error
-            U = self.solutions(deepcopy=True)
-            err = sum(errornorm(u, uold, "L2", degree_rise=0)/norm(u, "L2") for u, uold in zip(U, Uold)) #/ sum(norm(u, "L2") for u in U) 
-            Uold = U
+            #U = self.solutions(deepcopy=True)
+            errors = [(name, error(U[name], Uold[name])) for name in U]
+            for item in errors: print "    error %s: %s" % item
+            err = sum(err for _, err in errors)/len(errors)
+            #err = sum(errornorm(u, uold, "L2", degree_rise=0)/norm(u, "L2") for u, uold in zip(U, Uold)) #/ sum(norm(u, "L2") for u in U) 
+            #Uold = U
             self.save_estimate("err hybrid i", err, N=i)
             self.save_estimate("err hybrid time", err, N=tcum)
             self.coupled.update_uold()
@@ -278,7 +298,7 @@ def hybrid_solve(self, tol=None, damp=None):
     if verbose:
         print "\n CPU Time (solve): %.2f s" % Tt
         for name in self.solvers:
-            print "  -) %s: %.2f s" %(name, times[name])
+            print "  -) %s: %.2f s" %(name, times[name]) """
             
 def geo_debug(geo):
     print "Boundaries:"

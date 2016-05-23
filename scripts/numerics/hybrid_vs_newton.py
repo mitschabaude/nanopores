@@ -13,9 +13,9 @@ bulkcon = 300.,
 tol = 1e-15,
 imax = 10,
 taylorhood = False,
-Rx = 8e-9,
-Ry = 8e-9,
-l0 = 9e-9,
+Rx = 8.,
+Ry = 8.,
+l0 = 9.,
 iterative = False,
 )
 print PARAMS
