@@ -64,13 +64,19 @@ def setup2D(**params):
     phys = Physics(phys_name, geo, **physp)
     #phys.permittivity = {"default": phys.permittivity["water"]}
     return geo, phys
+    
+def phys2D(geo, **params):
+    globals().update(params)
+    physp = phys_params(bV, Qmol, dnaqsdamp)
+    phys = Physics(phys_name, geo, **physp)
+    return phys    
 
 def solve2D_fixedpoint(geo, phys, **params):
     globals().update(params)
     pnps = PNPSFixedPoint(geo, phys, cyl=True, ipicard=imax,
                           tolnewton=tol, verbose=True, iterative=False)
     for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["poisson"])
+        dolfin.plot(pnps.functions["poisson"], key="uf")
     return pnps.converged
     
 def solve2D_hybrid(geo, phys, **params):
@@ -78,8 +84,7 @@ def solve2D_hybrid(geo, phys, **params):
     pnps = PNPSHybrid(geo, phys, cyl=True, inewton=1, ipicard=imax,
                       tolnewton=tol, verbose=True, iterative=False)
     for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["pnp"].sub(0), key="u")
-    dolfin.interactive()
+        dolfin.plot(pnps.functions["pnp"].sub(0), key="uh")
     return pnps.converged    
 
 def solve2D_fixedpoint_bVscheme(geo, phys, bVstep=0.025, **params):
@@ -87,17 +92,16 @@ def solve2D_fixedpoint_bVscheme(geo, phys, bVstep=0.025, **params):
     pnps = PNPSFixedPoint(geo, phys, cyl=True, ipicard=imax,
                           tolnewton=tol, verbose=True, iterative=False)
     idamp = math.ceil(abs(bV)/bVstep)
-    damping = 1./idamp
+    damping = 1./idamp if idamp != 0 else 1.
     print "iDAMP: ", idamp
     print "DAMPING: ", damping
     pnps.solvers["poisson"].damp_bcs(damping)
     for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["poisson"])
+        dolfin.plot(pnps.functions["poisson"], key="ufv")
         if i < idamp:
             pnps.solvers["poisson"].damp_bcs(damping*min(i+1, idamp))
         v = pnps.functions["poisson"]
         print "v0 =", v([0., -10.])
-    dolfin.interactive()
     return pnps.converged
     
 def solve2D_hybrid_PB(geo, phys, **params):
@@ -106,8 +110,7 @@ def solve2D_hybrid_PB(geo, phys, **params):
     pnps = PNPSHybrid(geo, phys, v0=pb.solution, cyl=True, inewton=1, ipicard=imax,
                       tolnewton=tol, verbose=True, iterative=False)
     for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["pnp"].sub(0), key="u")
-    dolfin.interactive()
+        dolfin.plot(pnps.functions["pnp"].sub(0), key="uhpb")
     return pnps.converged
     
     

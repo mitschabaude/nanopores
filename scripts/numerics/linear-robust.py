@@ -1,103 +1,37 @@
-from dolfin import *
-from nanopores import *
-from nanopores.physics.simplepnps import *
-import Howorka
+import itertools, numpy
+import nanopores
+import HoworkaSimple as H
 
-nm = 1.
-
-add_params(
+nanopores.add_params(
+bVstep = 0.025,
+tol = 1e-2,
 h = .5,
-damp = 1.,
-tol = 1e-5,
-imax = 10,
-imaxfp = 15,
 )
 
+bVs = [ -.01, -.02, -.05, -.1, -.2, -.5, -1., -2.]
+qs = [0.1, 0.25, 0.5, 1., 2.]
+params = itertools.product(bVs, qs)
+M, N = len(bVs), len(qs)
 
-geo, phys = Howorka.setup2D(z0=None, h=h)
+geo, _ = H.setup2D(z0=None, h=h)
+solve = ( lambda phys: H.solve2D_fixedpoint(geo, phys, imax=20, tol=tol),
+    lambda phys: H.solve2D_fixedpoint_bVscheme(geo, phys, imax=20, bVstep=bVstep, tol=tol),
+    lambda phys: H.solve2D_fixedpoint_bVscheme(geo, phys, imax=100, bVstep=bVstep, tol=tol),
+    lambda phys: H.solve2D_hybrid(geo, phys, imax=10, tol=tol),
+    lambda phys: H.solve2D_hybrid_PB(geo, phys, imax=10, tol=tol)
+    )
+data = tuple(numpy.zeros([M, N], dtype=bool) for k in range(5))
 
-plot(geo.boundaries)
-print "number of elements: ", geo.mesh.num_cells()
-print "number of vertices: ", geo.mesh.num_vertices()
+#for bV, dnaqs in params:
+for i in range(M):
+    for j in range(N):
+        phys = H.phys2D(geo, bV=bVs[i], dnaqsdamp=qs[j])
+        for k in range(5):
+            data[k][i, j] = solve[k](phys)
+            
+jsondata = tuple(d.tolist() for d in data)          
+nanopores.save_stuff("robustness_fixedpoint", jsondata)
 
-if geo.parameter("x0") is None:
-    #exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
-    geo.import_synonymes({"moleculeb":set()})
-    #geo.import_synonymes(synonymes)
-    
-if not taylorhood:
-    ku = 1
-    beta = .01
-else:
-    ku = 2
-    beta = .0
-    
-SimpleStokesProblem.method["reuse"] = False
-#print
-#print "# solve pnp with fixed point method"
-#pnp = PNPFixedPoint(geo, phys, cyl=True, inewton=1, ipicard=imax, verbose=True, iterative=iterative)
-#t = Timer("solve")
-#hybrid_solve(pnp)
-#print "CPU time (solve): %s [s]" % (t.stop(),)
-#pnp.visualize()
-
-print
-print "# solve pnps with fixed point method"
-#SimplePoissonProblem.method["reuse"] = False
-#SimpleStokesProblem.method["reuse"] = False
-pnps = PNPSFixedPoint(geo, phys, cyl=True, beta=beta, ku=ku,
-    inewton=1, ipicard=imaxfp, tolnewton=tol,
-    verbose=True, iterative=iterative)
-t = Timer("solve")
-hybrid_solve(pnps)
-print "CPU time (solve): %s [s]" % (t.stop(),)
-
-print "# solve pnps with hybrid method"
-pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
-    inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True,
-    iterative=iterative)
-t = Timer("solve")
-hybrid_solve(pnpsH)
-print "CPU time (solve): %s [s]" % (t.stop(),)
-
-print
-print "# solve pnps with newton's method"
-SimplePNPSProblem.method["iterative"] = iterative
-pnpsN = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True, beta=beta, ku=ku)
-pnpsN.imax = imax
-pnpsN.newtondamp = damp
-pnpsN.tolnewton = tol
-t = Timer("solve")
-newton_solve(pnpsN)
-print "CPU time (solve): %s [s]" % (t.stop(),)
-
-#v, cp, cm, u, p = pnps.solutions()
-#vN, cpN, cmN, uN, pN = pnpsH.solutions()
-#plot(v - vN)
-#plot(u - uN)
-#interactive()
-
-# plot
-pnps.estimators["err hybrid i"].name = "fixed point"
-pnps.estimators["err hybrid time"].name = "fixed point"
-pnpsH.estimators["err hybrid i"].name = "hybrid"
-pnpsH.estimators["err hybrid time"].name = "hybrid"
-pnpsN.estimators["err newton i"].name = "newton"
-pnpsN.estimators["err newton time"].name = "newton"
-
-from matplotlib import pyplot
-#pnps.estimators["err hybrid i"].newtonplot()
-#pnpsH.estimators["err hybrid i"].newtonplot(fig=False)
-#pnpsN.estimators["err newton i"].newtonplot(fig=False)
-
-pnps.estimators["err hybrid time"].newtonplot()
-pnpsH.estimators["err hybrid time"].newtonplot(fig=False)
-pnpsN.estimators["err newton time"].newtonplot(fig=False)
-pyplot.xlabel("time [s]")
-pyplot.xscale("log")
-
-saveplots("pnps_linearization", PARAMS)
-showplots()
-
-
-
+for d in data:
+    print
+    print d

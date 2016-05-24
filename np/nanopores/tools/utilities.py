@@ -4,13 +4,14 @@ from importlib import import_module
 import inspect, os, sys
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 import dolfin
 from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
-           "plot_cross", "plot_cross_vector", "load_dict"]
+           "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -28,10 +29,8 @@ def u_to_matlab(mesh, u, name="u"):
     # save real-valued P1 Function u at the mesh nodes to matlab arrays X, U
     # X = mesh.coordinates() = [x1_1, .., x1_d; ...; xN_1, .., xN_d]
     # U = u(X)
-    from dolfin import vertex_to_dof_map
-    from numpy import array
     X = mesh.coordinates()
-    v2d = vertex_to_dof_map(u.function_space())
+    v2d = dolfin.vertex_to_dof_map(u.function_space())
     U = u.vector()[v2d]
     from scipy.io import savemat
     dic = {"X": X, "U": U[:,None]}
@@ -39,11 +38,10 @@ def u_to_matlab(mesh, u, name="u"):
     
 def plot_on_sub(u, geo, sub, expr=None, title=""):
     from nanopores.tools.illposed import adaptfunction
-    from dolfin import plot
     submesh = geo.submesh(sub)
     u = adaptfunction(u, submesh, assign=False, interpolate=True)
     u0 = u if expr is None else expr
-    plot(u0, title=title)
+    dolfin.plot(u0, title=title)
     
 def plot_sliced(geo):
     tol = 1e-5
@@ -113,11 +111,26 @@ def save_dict(data, dir=".", name="file"):
         f.write(repr(data))
         
 def load_dict(dir, name):
-    from numpy import array
     fname = os.path.join(dir, name + ".txt")
     with open(fname, 'r') as f:
         data = f.read()
     return eval("".join(data.split("\n")))
+    
+def _open(name, folder, mode):
+    DIR = os.path.join(DATADIR, folder)
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
+    FILE = os.path.join(DIR, name + ".txt")
+    return open(FILE, mode)
+    
+def save_stuff(name, *stuff):
+    with _open(name, "stuff", "w") as f:
+        json.dump(stuff, f)
+        
+def load_stuff(name):
+    with _open(name, "stuff", "r") as f:
+        stuff = json.load(f)
+    return tuple(stuff)
         
 def _call(f, params):
     # call f without knowing its arguments --
