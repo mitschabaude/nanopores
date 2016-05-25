@@ -58,12 +58,12 @@ pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax, **ref)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
-#pnps.visualize()
+pnps.visualize()
 interactive()
 pb.estimators["Fel"].plot()
 pb.estimators["Fs"].plot(fig=False)
 pb.estimators["Fp"].plot(fig=False)
-pb.estimators["F"].plot(rate=-1., fig=False)
+pb.estimators["F"].plot(rate=-2./3., fig=False)
 
 pb.estimators["rep"].plot()
 pb.estimators["err ref"].plot(fig=False)

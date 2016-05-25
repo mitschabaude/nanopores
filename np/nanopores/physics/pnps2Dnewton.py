@@ -4,8 +4,6 @@ from dolfin import *
 from ..tools import *
 from .pnps import PNPS
 from .params_physical import *
-from warnings import warn
-from importlib import import_module
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
@@ -16,9 +14,10 @@ class SimplePNPSProblem(GeneralNonlinearProblem):
     method["iterative"] = False
     
     @staticmethod
-    def space(mesh, k=1):
-        V = FunctionSpace(mesh, 'CG', k)
-        U = VectorFunctionSpace(mesh, 'CG', k+1)
+    def space(mesh, ku=1):
+        V = FunctionSpace(mesh, 'CG', 1)
+        print "ku = ", ku
+        U = VectorFunctionSpace(mesh, 'CG', ku)
         return MixedFunctionSpace((V, V, V, U, V))
         
     @staticmethod
@@ -39,10 +38,11 @@ class SimplePNPSProblem(GeneralNonlinearProblem):
     def forms(V, geo, phys, u, cyl=False, beta=0.01):
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
-        n = FacetNormal(geo.mesh)
         r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
+        print "DEBUG lscale", phys.lscale
         grad = phys.grad
+        div = phys.div
 
         eps = geo.pwconst("permittivity")
         Dp = geo.pwconst("Dp")
@@ -64,7 +64,7 @@ class SimplePNPSProblem(GeneralNonlinearProblem):
         f = -F*(cp - cm)*grad(v)
         
         dx = geo.dx("fluid")
-        r = Expression("x[0]")
+        r = Expression("x[0]/L", L=lscale)
         pi2 = Constant(2.*pi)
         h = CellSize(geo.mesh)
         delta = Constant(beta/lscale**2)*h**2

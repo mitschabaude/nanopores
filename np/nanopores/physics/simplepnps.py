@@ -265,6 +265,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
     @staticmethod
     def space(mesh, ku=1, kp=1):
+        print "ku =",ku
         U = VectorFunctionSpace(mesh, 'CG', ku)
         P = FunctionSpace(mesh, 'CG', kp)
         return U*P
@@ -283,9 +284,10 @@ class SimpleStokesProblem(GeneralLinearProblem):
         grad = phys.grad
         div = phys.div
         lscale = phys.lscale
+        print "DEBUG lscale", phys.lscale
         
         dx = geo.dx("fluid")
-        r = Expression("x[0]/L", L=lscale)
+        r = Expression("x[0]/L", L=Constant(lscale))
         pi2 = Constant(2.*pi)
         h = CellSize(mesh)
         delta = Constant(beta/lscale**2)*h**2
@@ -297,7 +299,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
             a = (eta*inner(eps(u), eps(v))*r + Constant(2.)*eta*u[0]*v[0]/r + \
                 (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
-            L = inner(f, v - delta*grad(q))*r*pi2*dx
+            L = lscale*inner(f, v - delta*grad(q))*r*pi2*dx # FIXME
         else:
             a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
                  - delta*inner(grad(p), grad(q))*dx

@@ -82,9 +82,9 @@ print "CPU time (solve): %s [s]" % (t.stop(),)
 
 v, cp, cm, u, p = pnps.solutions()
 vN, cpN, cmN, uN, pN = pnpsN.solutions()
-#plot(v - vN)
-#plot(u - uN)
-#interactive()
+plot(v - vN)
+plot(u - uN)
+interactive()
 
 # plot
 from matplotlib import pyplot

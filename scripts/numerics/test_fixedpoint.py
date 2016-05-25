@@ -14,13 +14,13 @@ bulkcon = 300.,
 tol = 1e-15,
 imax = 10,
 imaxfp = 20,
-taylorhood = False,
+taylorhood = True,
 Rx = 8*nm,
 Ry = 8*nm,
 l0 = 9*nm,
 iterative = False,
+verbose = False,
 )
-print PARAMS
 
 geo_name = "H_geo"
 
@@ -74,14 +74,14 @@ print "# solve pnps with fixed point method"
 #SimpleStokesProblem.method["reuse"] = False
 pnps = PNPSFixedPoint(geo, phys, cyl=True, beta=beta, ku=ku,
     inewton=1, ipicard=imaxfp, tolnewton=tol,
-    verbose=True, iterative=iterative)
+    verbose=verbose, iterative=iterative)
 t = Timer("solve")
 hybrid_solve(pnps)
 print "CPU time (solve): %s [s]" % (t.stop(),)
 
 print "# solve pnps with hybrid method"
 pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
-    inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True,
+    inewton=1, ipicard=imax, tolnewton=tol, verbose=verbose, nverbose=verbose,
     iterative=iterative)
 t = Timer("solve")
 hybrid_solve(pnpsH)
@@ -98,11 +98,16 @@ t = Timer("solve")
 newton_solve(pnpsN)
 print "CPU time (solve): %s [s]" % (t.stop(),)
 
-#v, cp, cm, u, p = pnps.solutions()
-#vN, cpN, cmN, uN, pN = pnpsH.solutions()
-#plot(v - vN)
-#plot(u - uN)
-#interactive()
+v, cp, cm, u, p = pnps.solutions()
+vN, cpN, cmN, uN, pN = pnpsN.solutions()
+vH, cpH, cmH, uH, pH = pnpsH.solutions()
+plot(u - uH)
+plot(uH - uN)
+interactive()
+
+pnps.visualize()
+pnpsN.visualize()
+pnpsH.visualize()
 
 # plot
 pnps.estimators["err hybrid i"].name = "fixed point"
