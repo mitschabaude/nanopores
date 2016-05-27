@@ -69,14 +69,15 @@ def phys2D(geo, **params):
     globals().update(params)
     physp = phys_params(bV, Qmol, dnaqsdamp)
     phys = Physics(phys_name, geo, **physp)
-    return phys    
+    return phys
 
 def solve2D_fixedpoint(geo, phys, **params):
     globals().update(params)
     pnps = PNPSFixedPoint(geo, phys, cyl=True, ipicard=imax,
                           tolnewton=tol, verbose=True, iterative=False)
-    for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["poisson"], key="uf")
+    for i in pnps.fixedpoint(ipnp=2):
+        dolfin.plot(pnps.functions["poisson"], key="vf")
+        #dolfin.plot(pnps.functions["stokes"].sub(0), key="uf")
     return pnps.converged
     
 def solve2D_hybrid(geo, phys, **params):
@@ -89,17 +90,12 @@ def solve2D_hybrid(geo, phys, **params):
 
 def solve2D_fixedpoint_bVscheme(geo, phys, bVstep=0.025, **params):
     globals().update(params)
-    pnps = PNPSFixedPoint(geo, phys, cyl=True, ipicard=imax,
+    pnps = PNPSFixedPointbV(geo, phys, cyl=True, ipicard=imax,
                           tolnewton=tol, verbose=True, iterative=False)
-    idamp = math.ceil(abs(bV)/bVstep)
-    damping = 1./idamp if idamp != 0 else 1.
-    print "iDAMP: ", idamp
-    print "DAMPING: ", damping
-    pnps.solvers["poisson"].damp_bcs(damping)
-    for i in pnps.fixedpoint():
-        dolfin.plot(pnps.functions["poisson"], key="ufv")
-        if i < idamp:
-            pnps.solvers["poisson"].damp_bcs(damping*min(i+1, idamp))
+    
+    for i in pnps.fixedpoint(bVstep=bVstep):
+        dolfin.plot(pnps.functions["poisson"], key="vfv")
+        #dolfin.plot(pnps.functions["stokes"].sub(0), key="ufv")
         v = pnps.functions["poisson"]
         print "v0 =", v([0., -10.])
     return pnps.converged

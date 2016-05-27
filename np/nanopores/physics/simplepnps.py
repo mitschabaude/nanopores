@@ -2,11 +2,13 @@
 import numpy
 from dolfin import *
 from collections import OrderedDict
-from nanopores.tools import CoupledProblem, solvermethods, \
-    GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver
+from nanopores.tools import (CoupledProblem, solvermethods,
+    GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver)
 
-__all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem", "SimplePoissonProblem",
-           "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint", "PNPFixedPointNonlinear"]
+__all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem",
+           "SimplePoissonProblem",
+           "PNPSHybrid", "PNPSFixedPoint", "PNPFixedPoint",
+           "PNPSFixedPointbV", "PNPFixedPointNonlinear"]
 
 # --- Problems ---
 
@@ -265,7 +267,6 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
     @staticmethod
     def space(mesh, ku=1, kp=1):
-        print "ku =",ku
         U = VectorFunctionSpace(mesh, 'CG', ku)
         P = FunctionSpace(mesh, 'CG', kp)
         return U*P
@@ -284,7 +285,6 @@ class SimpleStokesProblem(GeneralLinearProblem):
         grad = phys.grad
         div = phys.div
         lscale = phys.lscale
-        print "DEBUG lscale", phys.lscale
         
         dx = geo.dx("fluid")
         r = Expression("x[0]/L", L=Constant(lscale))
@@ -299,7 +299,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
             a = (eta*inner(eps(u), eps(v))*r + Constant(2.)*eta*u[0]*v[0]/r + \
                 (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
-            L = lscale*inner(f, v - delta*grad(q))*r*pi2*dx # FIXME
+            L = inner(f, v - delta*grad(q))*r*pi2*dx
         else:
             a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
                  - delta*inner(grad(p), grad(q))*dx
@@ -337,7 +337,7 @@ class PNPSHybrid(CoupledSolver):
             return dict(ustokes = ustokes.sub(0))
         def couple_stokes(upnp, phys):
             v, cp, cm = upnp.split()
-            f = -phys.cFarad*(cp - cm)*grad(v)
+            f = -phys.cFarad*(cp - cm)*phys.grad(v)
             return dict(f = f)
         couplers = dict(pnp=couple_pnp, stokes=couple_stokes)
     
@@ -456,7 +456,7 @@ class PNPSFixedPoint(CoupledSolver):
             return dict(z=-1., E=E, D=D, ustokes=ustokes.sub(0))
         def couple_stokes(upoisson, unpp, unpm, phys):
             v, cp, cm = upoisson, unpp, unpm
-            f = -phys.cFarad*(cp - cm)*grad(v)
+            f = -phys.cFarad*(cp - cm)*phys.grad(v)
             return dict(f = f)
             
         couplers = dict(poisson=couple_poisson, npp=couple_npp,
@@ -466,4 +466,41 @@ class PNPSFixedPoint(CoupledSolver):
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
+        
+    def solve_pnp(self):
+        for pde in "poisson", "npp", "npm":
+            self.solvers[pde].solve()
+            
+    def solve_stokes(self):
+        self.solvers["stokes"].solve()
+        
+    def fixedpoint(self, ipnp=2):
+        for i in self.generic_fixedpoint():
+            self.solve_pnp()
+            if i > ipnp:
+                self.solve_stokes()
+            yield i
+          
+# bVscheme needs access to voltage bias = phys.bV
+# this would hamper generality of PNPSFixedPoint class
+import math
+
+class PNPSFixedPointbV(PNPSFixedPoint):
+    "voltage is slowly increased and stokes solved only afterwards"
+    
+    def fixedpoint(self, bVstep=0.025):
+        bV = self.coupled.params["phys"].bV
+        
+        idamp = math.ceil(abs(bV)/bVstep)
+        damping = 1./idamp if idamp != 0 else 1.
+        ipnp = idamp + 1
+
+        for i in self.generic_fixedpoint():
+            if i <= idamp:
+                self.solvers["poisson"].damp_bcs(damping*min(i, idamp))
+                
+            self.solve_pnp()
+            if i > ipnp:
+                self.solve_stokes()
+            yield i
 

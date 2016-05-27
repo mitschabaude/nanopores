@@ -16,7 +16,6 @@ class SimplePNPSProblem(GeneralNonlinearProblem):
     @staticmethod
     def space(mesh, ku=1):
         V = FunctionSpace(mesh, 'CG', 1)
-        print "ku = ", ku
         U = VectorFunctionSpace(mesh, 'CG', ku)
         return MixedFunctionSpace((V, V, V, U, V))
         
@@ -40,7 +39,6 @@ class SimplePNPSProblem(GeneralNonlinearProblem):
         dx_ions = geo.dx("fluid")
         r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
-        print "DEBUG lscale", phys.lscale
         grad = phys.grad
         div = phys.div
 

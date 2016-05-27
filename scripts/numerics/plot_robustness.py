@@ -7,7 +7,7 @@ import nanopores
 import os
 
 def plot_circle(ax, x, y, color):
-    area = 500
+    area = 800
     edgewidth = 0
     edgecolor = "k" # black
     
@@ -65,7 +65,7 @@ def plot_robustness(ax, fpdata, fplabels, fpcolors):
     #ax.legend([h[0] for h in handles.values()], handles.keys(),
     ax.legend(myhandles, handles.keys(),
         #bbox_to_anchor=(0.5, 1.05), loc="lower center", borderaxespad=0.,)
-        bbox_to_anchor=(0.5, 1.4), loc="upper center", borderaxespad=0.,)
+        bbox_to_anchor=(0.5, 1.3), loc="upper center", borderaxespad=0.,)
         #handler_map={mpatches.Circle:HandlerPatch(patch_func=make_legend_ellipse)})
     ax.set_xlabel("voltage bias [V]")
     ax.set_ylabel("surface charge density [q/nm**2]")

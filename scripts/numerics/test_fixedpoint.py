@@ -14,12 +14,12 @@ bulkcon = 300.,
 tol = 1e-15,
 imax = 10,
 imaxfp = 20,
-taylorhood = True,
+taylorhood = False,
 Rx = 8*nm,
 Ry = 8*nm,
 l0 = 9*nm,
 iterative = False,
-verbose = False,
+verbose = True,
 )
 
 geo_name = "H_geo"
@@ -76,7 +76,8 @@ pnps = PNPSFixedPoint(geo, phys, cyl=True, beta=beta, ku=ku,
     inewton=1, ipicard=imaxfp, tolnewton=tol,
     verbose=verbose, iterative=iterative)
 t = Timer("solve")
-hybrid_solve(pnps)
+for i in pnps.fixedpoint():
+    pass
 print "CPU time (solve): %s [s]" % (t.stop(),)
 
 print "# solve pnps with hybrid method"
@@ -118,9 +119,9 @@ pnpsN.estimators["err newton i"].name = "newton"
 pnpsN.estimators["err newton time"].name = "newton"
 
 from matplotlib import pyplot
-#pnps.estimators["err hybrid i"].newtonplot()
-#pnpsH.estimators["err hybrid i"].newtonplot(fig=False)
-#pnpsN.estimators["err newton i"].newtonplot(fig=False)
+pnps.estimators["err hybrid i"].newtonplot()
+pnpsH.estimators["err hybrid i"].newtonplot(fig=False)
+pnpsN.estimators["err newton i"].newtonplot(fig=False)
 
 pnps.estimators["err hybrid time"].newtonplot()
 pnpsH.estimators["err hybrid time"].newtonplot(fig=False)

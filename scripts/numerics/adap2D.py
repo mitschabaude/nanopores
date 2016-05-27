@@ -63,7 +63,7 @@ interactive()
 pb.estimators["Fel"].plot()
 pb.estimators["Fs"].plot(fig=False)
 pb.estimators["Fp"].plot(fig=False)
-pb.estimators["F"].plot(rate=-2./3., fig=False)
+pb.estimators["F"].plot(rate=-3./4., fig=False)
 
 pb.estimators["rep"].plot()
 pb.estimators["err ref"].plot(fig=False)

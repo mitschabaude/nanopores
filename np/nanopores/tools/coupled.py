@@ -142,7 +142,7 @@ class CoupledSolver(PDESystem):
         self.add_functionals(goals)
         self.params.update(solverparams)
     
-    # TODO: clean up
+    # TODO: clean up -- single_solve() should rely on fixedpoint()
     # TODO: explore possibility to choose newton tol adaptively    
     def single_solve(self, tol=None, damp=None, inside_loop=_pass):
         if tol is None: tol = self.params["tolnewton"]
@@ -237,6 +237,45 @@ class CoupledSolver(PDESystem):
             print "\n CPU Time (solve): %.2f s" % Tt
             for name in self.solvers:
                 print "  -) %s: %.2f s" %(name, times[name])
+                
+    def generic_fixedpoint(self, tol=None, damp=None):
+        # does timing, errors, stopping, but relies on user to implement solve
+        if tol is None: tol = self.params["tolnewton"]
+        if damp is None: damp = self.params["damp"]
+        imax = self.params["ipicard"]
+        verbose = self.params["verbose"]              
+                       
+        tcum = 0.
+        U = self.coupled.solutions
+        Uold = self.coupled.oldsolutions
+        self.converged = False
+    
+        for i in range(1, imax+1):
+            if verbose:
+                print "\n-- Fixed-Point Loop %d of max. %d" % (i, imax)
+            tloop = dolfin.Timer("loop")
+            # solve here
+            yield i
+            # cumulative time 
+            tcum += tloop.stop()
+            
+            # calculate the error
+            errors = [(name, error(U[name], Uold[name])) for name in U]
+            if verbose:
+                for item in errors: print "    error %s: %s" % item
+            err = sum(err for _, err in errors)/len(errors)
+            
+            # check for stopping
+            if err < tol:
+                self.converged = True
+                if verbose:
+                    print "- Break at iteration %d because err %.3g < tol %.3g" %(i, err, tol)
+                break
+            
+            self.save_estimate("err hybrid i", err, N=i)
+            self.save_estimate("err hybrid time", err, N=tcum)
+            self.coupled.update_uold()
+
                 
 # for fixed point error criterion
 def error(u, uold):
