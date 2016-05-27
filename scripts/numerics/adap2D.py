@@ -29,7 +29,7 @@ bV = bV,
 )
 
 ref = dict(
-    Fpbref= 6.08430894614e+14,
+    Fpbref= 113458.465835, #6.08430894614e+14,
     Felref = 1.1424041805,
     Fpref = -3.51633193736,
     Fsref = -4.13093729278,
@@ -58,11 +58,11 @@ pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax, **ref)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
-pnps.visualize()
-interactive()
+#pnps.visualize()
+#interactive()
 pb.estimators["Fel"].plot()
-pb.estimators["Fs"].plot(fig=False)
-pb.estimators["Fp"].plot(fig=False)
+#pb.estimators["Fs"].plot(fig=False)
+pb.estimators["Fdrag"].plot(fig=False)
 pb.estimators["F"].plot(rate=-3./4., fig=False)
 
 pb.estimators["rep"].plot()
@@ -73,5 +73,5 @@ pb.estimators["err"].plot(rate=-1., fig=False)
 #pb.estimators["goal ex"].plot(fig=False)
 #pb.estimators["goal ref"].plot(fig=False)
 #save_Fref(pb, pnps)
-#saveplots("adap2D")
+saveplots("adap2D")
 showplots()
