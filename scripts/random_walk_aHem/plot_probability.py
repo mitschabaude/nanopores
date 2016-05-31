@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, acos, sin
-from aHem_array import *
+#from aHem_array import *
 
 x = np.load('exit_x.npy')
 y = np.load('exit_y.npy')
 z = np.load('exit_z.npy')
 time = np.load('timer.npy')
 counter = np.load('counter.npy')
+print float(counter[0])/np.sum(counter)
 
 maxtime=5e6
 fineness = 1e4
@@ -18,6 +19,7 @@ for index in range(int(fineness)):
     exitprop[index]=np.where(time<timestep*(index+1))[0].shape[0]
 exitprop*=1./np.sum(counter)
 plt.semilogx(exittime,exitprop)
+plt.scatter(exittime,exitprop)
 plt.show()
 
 #def radius(x,y):
