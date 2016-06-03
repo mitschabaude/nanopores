@@ -28,12 +28,6 @@ dnaqsdamp = .25,
 bV = bV,
 )
 
-ref = dict(
-    Fpbref= 113458.465835, #6.08430894614e+14,
-    Felref = 1.1424041805,
-    Fpref = -3.51633193736,
-    Fsref = -4.13093729278,
-)
 ref = load_Fref()
 
 
@@ -73,5 +67,5 @@ pb.estimators["err"].plot(rate=-1., fig=False)
 #pb.estimators["goal ex"].plot(fig=False)
 #pb.estimators["goal ref"].plot(fig=False)
 #save_Fref(pb, pnps)
-saveplots("adap2D")
+#saveplots("adap2D")
 showplots()

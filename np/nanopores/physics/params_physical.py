@@ -20,6 +20,7 @@ rpermAu = 6.9  # according to http://www.mit.edu/~6.777/matprops/gold.htm
 D = 1.9e-9  # Diffusion [m^2/s] # lower in pore according to kurnikowa paper
 eta = 1e-3  # fluid viscosity [Pa s]
 rho = 1e3 # fluid density [kg/m^3]
+Reynolds = rho*0.01*10*nm/eta # typical Reynolds number in nanopore systems with u = 0.01 m/s
 
 # derived constants
 kT = kB*T

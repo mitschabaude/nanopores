@@ -211,8 +211,7 @@ newfig=False)
 # convergence plots
 #pnps.visualize("fluid")
 pb.estimators["Fel"].plot()
-pb.estimators["Fs"].plot(fig=False)
-pb.estimators["Fp"].plot(fig=False)
+pb.estimators["Fdrag"].plot(fig=False)
 pb.estimators["F"].plot(rate=-0.5, fig=False)
 
 pb.estimators["err ref"].plot(rate=-2./3.)
@@ -226,6 +225,6 @@ if not cheapest:
     pb.estimators["goal ex"].plot(fig=False)
 pb.estimators["goal ref"].plot(fig=False)
 """
-saveplots("adap3Diterative", meta=PARAMS)
+#saveplots("adap3Diterative", meta=PARAMS)
 interactive()
 showplots()

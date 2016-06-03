@@ -59,7 +59,8 @@ else:
     ku = 2
     beta = .0
     
-SimpleStokesProblem.method["reuse"] = False
+#SimpleStokesProblem.method["reuse"] = False
+
 #print
 #print "# solve pnp with fixed point method"
 #pnp = PNPFixedPoint(geo, phys, cyl=True, inewton=1, ipicard=imax, verbose=True, iterative=iterative)
@@ -129,7 +130,7 @@ pnpsN.estimators["err newton time"].newtonplot(fig=False)
 pyplot.xlabel("time [s]")
 pyplot.xscale("log")
 
-saveplots("pnps_linearization", PARAMS)
+#saveplots("pnps_linearization", PARAMS)
 showplots()
 
 
