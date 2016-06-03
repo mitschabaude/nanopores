@@ -1,7 +1,7 @@
 "plot 1D force/PMF profiles for 2D Howorka pore and save"
 
 import os, numpy, dolfin, Howorka
-from nanopores import kB, T, add_params, save_dict, saveplots
+from nanopores import kB, T, add_params, save_dict, saveplots, showplots
 from matplotlib.pyplot import figure, plot, legend, show, title, xlabel, ylabel, savefig
 
 add_params(
@@ -25,8 +25,12 @@ def F_explicit(*lspace):
 def F_implicit(*lspace):
     geo, phys = Howorka.setup2D(z0=None, h=himp, Qmol=Qmol)
     pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nimp, cheapest=True)
+    (v, cp, cm, u, p) = pnps.solutions()
+    F, Fel, Fdrag = phys.Forces(v, u)
     for z0 in numpy.linspace(*lspace):
-        yield pnps.zforces_implicit(z0)
+        x = [0., z0]
+        yield tuple((1e12*FF(x)[1] for FF in (F, Fel, Fdrag)))
+        #yield pnps.zforces_implicit(z0)
     #pnps.visualize()
            
 # compute PMF from force (antiderivative with trapezoid rule)
@@ -51,7 +55,7 @@ y = list(PMF(F_implicit, *space))
 
 for i, ff in enumerate([u, uel, udrag, f, fel, fdrag]):
     figure(i)
-    plot(x, ff, "-", label="implicit")
+    plot(x, ff, "-", label="point-sized")
 
 # plot force from explicit molecule and save figures
 space = (8., -8., Nz)
@@ -62,12 +66,12 @@ y = list(PMF(F_explicit, *space))
         tuple(tuple([yy[j][i] for yy in y] for i in (0, 1, 2)) for j in (0, 1)))
 
 style = "s--"
-label = "explicit"
+label = "finite-sized"
 xlab = "z-coordinate of molecule center [nm]"
 ylabu = "PMF [kT]"
 ylabf = "force [pN]"
 folder = os.path.expanduser("~") + "/papers/pnps-numerics/figure_material/PMF/"
-fname = folder + "%s.eps"
+fname = folder + "%s_Q%.1f.eps" % ("%s", Qmol)
 ifig = 0
 
 def plotF(x, u, name, titl, ylab):
@@ -77,7 +81,7 @@ def plotF(x, u, name, titl, ylab):
     #title(titl)
     xlabel(xlab)
     ylabel(ylab)
-    legend()
+    legend(loc="best")
     savefig(fname % name, bbox_inches='tight')
     ifig += 1
 
@@ -89,8 +93,8 @@ plotF(x, fel, "Fel", "Fel", ylabf)
 plotF(x, fdrag, "Fdrag", "Fdrag", ylabf)
 
 # save metadata
-save_dict(PARAMS, folder, "meta")
+#save_dict(PARAMS, folder, "meta")
 
 # save plots
-saveplots("HoworkaPMFQminus1", meta=PARAMS)
-
+#saveplots("HoworkaPMFQminus1", meta=PARAMS)
+#showplots()

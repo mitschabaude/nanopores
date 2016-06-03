@@ -5,7 +5,6 @@ from nanopores.tools.illposed import AdaptableBC, adaptmeshfunction, adaptfuncti
 from nanopores.tools.physicsclass import Physics
 from nanopores.physics import params_physical
 
-from warnings import warn
 from importlib import import_module
 import types
 

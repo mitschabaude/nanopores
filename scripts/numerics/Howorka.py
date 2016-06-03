@@ -36,6 +36,7 @@ Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = dnaqsdamp,
 bV = bV,
+qTarget = Qmol*qq,
 )
 
 IllposedLinearSolver.stab = 1e0

@@ -3,8 +3,6 @@ from nanopores import *
 from nanopores.geometries.curved import Circle
 from nanopores.physics.simplepnps import *
 
-__all__ = ["setup2D", "solve2D"]
-
 geo_name = "H_geo"
 phys_name = "pore"
 nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
