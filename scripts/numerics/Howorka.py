@@ -26,8 +26,8 @@ x0 = x0,
 rMolecule = 0.5*nm,
 moleculeblayer = False,
 membraneblayer = False,
-#Rx = 20.,
-#Ry = 20.,
+Rx = 12.,
+Ry = 12.,
 )
 
 def phys_params(bV, Qmol, dnaqsdamp): return dict(
