@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 nanopores.add_params(
 himp = .2,
 hexp = .5,
-Nimp = 4e4,
-Nexp = 1e4,
+Nimp = 5e4,
+Nexp = 2e4,
 Nz = 50,
 name = "",
 save = False,
 )
 
-Qmols = [-1., 1e-4, 1.] #[-2., -1., 1e-4, 1., 2.]
+Qmols = [-2., -1., 1e-4, 1., 2.]
 a, b = -10., 10.
 folder = os.path.expanduser("~") + "/papers/pnps-numerics/data/forces/"
 
@@ -122,46 +122,49 @@ if save:
 def construct_alpha(a0):
     lpore = 4.5 # TODO
     a = 4.
-    b = 6.5
-    
+    b = 6.
     def alpha(z):
         if abs(z) > b:
             return 1.
         elif abs(z) < a:
             return a0
-        else: # a <= abs(z) <= b
+        else: # abs(z) in [a,b]
             return 1. + (b-abs(z))/(b-a)*(a0 - 1)
             
     return function_from_lambda(alpha)
-#        elif -5. <= z <= -4.:
-#            return 1. + (5+z)*(a0-1)
-#        elif 4. <= z <= 5.:
-#            return 1. + (5-z)*(a0-1)
-            
-
-# construct single alpha
-(Fi, Feli, Fdragi), (F, Fel, Fdrag) = loadall(name, Qmol=0.)
-alpha0 = Fdrag(0.0)/Fdragi(0.0)
-alpha = construct_alpha(alpha0)
-plot_function(alpha)
-
-for Q in Qmols:        
-    (Fi, Feli, Fdragi), (F, Fel, Fdrag) = loadall(name, Q)
-    alpha0 = Fdrag(0.0)/Fdragi(0.0)
-    #alpha = construct_alpha(alpha0)
     
-    Fdragi_better = function_from_lambda(lambda z : Fdragi(z)*alpha(z))
-    Fi_better = function_from_lambda(lambda z : Feli(z) + Fdragi_better(z))
-    print "Q %s, alpha %s" % (Q, alpha0)
-    #plt.figure(0)
-    #plot_function(alpha, label="Q = %.0f"%Q)
-    
-    plt.figure()
-    plot_finite(F)
-    plot_point(Fi)
-    plot_function(Fi_better, "-", label="point-sized, corrected")
-    post_plot()
-    
-#plt.legend()
-nanopores.showplots()
+def Forces(name):
+    for Q in Qmols:
+        (Fi, Feli, Fdragi), (F, Fel, Fdrag) = loadall(name, Q)
+        alpha0 = Fdrag(0.0)/Fdragi(0.0)
+        alpha = construct_alpha(alpha0)
+        beta0 = Fel(0.0)/Feli(0.0)
+        beta = construct_alpha(beta0)
+        
+        Fdragi_better = function_from_lambda(lambda z : Fdragi(z)*alpha(z))
+        Feli_better = function_from_lambda(lambda z : Feli(z)*beta(z))
+        Fi_better = function_from_lambda(lambda z : Feli_better(z) + Fdragi_better(z))
+        
+        yield F, Fi, Fi_better, alpha, beta, Q
+        
+if __name__ == "__main__":
+    for F, Fi, Fi_better, alpha, beta, Q in Forces(name):        
+        print "Q %s, alpha %s" % (Q, alpha(0.))
+        plt.figure(0)
+        plot_function(alpha, label="Q = %.0f"%Q)
+        
+        plt.figure(1)
+        plot_function(beta, label="Q = %.0f"%Q)
+        
+        plt.figure()
+        plot_finite(F)
+        plot_point(Fi)
+        plot_function(Fi_better, "-", label="point-sized, corrected")
+        post_plot()
+        
+    plt.figure(0)
+    plt.legend()
+    plt.figure(1)
+    plt.legend()
+    nanopores.showplots()
 

@@ -17,26 +17,28 @@ Nmax = 1e4,
 frac = 0.5,
 cheapest = False,
 dnaqsdamp = .25,
+rMolecule = 0.2,
 )
 
-def geo_params(z0): 
+def geo_params(z0, rMolecule): 
     x0 = None if z0 is None else [0., 0., z0]
     return dict(
 x0 = x0,
-rMolecule = 0.5*nm,
+rMolecule = rMolecule*nm,
 moleculeblayer = False,
 membraneblayer = False,
 Rx = 12.,
 Ry = 12.,
 )
 
-def phys_params(bV, Qmol, dnaqsdamp): return dict(
+def phys_params(bV, Qmol, dnaqsdamp, rMolecule): return dict(
 Membraneqs = -0.0,
 Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = dnaqsdamp,
 bV = bV,
 qTarget = Qmol*qq,
+rTarget = rMolecule*1e-9
 )
 
 IllposedLinearSolver.stab = 1e0
@@ -49,8 +51,8 @@ def setup2D(**params):
     globals().update(params)
     if z0 is not None:
         z0 = round(z0, 4)
-    geop = geo_params(z0)
-    physp = phys_params(bV, Qmol, dnaqsdamp)
+    geop = geo_params(z0, rMolecule)
+    physp = phys_params(bV, Qmol, dnaqsdamp, rMolecule)
     
     generate_mesh(h, geo_name, **geop)
     geo = geo_from_name(geo_name, **geop)
