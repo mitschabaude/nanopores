@@ -17,7 +17,7 @@ Nmax = 1e4,
 frac = 0.5,
 cheapest = False,
 dnaqsdamp = .25,
-rMolecule = 0.2,
+rMolecule = 0.5,
 )
 
 def geo_params(z0, rMolecule): 

@@ -11,6 +11,7 @@ h = 1.,
 z0 = 2.*nm,
 bV = -0.1,
 Nmax = 1e4,
+Qmol = -1.,
 )
 
 geo_params = dict(
@@ -22,7 +23,7 @@ membraneblayer = False,
 
 phys_params = dict(
 Membraneqs = -0.0,
-Qmol = -1.*qq,
+Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = .25,
 bV = bV,
@@ -52,7 +53,7 @@ pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax, **ref)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
-#pnps.visualize()
+pnps.visualize("fluid")
 #interactive()
 pb.estimators["Fel"].plot()
 #pb.estimators["Fs"].plot(fig=False)

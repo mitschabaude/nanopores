@@ -3,6 +3,7 @@
 import os, numpy, dolfin
 import nanopores, Howorka
 import matplotlib.pyplot as plt
+from collections import OrderedDict
 #from nanopores import kB, T, add_params, save_dict, saveplots, showplots
 #from matplotlib.pyplot import figure, plot, legend, show, title, xlabel, ylabel, savefig
 
@@ -17,6 +18,7 @@ save = False,
 )
 
 Qmols = [-2., -1., 1e-4, 1., 2.]
+#Qmols = [-3., -2., -1., 1e-4, 1.] # better in future investigations
 a, b = -10., 10.
 folder = os.path.expanduser("~") + "/papers/pnps-numerics/data/forces/"
 
@@ -47,9 +49,9 @@ def plot_function(u, *args, **kwargs):
     plt.plot(linspace, [u(z) for z in linspace], *args, **kwargs)
     
 def plot_point(F):
-    plot_function(F, "-", label="point-sized")
+    plot_function(F, "-b", label="point-sized")
 def plot_finite(F):
-    plot_function(F, "s--", label="finite-sized")    
+    plot_function(F, "s--g", label="finite-sized")    
 def post_plot():
     plt.xlabel("z-coordinate of molecule center [nm]")
     plt.ylabel("force [pN]")
@@ -145,13 +147,15 @@ def Forces(name):
         Feli_better = function_from_lambda(lambda z : Feli(z)*beta(z))
         Fi_better = function_from_lambda(lambda z : Feli_better(z) + Fdragi_better(z))
         
-        yield F, Fi, Fi_better, alpha, beta, Q
+        yield OrderedDict([("F",F), ("Fi",Fi), ("Fi2",Fi_better),
+                           ("alpha",alpha), ("beta",beta), ("Q",Q)])
         
 if __name__ == "__main__":
-    for F, Fi, Fi_better, alpha, beta, Q in Forces(name):        
+    for odict in Forces(name):        
+        F, Fi, Fi_better, alpha, beta, Q = tuple(odict.values())
         print "Q %s, alpha %s" % (Q, alpha(0.))
         plt.figure(0)
-        plot_function(alpha, label="Q = %.0f"%Q)
+        plot_function(alpha, label="Q = %.0fq"%Q)
         
         plt.figure(1)
         plot_function(beta, label="Q = %.0f"%Q)
@@ -159,10 +163,13 @@ if __name__ == "__main__":
         plt.figure()
         plot_finite(F)
         plot_point(Fi)
-        plot_function(Fi_better, "-", label="point-sized, corrected")
+        plot_function(Fi_better, "-r", label="point-sized, corrected")
         post_plot()
         
     plt.figure(0)
+    #plt.title("r = %s" %rMol)
+    plt.xlabel("z coordinate of molecule center [nm]")
+    plt.ylabel("relative force correction")
     plt.legend()
     plt.figure(1)
     plt.legend()
