@@ -1,16 +1,21 @@
 from dolfin import has_lu_solver_method
 
+lusolver = "superlu_dist" if has_lu_solver_method("superlu_dist") else "default"
+
 direct = dict(
     reuse = False,
     iterative = False,
-    lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+    lusolver = lusolver,
 )
 direct_reuse = dict(
     reuse = True,
     iterative = False,
-    lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
+    lusolver = lusolver,
+    luparams = dict(
+        symmetric = False,
+        same_nonzero_pattern = True,
+        reuse_factorization = True,),
 )
-
 
 bicgstab = dict(
     reuse = False,

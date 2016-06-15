@@ -1,6 +1,6 @@
 """ PDE class for time-dependent systems """
 
-from dolfin import plot
+import dolfin
 from .pdesystem import PDESystem
 from .illposed import IllposedLinearSolver
 import matplotlib.pyplot as plt
@@ -80,10 +80,10 @@ class TransientLinearPDE(PDESystem):
             
     def visualize(self):
         u = self.solution
-        plot(u, title="solution at time %s [s]" %(self.time[-1],))
+        dolfin.plot(u, key="u", title="solution at time %s [s]" %(self.time[-1],))
         
     def finish_plots(self):
-        interactive()
+        dolfin.interactive()
         
     def record_functionals(self):
         for J in self.functionals.values():

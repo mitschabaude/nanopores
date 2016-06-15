@@ -1,8 +1,7 @@
 """
 TODO:
-    -) (DONE) understand unit in which current is measured
-    -) (DON'T) validate understanding with analytical solution
-    -) (DONE) plot current for different radii and Qs 
+    -) understand no boundary condition
+    -) validate understanding with analytical solution
 """
 import nanopores, dolfin, os
 from nanopores.physics.simplepnps import SimpleNernstPlanckProblem

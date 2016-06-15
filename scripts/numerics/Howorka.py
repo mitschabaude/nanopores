@@ -46,16 +46,21 @@ IllposedNonlinearSolver.newtondamp = 1.
 PNPSAxisym.tolnewton = 1e-4
 PNPS.tolnewton = 1e-4
 
-def setup2D(**params):
+def setup2D(mesh=None, **params):
+    # pass mesh argument to prevent mesh regeneration
     global z0
+    global geo # to prevent garbage collection of mesh
     globals().update(params)
     if z0 is not None:
         z0 = round(z0, 4)
     geop = geo_params(z0, rMolecule)
     physp = phys_params(bV, Qmol, dnaqsdamp, rMolecule)
     
-    generate_mesh(h, geo_name, **geop)
-    geo = geo_from_name(geo_name, **geop)
+    if mesh is None:
+        generate_mesh(h, geo_name, **geop)
+        geo = geo_from_name(geo_name, **geop)
+    else:
+        geo = geo_from_name(geo_name, mesh=mesh, **geop)
     
     if z0 is not None:
         molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"][::2])
@@ -67,5 +72,33 @@ def setup2D(**params):
 
 def solve2D(geo, phys, **params):
     globals().update(params)
-    return pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax, cheapest=cheapest)
+    return pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax, cheapest=cheapest)    
 
+# evaluate finite-size model for a number of z positions    
+def F_explicit(z, **params):
+    import dolfin
+    values = []
+    for z0 in z:
+        geo, phys = setup2D(z0=z0, **params)
+        dolfin.plot(geo.boundaries, key="b", title="boundaries")
+        pb, pnps = solve2D(geo, phys, **params)
+        dolfin.plot(geo.boundaries, key="b", title="boundaries")
+        values.append(pnps.zforces())
+    F, Fel, Fdrag = tuple(zip(*values))
+    return F, Fel, Fdrag
+     
+# evaluate point-size model for a number of z positions
+def F_implicit(z, **params):
+    geo, phys = setup2D(z0=None, **params)
+    pb, pnps = solve2D(geo, phys, **params)
+    values = [pnps.zforces_implicit(z0) for z0 in z]
+    F, Fel, Fdrag = tuple(zip(*values))
+    return F, Fel, Fdrag
+
+# get discrete force fields from point-size model
+def F_field_implicit(**params):
+    geo, phys = setup2D(z0=None, **params)
+    pb, pnps = solve2D(geo, phys, **params)
+    (v, cp, cm, u, p) = pnps.solutions()
+    F, Fel, Fdrag = phys.Forces(v, u)
+    return F, Fel, Fdrag

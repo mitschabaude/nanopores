@@ -1,7 +1,7 @@
 ''' some utility functions for global use after importing * from nanopores '''
 
 from importlib import import_module
-import inspect, os, sys
+import inspect, os, sys, glob
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -11,7 +11,8 @@ from nanopores.tools.protocol import unique_id
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
-           "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff"]
+           "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
+           "save_functions", "load_functions", "load_vector_functions", "load_mesh"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -131,6 +132,47 @@ def load_stuff(name):
     with _open(name, "stuff", "r") as f:
         stuff = json.load(f)
     return tuple(stuff)
+    
+def save_functions(name, mesh, **functions):
+    # save dolfin functions and mesh
+    DIR = os.path.join(DATADIR, "functions", "")
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
+    dolfin.File(DIR + name + "_mesh.xml") << mesh
+    for fname, f in functions.items():
+        assert f.function_space().mesh().id() == mesh.id()
+        dolfin.File(DIR + name + "_" + fname + ".xml") << f
+        
+def _find_names_in_files(pre, post):
+    return [string[len(pre):-len(post)] for string in glob.glob(pre + "*" + post)]
+        
+def load_functions(name, space=None):
+    # load dolfin functions with pattern matching approach
+    # space is a lambda with input mesh
+    DIR = os.path.join(DATADIR, "functions", "")
+    mesh = dolfin.Mesh(DIR + name + "_mesh.xml")
+    if space is None:
+        space = lambda mesh: dolfin.FunctionSpace(mesh, "CG", 1)
+    V = space(mesh)
+    functions = {}
+    fnames = _find_names_in_files(DIR + name + "_", ".xml")
+    for fname in fnames:
+        if fname == "mesh": continue
+        #print "name:", fname
+        #print "file:", DIR + name + "_" + fname + ".xml"
+        f = dolfin.Function(V, DIR + name + "_" + fname + ".xml")
+        functions[fname] = f
+    return functions, mesh
+    
+def load_mesh(name):
+    DIR = os.path.join(DATADIR, "functions", "")
+    mesh = dolfin.Mesh(DIR + name + "_mesh.xml")
+    return mesh
+    
+def load_vector_functions(name):
+    def space(mesh):
+        return dolfin.VectorFunctionSpace(mesh, "CG", 1)
+    return load_functions(name, space)
         
 def _call(f, params):
     # call f without knowing its arguments --

@@ -104,7 +104,7 @@ class Physics(object):
             setattr(self.mod, name, m)
             return m
             
-    # FIXME this next to functions were never tried out because we did not actually need them
+    # FIXME this next two functions were never tried out because we did not actually need them
     # could be useful at some time though
     """
     def _getfunction(self, name):
