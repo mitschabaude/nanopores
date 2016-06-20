@@ -1,7 +1,8 @@
 """do stuff on top of PNPS solve,
-like convecting analyte concentration with force field."""
+like convecting analyte concentration with force field.
+TODO: also plot duplicate left half"""
 
-import numpy, dolfin
+import numpy, dolfin, os
 from matplotlib import pyplot
 import matplotlib.tri as mtri
 import matplotlib
@@ -12,8 +13,20 @@ from nanopores.physics.convectiondiffusion import ConvectionDiffusion
 nanopores.add_params(
     log = True,
     save = False,
+    video = False,
+    levels = 7,
     **Howorka.PARAMS)
 PARAMS.pop("z0")
+
+# video directories
+TMPDIR = "/tmp/video/"
+VIDDIR = os.path.expanduser("~") + "/presentations/nanopores/"
+if video:
+    if not os.path.exists(TMPDIR):
+        os.makedirs(TMPDIR)
+    else:
+        for f in os.listdir(TMPDIR):
+            os.remove(TMPDIR + f)
 
 # save and load implicit force field
 FNAME = "howorka2D_implicit"
@@ -60,24 +73,24 @@ r = 1. # radius of spherical region where molecules start [nm]
 Vol = dolfin.pi*4./3.*r**3 # volume of region [nm**3]
 c0 = N/Vol # concentration [1/nm**3]
 #c0 = N # concentration [1/Vol]
-x0 = numpy.array([0., 10.]) # position of region    
+x0 = numpy.array([0., 8.]) # position of region    
 u0f = lambda x: (c0 if sum((x-x0)**2) < r**2 else 0.) # function
 
 u0 = function_from_lambda(u0f)
 
 def convect(geo, phys, Fel, Fdrag, u0, log=False):
     if log:
-        frac = .05
+        frac = .01
         t = 1e-9    
         dt = t*frac
-        levels = 8
     else:
         t = 1e-7
-        dt = 1e-10 
+        dt = 1e-9 
     bc = {} #dict(upperb=dolfin.Constant(0.), lowerb=dolfin.Constant(0.))
-    F = dolfin.Constant(10.)*(Fel + dolfin.Constant(3.)*Fdrag)
+    F = dolfin.Constant(1.)*(Fel + dolfin.Constant(3.)*Fdrag)
     pde = ConvectionDiffusion(geo, phys, dt=dt, F=F, u0=u0, bc=bc, cyl=True)
     pde.add_functionals([current])
+    yield pde
     if log:
         pde.timerange = nanopores.logtimerange(t, levels=levels, frac=frac,
                                                change_dt=pde.change_dt)
@@ -118,15 +131,17 @@ triang = mtri.Triangulation(x, y, triangles)
 
 # uneven bounds changes the colormapping:
 print c0
-#contours = numpy.exp(numpy.arange(-10, -2))
-#contours = numpy.concatenate((numpy.array([0.]), contours)) #numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.00]) # contour ranges
-contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])
+contours = 10**numpy.arange(-5, numpy.log10(c0), 0.1)
+contours = numpy.concatenate((numpy.array([0.]), contours)) #numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.00]) # contour ranges
+#contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])
+#contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])
 norm = matplotlib.colors.BoundaryNorm(boundaries=contours, ncolors=256)
+norm2 = matplotlib.colors.SymLogNorm(linthresh=1e-4, linscale=1.0, vmin=-0.0, vmax=c0)
 
 def fmt(x, pos):
-    a, b = '{:.2e}'.format(x).split('e')
+    a, b = '{:.1e}'.format(x).split('e')
     b = int(b)
-    return r'$10^{{{}}}$'.format(b)
+    return r'${}\cdot10^{{{}}}$'.format(a,b)
 formt = matplotlib.ticker.FuncFormatter(fmt)
 #numpy.arange(-0.1,1.1,0.1)
 
@@ -141,23 +156,31 @@ ax.set_title("target molecule concentration")
 cax, kw = matplotlib.colorbar.make_axes(ax)
 
 isclear = True
-   
+i = 0   
 for pde in convect(geo, phys, Fel, Fdrag, u0=u0, log=log):
-    t = pde.time[-1]
+    t = pde.time[-1] if len(pde.time)>0 else 0.
     if not isclear:
         ax.clear()
         cax.clear()
     z = numpy.abs(pde.solution.vector()[v2d])
-    CS = ax.tripcolor(triang, z, norm=norm, cmap='PuBu_r')
-    #CS = ax.tricontourf(triang, z, contours, norm=norm, cmap='PuBu_r')
-    #ax.triplot(triang, 'k-')
+    #CS = ax.tripcolor(triang, z, cmap='PuBu_r', norm=norm2)
+    CS = ax.tricontourf(triang, z, contours, norm=norm2, cmap='PuBu_r')
+    ax.set_title("t = %.1e" % t)
+    #CS = ax.tripcolor(triang, z, norm=norm, cmap='PuBu_r')
+    #ax.triplot(triang, '-')
+    #fig.colorbar(CS, cax=cax, extend="both", orientation="vertical")
     fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
     #pyplot.colorbar(CS)
     fig.canvas.draw()
-    isclear = False    
+    if video:
+        fig.savefig(TMPDIR+"%03d" % i)
+    isclear = False
+    i += 1    
     #pde.visualize()
 
 #pyplot.tricontourf()
 #norm=matplotlib.colors.LogNorm()
 #pyplot.tricontourf()
+if video:
+    os.system("avconv -loglevel quiet -i %s%%03d.png %svideo.mp4 -y" % (TMPDIR, VIDDIR))
 pyplot.show(block=True)
