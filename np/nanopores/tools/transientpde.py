@@ -78,6 +78,15 @@ class TransientLinearPDE(PDESystem):
         if visualize:
             self.finish_plots()
             
+    def timesteps(self, t=0, **params):
+        if not hasattr(self, "timerange"):
+            self.timerange = timerange(t, self.dt)
+        # evolve system up to time t
+        for t_ in self.timerange:
+            self.time.append(t_)
+            self.timestep(**params)
+            yield t_
+            
     def visualize(self):
         u = self.solution
         dolfin.plot(u, key="u", title="solution at time %s [s]" %(self.time[-1],))
@@ -97,7 +106,7 @@ class TransientLinearPDE(PDESystem):
             plt.title(title)
             plt.legend(loc="lower right")
             #plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        plt.show(block=True)
+        #plt.show(block=True)
         
 class TimeDependentPlotter(object):
     "plot a function that changes with time over 1D range."

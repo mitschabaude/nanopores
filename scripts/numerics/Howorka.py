@@ -18,17 +18,19 @@ frac = 0.5,
 cheapest = False,
 dnaqsdamp = .25,
 rMolecule = 0.5,
+Rx = 12.,
+Ry = 12.,
 )
 
-def geo_params(z0, rMolecule): 
+def geo_params(z0, rMolecule, Rx, Ry): 
     x0 = None if z0 is None else [0., 0., z0]
     return dict(
 x0 = x0,
 rMolecule = rMolecule*nm,
 moleculeblayer = False,
 membraneblayer = False,
-Rx = 12.,
-Ry = 12.,
+Rx = Rx,
+Ry = Ry,
 )
 
 def phys_params(bV, Qmol, dnaqsdamp, rMolecule): return dict(
@@ -53,7 +55,7 @@ def setup2D(mesh=None, **params):
     globals().update(params)
     if z0 is not None:
         z0 = round(z0, 4)
-    geop = geo_params(z0, rMolecule)
+    geop = geo_params(z0, rMolecule, Rx, Ry)
     physp = phys_params(bV, Qmol, dnaqsdamp, rMolecule)
     
     if mesh is None:

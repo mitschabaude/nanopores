@@ -33,10 +33,9 @@ class ConvectionDiffusionProblem(GeneralLinearProblem):
         grad = phys.grad
         lscale = Constant(phys.lscale)
         n = FacetNormal(geo.mesh)
-        # TODO: for some reason, taking the pwconst causes conflict with F, results in u=NaN
 
-        #D = geo.pwconst("Dtarget")
-        D = Constant(phys.DtargetBulk)
+        D = geo.pwconst("Dtarget")
+        D# = Constant(phys.DtargetBulk)
         kT = Constant(phys.kT)
         dt = Constant(dt)
         # J = -D*grad(u) + D/kT*F*u
@@ -66,7 +65,6 @@ class ConvectionDiffusionProblem(GeneralLinearProblem):
     def bcs(V, geo, bc={}):
         return geo.pwBC(V, "c0", value=bc)
         
-
 class ConvectionDiffusion(TransientLinearPDE):
 
     def __init__(self, geo=None, phys=None, dt=None, **problem_params):
