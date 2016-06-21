@@ -15,6 +15,7 @@ nanopores.add_params(
     save = False,
     video = False,
     levels = 7,
+    steps = 100, # timesteps per level for logarithmic time plot
     **Howorka.PARAMS)
 PARAMS.pop("z0")
 
@@ -80,7 +81,7 @@ u0 = function_from_lambda(u0f)
 
 def convect(geo, phys, Fel, Fdrag, u0, log=False):
     if log:
-        frac = .01
+        frac = 1./steps
         t = 1e-9    
         dt = t*frac
     else:
@@ -127,16 +128,37 @@ x = mesh.coordinates()[:,0]
 y = mesh.coordinates()[:,1]
 triangles = mesh.cells()
 # Create triangulation.
-triang = mtri.Triangulation(x, y, triangles)
+#triang = mtri.Triangulation(x, y, triangles)
+
+# duplicate array
+notx0 = x>0.
+x2 = -x[notx0]
+y2 = y[notx0]
+xx = numpy.concatenate([x, x2])
+yy = numpy.concatenate([y, y2])
+N0 = x.shape[0]
+triangles2 = numpy.array(triangles)
+# TODO: slow
+for i, j in enumerate(numpy.where(notx0)[0]):
+    triangles2[triangles2==j] = i+N0
+tt = numpy.concatenate([triangles, triangles2])
+triang = mtri.Triangulation(xx, yy, tt)
+zz = numpy.zeros(xx.shape)
+
+def function2values(u):
+    z = u.vector()[v2d]
+    zz[:N0] = z
+    zz[N0:] = z[notx0]
+    return zz
 
 # uneven bounds changes the colormapping:
 print c0
-contours = 10**numpy.arange(-5, numpy.log10(c0), 0.1)
+contours = 10**numpy.arange(-8, numpy.log10(c0), 0.1)
 contours = numpy.concatenate((numpy.array([0.]), contours)) #numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.00]) # contour ranges
 #contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])
 #contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])
 norm = matplotlib.colors.BoundaryNorm(boundaries=contours, ncolors=256)
-norm2 = matplotlib.colors.SymLogNorm(linthresh=1e-4, linscale=1.0, vmin=-0.0, vmax=c0)
+norm2 = matplotlib.colors.SymLogNorm(linthresh=1e-7, linscale=1.0, vmin=-0., vmax=c0)
 
 def fmt(x, pos):
     a, b = '{:.1e}'.format(x).split('e')
@@ -149,8 +171,10 @@ formt = matplotlib.ticker.FuncFormatter(fmt)
 pyplot.ion()
 #fig = pyplot.figure()
 #ax = fig.add_subplot(111)
-fig, ax = pyplot.subplots(figsize=(10,10))
-ax.set_aspect('equal')
+fig, ax = pyplot.subplots(figsize=(12,10))
+#ax.set_aspect('equal')
+ax.set_ylim([-Ry, Ry])
+ax.set_xlim([-Rx, Rx])
 ax.set_title("target molecule concentration")
 #cax = fig.add_axes([.7, .1, 0.025, .8])
 cax, kw = matplotlib.colorbar.make_axes(ax)
@@ -162,18 +186,21 @@ for pde in convect(geo, phys, Fel, Fdrag, u0=u0, log=log):
     if not isclear:
         ax.clear()
         cax.clear()
-    z = numpy.abs(pde.solution.vector()[v2d])
+    z = numpy.abs(function2values(pde.solution)) # dirty trick to hide negative values
     #CS = ax.tripcolor(triang, z, cmap='PuBu_r', norm=norm2)
     CS = ax.tricontourf(triang, z, contours, norm=norm2, cmap='PuBu_r')
     ax.set_title("t = %.1e" % t)
+    ax.set_ylim([-Ry, Ry])
+    ax.set_xlim([-Rx, Rx])
     #CS = ax.tripcolor(triang, z, norm=norm, cmap='PuBu_r')
     #ax.triplot(triang, '-')
     #fig.colorbar(CS, cax=cax, extend="both", orientation="vertical")
-    fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
+    cb = fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
+    #cb.set_label(r"molecules per $\rm{nm}^{3}$")
     #pyplot.colorbar(CS)
     fig.canvas.draw()
     if video:
-        fig.savefig(TMPDIR+"%03d" % i)
+        fig.savefig(TMPDIR+"%03d.png" % i) #, dpi=256)
     isclear = False
     i += 1    
     #pde.visualize()
@@ -182,5 +209,8 @@ for pde in convect(geo, phys, Fel, Fdrag, u0=u0, log=log):
 #norm=matplotlib.colors.LogNorm()
 #pyplot.tricontourf()
 if video:
+    #os.system("avconv -i %s%%03d.png %svideo.mp4 -y" % (TMPDIR, VIDDIR))
     os.system("avconv -loglevel quiet -i %s%%03d.png %svideo.mp4 -y" % (TMPDIR, VIDDIR))
-pyplot.show(block=True)
+    for f in os.listdir(TMPDIR):
+        os.remove(TMPDIR + f)
+#pyplot.show(block=True)
