@@ -7,8 +7,8 @@ from matplotlib import pyplot
 import matplotlib.tri as mtri
 import matplotlib
 import nanopores
-import Howorka
-from nanopores.physics.convectiondiffusion import ConvectionDiffusion
+from nanopores.models import Howorka
+from nanopores.physics.convdiff import ConvectionDiffusion
 
 nanopores.add_params(
     log = True,

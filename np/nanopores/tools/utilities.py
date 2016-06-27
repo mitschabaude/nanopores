@@ -4,6 +4,7 @@ from importlib import import_module
 import inspect, os, sys, glob
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import array
 import json
 import dolfin
 from nanopores.dirnames import DATADIR

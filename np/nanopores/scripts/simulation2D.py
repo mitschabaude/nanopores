@@ -16,7 +16,7 @@ from .. import DATADIR
 import numpy, os
 from .calculate_forces import calculate2D
 
-__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D", "calculate2D", "simulate"]
+__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D", "calculate2D", "simulate", "parallel_output"]
 
 # directory where data are saved
 savedir = DATADIR + "/sim/stamps/"
@@ -74,7 +74,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     else:
         result = map(f, iterator)
 
-    return result, stamp
+    return join_dicts(result), stamp
 
 
 def combinations(dic, iterkeys):
@@ -106,7 +106,7 @@ def post_iteration(result, stamp, showplot=False):
     save_dict(stamp, dir=savedir, name=("stamp"+uid))
 
     # put result and input into form
-    result = join_dicts(result)
+    #result = join_dicts(result)
     iterkeys = stamp.pop("iterkeys")
     # create combinations only of relevant (iterable) parameters
     input_params = {k:stamp[k] for k in iterkeys} # can be empty
@@ -139,13 +139,15 @@ def post_iteration(result, stamp, showplot=False):
     params = combinations(input_params, iterkeys)
 
     from matplotlib.pyplot import plot, xlabel, ylabel, legend, figure, savefig, show, close
-
+    import matplotlib.pyplot as plt
+    plots = {}
 
     # for every result column
     for key, rescol in result.items():
         i = 0
         # create new figure
-        figure()
+        fig, ax = plt.subplots()
+        plots[key] = ax
         # for every non-axis input parameter set held fixed
         for pset in params:
             # get the corresponding chunk of length nx of result column
@@ -162,7 +164,8 @@ def post_iteration(result, stamp, showplot=False):
             legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         savefig(savedir+"plot"+uid+key+".eps", bbox_inches='tight')
     if showplot: show()
-    else: close()
+    return plots
+    #else: close()
 
 # general simulation (for modules with calculate() function)
 # optionally, module can also provide post_calculate() function that receives the result
@@ -191,6 +194,17 @@ def simulate(name, nproc=1, outputs=None, plot=None,
     else:
         post_iteration(result, stamp, showplot=False)
     return result
+    
+def parallel_output(calculate, nproc=1, plot=None, showplot=False, **params):
+    if plot is not None:
+        result, stamp = iterate_in_parallel(calculate, nproc=nproc, iterkeys=[plot], **params)
+    else:
+        result, stamp = iterate_in_parallel(calculate, nproc=nproc, **params)
+    if MPI.COMM_WORLD.Get_rank() > 0:
+        return
+    plots = post_iteration(result, stamp, showplot=showplot)
+    return plots
+                 
 
 # simulation in 2D (script for howorka pore)
 def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):

@@ -21,7 +21,7 @@ R = 30*nm
 maxcells = 80e3
 
 # get experimental data from csv file
-csvfile = 'howorkaIV'
+csvfile = '../howorkaIV'
 IV = numpy.genfromtxt(csvfile+'.csv', delimiter=',')
 V0 = IV[:,0]
 I0 = IV[:,1]
