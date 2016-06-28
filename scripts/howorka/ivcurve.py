@@ -3,6 +3,7 @@ import numpy
 import nanopores
 import matplotlib.pyplot as plt
 from nanopores.models import Howorka
+from matplotlib2tikz import save as tikz_save
 
 nanopores.add_params(**Howorka.PARAMS)
 nanopores.add_params(
@@ -28,9 +29,14 @@ def run(**phys_params):
 #result, stamp = nanopores.iterate_in_parallel(run, iterkeys=[plot], **PARAMS)
 plots = nanopores.parallel_output(run, showplot=False, **PARAMS)
 
+# modify plot output
 ax = plots["J"]
-line = ax.lines[0]
-line.set_label("PNPS simulation")
+for line in ax.lines:
+    label = line.get_label()
+    #label = r"Sim." + (r"" if label.startswith("_") else r", %s" % label)
+    label = label.replace("dnaqsdamp=", "$\\rho=-")
+    label += "$" #r"q/\rm{nm}^2$"
+    line.set_label(label)
 ax.set_ylabel("current [pA]")
 ax.set_xlabel("voltage [V]")
 
@@ -41,10 +47,17 @@ mV = IV[:,0]
 V = 1e-3*mV
 I = IV[:,1]
 
-ax.plot(V, I, "s--", label="Burns et al. '16")
-ax.legend(loc="best")
+ax.plot(V, I, "s", label="Burns et al.")
+ax.set_xlim([bV[0]-0.01, bV[-1]+0.01])
+ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+#ax.legend(loc="best")
 
 fig = plt.gcf()
-fig.set_size_inches(6, 6)
-plt.show()
+fig.set_size_inches(3.5, 3)
+
+# save to paper directory
+from folders import FIGDIR
+tikz_save(FIGDIR+"iv2.tex", figureheight='2.5in', figurewidth='2.6in')
+#plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
+#plt.show()
 #nanopores.showplots()
