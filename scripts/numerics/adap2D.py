@@ -12,6 +12,9 @@ z0 = 2.*nm,
 bV = -0.1,
 Nmax = 1e4,
 Qmol = -1.,
+cheapest = False,
+uniform = False,
+frac = 0.2,
 )
 
 geo_params = dict(
@@ -27,6 +30,7 @@ Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = .25,
 bV = bV,
+#adaptMqv = True,
 )
 
 ref = load_Fref()
@@ -49,7 +53,13 @@ IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 PNPSAxisym.tolnewton = 1e-4
 
-pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=.5, Nmax=Nmax, **ref)
+# do the adaptive computation and save
+frac = 1. if uniform else frac
+pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax,
+                           cheapest=cheapest, **ref)
+NAME = "adap2Duniform" if uniform else ("adap2Dcheap" if cheapest else "adap2D")
+save_estimators(NAME, pb.estimators)
+    
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
@@ -60,9 +70,10 @@ pb.estimators["Fel"].plot()
 pb.estimators["Fdrag"].plot(fig=False)
 pb.estimators["F"].plot(rate=-3./4., fig=False)
 
-pb.estimators["rep"].plot()
-pb.estimators["err ref"].plot(fig=False)
-pb.estimators["err"].plot(rate=-1., fig=False)
+pb.estimators["err ref"].plot(rate=-1.)
+if not cheapest:
+    pb.estimators["rep"].plot(fig=False)
+    pb.estimators["err"].plot(fig=False)
 
 #pb.estimators["goal"].plot()
 #pb.estimators["goal ex"].plot(fig=False)

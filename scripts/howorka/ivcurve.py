@@ -8,6 +8,7 @@ from matplotlib2tikz import save as tikz_save
 nanopores.add_params(**Howorka.PARAMS)
 nanopores.add_params(
     bV = numpy.linspace(-0.1,0.1,11),
+    dnaqsdamp = [0.2, 0.35, 0.5],
     bulkcon = 300,
     plot = "bV",
     nproc = 4,
@@ -53,11 +54,10 @@ ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 #ax.legend(loc="best")
 
 fig = plt.gcf()
-fig.set_size_inches(3.5, 3)
+fig.set_size_inches(2.6, 2.2)
 
 # save to paper directory
 from folders import FIGDIR
-tikz_save(FIGDIR+"iv2.tex", figureheight='2.5in', figurewidth='2.6in')
-#plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
+#tikz_save(FIGDIR+"iv2.tex", figureheight='2.5in', figurewidth='2.6in')
+plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
 #plt.show()
-#nanopores.showplots()

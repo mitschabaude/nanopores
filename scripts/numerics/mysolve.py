@@ -305,5 +305,14 @@ def save_Fref(pb, pnps):
 def load_Fref():
     return load_dict(".", "Fref")
     
-            
-            
+def save_estimators(name, estimators):
+    save_stuff(name, {key: est.__dict__  for key, est in estimators.items()})
+
+def load_estimators(name):
+    def to_estimator(dic):
+        est = Estimator(dic["name"])
+        est.pairs = dic["pairs"]
+        return est
+    dic, = load_stuff(name)
+    return {k : to_estimator(dic[k]) for k in dic}
+
