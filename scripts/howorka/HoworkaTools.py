@@ -35,14 +35,14 @@ FNAME = "howorka2D_implicit"
 def save_force_field(**params):
     F, Fel, Fdrag = Howorka.F_field_implicit(**params)
     mesh = Howorka.geo.mesh
-    nanopores.save_functions(FNAME, mesh, F=F, Fel=Fel, Fdrag=Fdrag)
+    nanopores.save_functions(FNAME, mesh, meta=params, F=F, Fel=Fel, Fdrag=Fdrag)
     
 if save:
     save_force_field(**PARAMS)
     exit()
     
 def load_force_field():
-    forces, mesh = nanopores.load_vector_functions(FNAME)
+    forces, mesh, meta = nanopores.load_vector_functions(FNAME)
     #mesh = forces["F"].function_space().mesh()
     return forces["F"], forces["Fel"], forces["Fdrag"], mesh
 

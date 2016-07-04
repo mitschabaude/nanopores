@@ -14,7 +14,8 @@ Nmax = 1e4,
 Qmol = -1.,
 cheapest = False,
 uniform = False,
-frac = 0.2,
+frac = 0.5,
+saveref = False,
 )
 
 geo_params = dict(
@@ -34,7 +35,6 @@ bV = bV,
 )
 
 ref = load_Fref()
-
 
 meshgen_dict = generate_mesh(h, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
@@ -63,7 +63,7 @@ save_estimators(NAME, pb.estimators)
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
 plot(geo.boundaries)
-pnps.visualize("fluid")
+#pnps.visualize("fluid")
 #interactive()
 pb.estimators["Fel"].plot()
 #pb.estimators["Fs"].plot(fig=False)
@@ -78,6 +78,7 @@ if not cheapest:
 #pb.estimators["goal"].plot()
 #pb.estimators["goal ex"].plot(fig=False)
 #pb.estimators["goal ref"].plot(fig=False)
-#save_Fref(pb, pnps)
+if saveref:
+    save_Fref(pb, pnps)
 #saveplots("adap2D")
-showplots()
+#showplots()

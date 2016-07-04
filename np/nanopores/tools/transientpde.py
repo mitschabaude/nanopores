@@ -98,9 +98,12 @@ class TransientLinearPDE(PDESystem):
         for J in self.functionals.values():
             J.evaluate()
             
-    def plot_functionals(self, plot="plot", title=""):
+    def plot_functionals(self, plot="plot", functionals=None, title=""):
         plt.figure()
-        for Jstr, J in self.functionals.items():
+        if functionals is None:
+            functionals = self.functionals.keys()
+        for Jstr in functionals:
+            J = self.functionals[Jstr]
             getattr(plt, plot)(self.time, J.values, "-x", label=Jstr)
             plt.xlabel("time [s]")
             plt.title(title)

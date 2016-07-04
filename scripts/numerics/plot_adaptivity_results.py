@@ -1,11 +1,12 @@
 import nanopores
-import mysolve
+from mysolve import load_estimators as load
 
-estimators = mysolve.load_estimators("adap2D")
-estimators_cheap = mysolve.load_estimators("adap2Dcheap")
-estimators_unif = mysolve.load_estimators("adap2Duniform")
+nanopores.add_params(est = "F")
+F = "err ref" if est == "ref" else est
 
-F = "F"
+estimators = load("adap2D")
+estimators_cheap = load("adap2Dcheap")
+estimators_unif = load("adap2Duniform")
 
 estimators[F].name = "adaptive"
 estimators_cheap[F].name = "adaptive (cheap estimator)"

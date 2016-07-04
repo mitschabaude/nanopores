@@ -313,6 +313,6 @@ def load_estimators(name):
         est = Estimator(dic["name"])
         est.pairs = dic["pairs"]
         return est
-    dic, = load_stuff(name)
+    dic = load_stuff(name)
     return {k : to_estimator(dic[k]) for k in dic}
 

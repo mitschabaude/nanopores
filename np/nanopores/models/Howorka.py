@@ -100,7 +100,8 @@ def F_implicit(z, **params):
 
 # get discrete force fields from point-size model
 def F_field_implicit(**params):
-    geo, phys = setup2D(z0=None, **params)
+    params["z0"] = None
+    geo, phys = setup2D(**params)
     pb, pnps = solve2D(geo, phys, **params)
     (v, cp, cm, u, p) = pnps.solutions()
     F, Fel, Fdrag = phys.Forces(v, u)

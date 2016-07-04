@@ -130,11 +130,21 @@ def save_stuff(name, *stuff):
         json.dump(stuff, f)
         
 def load_stuff(name):
-    with _open(name, "stuff", "r") as f:
+    # Stuff API:
+    # save_stuff("name", stuff) --> stuff = load_stuff("name")
+    # save_stuff("name", stuff1, stuff2) --> stuff1, stuff2 = load_stuff("name")
+    try:
+        file_ = _open(name, "stuff", "r")
+    except IOError:
+        raise IOError("nanopores.load_stuff: Nothing named '%s' yet exists." % name)
+    with file_ as f:
         stuff = json.load(f)
-    return tuple(stuff)
+    if len(stuff) == 1:
+        return stuff[0]
+    else:        
+        return tuple(stuff)
     
-def save_functions(name, mesh, **functions):
+def save_functions(name, mesh, meta=None, **functions):
     # save dolfin functions and mesh
     DIR = os.path.join(DATADIR, "functions", "")
     if not os.path.exists(DIR):
@@ -143,6 +153,8 @@ def save_functions(name, mesh, **functions):
     for fname, f in functions.items():
         assert f.function_space().mesh().id() == mesh.id()
         dolfin.File(DIR + name + "_" + fname + ".xml") << f
+    with _open(name + "_meta", "functions", "w") as f:
+        json.dump(meta, f)  
         
 def _find_names_in_files(pre, post):
     return [string[len(pre):-len(post)] for string in glob.glob(pre + "*" + post)]
@@ -163,7 +175,9 @@ def load_functions(name, space=None):
         #print "file:", DIR + name + "_" + fname + ".xml"
         f = dolfin.Function(V, DIR + name + "_" + fname + ".xml")
         functions[fname] = f
-    return functions, mesh
+    with _open(name + "_meta", "functions", "r") as f:
+        meta = json.load(f)
+    return functions, mesh, meta
     
 def load_mesh(name):
     DIR = os.path.join(DATADIR, "functions", "")
@@ -276,10 +290,13 @@ def loadplots(name, show=True):
     return meta
         
     
-def add_params(**params):
+def add_params(PARENT=None, **params):
     # this is some magic to attach a set of parameters to a module
     # but be able to use them in the same module without any ugly complication
     # TODO: connect with parsed command line args
+    if PARENT is not None:
+        pparams = PARENT.PARAMS
+        params.update({key: pparams[key] for key in pparams if not key in params})
     args = _argparse()
     params.update({key: args[key] for key in args if key in params})
     frm = inspect.stack()[1]

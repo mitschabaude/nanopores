@@ -33,6 +33,7 @@ from math import sqrt, pow
 from . import params_geo
 
 synonymes = {
+    "bulkfluid": {"bulkfluidtop", "bulkfluidbottom"},
     "fluid":{"bulkfluid","pore"},
     "pore":{"poretop", "porecenter", "porebottom"},
     "lipid":"membrane",
@@ -64,9 +65,13 @@ def subdomain_list(**params):
         x0 = None
 
     # subdomains
-    class BulkFluid(SubDomain):
+    class BulkFluidTop(SubDomain):
         def inside(self, x, on_boundary):
-            return True  # other domains will overwrite
+            return x[1] > -tolc  # other domains will overwrite
+            
+    class BulkFluidBottom(SubDomain):
+        def inside(self, x, on_boundary):
+            return x[1] < tolc  # other domains will overwrite
 
     class Molecule(SubDomain):
         def inside(self, x, on_boundary):
@@ -105,7 +110,7 @@ def subdomain_list(**params):
         def inside(self, x, on_boundary):
             return (between(x[1],(-params["l0"]/2,-params["l1"]/2)) and between(x[0], (0,params["r0"])))
 
-    return [BulkFluid(), DNA(), Membrane(),
+    return [BulkFluidTop(), BulkFluidBottom(), DNA(), Membrane(),
             PoreTop(), PoreCenter(), PoreBottom(), Molecule(),]
 
 def boundaries_list(**params):
