@@ -7,25 +7,26 @@ from nanopores.physics.convdiff import ConvectionDiffusion
 
 nanopores.add_params(
     log = True,
-    levels = 2,
-    t = 1e-9,
-    z0 = 40.,
+    levels = 1,
+    t = 1e-0,
     steps = 100, # timesteps per level for logarithmic time plot
-    contourstep = 0.1, # recommended: 0.1 - 1., determines plot speed/smoothness
 )
 
 # import force field, mesh etc.
-from forcefield import function_from_lambda, mesh, geo, phys, Fel, Fdrag, params
+from forcefield import geo, phys, Fel, Fdrag, params
 
 # initial condition
-N = 10. # number of molecules to diffuse
-r = 5. # radius of spherical region where molecules start [nm]
-Vol = dolfin.pi*4./3.*r**3 # volume of region [nm**3]
-c0 = N/Vol # concentration [1/nm**3]
-#c0 = N # concentration [1/Vol]
-x0 = numpy.array([0., z0]) # position of region    
-u0f = lambda x: (c0 if sum((x-x0)**2) < r**2 else 0.) # function
-u0 = function_from_lambda(u0f)
+
+#N = 10. # number of molecules to diffuse
+#r = 50. # radius of spherical region where molecules start [nm]
+#Vol = dolfin.pi*4./3.*r**3 # volume of region [nm**3]
+#c0 = N/Vol # concentration [1/nm**3]
+#x0 = numpy.array([0., z0]) # position of region 
+#u0f = lambda x: (c0 if sum((x-x0)**2) < r**2 else 0.) # function
+
+# concentration in 1/nm**3 (Burns et al.)
+c0 = 2*50.*(phys.mol*phys.nm**3) # 50 mM = 50*mol/m**3 (50*6e23*1e-27 = 3e-2)
+u0 = geo.pwconst("c0", dict(bulkfluidtop = c0, default=0.))
 
 # total concentration
 ctot = dolfin.assemble(u0*dolfin.Expression("2*pi*x[0]")*geo.dx())
@@ -35,7 +36,7 @@ def convect(geo, phys, Fel, Fdrag, u0, t=1e-9, log=False):
     frac = 1./steps
     dt = t/steps
     bc = {} #dict(upperb=dolfin.Constant(0.), lowerb=dolfin.Constant(0.))
-    F = dolfin.Constant(1.)*(Fel + dolfin.Constant(3.)*Fdrag)
+    F = dolfin.Constant(1.)*(Fel + dolfin.Constant(3.)*Fdrag) # TODO bad hack
     pde = ConvectionDiffusion(geo, phys, dt=dt, F=F, u0=u0, bc=bc, cyl=True)
     pde.add_functionals([current, selectivity])
     #yield pde
@@ -68,8 +69,8 @@ def current(U, geo):
 def selectivity(U, geo):
     u, = U
     r2pi = dolfin.Expression("2*pi*x[0]")
-    # total concentration
-    urel = u/dolfin.Constant(ctot)
+    # urel = % of total concentration
+    urel = u/dolfin.Constant(ctot/100)
     c = urel *r2pi*geo.dx() 
     ctop = urel *r2pi*geo.dx("bulkfluidtop")
     cbottom = urel *r2pi*geo.dx("bulkfluidbottom")
