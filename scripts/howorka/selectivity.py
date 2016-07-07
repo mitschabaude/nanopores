@@ -1,4 +1,4 @@
-"""plot/save video of molecule convection on PNPS force field"""
+"""run diffusion equation to determine selectivity"""
 
 import numpy, dolfin
 from matplotlib import pyplot

@@ -31,7 +31,7 @@ Qmol = Qmol*qq,
 bulkcon = 3e2,
 dnaqsdamp = .25,
 bV = bV,
-#adaptMqv = True,
+adaptMqv = True,
 )
 
 ref = load_Fref()
@@ -52,6 +52,7 @@ IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.
 #StokesProblemAxisymEqualOrder.beta = 1.0 #1e-18
 PNPSAxisym.tolnewton = 1e-4
+PNPSAxisym.alwaysstokes = True
 
 # do the adaptive computation and save
 frac = 1. if uniform else frac

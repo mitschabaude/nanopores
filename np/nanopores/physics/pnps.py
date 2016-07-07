@@ -78,9 +78,8 @@ class PNPS(PDESystem):
         # scaling hack for now
         lscale = phys.lscale
         grad = phys.grad
-        Fmult = Fmult
         def Cinvlscale(i):
-            return Constant((1.0/lscale)**i)
+            return Constant(Fmult/lscale**i)
 
         fstokes = -cFarad*(cp - cm)*grad(v)
 
@@ -101,14 +100,30 @@ class PNPS(PDESystem):
         if x0 is not None:
             dS = geo.dS("moleculeb")
             dx = geo.dx("molecule")
+            dxf = geo.dx("fluid")
+            rho = Constant(phys.Moleculeqs)
+            rho0 = Constant(phys.Moleculeqv)
+            div = phys.div
+            r = Expression("x[0]")
+            eta2 = Constant(2.*eta)
 
             F_dict = {}
             for i in range(dim):
-                Fp = Fmult*(-p*n[i])('-') * Cinvlscale(2)*dS
-                Fshear = Fmult*(eta*2.0*dot(sym(grad(u)),-n)[i])('-') * Cinvlscale(2)*dS
-                Fbare = Fmult*Constant(phys.Moleculeqs)*(-grad(v)[i])('-') * Cinvlscale(2)*dS
-                Fbarevol = Fmult*Constant(phys.Moleculeqv)*(-grad(v)[i]) * Cinvlscale(3)*dx
-                for F in ["Fp","Fshear","Fbare","Fbarevol"]:
+                Fp = (-p*n[i])('-') * Cinvlscale(2)*dS
+                Fshear = (eta2*dot(sym(grad(u)),-n)[i])('-') * Cinvlscale(2)*dS
+                Fbare = rho*(-grad(v)[i])('-') * Cinvlscale(2)*dS
+                Fbarevol = rho0*(-grad(v)[i]) * Cinvlscale(3)*dx
+                
+                waux = Function(W)
+                uaux, paux = waux.split()
+                ei = tuple((1. if j==i else 0.) for j in range(dim))
+                geo.BC(W.sub(0), Constant(ei), "moleculeb").apply(waux.vector())
+                
+                Fdragvol = -(-inner(fstokes, uaux) + \
+                    eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
+                    div(uaux)*p) *Cinvlscale(3)*dxf
+                    
+                for F in ["Fp","Fshear","Fbare","Fbarevol", "Fdragvol"]:
                     F_dict[F+str(i)] = Functional(locals()[F])
 
             '''
@@ -173,9 +188,9 @@ class PNPS(PDESystem):
             #Jctrtop = Functional(Jz('+') * Cinvlscale(2)*Fmult*geo.dS("crosscentertop2d")),
             #Jctrbtm = Functional(Jz('+') * Cinvlscale(2)*Fmult*geo.dS("crosscenterbottom2d")),
             #Jbtm = Functional(Jz('+') * Cinvlscale(2)*Fmult*geo.dS("crossbottom2d")),
-            Javgtop = Functional(Jz/ltop * Cinvlscale(2)*Fmult*geo.dx("poretop")),
-            Javgctr = Functional(Jz/lctr * Cinvlscale(2)*Fmult*geo.dx("porecenter")),
-            Javgbtm = Functional(Jz/lbtm * Cinvlscale(2)*Fmult*geo.dx("porebottom")),
+            Javgtop = Functional(Jz/ltop * Cinvlscale(2)*geo.dx("poretop")),
+            Javgctr = Functional(Jz/lctr * Cinvlscale(2)*geo.dx("porecenter")),
+            Javgbtm = Functional(Jz/lbtm * Cinvlscale(2)*geo.dx("porebottom")),
             )
         functionals.update(J_dict)
 
@@ -349,9 +364,11 @@ class PNPS(PDESystem):
         
     def zforces(self):
         z = str(self.phys.dim - 1)
-        dic = self.get_functionals(["Fbarevol"+z, "Fshear"+z, "Fp"+z])
+        #dic = self.get_functionals(["Fbarevol"+z, "Fshear"+z, "Fp"+z])
+        dic = self.get_functionals(["Fbarevol"+z, "Fdragvol"+z])
         Fel = dic["Fbarevol"+z]
-        Fdrag = dic["Fshear"+z] + dic["Fp"+z]
+        #Fdrag = dic["Fshear"+z] + dic["Fp"+z]
+        Fdrag = dic["Fdragvol"+z]
         F = Fel + Fdrag
         return F, Fel, Fdrag
         

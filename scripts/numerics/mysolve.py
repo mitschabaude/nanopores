@@ -21,8 +21,8 @@ def QmolEff(U, geo):
     return dict(qmol=qmol, Fbare=Fbare, qDNA=qDNA)
 
 def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheapest=False,
-     Felref=None, Fsref=None, Fpref=None, Fpbref=None, ratio=0.01):
-    Fdragref = Fsref + Fpref
+     Felref=None, Fdragref=None, Fpbref=None, ratio=0.01):
+    #Fdragref = Fsref + Fpref
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
     z = phys.dim - 1
@@ -288,15 +288,15 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True):
 def save_Fref(pb, pnps):
     z = pnps.phys.dim - 1
     fs = pnps.get_functionals()
-    Fp = fs["Fp%d" %z]
-    Fshear = fs["Fshear%d" %z]
-    Fdrag = Fp + Fshear
+    #Fp = fs["Fp%d" %z]
+    #Fshear = fs["Fshear%d" %z]
+    #Fdrag = Fp + Fshear
+    Fdrag = fs["Fdragvol%d" %z]
     Fel = fs["Fbarevol%d" %z]
-    F = Fdrag + Fel
+    #F = Fdrag + Fel
     Fpbref = pb.get_functionals()["goal"]
     data = dict(
-        Fpref = Fp,
-        Fsref = Fshear,
+        Fdragref = Fdrag,
         Felref = Fel,
         Fpbref = Fpbref,
     )

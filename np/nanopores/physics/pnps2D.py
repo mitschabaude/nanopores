@@ -96,16 +96,29 @@ class PNPSAxisym(PNPS):
         if x0 is not None and "moleculeb" in geo._physical_boundary:
             dS = geo.dS("moleculeb")
             dx = geo.dx("molecule")
-            rho = phys.Moleculeqs
-            rho0 = phys.Moleculeqv
+            dxf = geo.dx("fluid")
+            rho = Constant(phys.Moleculeqs)
+            rho0 = Constant(phys.Moleculeqv)
+            div = phys.div
+            r = Expression("x[0]")
+            eta2 = Constant(2.*eta)
             
             for i in range(dim):
                 Fp = (-r2pi*p*n[i])('-') *scl2*dS
                 Fshear = (r2pi*eta*2.0*dot(sym(grad(u)),-n)[i])('-') *scl2*dS
-                Fbare = Constant(rho)*(-r2pi*grad(v)[i])('-') * scl2*dS
+                Fbare = rho*(-r2pi*grad(v)[i])('-') * scl2*dS
                 Fbarevol = rho0*(-r2pi*grad(v)[i]) * scl3*dx
+                
+                waux = Function(W)
+                uaux, paux = waux.split()
+                ei = tuple((1. if j==i else 0.) for j in range(dim))
+                geo.BC(W.sub(0), Constant(ei), "moleculeb").apply(waux.vector())
+                
+                Fdragvol = -(-inner(fstokes, uaux)*r + \
+                    eta2*inner(sym(grad(u)), sym(grad(uaux)))*r + \
+                    eta2*u[0]*uaux[0]/r + (div(uaux)*r+uaux[0])*p)*Constant(2*pi)*scl3*dxf
 
-                for F in ["Fp","Fshear","Fbare", "Fbarevol"]:
+                for F in ["Fp","Fshear","Fbare", "Fbarevol", "Fdragvol"]:
                     F_dict[F+str(i)] = Functional(locals()[F])
 
 

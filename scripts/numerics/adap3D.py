@@ -20,6 +20,7 @@ adaptq = True,
 ratio = .01,
 stokesLU = False,
 preadapt = False,
+uniform = False,
 )
 
 geo_params = dict(
@@ -160,8 +161,12 @@ PNPS.alwaysstokes = True
 
 # solve 3D
 print "\n---- SOLVE 3D PROBLEM ----"
+frac = 1. if uniform else frac
 pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax,
     cheapest=cheapest, **ref)
+    
+NAME = "adap3Duniform" if uniform else ("adap3Dcheap" if cheapest else "adap3D")
+save_estimators(NAME, pb.estimators)
 """
 pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref["Fpbref"],
     mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
@@ -212,7 +217,7 @@ newfig=False)
 #pnps.visualize("fluid")
 pb.estimators["Fel"].plot()
 pb.estimators["Fdrag"].plot(fig=False)
-pb.estimators["F"].plot(rate=-0.5, fig=False)
+pb.estimators["F"].plot(rate=-2./3., fig=False)
 
 pb.estimators["err ref"].plot(rate=-2./3.)
 if not cheapest:
@@ -226,5 +231,5 @@ if not cheapest:
 pb.estimators["goal ref"].plot(fig=False)
 """
 #saveplots("adap3Diterative", meta=PARAMS)
-interactive()
-showplots()
+#interactive()
+#showplots()

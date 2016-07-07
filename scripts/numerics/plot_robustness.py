@@ -104,11 +104,15 @@ hycolors = ["#ff0000", "#ffaaaa", "w"]
 
 ax = plt.subplot(111)
 plot_robustness(ax, fpdata, fplabels, fpcolors)
+fig = plt.gcf()
+fig.set_size_inches(4, 3.5)
 plt.savefig(DIR + "robust_fp.eps", bbox_inches='tight')
 
 plt.figure()
 ax = plt.subplot(111)
 plot_robustness(ax, hydata, hylabels, hycolors)
+fig = plt.gcf()
+fig.set_size_inches(4, 3.5)
 plt.savefig(DIR + "robust_hy.eps", bbox_inches='tight')
 
 plt.show()

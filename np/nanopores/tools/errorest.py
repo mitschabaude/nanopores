@@ -50,7 +50,7 @@ class Estimator(object):
         loglog(N, err, 's-', label=self.name)
         if rate and N[0] != 0:
             alg = [err[0]/(N[0]**rate)*n**rate for n in N]
-            loglog(N, alg, 'k--', label="N^{%.2g}" %rate)
+            loglog(N, alg, 'k--', label=r"$O(N^{%.2g})$" %rate)
         #xlabel("# Elements")
         xlabel("degrees of freedom")
         ylabel("rel. error")
