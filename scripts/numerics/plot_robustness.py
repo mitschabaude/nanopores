@@ -7,11 +7,10 @@ import nanopores
 import os
 
 def plot_circle(ax, x, y, color):
-    area = 800
-    edgewidth = 0
-    edgecolor = "k" # black
-    
-    circle = ax.scatter(x, y, s=area, c=color)    
+    area = 380    
+    circle = ax.scatter(x, y, s=area, c=color)
+    #edgewidth = 0
+    #edgecolor = "k" # black      
     #circle = ax.plot(x, y, "o", c=color, markersize=10)
     #circle= mpatches.Circle((x, y), radius, fc=color, ec=edgecolor, lw=edgewidth)
     #ax.add_patch(circle)
@@ -24,7 +23,7 @@ def make_legend_ellipse(legend, orig_handle, xdescent, ydescent,
         width = width+xdescent, height=(height+ydescent))
 
 
-data = nanopores.load_stuff("robustness_fixedpoint")[0]
+data = nanopores.load_stuff("robustness_fixedpoint")
 data = [np.array(d) for d in data]
 
 bVs = [.01, .02, .05, .1, .2, .5, 1., 2.]
@@ -65,10 +64,10 @@ def plot_robustness(ax, fpdata, fplabels, fpcolors):
     #ax.legend([h[0] for h in handles.values()], handles.keys(),
     ax.legend(myhandles, handles.keys(),
         #bbox_to_anchor=(0.5, 1.05), loc="lower center", borderaxespad=0.,)
-        bbox_to_anchor=(0.5, 1.3), loc="upper center", borderaxespad=0.,)
+        bbox_to_anchor=(0., 1.5), loc="upper left", borderaxespad=0.,)
         #handler_map={mpatches.Circle:HandlerPatch(patch_func=make_legend_ellipse)})
     ax.set_xlabel("voltage bias [V]")
-    ax.set_ylabel("surface charge density [q/nm**2]")
+    ax.set_ylabel(r"surface charge density [q/nm$^2$]")
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
@@ -81,8 +80,8 @@ fpdata = [
     ]
 fplabels = [
     "fixed point",
-    "fixed point + voltage schedule (20 iterations)",
-    "fixed point + voltage schedule (100 iterations)",
+    "+ voltage schedule (20 iterations)",
+    "+ voltage schedule (100 iterations)",
     "no convergence"
     ]
 fpcolors = ["#0000ff", "#6666ff", "#ccccff", "w"]
@@ -105,14 +104,14 @@ hycolors = ["#ff0000", "#ffaaaa", "w"]
 ax = plt.subplot(111)
 plot_robustness(ax, fpdata, fplabels, fpcolors)
 fig = plt.gcf()
-fig.set_size_inches(4, 3.5)
+fig.set_size_inches(5.2, 3.5)
 plt.savefig(DIR + "robust_fp.eps", bbox_inches='tight')
 
 plt.figure()
 ax = plt.subplot(111)
 plot_robustness(ax, hydata, hylabels, hycolors)
 fig = plt.gcf()
-fig.set_size_inches(4, 3.5)
+fig.set_size_inches(5.2, 3.5)
 plt.savefig(DIR + "robust_hy.eps", bbox_inches='tight')
 
-plt.show()
+#plt.show()

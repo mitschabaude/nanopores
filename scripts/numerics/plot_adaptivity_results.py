@@ -21,16 +21,22 @@ for dim in "2D", "3D":
     estimators_cheap[F].name = "adaptive (cheap)"
     estimators_unif[F].name = "uniform"
     
+    rate = -2./float(dim[0])
     estimators[F].plot()
     estimators_cheap[F].plot(fig=False)
-    estimators_unif[F].plot(fig=False, rate=-2./float(dim[0]))
+    estimators_unif[F].plot(fig=False, rate=rate)
     #plt.title(dim)
-    plt.legend(bbox_to_anchor=(0.7, 1.1), loc="upper left", borderaxespad=0.,)
+    plt.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
     
-    plt.xlim(xmin=estimators[F].pairs[0][0]*0.75)
+    plt.xlim(xmin=estimators_unif[F].pairs[0][0]*0.75, xmax=estimators_unif[F].pairs[-1][0]*1.33)
+    plt.ylim(ymin=estimators[F].pairs[-1][1]*0.75, ymax=max([x[1] for x in estimators[F].pairs])*1.33)
     # save
     fig = plt.gcf()
     fig.set_size_inches(4, 3.5)
-    fig.savefig(DIR + "adap%scomp.eps" %dim, bbox_inches='tight')
+    #fig.savefig(DIR + "adap%scomp.eps" %dim, bbox_inches='tight')
     
-#nanopores.showplots()
+    estimators["err ref"].plot(rate=rate)
+    estimators["rep"].plot(fig=False)
+    estimators["err"].plot(fig=False)
+    
+nanopores.showplots()

@@ -1,7 +1,8 @@
 from dolfin import *
 from nanopores import *
 from nanopores.physics.simplepnps import *
-from mysolve import hybrid_solve, newton_solve
+from mysolve import hybrid_solve, newton_solve, save_estimators
+import resource
 
 nm = 1.
 
@@ -80,7 +81,15 @@ t = Timer("solve")
 for i in pnps.fixedpoint():
     pass
 print "CPU time (solve): %s [s]" % (t.stop(),)
+reskB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+print "resource consumption [MB]: ", reskB/1024.
 
+pnps.estimators["err hybrid i"].name = "fixed point"
+pnps.estimators["err hybrid time"].name = "fixed point"
+save_estimators("fixedpoint", pnps.estimators)
+del pnps
+
+print
 print "# solve pnps with hybrid method"
 pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
     inewton=1, ipicard=imax, tolnewton=tol, verbose=verbose, nverbose=verbose,
@@ -88,6 +97,13 @@ pnpsH = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
 t = Timer("solve")
 hybrid_solve(pnpsH)
 print "CPU time (solve): %s [s]" % (t.stop(),)
+reskB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+print "resource consumption [MB]: ", reskB/1024.
+
+pnpsH.estimators["err hybrid i"].name = "hybrid"
+pnpsH.estimators["err hybrid time"].name = "hybrid"
+save_estimators("hybrid", pnpsH.estimators)
+del pnpsH
 
 print
 print "# solve pnps with newton's method"
@@ -99,39 +115,9 @@ pnpsN.tolnewton = tol
 t = Timer("solve")
 newton_solve(pnpsN)
 print "CPU time (solve): %s [s]" % (t.stop(),)
+reskB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+print "resource consumption [MB]: ", reskB/1024.
 
-v, cp, cm, u, p = pnps.solutions()
-vN, cpN, cmN, uN, pN = pnpsN.solutions()
-vH, cpH, cmH, uH, pH = pnpsH.solutions()
-plot(u - uH)
-plot(uH - uN)
-interactive()
-
-pnps.visualize()
-pnpsN.visualize()
-pnpsH.visualize()
-
-# plot
-pnps.estimators["err hybrid i"].name = "fixed point"
-pnps.estimators["err hybrid time"].name = "fixed point"
-pnpsH.estimators["err hybrid i"].name = "hybrid"
-pnpsH.estimators["err hybrid time"].name = "hybrid"
 pnpsN.estimators["err newton i"].name = "newton"
 pnpsN.estimators["err newton time"].name = "newton"
-
-from matplotlib import pyplot
-pnps.estimators["err hybrid i"].newtonplot()
-pnpsH.estimators["err hybrid i"].newtonplot(fig=False)
-pnpsN.estimators["err newton i"].newtonplot(fig=False)
-
-pnps.estimators["err hybrid time"].newtonplot()
-pnpsH.estimators["err hybrid time"].newtonplot(fig=False)
-pnpsN.estimators["err newton time"].newtonplot(fig=False)
-pyplot.xlabel("time [s]")
-pyplot.xscale("log")
-
-#saveplots("pnps_linearization", PARAMS)
-showplots()
-
-
-
+save_estimators("newton", pnpsN.estimators)
