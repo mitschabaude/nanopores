@@ -83,7 +83,7 @@ def J_FEM(F, c0):
     phys = nanopores.Physics(geo=geo, rTarget=rMol*1e-9, lscale=1e9)
     pde = nanopores.solve_pde(DiffusionProblem1D, geo=geo, phys=phys,
                               F=F, c0=c0, verbose=False)
-    c = pde.solution"Simulation"+
+    c = pde.solution
     return c, current(geo, phys, c, F)
 
 def gather_currents(name, c0):

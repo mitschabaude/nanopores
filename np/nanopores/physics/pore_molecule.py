@@ -289,20 +289,3 @@ def Forces(geo, grad, qTarget, rTarget):
         return F, Fel, Fdrag
     return Forces0
 
-def Forces2D(geo, lscale, qTarget, rTarget):
-    def Forces2D0(v, u):
-        W = dolfin.FunctionSpace(geo.mesh, "CG", 1)
-        V = dolfin.MixedFunctionSpace((W, W, W))
-        x0 = dolfin.Expression('x[0]/sqrt(x[0]*x[0]+x[1]*x[1])')
-        x1 = dolfin.Expression('x[1]/sqrt(x[0]*x[0]+x[1]*x[1])')
-        E = -lscale*dolfin.as_vector((x0*v.dx(0), x1*v.dx(0), v.dx(1)))
-        pi = 3.141592653589793
-        U = dolfin.as_vector(((x0*u[0], x1*u[0], u[1])))
-        Fel = dolfin.Constant(qTarget)*E
-        Fdrag = dolfin.Constant(6*pi*eta*rTarget)*U
-        F = Fel + Fdrag
-        Fel = dolfin.project(Fel, V)
-        Fdrag = dolfin.project(Fdrag, V)
-        F = dolfin.project(F, V)
-        return F, Fel, Fdrag
-    return Forces2D0

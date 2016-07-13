@@ -13,7 +13,8 @@ from nanopores.tools.protocol import unique_id
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
-           "save_functions", "load_functions", "load_vector_functions", "load_mesh"]
+           "save_functions", "load_functions", "load_vector_functions", "load_mesh",
+           "convert3D", "convert2D", "RectangleMesh"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -317,5 +318,66 @@ def _argparse():
             pass
         dic[name] = val
     return dic
-            
     
+def RectangleMesh(a, b, nx, ny):
+    return dolfin.RectangleMesh(dolfin.Point(array(a)), dolfin.Point(array(b)), nx, ny)
+    
+def convert3D(mesh3D, *forces):
+    "convert force from axisymmetric 2D simulation to 3D vector function"
+    def rad(x, y):
+        return dolfin.sqrt(x**2 + y**2)
+    
+    class Convert3DExpression(dolfin.Expression):
+        def __init__(self, F):
+            self.F = F
+        def value_shape(self):
+            return (3,)
+        def eval(self, value, x):
+            r = rad(x[0], x[1])
+            F = self.F([r, x[2]])
+            if r==0.:
+                value[0] = 0.
+                value[1] = 0.
+                value[2] = F[1]
+            else:
+                value[0] = x[0]/r*F[0]
+                value[1] = x[1]/r*F[0]
+                value[2] = F[1]
+    
+    U = dolfin.FunctionSpace(mesh3D, "CG", 1)
+    V = dolfin.MixedFunctionSpace([U, U, U])
+    def to3D(F):
+        F2 = dolfin.project(Convert3DExpression(F), V)
+        #F2 = dolfin.Function(V)
+        #F2.interpolate(Convert3DExpression(F))
+        return F2
+    return tuple(map(to3D, forces))
+    
+def convert2D(mesh2D, *forces):
+    "convert force from axisymmetric 2D simulation to 2D vector function"
+    dolfin.parameters['allow_extrapolation'] = False
+    class Convert2DExpression(dolfin.Expression):
+        def __init__(self, F):
+            self.F = F
+        def value_shape(self):
+            return (2,)
+        def eval(self, value, x):
+            r = abs(x[0])
+            F = self.F([r, x[1]])
+            if r==0.:
+                value[0] = 0.
+                value[1] = F[1]
+            else:
+                value[0] = x[0]/r*F[0]
+                value[1] = F[1]
+
+    U = dolfin.FunctionSpace(mesh2D, "CG", 1)
+    V = dolfin.MixedFunctionSpace([U, U])
+    def to2D(F):
+        F2 = dolfin.project(Convert2DExpression(F), V)
+        #F2 = dolfin.Function(V)
+        #F2.interpolate(Convert3DExpression(F))
+        return F2
+    return tuple(map(to2D, forces))                    
+
+            
