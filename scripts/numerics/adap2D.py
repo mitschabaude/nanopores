@@ -59,7 +59,7 @@ frac = 1. if uniform else frac
 pb, pnps = adaptive_pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax,
                            cheapest=cheapest, **ref)
 NAME = "adap2Duniform" if uniform else ("adap2Dcheap" if cheapest else "adap2D")
-save_estimators(NAME, pb.estimators)
+#save_estimators(NAME, pb.estimators)
     
 
 print "hmin [nm]: ", geo.mesh.hmin()/nm
@@ -69,7 +69,7 @@ plot(geo.boundaries)
 pb.estimators["Fel"].plot()
 #pb.estimators["Fs"].plot(fig=False)
 pb.estimators["Fdrag"].plot(fig=False)
-pb.estimators["F"].plot(rate=-3./4., fig=False)
+pb.estimators["F"].plot(rate=-1., fig=False)
 
 pb.estimators["err ref"].plot(rate=-1.)
 if not cheapest:
@@ -82,4 +82,4 @@ if not cheapest:
 if saveref:
     save_Fref(pb, pnps)
 #saveplots("adap2D")
-#showplots()
+showplots()

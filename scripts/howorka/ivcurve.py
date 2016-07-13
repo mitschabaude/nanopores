@@ -24,8 +24,7 @@ def run(**phys_params):
     params.update(phys_params)
     geo, phys = Howorka.setup2D(mesh=mesh, **params)
     pb, pnps = Howorka.solve2D(geo, phys, **params)    
-    J = pnps.get_functionals(["Javgctr"])["Javgctr"]
-    return dict(J=J)
+    return dict(J = pnps.get_functional("Javgctr"))
 
 #result, stamp = nanopores.iterate_in_parallel(run, iterkeys=[plot], **PARAMS)
 plots = nanopores.parallel_output(run, showplot=False, **PARAMS)
@@ -59,5 +58,5 @@ fig.set_size_inches(2.6, 2.2)
 # save to paper directory
 from folders import FIGDIR
 #tikz_save(FIGDIR+"iv2.tex", figureheight='2.5in', figurewidth='2.6in')
-plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
-#plt.show()
+#plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
+plt.show()

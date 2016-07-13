@@ -203,6 +203,9 @@ class PDESystem(object):
             else:
                 print ("%s: " %Jstr) + str(J.evaluate())
 
+    def get_functional(self, Jstr):
+        return self.functionals[Jstr].evaluate()
+    
     def get_functionals(self, Jlist=None):
         if Jlist is None:
             Jlist = sorted(self.functionals.keys())

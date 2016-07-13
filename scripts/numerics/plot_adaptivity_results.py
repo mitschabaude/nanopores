@@ -7,7 +7,7 @@ nanopores.add_params(est = "F")
 F = "err ref" if est == "ref" else est
 DIR = os.path.expanduser("~") + "/papers/pnps-numerics/figures/"
 
-for dim in "2D", "3D":
+for dim in "3D", "2D":
     estimators = load("adap%s" %dim)
     estimators_cheap = load("adap%scheap" %dim)
     estimators_unif = load("adap%suniform" %dim)
@@ -25,6 +25,13 @@ for dim in "2D", "3D":
     estimators[F].plot()
     estimators_cheap[F].plot(fig=False)
     estimators_unif[F].plot(fig=False, rate=rate)
+    
+    ax = plt.gca()
+    line = ax.lines[3]
+    label = line.get_label()
+    label = label.replace(r"0.67", r"2/3")
+    line.set_label(label)
+    
     #plt.title(dim)
     plt.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
     
@@ -38,5 +45,6 @@ for dim in "2D", "3D":
     estimators["err ref"].plot(rate=rate)
     estimators["rep"].plot(fig=False)
     estimators["err"].plot(fig=False)
+
     
 nanopores.showplots()
