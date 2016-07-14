@@ -1,52 +1,69 @@
 import dolfin
 import nanopores
-from math import sqrt
 import colormaps as cm
 import matplotlib
 import matplotlib.ticker
 import matplotlib.pyplot as plt
-import matplotlib.path as mplPath
 import matplotlib.patches as patches
 import numpy as np
-from forcefield import geo, phys, Fel, Fdrag, params
 
-#geo_name = "H_cyl_geo"
-#geo_params = dict(
-#x0 = None,
-#rMolecule = 0.5,
-#lcCenter = 0.05,
-#lcMolecule = 0.05,
-#)
-#h = 8.
-#nanopores.generate_mesh(h, geo_name, **geo_params)
-#geo3D = nanopores.geo_from_name(geo_name, **geo_params)
-#mesh = geo3D.mesh
+def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100, maxvalue=None, **fields):
+    "streamlines plot of vector field around nanopore"  
+    
+    # interpolate on regular mesh symmetric w.r.t. center axis
+    mesh2D = nanopores.RectangleMesh([-rx-0.1,-ry-0.1], [rx+0.1,ry+0.1], Nx, Ny)
+    fields2 = nanopores.convert2D(mesh2D, *(fields.values()))
+    
+    # prepare polygon and copy to left half
+    settings = dict(closed=True, facecolor="#eeeeee", linewidth=3., edgecolor="black")
+    if polygon is not None:
+        polygon = np.array(polygon)
+        polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
 
-mesh2D = nanopores.RectangleMesh([-10.,-10.], [10.,10.], 100, 100)
-dolfin.plot(mesh2D)
+    # prepare plots
+    Ny += 1
+    Nx += 1
+    Y, X = np.mgrid[-ry:ry:Ny*1j, -rx:rx:Nx*1j]
+    U = np.zeros((Ny,Nx))
+    V = np.zeros((Ny,Nx))
+    formt = matplotlib.ticker.FuncFormatter(fmt)
+    ticks = [0] + [10**n for n in range(-16, -9)]
+    
+    # determine uniform color range from fields (maybe round to nearest 10-power)
+    if maxvalue is None:
+        maxvalue = max(dolfin.norm(F.vector(), "linf") for F in fields2)
+        #maxvalue = 10**int(np.log10(maxvalue))
+    
+    for i, F in enumerate(fields2):
+        Fstr = fields.keys()[i]
+        fig, ax = plt.subplots(figsize=(5, 4.5), num=Fstr)        
+        
+        # fill array with function values
+        for y in range(Ny):
+            for x in range(Nx):
+                f = F(X[y][x], Y[y][x])
+                U[y][x] = f[0]
+                V[y][x] = f[1]
 
-dolfin.plot(Fel)
-dolfin.plot(Fdrag)
+        # streamplot with logarithmic scale
+        strength = np.sqrt(U*U+V*V)
+        norm = matplotlib.colors.SymLogNorm(linthresh=ticks[1], linscale=1.0,
+                                            vmin=0., vmax=maxvalue)
+        strm = plt.streamplot(X, Y, U, V, arrowsize=1.5, linewidth=1.5, density=1.5,
+                              cmap=cm.viridis, color=strength, norm=norm)
+        plt.colorbar(strm.lines, ticks=ticks, format=formt)
+        plt.xlabel('x [nm]') #, fontsize=20)
+        plt.ylabel('z [nm]') #, fontsize=20)
 
-Fel2, Fdrag2 = nanopores.convert2D(mesh2D, Fel, Fdrag)
-dolfin.plot(Fel2)
-dolfin.plot(Fdrag2)
-
-Ny = 40
-Nx = 50
-
-bar, fig = plt.subplots(figsize=(5,4))
-ax=plt.axes()
-
-Y, X = np.mgrid[-10:10:Ny*1j, -10:10:Nx*1j] #-5:30 and -30:30
-U = np.zeros((Ny,Nx))
-V = np.zeros((Ny,Nx))
-for y in range(Ny):
-    for x in range(Nx):
-        F=Fdrag2(X[y][x],Y[y][x])
-        U[y][x] = F[0]
-        V[y][x] = F[1]
-
+        # plot pore polygon on top        
+        if polygon is not None:
+            patch = patches.Polygon(polygon, **settings)
+            patchm = patches.Polygon(polygon_m, **settings)
+            patch.set_zorder(10)
+            patchm.set_zorder(10)
+            ax.add_patch(patch)
+            ax.add_patch(patchm)
+        
 def fmt(x, pos):
     a, b = '{:.1e}'.format(x).split('e')
     b = int(b)
@@ -56,58 +73,27 @@ def fmt(x, pos):
         return r"$0$"
     else:
         return r'${}\cdot10^{{{}}}$'.format(a,b)
-formt = matplotlib.ticker.FuncFormatter(fmt)
+        
+# do the plot with imported force field and polygon
+from forcefield import F0, Fel0, Fdrag0, params, Howorka
+print "parameters:", params
 
-strength = np.sqrt(U*U+V*V)
-norm = matplotlib.colors.SymLogNorm(linthresh=1e-16, linscale=1.0, vmin=0., vmax=np.max(strength))
-strm = plt.streamplot(X,Y,U,V,arrowsize=1.5, linewidth=1.5, density=1.5, cmap=cm.viridis, color=strength, norm=norm)
-plt.colorbar(strm.lines, ticks=[0, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11], format=formt)
-plt.xlabel('x [nm]') #, fontsize=20)
-plt.ylabel('z [nm]') #, fontsize=20)
+F, Fel, Fdrag = F0, Fel0, Fdrag0
+poly = Howorka.polygon()
 
-# plot pore polygon on top
-X_How_2d = np.array([[1.,4.5],[2.5,4.5],[2.5,1.1],[10.,1.1],[10.,-1.1],[2.5,-1.1],[2.5,-4.5],[1.,-4.5]])
-X_How_2dm = np.column_stack([-X_How_2d[:,0], X_How_2d[:,1]])
+rx, ry = 6., 8.
+porestreamlines(poly, rx, ry, Fel=Fel, Fdrag=Fdrag) #, maxvalue = 1e-11)
 
-patch = patches.Polygon(X_How_2d, closed=True, facecolor="#eeeeee", linewidth=3., edgecolor="black")
-patchm = patches.Polygon(X_How_2dm, closed=True, facecolor="#eeeeee", linewidth=3., edgecolor="black")
-patch.set_zorder(10)
-patchm.set_zorder(10)
-ax.add_patch(patch)
-ax.add_patch(patchm)
+# modify plot for better output in paper
+fig1 = plt.figure("Fel")
+fig2 = plt.figure("Fdrag")
+fig1.delaxes(fig1.axes[1])
+fig2.axes[0].set_ylabel("")
+fig2.axes[1].set_ylabel("force [N]")
 
-plt.show()
+# save to paper dir
+from folders import NUMERICSFIGDIR as DIR
+nanopores.savefigs("streamplot", DIR)
 
-#nanopores.plot_cross_vector(Fel2, mesh2D, title="Fel")
-#nanopores.plot_cross_vector(Fdrag2, mesh2D, title="Fdrag")
-#dolfin.interactive()
-#
-#
-#X_How_2d = np.array([[1.,4.5],[2.5,4.5],[2.5,1.1],[10.,1.1],[10.,-1.1],[2.5,-1.1],[2.5,-4.5],[1.,-4.5]])
-#
-#bar, fig = plt.subplots(figsize=(12,8))
-#ax = plt.axes()
-#
-#def radius(*X):
-#    return sqrt(sum(x**2 for x in X))
-#
-#leftend=15.
-##x_mem=np.linspace(X_How_2d[18][0],leftend,100)
-##y_mem=np.zeros(x_mem.shape[0])+X_How_2d[18][1]
-##x_mem_2=-x_mem
-#size=X_How_2d.shape[0]
-#X=np.zeros(size+1)
-#Y=np.zeros(size+1)
-#for index in range(size):
-#	X[index]=X_How_2d[index][0]
-#	Y[index]=X_How_2d[index][1]
-#X[size]=X[0]
-#Y[size]=Y[0]
-#X_2=-X
-#
-## whole domain: fac=0.1,p2=[
-#
-#axes=plt.gca()
-#axes.set_ylim([-5,10])
-#axes.set_xlim([-10,10])
+#plt.show()
 

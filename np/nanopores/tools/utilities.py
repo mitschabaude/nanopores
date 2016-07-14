@@ -14,7 +14,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
-           "convert3D", "convert2D", "RectangleMesh"]
+           "convert3D", "convert2D", "RectangleMesh", "savefigs"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -235,6 +235,13 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
     
 def showplots():
     plt.show()
+    
+def savefigs(name="fig", DIR="/tmp/"):
+    for num in plt.get_fignums():
+        fig = plt.figure(num)
+        label = fig.get_label()
+        label = str(num) if label=="" else label
+        fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches="tight")
     
 def saveplots(name="plot", meta=None, uid=False):
     # collect data from every open figure

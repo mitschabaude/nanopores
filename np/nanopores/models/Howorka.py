@@ -1,3 +1,4 @@
+from importlib import import_module
 from nanopores import *
 from nanopores.geometries.curved import Circle
 from mysolve import pbpnps
@@ -6,7 +7,8 @@ __all__ = ["setup2D", "solve2D"]
 
 geo_name = "H_geo"
 phys_name = "howorka"
-nm = import_vars("nanopores.geometries.%s.params_geo" %geo_name)["nm"]
+params_geo = import_module("nanopores.geometries.%s.params_geo" %geo_name)
+nm = params_geo.nm
 
 add_params(
 h = .5,
@@ -43,6 +45,16 @@ bV = bV,
 qTarget = Qmol*qq,
 rTarget = rMolecule*1e-9
 )
+
+# this could at one time depend on the geo_params
+def polygon(rMem = 20.):
+    "polygon of pore + membrane for plotting"
+    r0 = params_geo.r0 # pore radius
+    r1 = params_geo.r1 # barrel outer radius
+    l0 = 0.5*params_geo.l0 # half pore length
+    l1 = 0.5*params_geo.l1 # half membrane thickness
+    return [[r0, l0], [r1, l0], [r1, l1], [rMem, l1],
+           [rMem,-l1], [r1, -l1], [r1,-l0], [r0,-l0]]
 
 IllposedLinearSolver.stab = 1e0
 IllposedNonlinearSolver.newtondamp = 1.

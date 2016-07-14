@@ -10,9 +10,6 @@ nanopores.add_params(Howorka,
     dnaqsdamp = 0.5,
     save = False,
 )
-# decide whether to interpolate force on fluid submesh
-onsubmesh = False
-
 # save and load implicit force field
 FNAME = "howorka2D_implicit"
 
@@ -30,22 +27,23 @@ def load_force_field():
     #mesh = forces["F"].function_space().mesh()
     return forces["F"], forces["Fel"], forces["Fdrag"], mesh, params
 
+# get forces and accompanying function spaces
 F, Fel, Fdrag, mesh, params = load_force_field()
 geo, phys = Howorka.setup2D(mesh=mesh, **params)
+F0, Fel0, Fdrag0 = F, Fel, Fdrag
+mesh0 = geo.mesh
+V0 = dolfin.FunctionSpace(mesh, "CG", 1)
+VV0 = dolfin.VectorFunctionSpace(mesh, "CG", 1)
 
-if onsubmesh:
-    submesh = geo.submesh("fluid")
-    mesh = submesh
-    geo, phys = Howorka.setup2D(mesh=mesh, **params)
-    V = dolfin.FunctionSpace(mesh, "CG", 1)
-    VV = dolfin.VectorFunctionSpace(mesh, "CG", 1)
-    F = dolfin.interpolate(F, VV)
-    Fel = dolfin.interpolate(Fel, VV)
-    Fdrag = dolfin.interpolate(Fdrag, VV)
-else:
-    mesh = geo.mesh
-    V = dolfin.FunctionSpace(mesh, "CG", 1)
-    VV = dolfin.VectorFunctionSpace(mesh, "CG", 1)
+# interpolate on fluid submesh
+submesh = geo.submesh("fluid")
+mesh = submesh
+geo, phys = Howorka.setup2D(mesh=mesh, **params)
+V = dolfin.FunctionSpace(mesh, "CG", 1)
+VV = dolfin.VectorFunctionSpace(mesh, "CG", 1)
+F = dolfin.interpolate(F, VV)
+Fel = dolfin.interpolate(Fel, VV)
+Fdrag = dolfin.interpolate(Fdrag, VV)
 
 v2d = dolfin.vertex_to_dof_map(V)
 coord = mesh.coordinates() # numpy array of 2-1 arrays
