@@ -1,5 +1,7 @@
 " analytical test problem to validate 2D and 3D solvers "
 import math
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from collections import OrderedDict
 from dolfin import *
 from nanopores import *
@@ -204,9 +206,9 @@ def saveJ(self):
 """
 def saveJ(self):
     #i = self.geo.mesh.num_vertices()
-    i = len(self.functionals["Jvol"].values)
+    i = len(self.functionals["Jvol"].values) + 1
     self.save_estimate("(Jsing_h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
-    self.save_estimate("(J_h - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate(r"$|J_h - J|/J$" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
     print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
     print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
 
@@ -233,7 +235,9 @@ couplers = dict(
 Dstr = " (2D)"
 problem = CoupledProblem(problems, couplers, geo2D, phys2D, cyl=True, conservative=False, ku=1, beta=10.)
 pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-pnps2D.single_solve(inside_loop=saveJ)
+#pnps2D.single_solve(inside_loop=saveJ)
+for i in pnps2D.fixedpoint():
+    saveJ(pnps2D)
 
 # --- solve 3D problem ---
 Dstr = " (3D)"
@@ -241,11 +245,13 @@ problem = CoupledProblem(problems, couplers, geo3D, phys3D, cyl=False, conservat
 problem.problems["pnp"].method["iterative"] = iterative
 problem.problems["stokes"].method["iterative"] = iterative
 pnps3D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=30, tolnewton=1e-2)
-pnps3D.single_solve(inside_loop=saveJ)
+#pnps3D.single_solve(inside_loop=saveJ)
+for i in pnps3D.fixedpoint():
+    saveJ(pnps3D)
 
 # --- visualization ---
-pnps2D.visualize()
-pnps3D.visualize()
+#pnps2D.visualize()
+#pnps3D.visualize()
 
 (v0, cp0, cm0, u0, p0) = pnps2D.solutions()
 (v, cp, cm, u, p) = pnps3D.solutions()
@@ -253,10 +259,18 @@ pnps3D.visualize()
 #plot1D({"phi PB":phi}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "potential [V]"))
 #plot1D({"phi (2D)": v0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "potential [V]"), newfig=False)
 #plot1D({"phi (3D)": v}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "potential [V]"), newfig=False)
+figsize = 5*0.8, 4*0.8
 
-plot1D({"c+ PB":cpPB, "c- PB":cmPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "concentration [mol/m**3]"))
-plot1D({"c+ (2D)": cp0, "c- (2D)": cm0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False)
-plot1D({"c+ (3D)": cp, "c- (3D)": cm}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "concentration [mol/m**3]"), newfig=False, legend="upper left")
+plt.figure("concentrations", figsize=figsize)
+params = dict(axis="x", axlabels=("r [nm]", "concentration [mol/m$^3$]"), newfig=False)
+plot1D({r"$c^+$ PB":cpPB, r"$c^-$ PB":cmPB},
+       (0., R, 101), dim=1, style="b-", **params)
+plot1D({r"$c^+$ 2D": cp0, r"$c^-$ 2D": cm0},
+        (0., R, 11), dim=2, style="gs", **params)
+plot1D({r"$c^+$ 3D": cp, r"$c^-$ 3D": cm},
+        (0.05*R, 0.95*R, 10), dim=3, style="ro", **params)
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
 
 """
 plot1D({
@@ -268,9 +282,16 @@ plot1D({
 plot1D({"c+ (2D)": cp, "c- PNP (2D)": cm}, 
     (-Rz, Rz, 101), "z", origin=(.0, 0., 0.), dim=3, axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
 """
-#plot1D({"uz PB":uPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
-#plot1D({"uz (2D)":u0[1]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
-#plot1D({"uz (3D)":u[2]}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plt.figure("velocity", figsize=figsize)
+params = dict(axis="x", axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+plot1D({r"$u_z$ PB":uPB},
+       (0., R, 101), dim=1, style="b-", **params)
+plot1D({r"$u_z$ 2D":u0[1]},
+       (0., R, 11), dim=2, style="gs", **params)
+plot1D({r"$u_z$ 3D":u[2]},
+       (0.05*R, 0.95*R, 10), dim=3, style="ro", **params)
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
 
 #plot1D({"ur PB":lambda x:0.}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 #plot1D({"ur (2D)":u0[0]}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
@@ -279,12 +300,18 @@ plot1D({"c+ (2D)": cp, "c- PNP (2D)": cm},
 #plot1D({"p PB":pPB}, (0., R, 101), "x", dim=1, axlabels=("r [nm]", "velocity [m/s]"))
 #plot1D({"p (2D)":p0}, (0., R, 101), "x", dim=2, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
 #plot1D({"p (3D)":p}, (0., R, 101), "x", dim=3, axlabels=("r [nm]", "velocity [m/s]"), newfig=False)
+fig = plt.figure("hybrid", figsize=figsize)
+pnps2D.estimators[r"$|J_h - J|/J$" + " (2D)"].newtonplot(fig=False)
+pnps3D.estimators[r"$|J_h - J|/J$" + " (3D)"].newtonplot(fig=False)
+fig.axes[0].xaxis.set_major_locator(ticker.MultipleLocator(1))
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
-pnps2D.estimators["(J_h - J)/J (2D)"].newtonplot()
-pnps3D.estimators["(J_h - J)/J (3D)"].newtonplot(fig=False)
+from folders import FIGDIR
+savefigs("anaPNPS2", FIGDIR)
 #pnps.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(Jsing_h - J)/J"].newtonplot()
 #pnp.estimators["(J_h - J)/J"].newtonplot(fig=False)
 #saveplots("anaPNPS", meta=PARAMS)
-showplots()
+
+#showplots()
 

@@ -27,10 +27,10 @@ def logtimerange(T0, levels, frac=0.01, mult=10, change_dt=None):
 
 class TransientLinearPDE(PDESystem):
     dt = 1 # default time step [s]
-    time = []
-    
+
     def __init__(self, Problem, geo=None, phys=None,
                  dt=None, **problem_params):
+        self.time = []
         if dt is not None:
             self.dt = dt
         
@@ -98,8 +98,10 @@ class TransientLinearPDE(PDESystem):
         for J in self.functionals.values():
             J.evaluate()
             
-    def plot_functionals(self, plot="plot", functionals=None, title=""):
-        plt.figure()
+    def plot_functionals(self, plot="plot", functionals=None, title="", fig=None):
+        if fig is None:      
+            fig = plt.figure()
+        plt.figure(fig.number)
         if functionals is None:
             functionals = self.functionals.keys()
         for Jstr in functionals:

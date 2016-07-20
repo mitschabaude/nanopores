@@ -60,7 +60,7 @@ else:
     ku = 2
     beta = .0
     
-#SimpleStokesProblem.method["reuse"] = False
+SimpleStokesProblem.method["reuse"] = False
 
 #print
 #print "# solve pnp with fixed point method"

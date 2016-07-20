@@ -199,7 +199,7 @@ def _call(f, params):
     
 def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
         line=[1.,0.,0.], origin=[0.,0.,0.], plot="plot", title="", legend="upper right",
-        show=False, newfig=True):
+        show=False, newfig=True, style="-x"):
     # functions is dict(string = callable)
     # output of functions should be real-valued
     
@@ -220,7 +220,7 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
     lines = []
     for fstr, f in functions.items():
         y = np.array([f(list(t)) for t in z])
-        lines.append(getattr(plt, plot)(x, y, "-x", label=fstr))
+        lines.append(getattr(plt, plot)(x, y, style, label=fstr))
         plt.xlabel(axlabels[0])
         plt.ylabel(axlabels[1])
         plt.title(title)

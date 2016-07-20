@@ -8,6 +8,8 @@ from dolfin import *
 from nanopores import *
 from nanopores.physics.simplepnps import *
 from nanopores.geometries.curved import Cylinder
+from mysolve import save_estimators
+import matplotlib.pyplot as plt
 
 # --- define parameters ---
 add_params(
@@ -208,8 +210,8 @@ def saveJ(self):
         plot1D({"c+ (3D), N=%s" %i: cp}, (-Rz, Rz, 101), "z", dim=3, 
             axlabels=("z [nm]", "concentration [mol/m**3]"), newfig=False)
 
-    self.save_estimate("(J*h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
-    self.save_estimate("(Jh - J)/J" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("Jsurf", abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
+    self.save_estimate("Jvol", abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
     print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
     print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
 
@@ -240,6 +242,7 @@ pnps2D = CoupledSolver(problem, goals=[J], damp=damp, inewton=1, ipicard=20, tol
 pnps2D.marking_fraction = 1.
 pnps2D.maxcells = nmax2D
 pnps2D.solve(refinement=True, inside_loop=saveJ)
+save_estimators("anaPNPS_2D", pnps2D.estimators)
 
 # --- solve 3D problem ---
 Dstr = " (3D)"
@@ -256,10 +259,18 @@ pnps3D.maxcells = nmax3D
 plot1D({"c+ PB":lambda x: cpPB(0.)}, (-Rz, Rz, 101), "y", dim=2, 
             axlabels=("z [nm]", "concentration [mol/m**3]"))
 pnps3D.solve(refinement=True, inside_loop=saveJ)
+save_estimators("anaPNPS_3D", pnps3D.estimators)
 
 # --- visualization ---
-pnps2D.estimators["(Jh - J)/J (2D)"].plot(rate=-1.)
-pnps3D.estimators["(Jh - J)/J (3D)"].plot(rate=-2./3, fig=False)
+figsize = 5*0.8, 4*0.8
+fig = plt.figure("anaPNPS", figsize=figsize)
+pnps2D.estimators["Jvol"].name = r"$|J_h - J|/J$ (2D)"
+pnps3D.estimators["Jvol"].name = r"$|J_h - J|/J$ (3D)"
+pnps2D.estimators["Jvol"].plot(rate=-1., fig=False)
+pnps3D.estimators["Jvol"].plot(rate=-2./3, fig=False)
+
+#from folders import FIGDIR
+#savefigs("anaPNPS_refinement", FIGDIR)
 
 pnps3D.visualize("cross")
 #saveplots("anaPNPSrefine", meta=PARAMS)

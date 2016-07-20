@@ -13,12 +13,13 @@ hexp = .5,
 Nimp = 5e4,
 Nexp = 2e4,
 Nz = 50,
+rMolecule = 0.5,
 name = "",
 save = False,
+Qmols = [-3., -2., -1., 1e-4, 1.],
+savefig = False,
 )
 
-Qmols = [-2., -1., 1e-4, 1., 2.]
-#Qmols = [-3., -2., -1., 1e-4, 1.] # better in future investigations
 a, b = -10., 10.
 folder = os.path.expanduser("~") + "/papers/pnps-numerics/data/forces/"
 
@@ -49,9 +50,9 @@ def plot_function(u, *args, **kwargs):
     plt.plot(linspace, [u(z) for z in linspace], *args, **kwargs)
     
 def plot_point(F):
-    plot_function(F, "-b", label="point-sized")
+    plot_function(F, "-b", label="point-size")
 def plot_finite(F):
-    plot_function(F, "s--g", label="finite-sized")    
+    plot_function(F, "s--g", label="finite-size")    
 def post_plot():
     plt.xlabel("z-coordinate of molecule center [nm]")
     plt.ylabel("force [pN]")
@@ -72,7 +73,7 @@ def plot_profile(Fimp, Fexp):
 def F_explicit(Qmol):
     values = []
     for z0 in coord:
-        geo, phys = Howorka.setup2D(z0=z0, h=hexp, Qmol=Qmol)
+        geo, phys = Howorka.setup2D(z0=z0, h=hexp, Qmol=Qmol, rMolecule=rMolecule)
         dolfin.plot(geo.boundaries, key="b", title="boundaries")
         pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nexp, cheapest=True)
         dolfin.plot(geo.boundaries, key="b", title="boundaries")
@@ -82,7 +83,7 @@ def F_explicit(Qmol):
         
 # get force from implicit molecule
 def F_implicit(Qmol):
-    geo, phys = Howorka.setup2D(z0=None, h=himp, Qmol=Qmol)
+    geo, phys = Howorka.setup2D(z0=None, h=himp, Qmol=Qmol, rMolecule=rMolecule)
     pb, pnps = Howorka.solve2D(geo, phys, Nmax=Nimp, cheapest=True)
     values = [pnps.zforces_implicit(z) for z in coord]
     F, Fel, Fdrag = tuple(function_from_values(v) for v in zip(*values))
@@ -151,27 +152,45 @@ def Forces(name):
                            ("alpha",alpha), ("beta",beta), ("Q",Q)])
         
 if __name__ == "__main__":
+    (Fi, Feli, Fdragi), (F, Fel, Fdrag) = loadall(name, -1.)
+
+    plt.figure("Fel", figsize=(5,4))
+    plot_finite(Fel)
+    plot_point(Feli)
+    post_plot()
+    plt.figure("Fdrag", figsize=(5,4))
+    plot_finite(Fdrag)
+    plot_point(Fdragi)
+    post_plot()
+    plt.figure("F", figsize=(5,4))
+    plot_finite(F)
+    plot_point(Fi)
+    post_plot()
+    
     for odict in Forces(name):        
         F, Fi, Fi_better, alpha, beta, Q = tuple(odict.values())
         print "Q %s, alpha %s" % (Q, alpha(0.))
-        plt.figure(0)
+        plt.figure("alpha", figsize=(5,4))
         plot_function(alpha, label="Q = %.0fq"%Q)
         
-        plt.figure(1)
-        plot_function(beta, label="Q = %.0f"%Q)
-        
-        plt.figure()
+        #plt.figure("beta", figsize=(5,4))
+        #plot_function(beta, label="Q = %.0f"%Q)
+
+        plt.figure("_hybrid_Q"+str(int(Q)), figsize=(5,4))
         plot_finite(F)
         plot_point(Fi)
-        plot_function(Fi_better, "-r", label="point-sized, corrected")
+        plot_function(Fi_better, "-r", label="hybrid-size")
         post_plot()
         
-    plt.figure(0)
+    plt.figure("alpha")
     #plt.title("r = %s" %rMol)
     plt.xlabel("z coordinate of molecule center [nm]")
-    plt.ylabel("relative force correction")
-    plt.legend()
-    plt.figure(1)
-    plt.legend()
-    nanopores.showplots()
+    plt.ylabel("relative drag force correction")
+    plt.legend(loc="best")
+    
+    # save figs
+    DIR = os.path.expanduser("~") + "/papers/pnps-numerics/figure_material/PMF/"
+    if savefig:
+        nanopores.savefigs("force_profiles", DIR)
+    #nanopores.showplots()
 

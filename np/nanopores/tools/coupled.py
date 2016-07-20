@@ -110,7 +110,9 @@ class CoupledProblem(object):
         for name in self.problems:
             uold = self.oldsolutions[name]
             u = self.solutions[name]
-            uold.vector()[:] = u.vector()[:]
+            #uold.vector()[:] = u.vector()[:] # <-- does not work after adapting
+            uold.assign(u.copy(deepcopy=True))
+            
         
     def update_forms(self, **new_params):
         # useful to e.g. change timestep and reassemble matrices
