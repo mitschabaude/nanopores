@@ -15,7 +15,7 @@ kb=1.3806488e-23 #boltzmann [J/K]
 T= 293 #temp [K]
 visc=1e-3 #[Pa*s]
 D=(kb*T)/(6*pi*0.5e-9*visc)*1e9 #diffusion[nm^2/ns]
-d=2.+5.41
+d=1.+5.41
 def f(x,t):
     return exp(-x**2/(4*D*t))/sqrt(4*D*pi*t)
 def g(x,t):
@@ -48,53 +48,90 @@ Vecx2=Vecx2-Vecx**2
 Vecy2=Vecy2-Vecy**2
 Vecz2=Vecz2-Vecz**2
 ############################################################
-fig=plt.figure(num=None, figsize=(12,7), dpi=100)
+#fig=plt.figure(num=None, figsize=(12,7), dpi=100)
+#label1='Sample mean'
+#label2='Calculated mean'
+#label3='Sample standard deviation'
+#label4='Calculated standard deviation'
+#line1, = plt.plot(xaxis*1e-3,Vecx, label=label1, color=color1, linewidth=2)
+#line2, = plt.plot(xaxis*1e-3,y1, label=label2, color=color1, linestyle='--')
+#line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecx2), label=label3, color=color2, linewidth=2)
+#line4, = plt.plot(xaxis*1e-3,np.sqrt(y2), label=label4, color=color2, linestyle='--')
+#ax=plt.gca()
+#ax.set_xlabel('Time [microsec]')
+#ax.set_ylabel('Distance [nm]')
+#first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+#plt.title('x')
+##plt.show()
+#plt.savefig('varx.eps')
+#
+#fig=plt.figure(num=None, figsize=(12,7), dpi=100)
+#label1='Sample mean'
+#label2='Calculated mean'
+#label3='Sample standard deviation'
+#label4='Calculated standard deviation'
+#line1, = plt.plot(xaxis*1e-3,Vecy, label=label1, color=color1, linewidth=2)
+#line2, = plt.plot(xaxis*1e-3,y1, label=label2, color=color1, linestyle='--')
+#line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecy2), label=label3, color=color2, linewidth=2)
+#line4, = plt.plot(xaxis*1e-3,np.sqrt(y2), label=label4, color=color2, linestyle='--')
+#ax=plt.gca()
+#ax.set_xlabel('Time [microsec]')
+#ax.set_ylabel('Distance [nm]')
+#first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+#plt.title('y')
+##plt.show()
+#plt.savefig('vary.eps')
+#
+#fig=plt.figure(num=None, figsize=(12,7), dpi=100)
+#label1='Sample mean'
+#label2='Calculated mean'
+#label3='Sample standard deviation'
+#label4='Calculated standard deviation'
+#line1, = plt.plot(xaxis*1e-3,Vecz, label=label1, color=color1, linewidth=2)
+#line2, = plt.plot(xaxis*1e-3,ex, label=label2, color=color1, linestyle='--')
+#line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecz2), label=label3, color=color2, linewidth=2)
+#line4, = plt.plot(xaxis*1e-3,np.sqrt(var), label=label4, color=color2, linestyle='--')
+#ax=plt.gca()
+#ax.set_xlabel('Time [microsec]')
+#ax.set_ylabel('Distance [nm]')
+#first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+#plt.title('z')
+##plt.show()
+#plt.savefig('varz.eps')
+
+###########################################################
+
 label1='Sample mean'
 label2='Calculated mean'
 label3='Sample standard deviation'
 label4='Calculated standard deviation'
+fig=plt.figure(figsize=(18,5))
+plot3 = plt.subplot(131)
+ax=plt.gca()
+ax.set_xlabel('Time [microsec]')
+ax.set_ylabel('Distance [nm]')
 line1, = plt.plot(xaxis*1e-3,Vecx, label=label1, color=color1, linewidth=2)
 line2, = plt.plot(xaxis*1e-3,y1, label=label2, color=color1, linestyle='--')
 line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecx2), label=label3, color=color2, linewidth=2)
 line4, = plt.plot(xaxis*1e-3,np.sqrt(y2), label=label4, color=color2, linestyle='--')
-ax=plt.gca()
-ax.set_xlabel('Time [microsec]')
-ax.set_ylabel('Distance [nm]')
-first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+plot3.legend(bbox_to_anchor=(0.8,1.))
 plt.title('x')
-plt.show()
-#plt.savefig('compareplots/x.png')
-
-fig=plt.figure(num=None, figsize=(12,7), dpi=100)
-label1='Sample mean'
-label2='Calculated mean'
-label3='Sample standard deviation'
-label4='Calculated standard deviation'
-line1, = plt.plot(xaxis*1e-3,Vecy, label=label1, color=color1, linewidth=2)
-line2, = plt.plot(xaxis*1e-3,y1, label=label2, color=color1, linestyle='--')
-line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecy2), label=label3, color=color2, linewidth=2)
-line4, = plt.plot(xaxis*1e-3,np.sqrt(y2), label=label4, color=color2, linestyle='--')
+plt.subplot(132)
 ax=plt.gca()
 ax.set_xlabel('Time [microsec]')
-ax.set_ylabel('Distance [nm]')
-first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+line5, = plt.plot(xaxis*1e-3,Vecy, label=label1, color=color1, linewidth=2)
+line6, = plt.plot(xaxis*1e-3,y1, label=label2, color=color1, linestyle='--')
+line7, = plt.plot(xaxis*1e-3,np.sqrt(Vecy2), label=label3, color=color2, linewidth=2)
+line8, = plt.plot(xaxis*1e-3,np.sqrt(y2), label=label4, color=color2, linestyle='--')
 plt.title('y')
-plt.show()
-#plt.savefig('compareplots/y.png')
-
-fig=plt.figure(num=None, figsize=(12,7), dpi=100)
-label1='Sample mean'
-label2='Calculated mean'
-label3='Sample standard deviation'
-label4='Calculated standard deviation'
-line1, = plt.plot(xaxis*1e-3,Vecz, label=label1, color=color1, linewidth=2)
-line2, = plt.plot(xaxis*1e-3,ex, label=label2, color=color1, linestyle='--')
-line3, = plt.plot(xaxis*1e-3,np.sqrt(Vecz2), label=label3, color=color2, linewidth=2)
-line4, = plt.plot(xaxis*1e-3,np.sqrt(var), label=label4, color=color2, linestyle='--')
+plt.subplot(133)
 ax=plt.gca()
 ax.set_xlabel('Time [microsec]')
-ax.set_ylabel('Distance [nm]')
-first_legend = plt.legend(handles=[line1,line3, line2, line4], loc=2)
+line9, = plt.plot(xaxis*1e-3,Vecz, label=label1, color=color1, linewidth=2)
+line10, = plt.plot(xaxis*1e-3,ex, label=label2, color=color1, linestyle='--')
+line11, = plt.plot(xaxis*1e-3,np.sqrt(Vecz2), label=label3, color=color2, linewidth=2)
+line12, = plt.plot(xaxis*1e-3,np.sqrt(var), label=label4, color=color2, linestyle='--')
 plt.title('z')
-plt.show()
-#plt.savefig('compareplots/z.png')
+plt.tight_layout()
+#plt.show()
+plt.savefig('varplot.eps')

@@ -1,7 +1,3 @@
-#from matplotlib import rc
-#rc('font',**{'family':'serif','serif':['Palatino']})
-#rc('text', usetex=True)
-#import colormaps
 from matplotlib import cm
 from math import sqrt
 import matplotlib.pyplot as plt
