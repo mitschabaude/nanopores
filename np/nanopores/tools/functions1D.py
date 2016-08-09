@@ -2,6 +2,9 @@
 import dolfin, numpy, nanopores
 import matplotlib.pyplot as plt
 
+# FIXME: make Geometry1D subclass Geometry, so we don't have to write geo1D.geo etc.
+# that shouldn't be too hard, as there is no overlap, init is the only issue:
+# either try assigning to self.__dict__, or write proper copy constructor, or adapt domain.create_geometry()
 class Geometry1D(object):
     
     def __init__(self, a=None, b=None, N=100, domain=None):

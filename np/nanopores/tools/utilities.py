@@ -301,7 +301,6 @@ def loadplots(name, show=True):
 def add_params(PARENT=None, **params):
     # this is some magic to attach a set of parameters to a module
     # but be able to use them in the same module without any ugly complication
-    # TODO: connect with parsed command line args
     if PARENT is not None:
         pparams = PARENT.PARAMS
         params.update({key: pparams[key] for key in pparams if not key in params})
