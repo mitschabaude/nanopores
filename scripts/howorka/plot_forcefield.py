@@ -92,8 +92,8 @@ fig2.axes[0].set_ylabel("")
 fig2.axes[1].set_ylabel("force [N]")
 
 # save to paper dir
-from folders import NUMERICSFIGDIR as DIR
-nanopores.savefigs("streamplot", DIR)
+#from folders import NUMERICSFIGDIR as DIR
+#nanopores.savefigs("streamplot", DIR)
 
-#plt.show()
+plt.show()
 

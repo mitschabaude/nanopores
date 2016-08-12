@@ -1,5 +1,5 @@
 from oct2py import Oct2Py
-PATH = "../../misc/collocation_methods/"
+PATH = "collocation_methods/"
 
 # general stuff (wrapper of matlab function)
 def collocation(N, order, a0, l, w, h, r):
