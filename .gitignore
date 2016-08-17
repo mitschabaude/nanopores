@@ -17,10 +17,7 @@ ffc_form*.h
 # ignore dolfin xml data files
 *.xml
 
-
 # ignore numpy saves
 *.npy
 
 # ignore some folders
-np/build
-data_heavy
