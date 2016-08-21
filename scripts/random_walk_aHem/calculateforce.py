@@ -16,6 +16,7 @@ def calculateforce(clscale=6., subdomain=None):
         ahemqs = 0.01,
         rTarget = 0.5*nm,
         bulkcon = 1000.,
+        T = 273+30
     )
     skip_stokes = True
     StokesProblem.method["iterative"] = True

@@ -3,9 +3,9 @@ import numpy as np
 from math import sqrt, acos, sin
 #from aHem_array import *
 
-x = np.load('exit_x.npy')
-y = np.load('exit_y.npy')
-z = np.load('exit_z.npy')
+#x = np.load('exit_x.npy')
+#y = np.load('exit_y.npy')
+#z = np.load('exit_z.npy')
 time = np.load('timer.npy')
 counter = np.load('counter.npy')
 print float(counter[0])/np.sum(counter)

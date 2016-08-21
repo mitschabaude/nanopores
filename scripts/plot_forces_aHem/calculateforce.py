@@ -68,13 +68,13 @@ def loadforces():
     Fel = Function(V, "Fel.xml")
     Fdrag = Function(V, "Fdrag.xml")
     return F, Fel, Fdrag
-def loadforces2():
-    mesh = Mesh("mesh_test_drag.xml")
-    V = VectorFunctionSpace(mesh, "CG", 1)
-    F = Function(V, "F_test_drag.xml")
-    Fel = Function(V, "Fel_test_drag.xml")
-    Fdrag = Function(V, "Fdrag_test_drag.xml")
-    return F, Fel, Fdrag
+#def loadforces2():
+#    mesh = Mesh("mesh_test_drag.xml")
+#    V = VectorFunctionSpace(mesh, "CG", 1)
+#    F = Function(V, "F_test_drag.xml")
+#    Fel = Function(V, "Fel_test_drag.xml")
+#    Fdrag = Function(V, "Fdrag_test_drag.xml")
+#    return F, Fel, Fdrag
    
 if __name__ == "__main__":
     add_params(scale = 10.)

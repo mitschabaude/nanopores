@@ -36,7 +36,7 @@ def indicator_poretop(vec):
 
 beta=1000
 kb=1.3806488e-23 #boltzmann [J/K]
-T= 293 #temp [K]
+T= 273+30#temp [K]
 visc=1e-3 #[Pa*s]
 D=(kb*T)/(6*pi*0.5e-9*visc) #diffusion[m^2/s]
 gamma=(6*pi*0.5*visc) #friction [microgramm/s]
@@ -51,7 +51,7 @@ counter=np.load('counter.npy')
 #######
 timeend=5e6
 #######
-sims=1000
+sims=3000
 done=np.sum(counter)
 left=sims-done
 
@@ -72,7 +72,7 @@ for index in Range:
     i=0
     boolexit=False
     newhbond=0
-    while timer<timeend and Z[i]<5e2 and X[i]**2+Y[i]**2<2.5e5:
+    while timer<timeend and Z[i]<1e2 and X[i]**2+Y[i]**1<1e4:
         faraway=False
         timefac=1.
         timefacsq = 1.

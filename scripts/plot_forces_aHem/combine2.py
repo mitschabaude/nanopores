@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mplPath
 import numpy as np
 from aHem_array_2d import *
-from calculateforce import loadforces2
-F, Fel, Fdrag = loadforces2()
+from calculateforce import loadforces
+F, Fel, Fdrag = loadforces()
 #plt.ion()
 #fig1=plt.figure(figsize=(18,12))
 #fig=fig1.add_subplot()
@@ -21,7 +21,7 @@ ax0=plt.subplot(gs[0])
 def fmt(x, pos):
     a, b = '{:.1e}'.format(10**x).split('e')
     b = int(b)
-    return r'${}\cdot10^{{{}}}$N'.format(a,b)
+    return r'${}\cdot10^{{{}}}$'.format(a,b)
 formt = matplotlib.ticker.FuncFormatter(fmt)
 
 
@@ -134,5 +134,5 @@ strm = ax1.streamplot(X,Y,U,V,arrowsize=3, linewidth=1.5, density=2.0, cmap=cm.v
 bar.colorbar(strm.lines,format=formt)
 plt.title('b)')
 plt.tight_layout()
-#plt.show()
-plt.savefig('forces.eps')
+plt.show()
+#plt.savefig('forces.eps')
