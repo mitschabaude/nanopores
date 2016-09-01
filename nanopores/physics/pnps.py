@@ -361,7 +361,16 @@ class PNPS(PDESystem):
         if string:
             return self.functions[string].split(deepcopy=deepcopy)
         return self.solutions("PNP", deepcopy) + self.solutions("Stokes", deepcopy)
-        
+    
+    def forces(self):
+        dim = self.phys.dim
+        fel = self.get_functionals(["Fbarevol"+str(i) for i in range(dim)])
+        fdrag = self.get_functionals(["Fdragvol"+str(i) for i in range(dim)])
+        Fel = [fel["Fbarevol"+str(i)] for i in range(dim)]
+        Fdrag = [fdrag["Fdragvol"+str(i)] for i in range(dim)]
+        F = [a + b for a, b in zip(Fel, Fdrag)]
+        return F, Fel, Fdrag
+     
     def zforces(self):
         z = str(self.phys.dim - 1)
         #dic = self.get_functionals(["Fbarevol"+z, "Fshear"+z, "Fp"+z])
