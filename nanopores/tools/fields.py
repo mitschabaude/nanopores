@@ -19,7 +19,10 @@ achievements of this module:
 -) display list of available fields
 -) reading AND saving fields can be done in parallel, only update() step not
 
--) TODO: if demanded, overwrite already calculated values
+TODO: if demanded, overwrite already calculated values
+TODO: fields.exists()
+TODO: fields.list_all (with indices)
+TODO: fields.list[i]
 """
 import os, json
 from nanopores.dirnames import DATADIR
@@ -61,6 +64,19 @@ def set_entries(name, params, **entries):
     # TODO could make sense also to change name/params
     assert all(k not in entries for k in ("name", "params"))
     Header().set_entries(name, params, **entries)
+    
+def exists(name, **params):
+    try:
+        Header().get_file_params(name, params)
+    except KeyError:
+        return False
+    return True     
+    
+def print_header():
+    h = Header().header
+    h.pop("_flist")
+    for key in h:
+        print "%s: %s" % (key, h[key])
     
 # core class that communicates with txt files
 class Header(object):

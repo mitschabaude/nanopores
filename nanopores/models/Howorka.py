@@ -182,6 +182,9 @@ def solve3D(geo, phys, **params):
     globals().update(params)
     if not stokesLU:
         StokesProblem.method["iterative"] = True
+    PNPProblem.method["kparams"]["relative_tolerance"] = 1e-10
+    PNPProblem.method["kparams"]["absolute_tolerance"] = 1e-6
+    PNPProblem.method["kparams"]["nonzero_intial_guess"] = False
     #StokesProblemEqualOrder.beta = 1.
     StokesProblem.method["kparams"].update(
         monitor_convergence = False,
