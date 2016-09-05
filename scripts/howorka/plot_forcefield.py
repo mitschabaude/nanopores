@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100, maxvalue=None, **fields):
+def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
+                    maxvalue=None, **fields):
     "streamlines plot of vector field around nanopore"  
     
     # interpolate on regular mesh symmetric w.r.t. center axis
@@ -15,7 +16,8 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100, maxvalue=None,
     fields2 = nanopores.convert2D(mesh2D, *(fields.values()))
     
     # prepare polygon and copy to left half
-    settings = dict(closed=True, facecolor="#eeeeee", linewidth=3., edgecolor="black")
+    settings = dict(closed=True, facecolor="#eeeeee", linewidth=3.,
+                    edgecolor="black")
     if polygon is not None:
         polygon = np.array(polygon)
         polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
@@ -73,27 +75,28 @@ def fmt(x, pos):
         return r"$0$"
     else:
         return r'${}\cdot10^{{{}}}$'.format(a,b)
-        
-# do the plot with imported force field and polygon
-from forcefield import F0, Fel0, Fdrag0, params, Howorka
-print "parameters:", params
 
-F, Fel, Fdrag = F0, Fel0, Fdrag0
-poly = Howorka.polygon()
-
-rx, ry = 6., 8.
-porestreamlines(poly, rx, ry, Fel=Fel, Fdrag=Fdrag) #, maxvalue = 1e-11)
-
-# modify plot for better output in paper
-fig1 = plt.figure("Fel")
-fig2 = plt.figure("Fdrag")
-fig1.delaxes(fig1.axes[1])
-fig2.axes[0].set_ylabel("")
-fig2.axes[1].set_ylabel("force [N]")
-
-# save to paper dir
-#from folders import NUMERICSFIGDIR as DIR
-#nanopores.savefigs("streamplot", DIR)
-
-plt.show()
+if __name__ == "__main__":        
+    # do the plot with imported force field and polygon
+    from forcefield import F0, Fel0, Fdrag0, params, Howorka
+    print "parameters:", params
+    
+    F, Fel, Fdrag = F0, Fel0, Fdrag0
+    poly = Howorka.polygon()
+    
+    rx, ry = 6., 8.
+    porestreamlines(poly, rx, ry, Fel=Fel, Fdrag=Fdrag) #, maxvalue = 1e-11)
+    
+    # modify plot for better output in paper
+    fig1 = plt.figure("Fel")
+    fig2 = plt.figure("Fdrag")
+    fig1.delaxes(fig1.axes[1])
+    fig2.axes[0].set_ylabel("")
+    fig2.axes[1].set_ylabel("force [N]")
+    
+    # save to paper dir
+    #from folders import NUMERICSFIGDIR as DIR
+    #nanopores.savefigs("streamplot", DIR)
+    
+    plt.show()
 

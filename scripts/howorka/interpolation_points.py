@@ -54,12 +54,13 @@ def points(h, hout, r0, r, l0, Rx, Ry):
 
 # load parameters and create points
 from nanopores.tools import fields
-from nanopores.geometries.H_cyl_geo.params_geo import r0, rMolecule, l0
+from nanopores.geometries.H_cyl_geo.params_geo import r0, rMolecule, l0, r1
 
-X = points(h, hout, r0, rMolecule, l0/2, Rx, Ry)
+X = points(h, hout, r0, rMolecule, l0/2, r1 + rMolecule, Ry)
 x, y = [z[0] for z in X], [z[1] for z in X]
 plt.scatter(x, y)
+plt.show()
 
-fields.save_entries("xforce", PARAMS, X=X, N=len(X))
-print "Created and stored %d evaluation points." %(len(X),)
-fields.update()
+#fields.save_entries("xforce", PARAMS, X=X, N=len(X))
+#print "Created and stored %d evaluation points." %(len(X),)
+#fields.update()
