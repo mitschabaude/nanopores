@@ -1,12 +1,18 @@
 "calculate force on given points; clever save/continue depending on params."
 from nanopores.models import Howorka
 from nanopores.tools import fields
+from nanopores import add_params
+
+add_params(
+    rMolecule = 0.5,
+    Qmol = -1.,
+)
 
 params = dict(
     bV = 0.,
     dnaqsdamp = 0.5,
-    rMolecule = 0.5,
-    Qmol = -1.,
+    rMolecule = rMolecule,
+    Qmol = Qmol,
     bulkcon = 3e2,
 )
 
