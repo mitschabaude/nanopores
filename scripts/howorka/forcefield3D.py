@@ -21,10 +21,11 @@ solver_params = dict(params,
     h3D = 8.,
     h = 1.,
     lcpore = 0.1,
-    Nmax3D = 3e4, # 8 GB => max. 3e4, 32 GB => 
+    Nmax3D = 2.5e4, # UMFPACK: max. ca. 3e4
     Nmax = 1e4,
     stokesLU = True,
 )
+fields.update()
 
 X = fields.get_entry("xforce", "X")
 N = len(X)
