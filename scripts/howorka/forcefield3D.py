@@ -27,6 +27,11 @@ solver_params = dict(params,
 )
 fields.update()
 
+# TODO calculate in parallel
+# TODO calculate current as well
+# TODO retrieve x points based on a given model and save file link
+#      to data field
+
 X = fields.get_entry("xforce", "X")
 N = len(X)
 if fields.exists("force3D", **params):

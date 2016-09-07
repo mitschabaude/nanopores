@@ -16,7 +16,8 @@ from .. import DATADIR
 import numpy, os
 from .calculate_forces import calculate2D
 
-__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D", "calculate2D", "simulate", "parallel_output"]
+__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D",
+           "calculate2D", "simulate", "parallel_output"]
 
 # directory where data are saved
 savedir = DATADIR + "/sim/stamps/"

@@ -26,6 +26,7 @@ TODO: fields.list[i]
 """
 import os, json
 from nanopores.dirnames import DATADIR
+import nanopores
 DIR = os.path.join(DATADIR, "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
@@ -56,6 +57,10 @@ def save_entries(name, params, **entries):
 
 def remove(name, **params):
     Header().remove(name, params)
+    
+def purge(name, **params):
+    while exists(name, **params):
+        remove(name, **params)
     
 def get_entry(name, entry, **params):
     return Header().get_entry(name, entry, **params)
@@ -165,7 +170,7 @@ class Header(object):
                 n += 1
         self._write()
         if N>0:
-            print ("Found %d new files, merged into %d "
+            print ("Found %d new files, merged %d of them into "
                "existing files.") % (N, n)
         else: print "Nothing to be updated."
         
@@ -263,3 +268,50 @@ if not os.path.exists(DIR):
 if not HEADER in os.listdir(DIR):
     _save(dict(_flist=[]), HEADER)
 
+"""
+automatic caching decorator
+
+exists should be generic
+save and load could be medium generic.
+several types of return values could be coverd:
+-) simple json-able objects
+-) fields, where calculation appends to previous one, e.g. 3D force field
+-) file links e.g. for continuous 2D force fields
+"""
+    
+class Params(dict):
+    "for writing params.Qmol instead of params['Qmol']"
+    def __getattr__(self, key):
+        return self[key]
+    
+class CacheBase(object):
+    def __init__(self, name, default={}, overwrite=False):
+        self.name = name
+        self.default = default
+        self.overwrite = overwrite
+        
+    def __call__(self, f):
+        def wrapper(*args, **params):
+            params = Params(self.default, **params)
+    
+            if self.overwrite or not self._exists(params):
+                out = f(params, *args)
+                self.save(out, params)
+            
+            return self.load(params)
+        return wrapper
+        
+    def _exists(self, params):
+        return exists(self.name, **params)
+            
+class cache(CacheBase):
+    "default -- for cashing simple json-able output"
+    
+    def save(self, result, params):
+        save_entries(self.name, params, result=result)
+        update()
+            
+    def load(self, params):
+        return get_entry(self.name, "result", **params)
+        
+        

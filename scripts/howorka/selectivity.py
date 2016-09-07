@@ -1,114 +1,74 @@
-"""run diffusion equation to determine selectivity"""
-
-"calculate 2D implicit forcefield; clever save/continue depending on params."
-from nanopores.models import Howorka
-from nanopores.tools import fields
+"""run diffusion equation to determine selectivity of fluophore,
+i.e current and release time series for specific molecule."""
+from nanopores.tools.fields import cache
 import nanopores
-
-import numpy, dolfin
-from matplotlib import pyplot
-import nanopores
+import dolfin
+import matplotlib.pyplot as plt
 from nanopores.physics.convdiff import ConvectionDiffusion
+import forcefields
 
-nanopores.add_params(
-    log = True,
+p = nanopores.user_params(
+    overwrite = False,
     levels = 1,
     t = 1e-0,
-    steps = 100, # timesteps per level for logarithmic time plot
-)
-   
-nanopores.add_params(
+    steps = 100,
+    Qmol = -1,
     rMolecule = 0.5,
-    Qmol = -1.,
-    h = 1.,
-    Nmax = 2e4,
+    implicit = False,
+    R = 12.
 )
 
-params = dict(
-    bV = 0.,
-    dnaqsdamp = 0.5,
-    rMolecule = rMolecule,
-    Qmol = Qmol,
-    bulkcon = 3e2,
-    Nmax = Nmax,
-    h = h,
-    Rx = 12.,
-    Ry = 12.,
+# force field parameters
+f_params = dict(
+    Qmol = p.Qmol,
+    rMolecule = p.rMolecule,
+    implicit = p.implicit,
+    Ry = p.R,
+    Rx = p.R,
+    Nmax = 1e5,
 )
 
-# save and load implicit force field
-NAME = "force2Dimp"
+# parameters for selectivity calculation
+sel_params = dict(
+    fluocon = 100., # initial concentration [mM] in upper reservoir
+    # parameters regarding timestepping
+    levels = p.levels, # levels > 1 --> logarithmic time
+    t = p.t, # total time of first level
+    steps = p.steps, # timesteps per level
+)
+default = dict(sel_params, **f_params)
 
-def save_forcefield_implicit(**params):
-    F, Fel, Fdrag = Howorka.F_field_implicit(**params)
-    mesh = Howorka.geo.mesh
-    uid = fields._unique_id()
-    FNAME = NAME + uid
-    nanopores.save_functions(FNAME, mesh, meta=params, F=F, Fel=Fel, Fdrag=Fdrag)
-    fields.save_entries(NAME, params, FNAME=FNAME)
-    fields.update()
+def calculate_selectivity(F, geo, phys, fluocon=1, t=1e0, steps=100, levels=1):
+    "core functionality of the module"
     
-def load_forcefield_implicit(**params):
-    FNAME = fields.get_entry(NAME, "FNAME", **params)
-    forces, mesh, params = nanopores.load_vector_functions(str(FNAME))
-    return forces["F"], forces["Fel"], forces["Fdrag"], mesh, params
+    # concentration in 1/nm**3 (1 M = 0.6 /nm**3)
+    c0 = fluocon*(phys.mol*phys.nm**3) 
+    u0 = geo.pwconst("c0", dict(bulkfluidtop = c0, default=0.))
     
-def maybe_calculate(**newparams):
-    params.update(newparams)
-
-    if fields.exists(NAME, **params):
-        print "Existing force field found."
-    else:
-        print "Calculating force field."
-        save_forcefield_implicit(**params)
-        
-    return load_forcefield_implicit(**params)
-
-if __name__ == "__main__":
-    import dolfin
-    from plot_forcefield import porestreamlines
-    F, Fel, Fdrag, mesh, params = maybe_calculate(**params)
-    dolfin.plot(mesh)
-    porestreamlines(Howorka.polygon(), 6., 8., F=F)
-    nanopores.showplots()
+    # total concentration
+    ctot = dolfin.assemble(u0*dolfin.Expression("2*pi*x[0]")*geo.dx())
+    phys.ctot = ctot
+    print "Total concentration:", ctot, "molecules."
     
-
-# import force field, mesh etc.
-from forcefield import geo, phys, Fel, Fdrag, params
-
-# initial condition
-
-#N = 10. # number of molecules to diffuse
-#r = 50. # radius of spherical region where molecules start [nm]
-#Vol = dolfin.pi*4./3.*r**3 # volume of region [nm**3]
-#c0 = N/Vol # concentration [1/nm**3]
-#x0 = numpy.array([0., z0]) # position of region 
-#u0f = lambda x: (c0 if sum((x-x0)**2) < r**2 else 0.) # function
-
-# concentration in 1/nm**3 (Burns et al.)
-c0 = 2*50.*(phys.mol*phys.nm**3) # 50 mM = 50*mol/m**3 (50*6e23*1e-27 = 3e-2)
-u0 = geo.pwconst("c0", dict(bulkfluidtop = c0, default=0.))
-
-# total concentration
-ctot = dolfin.assemble(u0*dolfin.Expression("2*pi*x[0]")*geo.dx())
-print "Total concentration:", ctot, "molecules."
-
-def convect(geo, phys, Fel, Fdrag, u0, t=1e-9, log=False):
+    # convect
+    phys.F = F
     frac = 1./steps
     dt = t/steps
     bc = {} #dict(upperb=dolfin.Constant(0.), lowerb=dolfin.Constant(0.))
-    F = dolfin.Constant(1.)*(Fel + dolfin.Constant(3.)*Fdrag) # TODO bad hack
     pde = ConvectionDiffusion(geo, phys, dt=dt, F=F, u0=u0, bc=bc, cyl=True)
-    pde.add_functionals([current, selectivity])
-    #yield pde
-    pde.timerange = nanopores.logtimerange(t, levels=levels, frac=frac,
-                                               change_dt=pde.change_dt)
+    pde.add_functionals([current, concentration])
+    pde.timerange = nanopores.logtimerange(t,
+       levels=levels, frac=frac, change_dt=pde.change_dt)
     for t_ in pde.timesteps(t=t):
         pde.record_functionals()
         pde.visualize()
-        
-    return pde
-    
+    # obtain current, release
+    return dict(
+        time = pde.time,
+        release = pde.functionals["cbottom"].values,
+        current = pde.functionals["J"].values)
+
+# functionals    
 def current(U, geo):
     u, = U
     r2pi = dolfin.Expression("2*pi*x[0]")
@@ -116,7 +76,7 @@ def current(U, geo):
     grad = phys.grad
     D = geo.pwconst("Dtarget")
     kT = dolfin.Constant(phys.kT)
-    F = Fel + dolfin.Constant(3.)*Fdrag
+    F = phys.F
     # current density [1/nm**3]*[nm/ns] = [1/(ns*nm**2)]
     j = -D*grad(u) + D/kT*F*u
     #lscale = Constant(phys.lscale)
@@ -127,31 +87,60 @@ def current(U, geo):
     J = 1e6*J
     return dict(J=J)
     
-def selectivity(U, geo):
+def concentration(U, geo):
     u, = U
+    ctot = geo.physics.ctot
     r2pi = dolfin.Expression("2*pi*x[0]")
     # urel = % of total concentration
-    urel = u/dolfin.Constant(ctot/100)
+    urel = u/dolfin.Constant(ctot/100.)
     c = urel *r2pi*geo.dx() 
     ctop = urel *r2pi*geo.dx("bulkfluidtop")
     cbottom = urel *r2pi*geo.dx("bulkfluidbottom")
     cpore = urel *r2pi*geo.dx("pore")
     return dict(c=c, ctop=ctop, cbottom=cbottom, cpore=cpore)
 
-# compute
-pde = convect(geo, phys, Fel, Fdrag, u0=u0, t=t, log=log)
+def _diff(dic, keys):
+    dic = dic.copy()
+    return {k : dic.pop(k) for k in keys}, dic
+    
+# user interface
+@cache("selectivity", default, overwrite=p.overwrite)
+def selectivity(params):
+    # filter out selectivity params
+    sparams, fparams = _diff(params, sel_params.keys())
+    
+    F, geo, phys = forcefields.F_geo_phys(**fparams)
+    result = calculate_selectivity(F, geo, phys, **sparams)
+    result["params"] = params
+    return result
 
-# save results
-NAME = "howorka2D_selectivity_Q%.0f" % (params["Qmol"],)
-results = dict(
-    time = pde.time,
-    release = pde.functionals["cbottom"].values,
-    current = pde.functionals["J"].values,
-)
-nanopores.save_stuff(NAME, results, params)
+if __name__ == "__main__":
+    import numpy
+    results = nanopores.Params(selectivity(**default))
+    t = results.time
+    J = results.current
+    rel = results.release
+    params = results.params
+    
+    plt.figure(0)
+    plt.semilogx(t, rel, "x-")
+    plt.xlabel("time [s]")
+    plt.ylabel("% release")
+    plt.title("reservoir size: %.0f nm" % (params["Ry"],))
+    plt.ylim(ymin=0.)
+    
+    def avg(J):
+        n = len(J)
+        J0 = list(numpy.array(J)[n*0.2:n*0.5])
+        return sum(J0)/len(J0)
 
-pde.plot_functionals("plot", ["cbottom"])
-pyplot.ylabel("% release")
-pde.plot_functionals("semilogx", ["J"])
-pyplot.ylabel("current through pore [1/ms]")
-#pyplot.show(block=True)
+    plt.figure(1)
+    plt.semilogx(t, J, "x-")
+    plt.xlabel("time [s]")
+    plt.ylabel("current through pore [1/ms]")
+    J0 = avg(J)
+    plt.plot(t, [J0]*len(t), "k--")
+    plt.title("quasi-equilibrium current: %.1f" % J0)
+    plt.ylim(ymin=0.)
+    
+    plt.show()

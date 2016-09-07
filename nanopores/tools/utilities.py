@@ -14,7 +14,8 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
-           "convert3D", "convert2D", "RectangleMesh", "savefigs"]
+           "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
+           "user_params"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -297,7 +298,7 @@ def loadplots(name, show=True):
     if show: plt.show()
     return meta
         
-    
+# TODO: to make this truly magical, we could recursively modify all parents
 def add_params(PARENT=None, **params):
     # this is some magic to attach a set of parameters to a module
     # but be able to use them in the same module without any ugly complication
@@ -325,6 +326,26 @@ def _argparse():
         dic[name] = val
     return dic
     
+def user_params(PARENT=None, **params):
+    "cleaner version of add_params with less secret module mangling"
+    "(magic is only included for ease of params inheritance)"
+    if PARENT is not None:
+        pparams = PARENT.PARAMS
+        params.update({key: pparams[key] for key in pparams if not key in params})
+    args = _argparse()
+    params.update({key: args[key] for key in args if key in params})
+    frm = inspect.stack()[1]
+    mod = inspect.getmodule(frm[0])
+    if not hasattr(mod, "PARAMS"):
+        mod.PARAMS = dict()
+    mod.PARAMS.update(params)
+    return Params(params)
+
+class Params(dict):
+    "for writing params.Qmol instead of params['Qmol']"
+    def __getattr__(self, key):
+        return self[key]
+
 def RectangleMesh(a, b, nx, ny):
     return dolfin.RectangleMesh(dolfin.Point(array(a)), dolfin.Point(array(b)), nx, ny)
     
@@ -386,4 +407,3 @@ def convert2D(mesh2D, *forces):
         return F2
     return tuple(map(to2D, forces))                    
 
-            

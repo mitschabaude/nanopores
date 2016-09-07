@@ -27,12 +27,26 @@ def forcefieldS1(implicit=False, **params):
         return forcefieldS1_implicit(**params1)
     else:
         return forcefieldS1_explicit(**params1)
+        
+def F_geo_phys(implicit=False, **params):
+    "returns force field and corresponding Geometry, Physics"
+    params1 = dict(default)
+    params1.update(params)
+    if implicit:           
+        F = forcefieldS1_implicit(**params1)
+    else:
+        F = forcefieldS1_explicit(**params1)
+        
+    mesh = F.function_space().mesh()
+    geo, phys = Howorka.setup2D(mesh=mesh, **params1)
+    return F, geo, phys
 
 # TODO: extend by zero on arbitrary size domain
 def forcefieldS1_implicit(**params):
     F, Fel, Fdrag, mesh, p = forcefield2D.maybe_calculate(**params)
     return F
-    
+
+# TODO: "maybe_calculate" functionality could be implemented with decorator!
 def forcefieldS1_explicit(**params):
     # maybe interpolate and save force field
     if fields.exists(NAME, **params):
@@ -52,7 +66,9 @@ def load_forcefield_explicit(**params):
     forces, mesh, params = nanopores.load_vector_functions(str(FNAME))
     return forces["F"], forces["Fel"], forces["Fdrag"], mesh, params
 
-NAME = "force2Dexp"    
+NAME = "force2Dexp"
+# TODO: put additional points also in point generation file
+#       that is the only remaining ungeneric part of the routine!
 def interpolate_forcefieldS1_explicit(**params):
     # --- load force field and points
     data = fields.get_fields("force3D", **params)
@@ -64,7 +80,7 @@ def interpolate_forcefieldS1_explicit(**params):
     # --- load geometry params
     # TODO: not very general
     xparams = fields.load_file("xforce")["params"]
-    Rx0, Ry0 = xparams["Rx"], xparams["Ry"] # TODO not needed
+    Rx0, Ry0 = xparams["Rx"], xparams["Ry"]
     Ry0 = 7. # FIXME bad hack
     r = params["rMolecule"]
     r0, l0, r1, l1 = (Howorka.params_geo.r0, Howorka.params_geo.l0,
@@ -73,13 +89,13 @@ def interpolate_forcefieldS1_explicit(**params):
         
     # --- piece together data TODO
     # additional points where implicit model will be used
-    hadd = 0.4
+    hadd = 0.8
     Xadd = uniform_grid([r1+r, Rx], [-Ry, -l1/2-r], hadd) + \
            uniform_grid([r1+r, Rx], [l1/2+r, Ry], hadd) + \
            uniform_grid([0, r1], [Ry0, Ry], hadd) + \
            uniform_grid([0, r1], [-Ry, -Ry0], hadd)
    # points where force is zero
-    hdna = 0.2
+    hdna = 0.4
     Xdna = uniform_grid([r0-r+.01, r1+r-.01], [-l0/2-r, l0/2+r], hdna) + \
            uniform_grid([r1+r, Rx], [-l1/2-r, l1/2+r], hdna)
     Fexpadd = [Fimpl(x) for x in Xadd]
@@ -99,11 +115,10 @@ def interpolate_forcefieldS1_explicit(**params):
     Fexp[yfar,:] = Fimp[yfar,:]
     
     # --- obtain S1 functions
-    print Rx, Ry
-    F = data_to_S1(x, y, Rx, Ry, Nx=50, Ny=100, Fexp=Fexp)
+    mesh = Fimpl.function_space().mesh()
+    F = data_to_S1(x, y, mesh, Fexp=Fexp)
     
     # --- save functions
-    mesh = F.function_space().mesh()
     uid = fields._unique_id()
     FNAME = NAME + uid
     nanopores.save_functions(FNAME, mesh, meta=params, F=F)
@@ -120,10 +135,10 @@ def uniform_grid(xi, yi, h):
     X = list(product(x, y))
     return X
 
-def data_to_S1(x, y, Rx, Ry, Nx=50, Ny=100, **values):
+def data_to_S1(x, y, mesh, **values):
     "2D data clouds of vector valued functions => dolfin S1 functions"
     trid = dln.Triangulation(x, y)
-    mesh = nanopores.RectangleMesh([0, -Ry], [Rx, Ry], Nx, Ny)
+    #mesh = nanopores.RectangleMesh([0, -Ry], [Rx, Ry], Nx, Ny)
     
     functions = []
     for F in values.values():    
