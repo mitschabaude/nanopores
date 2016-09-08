@@ -18,38 +18,38 @@ default = dict(
     Ry = 12.,
 )
     
-def forcefieldS1(implicit=False, **params):
+def forcefieldS1(overwrite=False, implicit=False, **params):
     # TODO: return right force field depending only on params (+ name)
     # as a first approximation, we will use:
     params1 = dict(default)
     params1.update(params)
     if implicit:           
-        return forcefieldS1_implicit(**params1)
+        return forcefieldS1_implicit(overwrite, **params1)
     else:
-        return forcefieldS1_explicit(**params1)
+        return forcefieldS1_explicit(overwrite, **params1)
         
-def F_geo_phys(implicit=False, **params):
+def F_geo_phys(overwrite=False, implicit=False, **params):
     "returns force field and corresponding Geometry, Physics"
     params1 = dict(default)
     params1.update(params)
     if implicit:           
-        F = forcefieldS1_implicit(**params1)
+        F = forcefieldS1_implicit(overwrite, **params1)
     else:
-        F = forcefieldS1_explicit(**params1)
+        F = forcefieldS1_explicit(overwrite, **params1)
         
     mesh = F.function_space().mesh()
     geo, phys = Howorka.setup2D(mesh=mesh, **params1)
     return F, geo, phys
 
 # TODO: extend by zero on arbitrary size domain
-def forcefieldS1_implicit(**params):
-    F, Fel, Fdrag, mesh, p = forcefield2D.maybe_calculate(**params)
+def forcefieldS1_implicit(overwrite=False, **params):
+    F, Fel, Fdrag, mesh, p = forcefield2D.maybe_calculate(overwrite, **params)
     return F
 
 # TODO: "maybe_calculate" functionality could be implemented with decorator!
-def forcefieldS1_explicit(**params):
+def forcefieldS1_explicit(overwrite=False, **params):
     # maybe interpolate and save force field
-    if fields.exists(NAME, **params):
+    if not overwrite and fields.exists(NAME, **params):
         print "Existing force field interpolation found."
     else:
         print "Interpolating 3D force field."

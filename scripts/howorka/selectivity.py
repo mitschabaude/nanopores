@@ -9,13 +9,16 @@ import forcefields
 
 p = nanopores.user_params(
     overwrite = False,
-    levels = 1,
-    t = 1e-0,
-    steps = 100,
+    levels = 12,
+    t = 1e-8,
+    steps = 20,
     Qmol = -1,
     rMolecule = 0.5,
     implicit = False,
-    R = 12.
+    R = 100.,
+    h = 1.,
+    Nmax = 1e5,
+    dnaqsdamp = 1.,
 )
 
 # force field parameters
@@ -25,7 +28,9 @@ f_params = dict(
     implicit = p.implicit,
     Ry = p.R,
     Rx = p.R,
-    Nmax = 1e5,
+    Nmax = p.Nmax,
+    h = p.h,
+    dnaqsdamp = p.dnaqsdamp,
 )
 
 # parameters for selectivity calculation
@@ -109,7 +114,7 @@ def selectivity(params):
     # filter out selectivity params
     sparams, fparams = _diff(params, sel_params.keys())
     
-    F, geo, phys = forcefields.F_geo_phys(**fparams)
+    F, geo, phys = forcefields.F_geo_phys(p.overwrite, **fparams)
     result = calculate_selectivity(F, geo, phys, **sparams)
     result["params"] = params
     return result

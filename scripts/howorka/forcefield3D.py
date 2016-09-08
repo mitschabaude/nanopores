@@ -6,11 +6,12 @@ from nanopores import add_params
 add_params(
     rMolecule = 0.5,
     Qmol = -1.,
+    dnaqsdamp = 0.5,
 )
 
 params = dict(
     bV = 0.,
-    dnaqsdamp = 0.5,
+    dnaqsdamp = dnaqsdamp,
     rMolecule = rMolecule,
     Qmol = Qmol,
     bulkcon = 3e2,
@@ -21,7 +22,7 @@ solver_params = dict(params,
     h3D = 8.,
     h = 1.,
     lcpore = 0.1,
-    Nmax3D = 2.5e4, # UMFPACK: max. ca. 3e4
+    Nmax3D = 3e4, # UMFPACK: max. ca. 3e4
     Nmax = 1e4,
     stokesLU = True,
 )

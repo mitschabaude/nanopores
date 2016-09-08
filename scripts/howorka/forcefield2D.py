@@ -39,10 +39,10 @@ def load_forcefield_implicit(**params):
     forces, mesh, params = nanopores.load_vector_functions(str(FNAME))
     return forces["F"], forces["Fel"], forces["Fdrag"], mesh, params
     
-def maybe_calculate(**newparams):
+def maybe_calculate(overwrite=False, **newparams):
     params.update(newparams)
 
-    if fields.exists(NAME, **params):
+    if not overwrite and fields.exists(NAME, **params):
         print "Existing force field found."
     else:
         print "Calculating force field."
