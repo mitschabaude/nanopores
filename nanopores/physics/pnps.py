@@ -491,18 +491,16 @@ class StokesProblem(AdaptableLinearProblem):
         grad = geo.physics.grad
         div = geo.physics.div
         lscale = geo.physics.lscale
+        c = lambda k : Constant(lscale**k)
+        eta = Constant(geo.physics.eta)
 
-        '''# scaling hack for now
-        lscale = geo.parameter("nm")/nm
-        def grad(u):
-            return lscale*nabla_grad(u)
-        def div(u):
-            return lscale*transpose(nabla_div(u))
-        '''
-        a = (eta*inner(grad(u),grad(v)) + div(v)*p + q*div(u))*dx
-        L = inner(f,v)*dx
-        p = inner(grad(u), grad(v))*dx + lscale*p*q*dx
-        return (a, L, p)
+        # scaling pressure by 1/lscale => s=1, else: s=0
+        s = 0
+        # TODO: s=1 seems to help (a bit)! explore other scalings for p!
+        a = (c(-2)*eta*inner(grad(u),grad(v)) + c(-2+s)*div(v)*p + c(-2+s)*q*div(u))*dx
+        L = c(-2)*inner(f,v)*dx
+        P = c(-1)*eta*inner(grad(u), grad(v))*dx + c(-1+2*s)*p*q*dx
+        return (a, L, P)
 
     def __init__(self, geo, phys, f=None, bcs=None, w=None):
         mesh = geo.mesh

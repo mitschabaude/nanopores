@@ -134,11 +134,12 @@ if not stokesLU:
     StokesProblem.method["iterative"] = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
-    monitor_convergence = False,
+    #monitor_convergence = True,
     relative_tolerance = 1e-10,
     absolute_tolerance = 1e-5,
-    maximum_iterations = 2000,
+    maximum_iterations = 500,
     nonzero_initial_guess = True,
+    error_on_nonconvergence = True,
     )
 
 LinearPBProblem.method["ks"] = "bicgstab"
@@ -231,5 +232,5 @@ if not cheapest:
 pb.estimators["goal ref"].plot(fig=False)
 """
 #saveplots("adap3Diterative", meta=PARAMS)
-#interactive()
+interactive()
 #showplots()
