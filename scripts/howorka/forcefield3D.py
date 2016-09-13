@@ -22,7 +22,7 @@ solver_params = dict(params,
     h3D = 8.,
     h = 1.,
     lcpore = 0.1,
-    Nmax3D = 3e4, # UMFPACK: max. ca. 3e4
+    Nmax3D = 2.5e4, # UMFPACK: max. ca. 3e4
     Nmax = 1e4,
     stokesLU = True,
 )

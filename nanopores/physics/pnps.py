@@ -445,12 +445,13 @@ class PNPS(PDESystem):
 
 class StokesProblem(AdaptableLinearProblem):
     k = 2
+    scalepressure = False
     #method = dict(solvermethods.stokes)
 
     method = dict(
         reuse = True,
         iterative = True,
-        lusolver = ("mumps" if has_lu_solver_method("superlu_dist") else "default"),
+        lusolver = ("superlu_dist" if has_lu_solver_method("superlu_dist") else "default"),
         luparams = dict(
             symmetric = True,
             same_nonzero_pattern = True,
@@ -491,15 +492,18 @@ class StokesProblem(AdaptableLinearProblem):
         grad = geo.physics.grad
         div = geo.physics.div
         lscale = geo.physics.lscale
-        c = lambda k : Constant(lscale**k)
+        cP = lambda k : Constant(10**k)
         eta = Constant(geo.physics.eta)
 
-        # scaling pressure by 1/lscale => s=1, else: s=0
-        s = 0
+        # scaling pressure by 10**k
+        k = 7
+        k = k if StokesProblem.scalepressure else 0
+        m = 9-k #15-2*k
+        l = 0
         # TODO: s=1 seems to help (a bit)! explore other scalings for p!
-        a = (c(-2)*eta*inner(grad(u),grad(v)) + c(-2+s)*div(v)*p + c(-2+s)*q*div(u))*dx
-        L = c(-2)*inner(f,v)*dx
-        P = c(-1)*eta*inner(grad(u), grad(v))*dx + c(-1+2*s)*p*q*dx
+        a = cP(l)*(eta*inner(grad(u),grad(v)) + cP(k)*div(v)*p + cP(k)*q*div(u))*dx
+        L = cP(l)*inner(f,v)*dx
+        P = cP(l)*(eta*inner(grad(u), grad(v)) + cP(2*k)*cP(m)*p*q)*dx
         return (a, L, P)
 
     def __init__(self, geo, phys, f=None, bcs=None, w=None):

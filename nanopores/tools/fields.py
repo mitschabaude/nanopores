@@ -271,6 +271,13 @@ if not HEADER in os.listdir(DIR):
 """
 automatic caching decorator
 
+use like:
+@cache("name", default=default_params)
+def calculate(params):
+    return results
+    
+=> calculate(**params) gives cached results if they exist
+
 exists should be generic
 save and load could be medium generic.
 several types of return values could be coverd:

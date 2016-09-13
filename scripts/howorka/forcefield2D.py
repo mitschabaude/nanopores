@@ -43,9 +43,9 @@ def maybe_calculate(overwrite=False, **newparams):
     params.update(newparams)
 
     if not overwrite and fields.exists(NAME, **params):
-        print "Existing force field found."
+        print "Existing 2D force field found."
     else:
-        print "Calculating force field."
+        print "Calculating 2D force field."
         save_forcefield_implicit(**params)
         
     return load_forcefield_implicit(**params)

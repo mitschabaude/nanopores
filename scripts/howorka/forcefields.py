@@ -38,7 +38,7 @@ def F_geo_phys(overwrite=False, implicit=False, **params):
         F = forcefieldS1_explicit(overwrite, **params1)
         
     mesh = F.function_space().mesh()
-    geo, phys = Howorka.setup2D(mesh=mesh, **params1)
+    geo, phys = Howorka.setup2D(mesh=mesh, z0=None, **params1)
     return F, geo, phys
 
 # TODO: extend by zero on arbitrary size domain

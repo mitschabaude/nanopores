@@ -1,12 +1,10 @@
-import numpy
-import nanopores
+import nanopores, numpy
 import matplotlib.pyplot as plt
-from selectivity import selectivity, default
 
 Qs = [-1.,-3.]
+NAME = "howorka2D_selectivity_Q%.0f"
 label = r"$Q = %.0f$"
 
-default = nanopores.user_params(**default)
 
 def avg(J):
     n = len(J)
@@ -16,19 +14,16 @@ def avg(J):
 Javg = []
 
 for Q in Qs:
-    params = dict(default)
-    params["Qmol"] = Q
-    results = selectivity(**params)
+    results, params = nanopores.load_stuff(NAME % Q)
     t = results["time"]
     J = results["current"]
     rel = results["release"]
-    params0 = results["params"]
 
     plt.figure(0)
     plt.semilogx(t, rel, "x-", label=label % Q)
     plt.xlabel("time [s]")
     plt.ylabel("% release")
-    plt.title("reservoir size: %.0f nm" % (params0["Ry"],))
+    plt.title("reservoir size: %.0f nm" % (params["Ry"],))
     plt.ylim(ymin=0.)
 
     plt.figure(1)

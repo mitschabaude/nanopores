@@ -6,9 +6,11 @@ import dolfin
 import matplotlib.pyplot as plt
 from nanopores.physics.convdiff import ConvectionDiffusion
 import forcefields
+from eikonal import boundary_force
 
 p = nanopores.user_params(
     overwrite = False,
+    bforce = True,
     levels = 12,
     t = 1e-8,
     steps = 20,
@@ -16,7 +18,7 @@ p = nanopores.user_params(
     rMolecule = 0.5,
     implicit = False,
     R = 100.,
-    h = 1.,
+    h = 4.,
     Nmax = 1e5,
     dnaqsdamp = 1.,
 )
@@ -35,6 +37,7 @@ f_params = dict(
 
 # parameters for selectivity calculation
 sel_params = dict(
+    bforce = p.bforce,
     fluocon = 100., # initial concentration [mM] in upper reservoir
     # parameters regarding timestepping
     levels = p.levels, # levels > 1 --> logarithmic time
@@ -113,8 +116,17 @@ def _diff(dic, keys):
 def selectivity(params):
     # filter out selectivity params
     sparams, fparams = _diff(params, sel_params.keys())
+    bforce = sparams.pop("bforce")
     
-    F, geo, phys = forcefields.F_geo_phys(p.overwrite, **fparams)
+    # get PNPS force
+    #F, geo, phys = forcefields.F_geo_phys(p.overwrite, **fparams)
+    F, geo, phys = forcefields.F_geo_phys(**fparams)
+    
+    # get additional boundary force
+    if bforce:
+        Fb, _ = boundary_force(mesh=geo.mesh, **fparams)    
+        F = F + Fb    
+    
     result = calculate_selectivity(F, geo, phys, **sparams)
     result["params"] = params
     return result

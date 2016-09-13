@@ -21,6 +21,7 @@ ratio = .01,
 stokesLU = False,
 preadapt = False,
 uniform = False,
+scalep = True,
 )
 
 geo_params = dict(
@@ -120,7 +121,7 @@ geo.curved = dict(
 
 phys = Physics("howorka", geo, **phys_params)
 
-IllposedLinearSolver.stab = 1e9
+IllposedLinearSolver.stab = 1e0 #9
 IllposedNonlinearSolver.newtondamp = 1.
 
 #PNPProblem.method["iterative"] = False
@@ -132,14 +133,16 @@ PNPProblem.method["iterative"] = True #False
 
 if not stokesLU:
     StokesProblem.method["iterative"] = True
+if scalep:
+    StokesProblem.scalepressure = True
 #StokesProblemEqualOrder.beta = 1.
 StokesProblem.method["kparams"].update(
     #monitor_convergence = True,
-    relative_tolerance = 1e-10,
-    absolute_tolerance = 1e-5,
+    relative_tolerance = 1e-5,
+    absolute_tolerance = 1e-10,
     maximum_iterations = 500,
     nonzero_initial_guess = True,
-    error_on_nonconvergence = True,
+    error_on_nonconvergence = False, #True,
     )
 
 LinearPBProblem.method["ks"] = "bicgstab"
@@ -196,6 +199,7 @@ print "hmin [nm]: ", geo.mesh.hmin()/nm
 if mesh2D is not None:
     plot_cross(v, mesh2D, title="potential")
     #plot_cross(cm, mesh2D, title="cm")
+    #plot_cross(cp, mesh2D, title="cp")
     plot_cross(p, mesh2D, title="p")
     plot_cross_vector(u, mesh2D, title="u")
     #plot(phi2D, title="pb primal 2D")
