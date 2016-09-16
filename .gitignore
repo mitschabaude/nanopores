@@ -17,6 +17,9 @@ ffc_form*.h
 # ignore dolfin xml data files
 *.xml
 
+# ignore pictures
+*.png
+
 # ignore numpy saves
 *.npy
 

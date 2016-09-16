@@ -173,9 +173,11 @@ def lambda_to_S1(f, mesh, dim=1):
     return f1
     
 if __name__ == "__main__":
-    from plot_forcefield import porestreamlines
+    from plot_forcefield import porestreamlines, plt
     F = forcefieldS1(implicit=False, **default)
     Fimp = forcefieldS1(implicit=True, **default)
-    porestreamlines(Howorka.polygon(), 6., 8., F=F, Fimp=Fimp)
+    porestreamlines(Howorka.polygon(), 6., 8., F=F) #, Fimp=Fimp)
+    fig = plt.figure("F")
+    fig.axes[1].set_ylabel("force [N]")
     nanopores.showplots()
             
