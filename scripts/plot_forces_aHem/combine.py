@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mplPath
 import numpy as np
 from aHem_array_2d import *
-from calculateforce import loadforces2
-F, Fel, Fdrag = loadforces2()
+from calculateforce import loadforces
+F, Fel, Fdrag = loadforces()
 #plt.ion()
 #fig1=plt.figure(figsize=(18,12))
 #fig=fig1.add_subplot()

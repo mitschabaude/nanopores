@@ -15,6 +15,7 @@ F, Fel, Fdrag = loadforces()
 bar, fig = plt.subplots(figsize=(11,4.8))
 gs=gridspec.GridSpec(1, 2, width_ratios=[1,1])
 ax0=plt.subplot(gs[0])
+ax0.text(8.7,-3.3,'force [N]',rotation='vertical')
 #ax=plt.axes()
 
 
@@ -105,6 +106,7 @@ plt.title('a)')
 
 
 ax1=plt.subplot(gs[1])
+ax1.text(8.7,-3.3,'force [N]',rotation='vertical')
 axes=plt.gca()
 axes.set_ylim([-10,2])
 axes.set_xlim([-5,5])
@@ -134,5 +136,5 @@ strm = ax1.streamplot(X,Y,U,V,arrowsize=3, linewidth=1.5, density=2.0, cmap=cm.v
 bar.colorbar(strm.lines,format=formt)
 plt.title('b)')
 plt.tight_layout()
-plt.show()
-#plt.savefig('forces.eps')
+#plt.show()
+plt.savefig('forces.eps')
