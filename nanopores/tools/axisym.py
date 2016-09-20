@@ -2,9 +2,9 @@
 python tools for creating axisymmetric geometries automatically from their half-plane sections.
 """
 from .. import py4gmsh
-from . import box
-from .box import BoxCollection, Box, entities_to_gmsh, to_mesh
-import dolfin
+#from . import box
+from .box import BoxCollection, Box, to_mesh
+#import dolfin
 
 __all__ = ["rotate_z"]
 
@@ -28,9 +28,9 @@ class CylinderCollection(BoxCollection):
         
     def create_geometry(self, lc=.5):
         self.compute_entities()
-        gmsh_entities = entities_to_gmsh(self.entities, self.indexsets, lc=lc)
-        rotate_surfs(gmsh_entities, self.boundaries, 1, self.nrot)
-        rotate_surfs(gmsh_entities, self.subdomains, 2, self.nrot)
+        self.entities_to_gmsh_recursive(lc=lc)
+        rotate_surfs(self.gmsh_entities, self.boundaries, 1, self.nrot)
+        rotate_surfs(self.gmsh_entities, self.subdomains, 2, self.nrot)
         self.geo = to_mesh()
         self.geo.params = self.params
         if hasattr(self, "synonymes"):

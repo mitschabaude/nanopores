@@ -9,14 +9,14 @@ H = 40
 hmem = 2
 closed_membrane = Box(center=zero, l=R, w=R, h=hmem)
 
-rdna = 20
+rdna = 25
 hdna = 20
 cdna = [0, 0, 0.5*(hdna-hmem)]
 
 reservoir = Box(center=cdna, l=R, w=R, h=H)
 closed_dna = Box(center=cdna, l=rdna, w=rdna, h=hdna)
 
-rpore = 10
+rpore = 22
 pore = Box(center=cdna, l=rpore, w=rpore, h=hdna)
 
 # build domain with disjoint subdomains
@@ -35,8 +35,8 @@ domain.addsubdomains(
 dnaouterb = closed_dna.boundary("front", "back", "left", "right")
 dnamemb = dnaouterb & closed_membrane
 dnaouterb = dnaouterb - dnamemb
-dnainnerb = pore.boundary()
-dnaedgeb = closed_dna.boundary("front", "back", "left", "right") - pore
+dnainnerb = pore.boundary("front", "back", "left", "right")
+dnaedgeb = closed_dna.boundary("top", "bottom") - pore
 
 outermemb = closed_membrane.boundary("front", "back", "left", "right")
 sideb = reservoir.boundary("front", "back", "left", "right") - outermemb
@@ -78,8 +78,22 @@ domain.params = dict(
 )
 
 if __name__ == "__main__":
-    geo = domain.create_geometry(lc=1.)
+    solid = membrane | dna
+    solid.addsubdomains(dna=dna, membrane=membrane)
+    solid.addboundaries(
+        dnaouterb = dnaouterb,
+        dnainnerb = dnainnerb,
+        dnaedgeb = dnaedgeb,
+        memb = memb,
+    )
+    print solid
+    geo = solid.create_geometry(lc=2.)
     print geo
+    solid.plot()    
+
+    geo = domain.create_geometry(lc=2.)
+    #domain.plot()
+    #print geo
     
     plot_sliced(geo)
     
@@ -87,9 +101,27 @@ if __name__ == "__main__":
     dolfin.plot(geo.submesh("solid"))
     dolfin.interactive()
     
+#    print domain.indexsets
+#    
+#    for i,en in enumerate(domain.entities[3]):
+#        print i,":",en
+#    for sub in domain.subdomains:
+#        if isinstance(sub, Box):
+#            print sub.name, ":", sub.indexsets
+#        else:
+#            print sub.name, ":", sub.indexset
+#    for i,en in enumerate(domain.entities[2]):
+#        print i,":",en
+#    for sub in domain.boundaries:
+#        if isinstance(sub, Box):
+#            print sub.name, ":", sub.indexsets
+#        else:
+#            print sub.name, ":", sub.indexset
+            
+    
     # TODO: doesnt work
     # pure solid domain with boundaries for visual verification
-#    solid = membrane | dna
+
 #    solid.addsubdomains(dna=dna, membrane=membrane)
 #    solid.addboundaries(
 #        dnaouterb = dnaouterb,
@@ -97,5 +129,3 @@ if __name__ == "__main__":
 #        dnaedgeb = dnaedgeb,
 #        memb = memb,
 #    )
-#    geo = solid.create_geometry(lc=1.)
-#    solid.plot()

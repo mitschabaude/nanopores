@@ -6,8 +6,10 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 
 # TODO: customizable length scales
 # TODO: reduce number of boxes in disjoint union when there is no intersection
+# TODO: or at least be able to merge volumes when necessary
 # TODO: it would be nice to have some sort of "interactive mode" where you add
 #       domains and boundaries in order and they are plotted immediately -- for showing off.
+# FIXME: weird bugs when no subdomain/boundary defined
 
 from itertools import izip, product, combinations
 from .. import py4gmsh
@@ -36,24 +38,73 @@ class BoxCollection(object):
         return self.csg
     def _boxes(self):
         return self.boxes
-    def _indexset(self):
-        return self.indexset
                 
     def compute_entities(self):
+        print self.boxes
         dic = multi_box_union(self.boxes, self.facets)
         self.__dict__.update(dic)
-        self.indexset = self._csg().eval()
+        #self.indexset = self._csg().eval()
         self.indexsets = self._csg().evalsets()
+        d = self.dim
         for sub in self.subdomains:
-            sub.indexset = sub._csg().eval() & self.indexset
+            sub.indexset = sub._csg().evalsets()[d] & self.indexsets[d]
         for sub in self.boundaries:
-            sub.indexset = sub._csg().eval()
+            sub.indexset = sub._csg().evalsets()[d-1] #& self.indexsets[d-1]
         # make sure that subdomains cover all of domain:
         if self.subdomains:
             rest = self - union(self.subdomains)
-            rest.indexset = rest.csg.eval()
+            rest.indexset = sub._csg().evalsets()[d]
             if rest.indexset:
                 self.addsubdomain(rest, "rest")
+                
+    def entity_to_gmsh(self, e, dim, lc):
+        # do not duplicate entity in gmsh
+        i = self.entities[dim].index(e)
+        gmsh_e = self.gmsh_entities[dim][i]
+        if gmsh_e is not None:
+            return gmsh_e
+            
+        if dim==0: # create Point
+            e = e + tuple(0. for i in range(3 - self.dim))
+            gmsh_e = py4gmsh.Point(e, lc)
+            self.gmsh_entities[0][i] = gmsh_e
+            print gmsh_e, e
+            return gmsh_e
+        
+        # dim>0: recursively generate facets and entity itself
+        facets = _facets(e)
+        facets = [self.entity_to_gmsh(f, dim-1, lc)
+            for f in facets]
+        orient = _orientations(dim-1)
+        loop = FacetLoop[dim-1]([o+s for o, s in izip(orient, facets)])
+        gmsh_e = Entity[dim](loop)
+        self.gmsh_entities[dim][i] = gmsh_e
+        print gmsh_e, e
+        return gmsh_e
+    
+    def entities_to_gmsh_recursive(self, lc=.5):        
+        dim = len(self.entities)-1
+        self.dim = dim
+        self.dimt = -1 + sum(1 for en in self.entities if en)   
+        # initialize
+        self.gmsh_entities = [[None for e in k] for k in self.entities] 
+        # add entities of full dimension        
+        for i, e in enumerate(self.entities[dim]):
+            if i not in self.indexsets[dim]:
+                print "NOT INSIDE", e
+                continue
+            self.entity_to_gmsh(e, dim, lc)
+        #print self.gmsh_entities
+                
+    def physical_to_gmsh(self):
+        # call after entities_to_gmsh
+        dimt = self.dimt
+        for sub in self.subdomains:
+            vols = [self.gmsh_entities[dimt][i] for i in sub.indexset]
+            py4gmsh.PhysicalVolume(vols, sub.name, dimt)
+        for sub in self.boundaries:
+            surfs = [self.gmsh_entities[dimt-1][i] for i in sub.indexset]
+            py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
         
     def compute_boundaries(self):
         # call after compute_entities
@@ -62,8 +113,9 @@ class BoxCollection(object):
         
     def create_geometry(self, lc=.5):
         self.compute_entities()
-        entities_to_gmsh(self.entities, self.indexsets, lc=lc)
-        physical_to_gmsh(self.subdomains, self.boundaries)
+        self.entities_to_gmsh_recursive(lc=lc)
+        #entities_to_gmsh(self.entities, self.indexsets, self.esets, lc=lc)
+        self.physical_to_gmsh()
         self.geo = to_mesh()
         self.geo.params = self.params
         if hasattr(self, "synonymes"):
@@ -135,29 +187,26 @@ class BoxCollection(object):
         
 def Interval(a, b):
     # simple wrapper for Box
-    return Box(intervals=[(a, b)])
+    return Box([a], [b])
         
 class Box(BoxCollection):
     
     def __init__(self, a=None, b=None, intervals=None, center=None, l=None, w=None, h=None):
         if intervals is not None:
-            self.intervals = intervals
-            self.dim = len(intervals)
-            self.a = tuple(x for x,y in intervals)
-            self.b = tuple(y for x,y in intervals)
-        else:
-            if center is not None:
-                a = [c - x*.5 for c,x in zip(center, [l,w,h])]
-                b = [c + x*.5 for c,x in zip(center, [l,w,h])]
-            # a, b should be tuples
-            assert len(a) == len(b)
-            a, b = _sort(a, b)
-            a = tuple(Float(x) for x in a)
-            b = tuple(Float(x) for x in b)
-            self.intervals = zip(a, b)
-            self.dim = len(a)
-            self.a = a
-            self.b = b
+            a = tuple(Float(x) for x,y in intervals)
+            b = tuple(Float(y) for x,y in intervals)
+        if center is not None:
+            a = [c - x*.5 for c,x in zip(center, [l,w,h])]
+            b = [c + x*.5 for c,x in zip(center, [l,w,h])]
+        # a, b should be tuples
+        assert len(a) == len(b)
+        a, b = _sort(a, b)
+        a = tuple(Float(x) for x in a)
+        b = tuple(Float(x) for x in b)
+        self.intervals = zip(a, b)
+        self.dim = len(a)
+        self.a = a
+        self.b = b
             
         # determine topological dimension
         self.dimt = 0
@@ -187,8 +236,6 @@ class Box(BoxCollection):
         return csgExpression(self)
     def _boxes(self):
         return [self]
-    def _indexset(self):
-        return self.indexset
         
     def __or__(self, other):
         # return union of two Boxes as a BoxCollection
@@ -270,7 +317,7 @@ class csgExpression(object):
         
     def eval(self): # is designed to return a set
         if self.singleton:
-            return self.A._indexset()
+            return self.A.indexset
         if self.op == "|":
             return self.A.eval() | self.B.eval()
         elif self.op == "&":
@@ -405,17 +452,7 @@ def multi_box_union(boxes, facets=[]):
                     esets[k].append(eset)
                     for ii in eset:
                         allboxes[ii].indexsets[k].add(j)
-                    """
-                    if k == (dim-1):
-                        for ii in eset:
-                            if allboxes[ii] in facets: # TODO: bad hack
-                                allboxes[ii].indexset.add(j)
-                    if k == dim:
-                        for ii in eset:
-                            if allboxes[ii] in boxes:
-                                allboxes[ii].indexset.add(j)
-                    """
-                    j += 1
+                    j += 1 # counts all k-entities
                                
         #print "k=%s:"%k, entities[k]
         #print
@@ -423,7 +460,7 @@ def multi_box_union(boxes, facets=[]):
     for box in allboxes:
         box.indexset = box.indexsets[box.dimt]
     
-    return dict(nodes=nodes, entities=entities, esets=esets)
+    return dict(nodes=nodes, entities=entities, esets=esets, dim=dim)
     
 def _facets(box): # get facets from d-dimensional box, d >= 1
     facets = []
@@ -449,7 +486,8 @@ Entity = {
     3: py4gmsh.Volume
     }
 
-def entities_to_gmsh(entities, indexsets, lc=.5):
+# DEPRECATED
+def entities_to_gmsh(entities, indexsets, esets, lc=.5):
 
     global gmsh_entities
     global dim
@@ -468,6 +506,8 @@ def entities_to_gmsh(entities, indexsets, lc=.5):
     
     # add points
     for i, e in enumerate(entities[0]):
+        print e
+        print esets[0][i]
         # py4gmsh.Point expects three values x,y,z
         e = e + tuple(0. for i in range(3 - dim))
         # create point
@@ -475,40 +515,44 @@ def entities_to_gmsh(entities, indexsets, lc=.5):
         
     # add entities of dimension > 0
     for k in range(1, dim+1):
+        orient = _orientations(k-1)      
+        
         for i, e in enumerate(entities[k]):
-            # TODO preliminary hack
-            #if k == dim:
-            if i not in indexsets[k]:
+            print e
+            print esets[k][i]
+            
+            # skip code creation for entity if not part of domain
+            # FIXME: what do we do with unnessecary facets??
+            if k==dim and i not in indexsets[k]:
+                print "NOT INSIDE"
+                print
                 continue
                     
             # get surrounding facets (x,y,z in this order)
             facets = _facets(e)
+
+            for f in facets:
+                print f,
             
             # find corresponding gmsh facets
             facets = [_gmsh(l, k-1) for l in facets]
             
             # create facet loop with correct orientations
-            orient = _orientations(k-1)
+            print facets
             loop = FacetLoop[k-1]([o+s for o, s in izip(orient, facets)])
+            print
             
             # add entity
             gmsh_entities[k][i] = Entity[k](loop)
             
     return gmsh_entities
             
-def physical_to_gmsh(subdomains, boundaries):
-    # call only after entities_to_gmsh
-    for sub in subdomains:
-        vols = [gmsh_entities[dimt][i] for i in sub.indexset]
-        py4gmsh.PhysicalVolume(vols, sub.name, dimt)
-    for sub in boundaries:
-        surfs = [gmsh_entities[dimt-1][i] for i in sub.indexset]
-        py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
-    
 def to_mesh(clscale=1., pid=""):
     py4gmsh.raw_code(['General.ExpertMode = 1;'])
     code = py4gmsh.get_code()
     meta = py4gmsh.get_meta()
+    if not meta["physical_domain"]:
+        pass
 
     import os, subprocess
     import nanopores
@@ -520,6 +564,11 @@ def to_mesh(clscale=1., pid=""):
     meshdir = MESHDIR
     if not os.path.exists(meshdir):
         os.makedirs(meshdir)
+        
+    xml_sub = meshdir+"/mesh%s_physical_region.xml" %pid
+    xml_bou = meshdir+"/mesh%s_facet_region.xml" %pid
+    if os.path.exists(xml_sub): os.remove(xml_sub)
+    if os.path.exists(xml_bou): os.remove(xml_bou)
 
     fid_dict = {"fid_geo": os.path.join(meshdir, inputfile),
                 "fid_msh": os.path.join(meshdir, outfile)}
@@ -542,17 +591,17 @@ def to_mesh(clscale=1., pid=""):
     # convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
     mesh = dolfin.Mesh(fid_dict["fid_xml"])
     
-    if meta:
-        subdomains = dolfin.MeshFunction("size_t", mesh, meshdir+"/mesh%s_physical_region.xml"%pid)
-        boundaries = dolfin.MeshFunction("size_t", mesh, meshdir+"/mesh%s_facet_region.xml"%pid)
-        with open('%s/%s.txt' % (meshdir, "meta%s" %pid), 'w') as f:
-            f.write(repr(meta))
-        physdom = meta.pop("physical_domain")
-        physbou = meta.pop("physical_boundary")
-        # TODO: no interface for synonymes yet. maybe isn't needed if geo.import_synonymes() works well.
-        return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
+    print meta
+    with open('%s/%s.txt' % (meshdir, "meta%s" %pid), 'w') as f:
+        f.write(repr(meta))
         
-    return nanopores.Geometry(None, mesh)   
+    physdom = meta.pop("physical_domain")
+    physbou = meta.pop("physical_boundary")
+    subdomains = dolfin.MeshFunction("size_t", mesh, xml_sub) if physdom else None
+    boundaries = dolfin.MeshFunction("size_t", mesh, xml_bou) if physbou else None
+
+    return nanopores.Geometry(None, mesh, subdomains, boundaries, physdom, physbou)
+
     
 def geo_from_meshdir(DIR=MESHDIR):
     import nanopores

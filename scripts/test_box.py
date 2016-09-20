@@ -19,7 +19,7 @@ domain.addsubdomains(
     poretop = poretop,
     porecenter = porecenter,
     porebottom = porebottom,
-    bulkfluid = domain - (dna | membrane | pore),
+    #bulkfluid = domain - (dna | membrane | pore),
 )
 
 domain.addboundaries(
@@ -38,7 +38,8 @@ print "\nBoundaries:\n",geo._physical_boundary
 print "\nSubdomains:\n",geo._physical_domain
 domain.plot()
 print
-print domain.indexset
+print domain.indexsets
+print
 
 for i,en in enumerate(domain.entities[2]):
     print i,":",en
