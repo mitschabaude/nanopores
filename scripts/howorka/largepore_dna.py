@@ -19,10 +19,10 @@ from nanopores import Box, plot_sliced
 #              |DDDDD|..l3...|DDDDD|             .    .
 #   MEMBRANE   |DDDDD|       |DDDDD|             .    H
 #      |       |DDDDD|       |DDDDD|             .    .
-#      |       |DDDDD|       |DDDDD|             .    .
-#______V_______|DDDDD|       |DDDDD|____________ .___ .......
-#MMMMMMMMMMMMMMMM|DDD|       |DDD|MMMMMMMMMMMMMMM.MMMM.    hmem
-#MMMMMMMMMMMMMMMM|DDD|_______|DDD|MMMMMMMMMMMMMMM.MMMM.......
+#      |       |DDDDD|       |DDDDD|....h4       .    .
+#______V_________|DDD|       |DDD|_____.________ .___ .......
+#MMMMMMMMMMMMMMMM|DDD|       |DDD|MMMMM.MMMMMMMMM.MMMM.    hmem
+#MMMMMMMMMMMMMMMM|DDD|_______|DDD|MMMMM.MMMMMMMMM.MMMM.......
 #                .               .                    .
 #                .......l4........                    .
 #                                                     .
@@ -43,11 +43,13 @@ hpore = 46
 hmem = 2.2
 h2 = hpore-35. 
 h1 = h2-2.5
+h4 = 10.
 
 cmem = [0.,0.,-.5*(hpore-hmem)]
 c1 = [0.,0.,.5*(hpore-h1)]
 c2 = [0.,0.,hpore*.5-h1-(h2-h1)*.5]
 cpore = [0.,0.,-.5*h2]
+c4 = [0.,0.,-.5*(hpore-h4)]
 
 reservoir = Box(center=zero, l=R, w=R, h=H)
 
@@ -56,29 +58,32 @@ closed_dna = Box(center=zero, l=l0, w=l0, h=hpore)
 enter_1 = Box(center=c1, l=l1, w=l1, h=h1)
 enter_2 = Box(center=c2, l=l2, w=l2, h=h2-h1)
 enter_3 = Box(center=cpore, l=l3, w=l3, h=hpore-h2)
-substract_mem = Box(center=cmem, l=l4, w=l4, h=hmem)
+substract_mem = Box(center=c4, l=l4, w=l4, h=h4)
+substract_mem_spanning = Box(center=c4, l=l0, w=l0, h=h4)
+substract_dna = substract_mem_spanning - substract_mem
+add_bulkfluid = substract_dna - closed_membrane
 
 domain = reservoir
 membrane = closed_membrane - substract_mem
 membrane_boundary = closed_membrane - closed_dna
-dna = closed_dna - enter_1 - enter_2 - enter_3 - membrane
+dna = closed_dna - enter_1 - enter_2 - enter_3 - substract_dna
 
 domain.addsubdomains(
     membrane = membrane,
     dna = dna,
     pore = enter_1 | enter_2 | enter_3,
-    bulkfluid = reservoir - membrane - closed_dna,
+    bulkfluid = reservoir - membrane - closed_dna | add_bulkfluid,
 )
 
 dnainnerb = enter_1.boundary("front", "back", "left", "right") | enter_2.boundary("front", "back", "left", "right") | enter_3.boundary("front", "back", "left", "right")
 dnaupperb = closed_dna.boundary("top") - enter_1
 dnaupperb = dnaupperb | enter_1.boundary("bottom") - enter_2
 dnaupperb = dnaupperb | enter_2.boundary("bottom") - enter_3
-dnaouterb = closed_dna.boundary("front", "back", "left", "right") - membrane
+dnaouterb = closed_dna.boundary("front", "back", "left", "right") - substract_mem_spanning
+dnaouterb = dnaouterb | substract_mem_spanning.boundary("top") - substract_mem
+dnaouterb = dnaouterb | substract_mem.boundary("front", "back", "right", "left") - membrane
 dnalowerb = substract_mem.boundary("bottom") - enter_3
-uppermemb = closed_membrane.boundary("top") - closed_dna
-lowermemb = closed_membrane.boundary("bottom") - substract_mem
-memb = uppermemb | lowermemb
+memb = closed_membrane.boundary("top", "bottom") - substract_mem
 outermemb = closed_membrane.boundary("front", "back", "left", "right")
 sideb = reservoir.boundary("front", "back", "left", "right") - outermemb
 upperb = reservoir.boundary("top")
