@@ -5,27 +5,33 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 '''
 
 # TODO: customizable length scales
-# TODO: reduce number of boxes in disjoint union when there is no intersection
-# TODO: or at least be able to merge volumes when necessary
+# TODO: for new option mergevol, handle cases of no subdomain and
+#       create boundaries (also Surface in Volume?)
+# TODO: to make mergevol always applicable, would need check for connectedness
 # TODO: it would be nice to have some sort of "interactive mode" where you add
-#       domains and boundaries in order and they are plotted immediately -- for showing off.
-# FIXME: weird bugs when no subdomain/boundary defined
+#       domains and boundaries in order and they are plotted immediately
+#       -- for showing off.
+#       this could use the module.__getattr__ trick (stackoverflow)
+#       or be implemented properly with update of entities etc.
+# TODO: reasonable verbosity
 
 from itertools import izip, product, combinations
-from .. import py4gmsh
+import nanopores.py4gmsh as py4gmsh
 import dolfin
+
 
 __all__ = ["BoxCollection", "Box", "Interval"]
 MESHDIR = "/tmp/nanopores"
         
 class BoxCollection(object):
-    " collection of disjoint boxes, and their vertices, edges, facets "
+    """
+    collection of boxes together with constructive solid geometry (CSG) 
+    expression tree."""
     
     def __init__(self, *boxes):
         self.boxes = list(boxes)
         self.subdomains = []
         self.boundaries = []
-        self.facets = []
         self.indexset = set()
         self.params = {}
         #self.csg = union(map(csgExpression, boxes))
@@ -34,30 +40,41 @@ class BoxCollection(object):
         return str(self.csg)
         
     # two methods to unify Boxes and BoxCollections
-    def _csg(self):
-        return self.csg
-    def _boxes(self):
-        return self.boxes
+#    def _csg(self):
+#        return self.csg
+#    def _boxes(self):
+#        return self.boxes
                 
     def compute_entities(self):
-        print self.boxes
-        dic = multi_box_union(self.boxes, self.facets)
+        #print self.boxes
+        dic = multi_box_union(self.boxes)
         self.__dict__.update(dic)
         #self.indexset = self._csg().eval()
-        self.indexsets = self._csg().evalsets()
+        self.indexsets = self.csg.evalsets()
         d = self.dim
         for sub in self.subdomains:
-            sub.indexset = sub._csg().evalsets()[d] & self.indexsets[d]
+            sub.indexset = sub.csg.evalsets()[d] & self.indexsets[d]
         for sub in self.boundaries:
-            sub.indexset = sub._csg().evalsets()[d-1] #& self.indexsets[d-1]
+            # ATTENTION: if boundary is not contained in domain, its entities
+            # will still be created. this is addressed by deleting Nones in the
+            # gmsh surfaces defining the physical boundary, which can silently
+            # cause an empty boundary in Geometry and e.g. BCs without effect.
+            sub.indexset = sub.csg.evalsets()[d-1] #& self.indexsets[d-1] # <-- wrong
         # make sure that subdomains cover all of domain:
         if self.subdomains:
             rest = self - union(self.subdomains)
-            rest.indexset = sub._csg().evalsets()[d]
+            rest.indexset = rest.csg.evalsets()[d]
             if rest.indexset:
                 self.addsubdomain(rest, "rest")
+            if not self.boundaries:
+                # TODO: create default domain boundary at this point
+                pass
+        if self.boundaries and not self.subdomains:
+            # create dummy subdomain
+            self.addsubdomain(self, "domain")
+            self.indexset = self.indexsets[d]
                 
-    def entity_to_gmsh(self, e, dim, lc):
+    def entity_to_gmsh(self, e, dim, lc, gmshself=True):
         # do not duplicate entity in gmsh
         i = self.entities[dim].index(e)
         gmsh_e = self.gmsh_entities[dim][i]
@@ -68,7 +85,7 @@ class BoxCollection(object):
             e = e + tuple(0. for i in range(3 - self.dim))
             gmsh_e = py4gmsh.Point(e, lc)
             self.gmsh_entities[0][i] = gmsh_e
-            print gmsh_e, e
+            #print gmsh_e, e
             return gmsh_e
         
         # dim>0: recursively generate facets and entity itself
@@ -77,45 +94,108 @@ class BoxCollection(object):
             for f in facets]
         orient = _orientations(dim-1)
         loop = FacetLoop[dim-1]([o+s for o, s in izip(orient, facets)])
-        gmsh_e = Entity[dim](loop)
-        self.gmsh_entities[dim][i] = gmsh_e
-        print gmsh_e, e
-        return gmsh_e
+        if gmshself:
+            gmsh_e = Entity[dim](loop)
+            self.gmsh_entities[dim][i] = gmsh_e
+            #print gmsh_e, e
+            return gmsh_e
     
-    def entities_to_gmsh_recursive(self, lc=.5):        
+    def entities_to_gmsh_recursive(self, lc=.5, mergevols=True):        
         dim = len(self.entities)-1
         self.dim = dim
         self.dimt = -1 + sum(1 for en in self.entities if en)   
         # initialize
         self.gmsh_entities = [[None for e in k] for k in self.entities] 
-        # add entities of full dimension        
-        for i, e in enumerate(self.entities[dim]):
-            if i not in self.indexsets[dim]:
-                print "NOT INSIDE", e
-                continue
-            self.entity_to_gmsh(e, dim, lc)
-        #print self.gmsh_entities
+        # add facets of entities of full dimension 
+        if not mergevols:        
+            for i, e in enumerate(self.entities[dim]):
+                if not i in self.indexsets[dim]:
+                    continue
+                self.entity_to_gmsh(e, dim, lc, False)
+            return
+           
+        # build full subdomains and their boundaries
+        facets = self.entities[dim-1]
+        gmsh = self.gmsh_entities[dim-1]
+        self.gmsh_subs = []
+        if not self.subdomains:
+            pass
+        for sub in self.subdomains:
+            # gmsh facets
+            for i in sub.bdry().indexset:
+                # do not duplicate entity in gmsh
+                if gmsh[i] is None:
+                    self.entity_to_gmsh(facets[i], dim-1, lc, True)
+            # gmsh sub                
+            orients = sub.bdry().orients
+            dic = {1:"+", -1:"-"}
+            subfacets = [dic[orients[i]] + gmsh[i] for i in sub.bdry().indexset]
+            loop = FacetLoop[dim-1](subfacets)
+            gmsh_e = Entity[dim](loop)
+            self.gmsh_subs.append(gmsh_e)
                 
-    def physical_to_gmsh(self):
+    def physical_to_gmsh(self, mergevols=True):
         # call after entities_to_gmsh
         dimt = self.dimt
-        for sub in self.subdomains:
-            vols = [self.gmsh_entities[dimt][i] for i in sub.indexset]
-            py4gmsh.PhysicalVolume(vols, sub.name, dimt)
+        
+        if mergevols:
+            for sub, vol in zip(self.subdomains, self.gmsh_subs):
+                py4gmsh.PhysicalVolume(vol, sub.name, dimt)
+        else:
+            for sub in self.subdomains:
+                vols = [self.gmsh_entities[dimt][i] for i in sub.indexset]
+                py4gmsh.PhysicalVolume(vols, sub.name, dimt)
+        
         for sub in self.boundaries:
             surfs = [self.gmsh_entities[dimt-1][i] for i in sub.indexset]
+            surfs = [s for s in surfs if s is not None]
             py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
         
     def compute_boundaries(self):
         # call after compute_entities
-        # TODO
-        pass
+        # need list of domains of which to compute boundary
+        d = self.dim
+        orients = [eval(o+"1") for o in _orientations(d-1)]
+        #print orients
+        for sub in self.subdomains: # + [self]:
+            #print sub.name, ":"
+            iset = sub.bdry().indexset = set()
+            odict = dict()
+            for i in sub.indexset:
+                e = self.entities[d][i]
+                for f, o in izip(_facets(e), orients):
+                    iface = self.entities[d-1].index(f)
+                    #print odict
+                    #print iset
+                    #print iface
+                    if iface in iset:
+                        iset.remove(iface)
+                        odict[iface] = odict[iface] + o
+                    else:
+                        iset.add(iface)
+                        odict[iface] = o
+            sub.bdry().orients = odict
+            
+            #print iset, "\n"
         
-    def create_geometry(self, lc=.5):
+    def create_geometry(self, lc=.5, mergevols=True):
+        print "computing geometrical entities...",
+        dolfin.tic()
         self.compute_entities()
-        self.entities_to_gmsh_recursive(lc=lc)
+        print dolfin.toc(), "s"
+        if mergevols:
+            print "computing boundaries...",
+            dolfin.tic()
+            self.compute_boundaries()
+            print dolfin.toc(), "s"
+        print "writing gmsh code...",
+        dolfin.tic()
+        self.entities_to_gmsh_recursive(lc, mergevols)
         #entities_to_gmsh(self.entities, self.indexsets, self.esets, lc=lc)
-        self.physical_to_gmsh()
+        #self.gmsh_entities = gmsh_entities
+        #self.dimt = dimt
+        self.physical_to_gmsh(mergevols)
+        print dolfin.toc(), "s"
         self.geo = to_mesh()
         self.geo.params = self.params
         if hasattr(self, "synonymes"):
@@ -142,7 +222,7 @@ class BoxCollection(object):
         assert isinstance(sub, BoxCollection) or isinstance(sub, Box)
         sub.name = name
         self.subdomains.append(sub)
-        self.boxes = list(set(self.boxes + sub._boxes()))
+        self.boxes = list(set(self.boxes + sub.boxes))
         #self.boxes = _unique(self.boxes + sub._boxes())
         
     def addsubdomains(self, **subdomains):
@@ -153,37 +233,35 @@ class BoxCollection(object):
         assert isinstance(sub, BoxCollection) or isinstance(sub, Box)
         sub.name = name
         self.boundaries.append(sub)
-        self.facets = list(set(self.facets + sub._boxes()))
-        #self.facets = _unique(self.facets + sub._boxes())
+        self.boxes = list(set(self.boxes + sub.boxes))
         
     def addboundaries(self, **boundaries):
         for name, sub in boundaries.items():
             self.addboundary(sub, name)
         
-    def boundary(self):
-        # TODO
-        pass
+    def bdry(self):
+        return Boundary(self)
         
     def __or__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
+        boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
-        coll.csg = self._csg() | other._csg()
+        coll.csg = self.csg | other.csg
         return coll
         
     def __and__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
+        boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
-        coll.csg = self._csg() & other._csg()
+        coll.csg = self.csg & other.csg
         return coll
         
     def __sub__(self, other):
-        boxes = list(set(self._boxes() + other._boxes()))
+        boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
-        coll.csg = self._csg() - other._csg()
+        coll.csg = self.csg - other.csg
         return coll
         
     def __repr__(self):
-        return str(self._csg())
+        return str(self.csg)
         
 def Interval(a, b):
     # simple wrapper for Box
@@ -214,6 +292,7 @@ class Box(BoxCollection):
             if not i[0] == i[1]:
                 self.dimt += 1
         
+        self.csg = csgExpression(self)
         BoxCollection.__init__(self, self)
 
     def __str__(self):
@@ -231,30 +310,6 @@ class Box(BoxCollection):
     def __getitem__(self, i):
         return self.intervals[i]
         
-    # two methods to unify Boxes and BoxCollections
-    def _csg(self):
-        return csgExpression(self)
-    def _boxes(self):
-        return [self]
-        
-    def __or__(self, other):
-        # return union of two Boxes as a BoxCollection
-        coll = BoxCollection(self, *(other._boxes()))
-        coll.csg = self._csg() | other._csg()
-        return coll
-        
-    def __and__(self, other):
-        # return intersection of two Boxes as a BoxCollection
-        coll = BoxCollection(self, *(other._boxes()))
-        coll.csg = self._csg() & other._csg()
-        return coll
-        
-    def __sub__(self, other):
-        # return difference of two Boxes as a BoxCollection
-        coll = BoxCollection(self, *(other._boxes()))
-        coll.csg = self._csg() - other._csg()
-        return coll
-        
     def boundary(self, *strings):
         facets = _facets(self.intervals)
         if strings:
@@ -265,6 +320,29 @@ class Box(BoxCollection):
             intervals = [(f if isinstance(f, tuple) else (f,f)) for f in facet]
             boxes.append(Box(intervals=intervals))
         return union(boxes)
+        
+class BoundaryCollection(BoxCollection):
+    "boundary of a BoxCollection, which is a BoxCollection itself"
+    """this is just an empty collection with csg initialized as singleton,
+    which means self.indexset has to be built manually."""
+    
+    def __init__(self, coll):
+        self.csg = csgExpression(self)
+        self.coll = coll
+        BoxCollection.__init__(self)
+        
+    def __repr__(self):
+        return "Boundary(%s)" % (str(self.coll),)
+    def __str__(self):
+        return "Boundary(%s)" % (str(self.coll),)
+        
+def Boundary(coll):
+    """wrapper for BoundaryCollection that refers to a single object, i.e.
+    Boundary(A) == Boundary(A)"""
+    if not hasattr(coll, "_bdry"):
+        coll._bdry = BoundaryCollection(coll)
+    return coll._bdry
+    
         
 _boundaries = {
 1 : dict(
@@ -297,15 +375,12 @@ class csgExpression(object):
     
     def sginit(self, A):
         self.A = A
-        #self.string = repr(A)
         self.singleton = True
     
     def opinit(self, op, A, B):
         self.op = op
         self.A = A
         self.B = B
-        #self.string = "(%s %s %s)" %(repr(A), op, repr(B))
-        #self.string = "(%s %s %s)" %("%s", op, "%s")
         self.singleton = False
         
     def __repr__(self):
@@ -313,7 +388,6 @@ class csgExpression(object):
             return repr(self.A)
         else:
             return "(%s %s %s)" %(repr(self.A), self.op, repr(self.B))
-        #return self.string
         
     def eval(self): # is designed to return a set
         if self.singleton:
@@ -417,11 +491,11 @@ def _map(f, seq):
     instead of a list of tuples (like map), return a tuple of lists. """
     return tuple(map(list, zip(*map(f, seq))))
         
-def multi_box_union(boxes, facets=[]):
+def multi_box_union(boxes): #, facets=[]):
     " return union of boxes as collection of disjoint boxes "
     # TODO: atm this modifies the boxes with an "indexset" attribute
     #       which doesn't seem perfectly clean
-    allboxes = boxes + facets
+    allboxes = boxes #+ facets
     
     # get dimension; all boxes must have the same
     dim = boxes[0].dim
@@ -548,7 +622,9 @@ def entities_to_gmsh(entities, indexsets, esets, lc=.5):
     return gmsh_entities
             
 def to_mesh(clscale=1., pid=""):
-    py4gmsh.raw_code(['General.ExpertMode = 1;'])
+    print "executing gmsh...",
+    dolfin.tic()
+    py4gmsh.raw_code(["General.ExpertMode = 1;"])
     code = py4gmsh.get_code()
     meta = py4gmsh.get_meta()
     if not meta["physical_domain"]:
@@ -585,11 +661,15 @@ def to_mesh(clscale=1., pid=""):
     if gmsh_out != 0:
         raise RuntimeError('Gmsh failed in generating this geometry')
     
+    print dolfin.toc(), "s"
+    print "converting to dolfin...",
+    dolfin.tic()
     fid_dict["fid_xml"] = os.path.join(meshdir, meshfile)
     subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
     # for debugging:
     # convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
     mesh = dolfin.Mesh(fid_dict["fid_xml"])
+    print dolfin.toc(), "s"
     
     print meta
     with open('%s/%s.txt' % (meshdir, "meta%s" %pid), 'w') as f:

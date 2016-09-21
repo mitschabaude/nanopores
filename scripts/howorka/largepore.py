@@ -14,6 +14,8 @@ hdna = 20
 cdna = [0, 0, 0.5*(hdna-hmem)]
 
 reservoir = Box(center=cdna, l=R, w=R, h=H)
+upperhalf = Box([-R, -R, 0], [R, R, H])
+
 closed_dna = Box(center=cdna, l=rdna, w=rdna, h=hdna)
 
 rpore = 22
@@ -24,11 +26,17 @@ domain = reservoir
 membrane = closed_membrane - closed_dna
 dna = closed_dna - pore
 
+bulkfluid = domain - (dna | membrane | pore)
+bulkfluid_top = bulkfluid & upperhalf
+bulkfluid_bottom = bulkfluid - upperhalf
+
 domain.addsubdomains(
     membrane = membrane,
     dna = dna,
     pore = pore,
-    bulkfluid = reservoir - membrane - dna - pore,
+    bulkfluid_top = bulkfluid_top,
+    bulkfluid_bottom = bulkfluid_bottom,
+    #bulkfluid = reservoir - membrane - dna - pore,
 )
 
 # build disjoint boundaries
@@ -58,6 +66,7 @@ domain.addboundaries(
 # add synonymes for overlapping subdomains and boundaries
 domain.synonymes = dict(
     # subdomains
+    bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
     fluid = {"bulkfluid", "pore"},
     solid = {"membrane", "dna"},
 
@@ -78,6 +87,8 @@ domain.params = dict(
 )
 
 if __name__ == "__main__":
+    merge = True
+    
     solid = membrane | dna
     solid.addsubdomains(dna=dna, membrane=membrane)
     solid.addboundaries(
@@ -86,12 +97,17 @@ if __name__ == "__main__":
         dnaedgeb = dnaedgeb,
         memb = memb,
     )
-    print solid
-    geo = solid.create_geometry(lc=2.)
+    #print solid
+    from dolfin import tic, toc
+    tic()
+    geo = solid.create_geometry(lc=2., mergevols=merge)
+    print "time:", toc()
     print geo
     solid.plot()    
 
-    geo = domain.create_geometry(lc=2.)
+    tic()
+    geo = domain.create_geometry(lc=2., mergevols=merge)
+    print "time:", toc()
     #domain.plot()
     #print geo
     
