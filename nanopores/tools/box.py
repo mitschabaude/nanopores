@@ -128,21 +128,17 @@ class BoxCollection(object):
             self.gmsh_entities[dim][i] = gmsh_e
             #print gmsh_e, e
             return gmsh_e
-    
-    def entities_to_gmsh_recursive(self, lc=.5, merge=True):        
-        dim = len(self.entities)-1
-        self.dim = dim
-        self.dimt = -1 + sum(1 for en in self.entities if en)   
-        # initialize
-        self.gmsh_entities = [[None for e in k] for k in self.entities] 
+            
+    def entities_to_gmsh_nomerge(self, lc):
+        dim = self.dim
         # add facets of entities of full dimension 
-        if not merge:        
-            for i, e in enumerate(self.entities[dim]):
-                if not i in self.indexsets[dim]:
-                    continue
-                self.entity_to_gmsh(e, dim, lc)
-            return
-           
+        for i, e in enumerate(self.entities[dim]):
+            if not i in self.indexsets[dim]:
+                continue
+            self.entity_to_gmsh(e, dim, lc)
+            
+    def entities_to_gmsh_merge(self, lc):
+        dim = self.dim
         # build full subdomains and their boundaries
         facets = self.entities[dim-1]
         gmsh = self.gmsh_entities[dim-1]
@@ -153,17 +149,27 @@ class BoxCollection(object):
                 # do not duplicate entity in gmsh
                 if gmsh[i] is None:
                     self.entity_to_gmsh(facets[i], dim-1, lc)
-            # gmsh sub                
-            orients = sub.bdry().orients
-            dic = {1:"+", -1:"-"}
-            subfacets = [dic[orients[i]] + gmsh[i] for i in sub.bdry().indexset]
-            loop = FacetLoop[dim-1](subfacets)
-            gmsh_e = Entity[dim](loop)
-            self.gmsh_subs.append(gmsh_e)
+            # gmsh sub
+            if sub.bdry().indexset: # gmsh won't compile empty volume
+                orients = sub.bdry().orients
+                dic = {1:"+", -1:"-"}
+                subfacets = [dic[orients[i]] + gmsh[i]
+                             for i in sub.bdry().indexset]
+                loop = FacetLoop[dim-1](subfacets)
+                gmsh_e = Entity[dim](loop)
+                self.gmsh_subs.append(gmsh_e)
+    
+    def entities_to_gmsh(self, lc=.5, merge=True):        
+        # initialize
+        self.gmsh_entities = [[None for e in k] for k in self.entities] 
+        if merge:
+            self.entities_to_gmsh_merge(lc)
+        if not merge:
+            self.entities_to_gmsh_nomerge(lc)
                 
     def physical_to_gmsh(self, merge=True):
         # call after entities_to_gmsh
-        dimt = self.dimt
+        self.dimt = dimt = -1 + sum(1 for en in self.entities if en)
         
         if merge:
             for sub, vol in zip(self.subdomains, self.gmsh_subs):
@@ -185,12 +191,11 @@ class BoxCollection(object):
         with Log("computing boundaries..."):
             self.compute_boundaries(merge)
         
-        with Log("writing gmsh code..."):
-            self.entities_to_gmsh_recursive(lc, merge)
+        with Log("computing gmsh entities..."):
+            self.entities_to_gmsh(lc, merge)
             self.physical_to_gmsh(merge)
         #entities_to_gmsh(self.entities, self.indexsets, self.esets, lc=lc)
         #self.gmsh_entities = gmsh_entities
-        #self.dimt = dimt
         
         self.geo = to_mesh()
         self.geo.params = self.params
@@ -263,20 +268,30 @@ class BoxCollection(object):
         if hasattr(self, "synonymes"):
             newcol.synonymes = dict(self.synonymes)
         return newcol
+    
+    # TODO bad hack??    
+    # list of class names that are allowed to override set operators
+    operator_priority = ["BallCollection", "Ball"]
         
     def __or__(self, other):
+        if type(other).__name__ in self.operator_priority:
+            return other | self
         boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
         coll.csg = self.csg | other.csg
         return coll
         
     def __and__(self, other):
+        if type(other).__name__ in self.operator_priority:
+            return other & self
         boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
         coll.csg = self.csg & other.csg
         return coll
         
     def __sub__(self, other):
+        if type(other).__name__ in self.operator_priority:
+            return other - self
         boxes = list(set(self.boxes + other.boxes))
         coll = BoxCollection(*boxes)
         coll.csg = self.csg - other.csg
@@ -354,6 +369,8 @@ class BoundaryCollection(BoxCollection):
     def __init__(self, coll):
         self.csg = csgExpression(self)
         self.coll = coll
+        if hasattr(coll, "dim"):
+            self.indexsets = [set() for i in range(coll.dim+1)]
         BoxCollection.__init__(self)
         
     def __repr__(self):
@@ -565,6 +582,8 @@ def multi_box_union(boxes): #, facets=[]):
     # choose correct indexset for every box
     for box in allboxes:
         box.indexset = box.indexsets[box.dimt]
+        print box
+        print box.indexsets
     
     return dict(nodes=nodes, entities=entities, esets=esets, dim=dim)
     

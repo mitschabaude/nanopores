@@ -107,7 +107,7 @@ if __name__ == "__main__":
     
     #print dnaedgeb.indexset()
     solid.plot()    
-    exit()
+
     tic()
     geo = domain.create_geometry(lc=2., merge=merge)
     print "time:", toc()

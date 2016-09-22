@@ -7,10 +7,10 @@ square.addsubdomain(lshape, "lshape")
 square.addboundaries(   
     allb = (square - lshape).boundary(),
 )
-geo = square.create_geometry(lc=.3)
+geo = square.create_geometry(lc=.2)
 
 square2 = square.copy()
-geo = square2.create_geometry(lc=.3, merge=False)
+geo = square2.create_geometry(lc=.2, merge=False)
 
 square.plot()
 square2.plot()
