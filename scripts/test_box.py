@@ -40,7 +40,7 @@ domain.addboundaries(
 )
 from dolfin import tic, toc
 tic()
-geo = domain.create_geometry(lc=.25*lc, mergevols=True)
+geo = domain.create_geometry(lc=.5*lc, merge=True)
 print "Create geometry:", toc(), "s"
 # That was it!
 

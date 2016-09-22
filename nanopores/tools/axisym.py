@@ -118,5 +118,3 @@ def copy_boxcollection(col):
     if hasattr(col, "synonymes"):
         newcol.synonymes = dict(col.synonymes)
     return newcol
-    
-

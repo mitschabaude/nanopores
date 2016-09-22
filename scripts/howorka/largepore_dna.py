@@ -123,7 +123,7 @@ domain.params = dict(
 )
 
 if __name__ == "__main__":
-    geo = domain.create_geometry(lc=1.)
+    geo = domain.create_geometry(lc=2., merge=False)
     print geo
     
     plot_sliced(geo)

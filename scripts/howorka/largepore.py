@@ -100,13 +100,13 @@ if __name__ == "__main__":
     #print solid
     from dolfin import tic, toc
     tic()
-    geo = solid.create_geometry(lc=2., mergevols=merge)
+    geo = solid.create_geometry(lc=2., merge=merge)
     print "time:", toc()
     print geo
     solid.plot()    
-
+    exit()
     tic()
-    geo = domain.create_geometry(lc=2., mergevols=merge)
+    geo = domain.create_geometry(lc=2., merge=merge)
     print "time:", toc()
     #domain.plot()
     #print geo
