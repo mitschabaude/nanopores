@@ -97,12 +97,15 @@ if __name__ == "__main__":
         dnaedgeb = dnaedgeb,
         memb = memb,
     )
+    
     #print solid
     from dolfin import tic, toc
     tic()
     geo = solid.create_geometry(lc=2., merge=merge)
     print "time:", toc()
     print geo
+    
+    #print dnaedgeb.indexset()
     solid.plot()    
     exit()
     tic()

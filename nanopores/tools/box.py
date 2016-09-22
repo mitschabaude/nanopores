@@ -75,7 +75,7 @@ class BoxCollection(object):
         #print orients
         for sub in subs:
             #print sub.name, ":"
-            iset = sub.bdry().indexset = set()
+            iset = set()
             odict = dict()
             for i in sub.indexset:
                 e = self.entities[d][i]
@@ -90,6 +90,9 @@ class BoxCollection(object):
                     else:
                         iset.add(iface)
                         odict[iface] = o
+            sub.bdry().indexset = iset
+            sub.bdry().indexsets = [set() for i in range(d+1)]
+            sub.bdry().indexsets[d-1] = iset
             sub.bdry().orients = odict
             
         for sub in self.boundaries:
@@ -97,8 +100,8 @@ class BoxCollection(object):
             # will still be created. this is addressed by deleting Nones in the
             # gmsh surfaces defining the physical boundary, which can silently
             # cause an empty boundary in Geometry and e.g. BCs without effect.
-            sub.indexset = sub.csg.eval() #& self.indexsets[d-1] # <-- wrong
-
+            #sub.indexset = sub.csg.eval() #& self.indexsets[d-1] # <-- wrong
+            sub.indexset = sub.csg.evalsets()[d-1]
                 
     def entity_to_gmsh(self, e, dim, lc, gmshself=True):
         # do not duplicate entity in gmsh
