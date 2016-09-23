@@ -48,11 +48,13 @@ class BoxCollection(object):
         self.indexsets = self.csg.evalsets()
         d = self.dim
         for sub in self.subdomains + self.boundarysubs:
-            sub.indexset = sub.csg.evalsets()[d] & self.indexsets[d]
+            sub.indexsets = sub.csg.evalsets()
+            sub.indexset = sub.indexsets[d] & self.indexsets[d]
         # make sure that subdomains cover all of domain:
         if self.subdomains:
             rest = self - union(self.subdomains)
-            rest.indexset = rest.csg.evalsets()[d]
+            rest.indexsets = rest.csg.evalsets()
+            rest.indexset = rest.indexsets[d]
             if rest.indexset:
                 self.addsubdomain(rest, "rest")
         else:
@@ -142,22 +144,24 @@ class BoxCollection(object):
         # build full subdomains and their boundaries
         facets = self.entities[dim-1]
         gmsh = self.gmsh_entities[dim-1]
-        self.gmsh_subs = []
-        for sub in self.subdomains:
+        self.gmsh_subs = [None for sub in self.subdomains]
+        for j, sub in enumerate(self.subdomains):
+            I = sub.bdry().indexset
+            # gmsh won't compile empty volume
+            if not I: continue
             # gmsh facets
-            for i in sub.bdry().indexset:
+            subfacets = []
+            for i in I:
                 # do not duplicate entity in gmsh
                 if gmsh[i] is None:
                     self.entity_to_gmsh(facets[i], dim-1, lc)
             # gmsh sub
-            if sub.bdry().indexset: # gmsh won't compile empty volume
-                orients = sub.bdry().orients
-                dic = {1:"+", -1:"-"}
-                subfacets = [dic[orients[i]] + gmsh[i]
-                             for i in sub.bdry().indexset]
-                loop = FacetLoop[dim-1](subfacets)
-                gmsh_e = Entity[dim](loop)
-                self.gmsh_subs.append(gmsh_e)
+            orients = sub.bdry().orients
+            dic = {1:"+", -1:"-"}
+            subfacets = [dic[orients[i]] + gmsh[i] for i in I]
+            loop = FacetLoop[dim-1](subfacets)
+            gmsh_e = Entity[dim](loop)
+            self.gmsh_subs[j] = gmsh_e
     
     def entities_to_gmsh(self, lc=.5, merge=True):        
         # initialize
@@ -173,7 +177,8 @@ class BoxCollection(object):
         
         if merge:
             for sub, vol in zip(self.subdomains, self.gmsh_subs):
-                py4gmsh.PhysicalVolume(vol, sub.name, dimt)
+                if vol is not None:
+                    py4gmsh.PhysicalVolume(vol, sub.name, dimt)
         else:
             for sub in self.subdomains:
                 vols = [self.gmsh_entities[dimt][i] for i in sub.indexset]
@@ -296,6 +301,9 @@ class BoxCollection(object):
         coll = BoxCollection(*boxes)
         coll.csg = self.csg - other.csg
         return coll
+        
+    def __contains__(self, coll):
+        return self.csg.contains(coll)
         
     def __str__(self):
         return str(self.csg)
@@ -458,6 +466,24 @@ class csgExpression(object):
             return [self.A]
         else:
             return self.A.singletons() + self.B.singletons()
+            
+    def contains(self, C):
+        # this is only if C is singleton and tests containment as if all leafs
+        # were disjoint. useful for entities like balls.
+        if self.singleton:
+            return True if self.A is C else False
+        elif self.op == "|":
+            return self.A.contains(C) or self.B.contains(C)
+        elif self.op == "&":
+            return self.A.contains(C) and self.B.contains(C)
+        elif self.op == "-":
+            return self.A.contains(C) and not self.B.contains(C)
+            
+    def mentions(self, C):
+        return any(C is A for A in self.singletons())
+            
+    def excludes(self, C):
+        return self.mentions(C) and not self.contains(C)
     
     # boolean operations    
     def __or__(self, other):

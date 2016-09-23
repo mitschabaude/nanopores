@@ -8,12 +8,11 @@ C = A | B
 C.create_geometry(lc=0.1)
 """
 import nanopores.py4gmsh as py4gmsh
-from box import BoxCollection, Box, Float, csgExpression
+import box
+from box import BoxCollection, Float, csgExpression, FacetLoop, Entity
 
 # TODO gmsh_ball_surfs for 1D, 2D
-# TODO make ball union domain possible -> gmsh_sub with multiple vols
-# TODO no logic for balls yet, i.e. balls get cut out of domains they are
-#      contained in.
+# FIXME ball boundaries do not seem to work
 
 class BallCollection(BoxCollection):
     def __init__(self, boxes, balls):
@@ -23,19 +22,50 @@ class BallCollection(BoxCollection):
             self.indexsets = [set() for k in range(self.dim+1)] 
         BoxCollection.__init__(self, *boxes)
     
-    def entities_to_gmsh(self, lc=.5, merge=True):        
+    def entities_to_gmsh(self, lc=.5, merge=True): 
+        """
+        at this point, all the box-related entities exist and
+        all subdomains know the indices of their box boundaries
+        TODO:
+         - compute ball facets and save their indices
+         - compute all ball volumes that are not explicitly un-contained in
+           domain and whose center lies in domain.
+           save them in list / attach to balls.
+         - distribute negative indices to subdomains that contain a ball center
+           (they can now create their volumes as always)
+         - for all subdomains that contain a ball, add their existing surfaces
+           as one entry and the faces of their balls as further entries to
+           list in self.gmsh_subs.
+        """
         # initialize
         self.gmsh_entities = [[None for e in k] for k in self.entities]
-        gfacets = self.gmsh_entities[self.dim-1]
+        dim = self.dim
+        gfacets = self.gmsh_entities[dim-1]
         
+        # compute ball facets and save their indices
         for ball in self.balls:
+            print
+            print ball
             # determine subdomain where ball lies (or none)
             j = ball.boxes[0].indexsets[0].pop() # index of ball center
             sub0 = None
-            for sub in self.subdomains:
+            ball.isubs = []
+            for k, sub in enumerate(self.subdomains):
                 if j in sub.indexsets[0]:
-                    print sub.name
+                    print "inside", sub.name
                     sub0 = sub
+                if (j in sub.indexsets[0] and not sub.csg.excludes(ball))\
+                    or sub.csg.contains(ball):
+                    ball.isubs.append(k)
+            if sub0 is None: print "no subdomain"
+            if (j in self.indexsets[0] and not self.csg.excludes(ball))\
+                or self.csg.contains(ball):
+                ball.indomain = True
+                print "in domain"
+            else:
+                ball.indomain = False
+                print "not in domain"
+            
             # build ball surface in gmsh
             surfs, n = gmsh_ball_surfs(ball, lc)
             # add facets at the end of gmsh_entities[d-1]
@@ -46,32 +76,46 @@ class BallCollection(BoxCollection):
                 sub0.bdry().indexset |= set(indices)
                 for i in indices:
                     sub0.bdry().orients[i] = -1
-            ball.bdry().indexset |= set(indices)
-            if not hasattr(ball.bdry(), "orients"):
-                ball.bdry().orients = dict()
-            for i in indices:
-                ball.bdry().orients[i] = 1
-        
-        # TODO is this necessary??
-        for sub in self.subdomains:
-            for singleton in sub.csg.singletons():
-                if isinstance(singleton, Ball):
-                    print sub.name
-                    iset = singleton.bdry().indexset
-                    sub.bdry().indexset |= iset
-                    for i in iset:
-                        sub.bdry().orients[i] = 1
+            # remember indices for ball
+            ball.ibdry = indices
                     
-        # gmsh everything else
+        # gmsh all box volumes with balls cut out
         self.entities_to_gmsh_merge(lc)
+        gsubs = self.gmsh_subs
+        
+        # gmsh all ball volumes that are in domain
+        # and add to gmsh_subs where appropriate
+        for ball in self.balls:
+            if ball.indomain:
+                print "gmshing", ball
+                # gmsh ball volume
+                subfacets = [gfacets[i] for i in ball.ibdry]
+                loop = FacetLoop[dim-1](subfacets)
+                gmsh_e = Entity[dim](loop)
+                #self.gmsh_subs[j] = gmsh_e
+                for k in ball.isubs:
+                    if gsubs[k] is None:
+                        gsubs[k] = gmsh_e
+                    elif isinstance(gsubs[k], list):
+                        gsubs[k].append(gmsh_e)
+                    else:
+                        gsubs[k] = [gsubs[k], gmsh_e]
+        
         # rebuild boundaries involving balls
         for bou in self.boundaries:
-            bou.indexset = bou.csg.evalsets()[self.dim-1]
+            bou.indexset = bou.csg.evalsets()[dim-1]
+            
+    def addsubdomain(self, sub, name):
+        assert isinstance(sub, BallCollection)
+        sub.name = name
+        self.subdomains.append(sub)
+        self.boxes = list(set(self.boxes + sub.boxes))
+        self.balls = list(set(self.balls + sub.balls))
         
     def _join(self, other):
         boxes = list(set(self.boxes + other.boxes))
-        balls = list(set(self.balls + other.balls)) if hasattr(other, "balls")\
-            else self.balls
+        balls = (list(set(self.balls + other.balls))
+            if hasattr(other, "balls") else self.balls)
         return BallCollection(boxes, balls)
     
     def __or__(self, other):
@@ -99,6 +143,15 @@ class Ball(BallCollection):
         box = Box(m, m)
         BallCollection.__init__(self, [box], [self])
         
+    def __repr__(self):
+        return "Ball(%s, %s, %s)" % (self.m, self.r, self.lc)
+        
+class Box(BallCollection, box.Box):
+    def __init__(self, *args, **params):
+        self.balls = []
+        box.Box.__init__(self, *args, **params)
+        self.indexsets = [set() for k in range(self.dim+1)] 
+        
 def gmsh_ball_surfs(ball, lc):
     if ball.lc is not None:
         lc=ball.lc
@@ -108,18 +161,18 @@ def gmsh_ball_surfs(ball, lc):
     
 if __name__ == "__main__":
     # unit square
-    A = Box([-1, -1, -1], [1, 1, 1])
-    # circle with r=0.5 centered at origin
-    B = Ball([0, 0, 0], 0.5)
+    A = Box([-1]*3, [1]*3) | Box([-1.5, -1, -1.5], [-0.95, 1, -0.95])
+    B = Ball((-0.5, 0, -0.5), 0.4) | Ball((0.5, 0, 0.5), 0.4) 
     B1 = Ball([2, 0, 0], 0.5, lc=0.05)
     # union
     C = A | B | B1
-    C.addsubdomains(box=A, ball=B, ball1=B1)
-    #C.addsubdomains(box=A, balls=(B|B1)) #, ball=B, ball1=B1)
-    C.addboundaries(boxb=A.boundary()) #, ballb=B.boundary())#, ball1b=B1.boundary())
+    C.addsubdomains(box=A-B|B1, ball=B)
+    C.addboundaries(boxb=(A | B1).boundary())
     
-    C.create_geometry(lc=0.2)
+    C.create_geometry(lc=0.1)
     print C.geo
     from nanopores import plot_sliced
+    from dolfin import interactive
     plot_sliced(C.geo)
+    interactive()
     C.plot()
