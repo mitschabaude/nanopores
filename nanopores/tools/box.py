@@ -64,6 +64,10 @@ class BoxCollection(object):
         if not self.boundaries:
             # create dummy domain boundary
             self.addboundary(Boundary(self), "boundary")
+            self.indexset = self.indexsets[d]
+        #print "BOUNDARIES", [b.name for b in self.boundaries]
+        #print self.boundarysubs
+        #print self.boundary()
                 
     def compute_boundaries(self, merge=True):
         # call after compute_entities
@@ -103,7 +107,8 @@ class BoxCollection(object):
             # gmsh surfaces defining the physical boundary, which can silently
             # cause an empty boundary in Geometry and e.g. BCs without effect.
             #sub.indexset = sub.csg.eval() #& self.indexsets[d-1] # <-- wrong
-            sub.indexset = sub.csg.evalsets()[d-1]
+            sub.indexsets = sub.csg.evalsets()
+            sub.indexset = sub.indexsets[d-1]
                 
     def entity_to_gmsh(self, e, dim, lc, gmshself=True):
         # do not duplicate entity in gmsh
@@ -317,7 +322,8 @@ def Interval(a, b):
         
 class Box(BoxCollection):
     
-    def __init__(self, a=None, b=None, intervals=None, center=None, l=None, w=None, h=None):
+    def __init__(self, a=None, b=None, intervals=None, center=None,
+                 l=None, w=None, h=None):
         if intervals is not None:
             a = tuple(Float(x) for x,y in intervals)
             b = tuple(Float(y) for x,y in intervals)
@@ -493,16 +499,32 @@ class csgExpression(object):
     def __sub__(self, other):
         return csgExpression("-", self, other)
 
-class Float(float):
-    tol = 1e-10
+# TOL = None # much faster
+TOL = 1e-10 # more secure
+
+def set_tol(tol):
+    global TOL
+    TOL = tol
+
+def Float(a):
+    if TOL is None:
+        return a
+    else:
+        return ExactFloat(a)
+
+class ExactFloat(float):
+    
+    #def __init__(self, *args, **kw):
+    #    ExactFloat.tol = TOL
     
     def __cmp__(self, other):
-        return _cmp(self, other, self.tol)
+        return _cmp(self, other, TOL)
     
     # TODO: this is performance-critical, so minimize function calls    
     def __eq__(self, other):
-        if isinstance(other, Float):
-            return cmp(self, other) == 0
+        if isinstance(other, float):
+            return abs(self - other) < TOL
+            #return cmp(self, other) == 0
         else:
             return False
 
@@ -608,8 +630,8 @@ def multi_box_union(boxes): #, facets=[]):
     # choose correct indexset for every box
     for box in allboxes:
         box.indexset = box.indexsets[box.dimt]
-        print box
-        print box.indexsets
+        #print box
+        #print box.indexsets
     
     return dict(nodes=nodes, entities=entities, esets=esets, dim=dim)
     
@@ -673,7 +695,7 @@ def entities_to_gmsh(entities, indexsets, esets, lc=.5):
             #print esets[k][i]
             
             # skip code creation for entity if not part of domain
-            # FIXME: what do we do with unnessecary facets??
+            # what do we do with unnessecary facets??
             if k==dim and i not in indexsets[k]:
                 #print "NOT INSIDE"
                 #print
@@ -778,4 +800,4 @@ class Log(object):
         printnow(self.msg)
         dolfin.tic()
     def __exit__(self, *args):
-        print dolfin.toc(), "s"
+        print "%.2g s" %(dolfin.toc(),)

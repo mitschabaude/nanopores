@@ -1,4 +1,4 @@
-from nanopores import Box, plot_sliced
+from nanopores.tools.balls import Box, Ball
 
 # form building blocks
 
@@ -52,6 +52,7 @@ cpore = [0.,0.,-.5*h2]
 c4 = [0.,0.,-.5*(hpore-h4)]
 
 reservoir = Box(center=zero, l=R, w=R, h=H)
+upperhalf = Box([-R, -R, cmem[2]], [R, R, 0.5*H])
 
 closed_membrane = Box(center=cmem, l=R, w=R, h=hmem)
 closed_dna = Box(center=zero, l=l0, w=l0, h=hpore)
@@ -67,21 +68,31 @@ domain = reservoir
 membrane = closed_membrane - substract_mem
 membrane_boundary = closed_membrane - closed_dna
 dna = closed_dna - enter_1 - enter_2 - enter_3 - substract_dna
+pore = enter_1 | enter_2 | enter_3
+
+bulkfluid = reservoir - membrane - closed_dna | add_bulkfluid
+bulkfluid_top = bulkfluid & upperhalf
+bulkfluid_bottom = bulkfluid - upperhalf
 
 domain.addsubdomains(
     membrane = membrane,
     dna = dna,
     pore = enter_1 | enter_2 | enter_3,
-    bulkfluid = reservoir - membrane - closed_dna | add_bulkfluid,
+    bulkfluid_top = bulkfluid_top,
+    bulkfluid_bottom = bulkfluid_bottom,
 )
+
+molecule = Ball(c1, r=2., lc=0.2)
+domain.addball(molecule, "molecule", "moleculeb")
 
 dnainnerb = enter_1.boundary("front", "back", "left", "right") | enter_2.boundary("front", "back", "left", "right") | enter_3.boundary("front", "back", "left", "right")
 dnaupperb = closed_dna.boundary("top") - enter_1
 dnaupperb = dnaupperb | enter_1.boundary("bottom") - enter_2
 dnaupperb = dnaupperb | enter_2.boundary("bottom") - enter_3
-dnaouterb = closed_dna.boundary("front", "back", "left", "right") - substract_mem_spanning
-dnaouterb = dnaouterb | substract_mem_spanning.boundary("top") - substract_mem
-dnaouterb = dnaouterb | substract_mem.boundary("front", "back", "right", "left") - membrane
+dnaouterb = closed_dna.boundary("front", "back", "left", "right") - \
+            substract_mem_spanning.boundary("front", "back", "left", "right")
+dnaouterb = dnaouterb | (substract_mem_spanning.boundary("top") - substract_mem.boundary("top"))
+dnaouterb = dnaouterb | (substract_mem.boundary("front", "back", "right", "left") - membrane.boundary())
 dnalowerb = substract_mem.boundary("bottom") - enter_3
 memb = closed_membrane.boundary("top", "bottom") - substract_mem
 outermemb = closed_membrane.boundary("front", "back", "left", "right")
@@ -103,13 +114,14 @@ domain.addboundaries(
 # add synonymes for overlapping subdomains and boundaries
 domain.synonymes = dict(
     #subdomains
+    bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
     fluid = {"bulkfluid", "pore"},
-    solid = {"membrane", "dna"},
+    solid = {"membrane", "dna", "molecule"},
 
     #boundaries
     chargeddnab = {"dnaouterb", "dnainnerb"},
     dnab = {"chargeddnab", "dnaupperb", "dnalowerb"},
-    noslip = {"dnab", "memb"},
+    noslip = {"dnab", "memb", "moleculeb"},
     bV = "lowerb",
     ground = "upperb",
     nopressure = "upperb",
@@ -123,24 +135,28 @@ domain.params = dict(
 )
 
 if __name__ == "__main__":
-    geo = domain.create_geometry(lc=2., merge=False)
+    import dolfin
+    from nanopores import plot_sliced
+    
+    solid = membrane | dna | molecule
+    solid.addsubdomains(dna=dna, membrane=membrane)
+    solid.addball(molecule, "molecule", "moleculeb")
+    solid.addboundaries(
+        dnainnerb = dnainnerb,
+        dnaupperb = dnaupperb,
+        dnaouterb = dnaouterb,
+        dnalowerb = dnalowerb,
+        memb = memb,
+    )  
+    print "COMPUTING SOLID"
+    solidgeo = solid.create_geometry(lc=2.)
+    print solidgeo
+    
+    print "COMPUTING DOMAIN"
+    geo = domain.create_geometry(lc=2.)
     print geo
     
     plot_sliced(geo)
-    
-    import dolfin
-    dolfin.plot(geo.submesh("solid"))
+    dolfin.plot(solidgeo.boundaries, title="boundaries")
     dolfin.interactive()
-    
-    # TODO: doesnt work
-    # pure solid domain with boundaries for visual verification
-#    solid = membrane | dna
-#    solid.addsubdomains(dna=dna, membrane=membrane)
-#    solid.addboundaries(
-#        dnaouterb = dnaouterb,
-#        dnainnerb = dnainnerb,
-#        dnaedgeb = dnaedgeb,
-#        memb = memb,
-#    )
-#    geo = solid.create_geometry(lc=1.)
-#    solid.plot()
+

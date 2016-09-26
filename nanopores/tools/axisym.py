@@ -28,7 +28,7 @@ class CylinderCollection(BoxCollection):
         
     def create_geometry(self, lc=.5):
         self.compute_entities()
-        self.entities_to_gmsh_recursive(lc=lc)
+        self.entities_to_gmsh(lc=lc, merge=False)
         rotate_surfs(self.gmsh_entities, self.boundaries, 1, self.nrot)
         rotate_surfs(self.gmsh_entities, self.subdomains, 2, self.nrot)
         self.geo = to_mesh()

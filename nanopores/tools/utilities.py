@@ -62,7 +62,7 @@ def plot_sliced(geo):
     for cell in dolfin.cells(submesh):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
-    dolfin.plot(subsub)
+    dolfin.plot(subsub, title="sliced geometry with subdomains")
     
 class uCross(dolfin.Expression):
     def __init__(self, u, axis=1):
