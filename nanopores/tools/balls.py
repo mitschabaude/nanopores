@@ -13,7 +13,6 @@ from box import (BoxCollection, Float, csgExpression, FacetLoop, Entity,
                 BoundaryCollection, union)
 
 # TODO gmsh_ball_surfs for 1D, 2D
-# FIXME ball boundaries do not seem to work
 
 class BallCollection(BoxCollection):
     def __init__(self, boxes, balls):
@@ -141,14 +140,14 @@ class BallCollection(BoxCollection):
     def addball(self, ball, subname="ball", boundaryname="ballb"):
         ball._added = True
         self.addsubdomain(ball, subname)
-        self.addboundary(ball.boundary(), boundaryname)
+        self.addboundary(ball.bdry(), boundaryname)
         
     def addballs(self, balls, subname="ball", boundaryname="ballb"):
         for ball in balls:
             ball._added = True
         sub = union(balls)
         self.addsubdomain(sub, subname)
-        self.addboundary(sub.boundary(), boundaryname)
+        self.addboundary(sub.bdry(), boundaryname)
         
     def _join(self, other):
         boxes = list(set(self.boxes + other.boxes))
@@ -193,25 +192,46 @@ class Box(BallCollection, box.Box):
 def gmsh_ball_surfs(ball, lc):
     if ball.lc is not None:
         lc=ball.lc
-    surfs = py4gmsh.add_ball(ball.m, ball.r, lc, with_volume=False)[2]
+    surfs = add_ball(ball.m, ball.r, lc)
     n = len(surfs)
     return surfs, n
     
+def add_ball(m, r, lc):
+    # add ball in 1D, 2D, 3D
+    if len(m)==3:
+        return py4gmsh.add_ball(m, r, lc, with_volume=False)[2]
+    elif len(m)==2:
+        return add_circle(m, r, lc)
+    elif len(m)==1:
+        return [py4gmsh.Point([m[0]-r,0,0]), py4gmsh.Point([m[0]+r,0,0])]
+    else:
+        raise Exception("Ball midpoint must have dimension 1, 2 or 3.")
+    
+def add_circle(m, r, lc):
+    m0, m1 = m[0], m[1]
+    point = lambda x, y: py4gmsh.Point([x,y,0], lc)
+    # add points.
+    p = [point(m0, m1), point(m0+r, m1), point(m0, m1+r),
+         point(m0-r, m1), point(m0, m1-r)]
+    # add circle lines
+    return [py4gmsh.Circle([p[1], p[0], p[2]]),
+            py4gmsh.Circle([p[2], p[0], p[3]]),
+            py4gmsh.Circle([p[3], p[0], p[4]]),
+            py4gmsh.Circle([p[4], p[0], p[1]])]
+    
 if __name__ == "__main__":
     # unit square
-    A = Box([-1]*3, [1]*3) | Box([-1.5, -1, -1.5], [-0.95, 1, -0.95])
-    B1 = Ball([2, 0, 0], 0.5, lc=0.05)
-    B = [Ball((-0.5, 0, -0.5), 0.4), Ball((0.5, 0, 0.5), 0.4)]
+    A = Box([-1, -1], [1, 1]) | Box([0.5, -1.2], [1.2, -0.5])
+    B = Ball([2, 0], 0.5, lc=1.)
+    balls = [Ball((-0.5, -0.5), 0.4), Ball((0.5, 0.5), 0.4)]
+    smallballs = [Ball((x*.1, -x*.1), r=0.08, lc=0.02) for x in range(-8,12,2)]
     # union
-    C = A | B1
-    C.addsubdomains(box=A|B1)
-    C.addballs(B)
-    C.addboundaries(boxb=(A | B1).boundary())
+    C = A | B
+    C.addsubdomains(box=A-B, circle=B)
+    C.addboundaries(boxb=(A | B).boundary())
+    C.addballs(balls) # adds ball boundaries automatically
+    C.addballs(smallballs, "small", "smallb")
     
     C.create_geometry(lc=0.1)
     print C.geo
-    from nanopores import plot_sliced
-    from dolfin import interactive, plot
-    plot_sliced(C.geo)
-    plot(C.geo.boundaries, title="boundaries")
-    interactive()
+    C.plot()

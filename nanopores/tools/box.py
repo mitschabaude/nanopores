@@ -514,9 +514,6 @@ def Float(a):
 
 class ExactFloat(float):
     
-    #def __init__(self, *args, **kw):
-    #    ExactFloat.tol = TOL
-    
     def __cmp__(self, other):
         return _cmp(self, other, TOL)
     
