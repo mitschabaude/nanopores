@@ -1,7 +1,7 @@
 """ some parametrized dolfin SubDomains for snapping mesh to curved boundaries """
 
 from dolfin import *
-import numpy
+#import numpy
 
 class Cylinder(SubDomain):
     # cylinder aligned with z axis
@@ -53,8 +53,6 @@ class Circle(SubDomain):
             
             
 class Sphere(SubDomain):
-    # cylinder aligned with z axis
-    # actually the curved part of its boundary
 
     def __init__(self, R, center=(0.,0.,0.), frac=0.75):
         # R, L ... radius and length

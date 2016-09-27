@@ -436,7 +436,8 @@ class PNPFixedPointNaive(CoupledSolver):
 
 class PNPSFixedPoint(CoupledSolver):
 
-    def __init__(self, geo, phys, goals=[], iterative=False, **params):
+    def __init__(self, geo, phys, goals=[], iterative=False,
+                 stokesiter=False, **params):
         problems = OrderedDict([
             ("poisson", LinearSGPoissonProblem),
             ("npp", SimpleNernstPlanckProblem),
@@ -465,6 +466,7 @@ class PNPSFixedPoint(CoupledSolver):
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
+        problem.problems["stokes"].method["iterative"] = stokesiter
         CoupledSolver.__init__(self, problem, goals, **params)
         
     def solve_pnp(self):

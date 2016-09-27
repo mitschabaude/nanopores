@@ -33,8 +33,6 @@ rpermProtein = 2. # TODO ?????
 rDPore = 0.5
 stokesdampPore = 1.0
 
-rTarget = 0.5*nm
-qTarget = -qq
 rDtargetPore = 1.
 DtargetBulk = lambda: kB*T/(6*dolfin.pi*eta*rTarget) # Stokes Law
 DtargetPore = lambda: kB*T/(6*dolfin.pi*eta*rTarget)*rDtargetPore
@@ -49,7 +47,7 @@ hReservoir = 0.01 # height of cylindrical upper reservoir
 applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
-adaptMqv = False
+adaptMqv = True
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!
@@ -70,6 +68,11 @@ bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrol
 lowerqs = lambda: (-Qmol*bulkconFluo*mol*hReservoir/2. if applylowerqs else 0.)
 
 bV = lambda: -bV0*Qmol/qq if couplebVtoQmol else None
+
+def rTarget(geo, lscale):
+    return geo.params["rMolecule"]/lscale
+def qTarget(Qmol, qq):
+    return Qmol*qq
 
 def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:
@@ -106,31 +109,6 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
     except Exception:
         return None
         
-def DNAArea(geo, lscale):
-    # this is for Howorka DNA nanopores
-    h = geo.params["l0"] # height of DNA
-    h1 = geo.params["l1"] # height of membrane
-    r0 = geo.params["r0"] # inner radius
-    r1 = geo.params["r1"] # outer radius
-    pi = dolfin.pi
-    geo.constant("DNAArea0", lambda geo: 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2)
-    return 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2
-    
-def QDNA(DNAqs, DNAArea):
-    # total charge on DNA if boundary is exactly cylindrical, i.e. in 2D
-    return DNAqs*DNAArea
-        
-def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
-    if dim == 2:
-        return DNAqs
-    # calculate total charge on DNA if boundary is exactly cylindrical
-    scale = dolfin.Constant(1.0/lscale**2)
-    def compute(geo):
-        area = dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab"))
-        return QDNA/area if area > 0. else 0.
-    geo.constant("DNAArea", lambda geo: dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab")))
-    
-    return geo.constant("DNAqs", compute)
 
 # 3. -- piecewise maps connecting physical domains to parameters
 #    -- these are DICTIONARIES of the form {"domain": "parameter_name"} OR
@@ -181,7 +159,6 @@ initial_ions = {
 
 def r2pi(geo, dim):
     return dolfin.Expression("2*pi*x[0]") if dim == 2 else dolfin.Constant(1.0)
-
 
 # TODO: i don't know yet how we should handle functionals
 '''

@@ -33,8 +33,8 @@ rpermProtein = 2. # TODO ?????
 rDPore = 0.5
 stokesdampPore = 1.0
 
-rTarget = 0.5*nm
-qTarget = -qq
+#rTarget = 0.5*nm
+#qTarget = -qq
 rDtargetPore = 1.
 DtargetBulk = lambda: kB*T/(6*dolfin.pi*eta*rTarget) # Stokes Law
 DtargetPore = lambda: kB*T/(6*dolfin.pi*eta*rTarget)*rDtargetPore
@@ -70,6 +70,11 @@ bulkconduct = lambda: 2.*bulkcon*qq*mol*D*qq/(kB*T)  # 2*c0*cFarad*mu # electrol
 lowerqs = lambda: (-Qmol*bulkconFluo*mol*hReservoir/2. if applylowerqs else 0.)
 
 bV = lambda: -bV0*Qmol/qq if couplebVtoQmol else None
+
+def rTarget(geo, lscale):
+    return geo.params["rMolecule"]/lscale
+def qTarget(Qmol, qq):
+    return Qmol*qq
 
 def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:

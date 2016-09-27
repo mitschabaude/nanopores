@@ -51,6 +51,10 @@ c2 = [0.,0.,hpore*.5-h1-(h2-h1)*.5]
 cpore = [0.,0.,-.5*h2]
 c4 = [0.,0.,-.5*(hpore-h4)]
 
+rMolecule = 2.
+x0 = [0.,1.,.5*hpore - rMolecule - 0.2]
+lcMolecule = 0.2
+
 reservoir = Box(center=zero, l=R, w=R, h=H)
 upperhalf = Box([-R, -R, cmem[2]], [R, R, 0.5*H])
 
@@ -77,12 +81,12 @@ bulkfluid_bottom = bulkfluid - upperhalf
 domain.addsubdomains(
     membrane = membrane,
     dna = dna,
-    pore = enter_1 | enter_2 | enter_3,
+    pore = pore,
     bulkfluid_top = bulkfluid_top,
     bulkfluid_bottom = bulkfluid_bottom,
 )
 
-molecule = Ball(c1, r=2., lc=0.2)
+molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
 domain.addball(molecule, "molecule", "moleculeb")
 
 dnainnerb = enter_1.boundary("front", "back", "left", "right") | enter_2.boundary("front", "back", "left", "right") | enter_3.boundary("front", "back", "left", "right")
@@ -155,6 +159,7 @@ if __name__ == "__main__":
     print "COMPUTING DOMAIN"
     geo = domain.create_geometry(lc=2.)
     print geo
+    print geo.params
     
     plot_sliced(geo)
     dolfin.plot(solidgeo.boundaries, title="boundaries")

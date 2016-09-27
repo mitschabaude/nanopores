@@ -2,13 +2,14 @@ from dolfin import *
 import ufl
 import nanopores
 from nanopores.tools.illposed import AdaptableBC, adaptmeshfunction, adaptfunction
-from nanopores.tools.physicsclass import Physics
+#from nanopores.tools.physicsclass import Physics
 from nanopores.physics import params_physical
 
 from importlib import import_module
 import types
 
-__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains", "geo_from_xml", "geo_from_xml_threadsafe"]
+__all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains",
+           "geo_from_xml", "geo_from_xml_threadsafe"]
 
 class Geometry(object):
     """ Interface between numerical routines and files describing the geometry.
@@ -172,7 +173,7 @@ class Geometry(object):
                     else:
                         dolfin_error(__name__+".py",
                             "assign boundary condition",
-                            "Value on '%s' for the BC '%s' is of unexpected type '%s'." % (key, string, type(val)))
+                            "Value on '%s' for the BC '%s' is of unexpected type %s" % (key, string, type(val)))
             return bcs
         else: # try to assign value on whole boundary
             if homogenize:

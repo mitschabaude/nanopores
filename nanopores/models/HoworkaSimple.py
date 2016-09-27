@@ -16,7 +16,7 @@ Nmax = 1e4,
 frac = 0.5,
 cheapest = False,
 dnaqsdamp = .25,
-imaxh = 10,
+imax = 10,
 tol = 1e-5,
 )
 

@@ -236,6 +236,12 @@ class BoxCollection(object):
         self.boxes = list(set(self.boxes + sub.boxes))
         #self.boxes = _unique(self.boxes + sub._boxes())
         
+    def getsubdomain(self, name):
+        # helper function to find subdomain from its name
+        for sub in self.subdomains:
+            if sub.name == name:
+                return sub
+        
     def addsubdomains(self, **subdomains):
         for name, sub in subdomains.items():
             self.addsubdomain(sub, name)
@@ -251,6 +257,11 @@ class BoxCollection(object):
             if isinstance(A, BoundaryCollection):
                 self.boundarysubs.append(A.coll)
                 self.boxes = list(set(self.boxes + A.coll.boxes))
+                
+    def getboundary(self, name):
+        for sub in self.boundaries:
+            if sub.name == name:
+                return sub
         
     def addboundaries(self, **boundaries):
         for name, sub in boundaries.items():
