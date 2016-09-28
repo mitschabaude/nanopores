@@ -272,7 +272,8 @@ class SimpleStokesProblem(GeneralLinearProblem):
         return U*P
 
     @staticmethod
-    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True):
+    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True,
+                  pscale=1.):
         # beta = stabilization parameter, TODO: better lower in 2D?
         mesh = geo.mesh
         if f is None:
@@ -292,16 +293,21 @@ class SimpleStokesProblem(GeneralLinearProblem):
         h = CellSize(mesh)
         delta = Constant(beta/lscale**2)*h**2
         eta = Constant(phys.eta)
-        def eps(u): return Constant(2.)*sym(grad(u))
+        eta2 = Constant(2*phys.eta)
+        pscale = Constant(pscale)
+        # scale pressure
+        p *= pscale
+        q *= pscale
+        def eps(u): return sym(grad(u))
 
         # conservative formulation for correct BC, with added stabilization term
         if cyl:
-            a = (eta*inner(eps(u), eps(v))*r + Constant(2.)*eta*u[0]*v[0]/r + \
+            a = (eta2*inner(eps(u), eps(v))*r + eta2*u[0]*v[0]/r + \
                 (div(v)*r+v[0])*p + q*(u[0] + div(u)*r))*pi2*dx - \
                 delta*inner(grad(p), grad(q))*r*pi2*dx
             L = inner(f, v - delta*grad(q))*r*pi2*dx
         else:
-            a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
+            a = (eta2*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
                  - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
             
@@ -319,6 +325,31 @@ class SimpleStokesProblem(GeneralLinearProblem):
         # TODO: be able to include preconditioning form
         # p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         return a, L
+        
+    def precondition(self, geo, pscale=1., **kwargs):
+        # assumes conservative, non-axisymmetric formulation
+        W = self.params["V"]
+        phys = self.params["phys"]
+    
+        u, p = TrialFunctions(W)
+        v, q = TestFunctions(W)
+        dx = geo.dx("fluid")
+
+        grad = phys.grad
+        lscale = Constant(phys.lscale)
+        pscale = Constant(pscale)
+        # scale pressure
+        p *= pscale
+        q *= pscale
+        eta2 = Constant(2*phys.eta)
+        def eps(u): return sym(grad(u))
+
+        P = (eta2*inner(eps(u), eps(v)) + lscale/pscale*p*q)*dx
+        self.method["preconditioning_form"] = P
+        
+    def __init__(self, geo, **params):
+        GeneralLinearProblem.__init__(self, geo, **params)      
+        self.precondition(geo, **params)
         
     @staticmethod
     def bcs(V, geo):

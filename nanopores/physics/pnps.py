@@ -500,7 +500,6 @@ class StokesProblem(AdaptableLinearProblem):
         k = k if StokesProblem.scalepressure else 0
         m = 9-k #15-2*k
         l = 0
-        # TODO: s=1 seems to help (a bit)! explore other scalings for p!
         a = cP(l)*(eta*inner(grad(u),grad(v)) + cP(k)*div(v)*p + cP(k)*q*div(u))*dx
         L = cP(l)*inner(f,v)*dx
         P = cP(l)*(eta*inner(grad(u), grad(v)) + cP(2*k)*cP(m)*p*q)*dx
@@ -679,13 +678,13 @@ class StokesProblemEqualOrder(StokesProblem):
 
         h = CellSize(mesh)
         delta = Constant(StokesProblemEqualOrder.beta/lscale**2)*h**2
-        def eps(u): return Constant(2.)*sym(grad(u))
+        def eps(u): return sym(grad(u))
 
         # added stabilization term
-        a = (eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
+        a = (Constant(2.)*eta*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
              - delta*inner(grad(p),grad(q))*dx
         L = inner(f,v - delta*grad(q))*dx
-        p = inner(eps(u), eps(v))*dx + lscale*inner(p, q)*dx #- delta*inner(grad(p),grad(q))*dx
+        p = Constant(2.)*eta*inner(eps(u), eps(v))*dx + lscale*inner(p, q)*dx #- delta*inner(grad(p),grad(q))*dx
         return (a, L, p)
 
 from .poisson import PoissonProblem

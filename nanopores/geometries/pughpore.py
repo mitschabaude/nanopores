@@ -45,7 +45,7 @@ params = dict(
     h1 = 46.-35.-2.5,
     h4 = 10.,
     
-    rMolecule = .5,
+    rMolecule = 2.0779, # molecular radius of protein trypsin
     x0 = [1., 0., .5*46 - 2. - 0.2],
     lcMolecule = 0.2, # relative to global mesh size
 )

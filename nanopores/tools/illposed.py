@@ -24,7 +24,7 @@ class IllposedLinearSolver(object):
         except AttributeError:
             self.method = dict(reuse=False,
                                iterative=False,
-                               lusolver="mumps",)
+                               lusolver="default",)
         if method:
             self.method.update(method)
                        
