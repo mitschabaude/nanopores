@@ -1,3 +1,4 @@
+# (c) Gregor Mitscha-Baude 2016
 "2D/3D boxes plus balls"
 
 """Interface:
@@ -11,8 +12,6 @@ import nanopores.py4gmsh as py4gmsh
 import box
 from box import (BoxCollection, Float, csgExpression, FacetLoop, Entity,
                 BoundaryCollection, union)
-
-# TODO gmsh_ball_surfs for 1D, 2D
 
 class BallCollection(BoxCollection):
     def __init__(self, boxes, balls):

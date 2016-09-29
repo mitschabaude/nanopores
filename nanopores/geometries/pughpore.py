@@ -160,13 +160,13 @@ def get_domain(lc=1., **newparams):
         ions = "fluid",
     
         #boundaries
-        chargeddnab = {"dnaouterb", "dnainnerb"},
-        dnab = {"chargeddnab", "dnaupperb", "dnalowerb"},
-        noslip = {"dnab", "memb", "moleculeb", "upperb", "sideb", "lowerb"},
+        chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},
+        dnab = {"chargeddnab"},
+        noslip = {"dnab", "memb", "moleculeb"}, # "upperb", "sideb", "lowerb"},
         bV = "lowerb",
         ground = "upperb",
         bulk = {"lowerb", "upperb"},
-        nopressure = "bulk",
+        nopressure = "upperb",
     )
     
     # add parameters (this should include params needed by physics module)

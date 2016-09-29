@@ -71,8 +71,8 @@ bV = lambda: -bV0*Qmol/qq if couplebVtoQmol else None
 
 def rTarget(geo, lscale):
     return geo.params["rMolecule"]/lscale
-def qTarget(Qmol, qq):
-    return Qmol*qq
+def qTarget(Qmol):
+    return Qmol
 
 def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:

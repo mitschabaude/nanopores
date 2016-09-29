@@ -89,14 +89,14 @@ class uCrossVector(dolfin.Expression):
     def value_shape(self):
         return (2,)
 
-def plot_cross(u, mesh2D, title="", axis=1):
+def plot_cross(u, mesh2D, axis=1, **kwargs):
     # create Expression to evaluate u on a hyperplane
     ucross = uCross(u=u, axis=axis)
     # interpolate u onto the 2D mesh
     V = dolfin.FunctionSpace(mesh2D, "CG", 1)
     u2D = dolfin.Function(V)
     u2D.interpolate(ucross)
-    dolfin.plot(u2D, title=title)
+    dolfin.plot(u2D, **kwargs)
     
 def plot_cross_vector(u, mesh2D, title="", axis=1):
     # create Expression to evaluate u on a hyperplane

@@ -1,6 +1,5 @@
-""" simple base class for pore geometries compatible with PNPS """
+"simple base class for pore geometries compatible with PNPS"
 
-import dolfin
 from nanopores.physics.electrolyte import *
 
 bV = None # voltage bias across pore [V] (None for no enforced bias)
@@ -14,12 +13,14 @@ ahemqs = 0.
 
 rpermPore = rpermw
 rpermProtein = 2. # TODO ?????
+# rel. diffusivity in pore depends on pore radius
+# => good practice to override default value
 rDPore = 0.5
 
-DNAqs = lambda: DNAqsPure*dnaqsdamp
+DNAqs = lambda DNAqsPure, dnaqsdamp: DNAqsPure*dnaqsdamp
 permPore = lambda: eperm*rpermPore
 permProtein = lambda: eperm*rpermProtein
-DPore = lambda: D*rDPore
+DPore = lambda D, rDPore: D*rDPore
 
 # piece-wise boundary conditions
 v0 = dict(
@@ -36,7 +37,8 @@ permittivity.update(
     #default = eperm*rpermw,
     bulkfluid = eperm*rpermw,
     pore = "permPore",
-    protein = "permProtein",
+    protein = "permProtein", # for protein pores
+    membrane = eperm*rpermLipid,
 )
 
 surfcharge = dict( # surface charge densities for Neumann RHS
@@ -45,10 +47,6 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     chargedsinb = "SiNqs",
     chargedsamb = "SAMqs",
     ahemb = "ahemqs",
-)
-
-volcharge = dict( # volume charges for RHS
-    default = 0.,
 )
 
 Dp = dict(
@@ -60,25 +58,25 @@ Dp = dict(
 Dm = Dp
 
 # TODO: this seems a little much; clean it up
-synonymes.update({
-    "pore": {"poretop", "porecenter", "porebottom"},
-    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
-    "fluid": {"pore", "bulkfluid"},
-    "solid": {"membrane", "channel", "molecule"},
-    "protein": {"ahem"},
-    "channel": {"ahem"},
-    "proteinb": {"ahemb"},
-    "noslip": {"proteinb", "membraneb"},
-    "bulk": {"upperb", "lowerb"},
-    "nopressure": {"bulk"},
-    "ground": {"upperb"},
-    "bV": {"lowerb"},
-    "ions": {"fluid"},
-    "lipid": {"membrane"},
-    "exittime": {"fluid"},
-    "exit": {"poreexit"},
-    "sideb": {"uppersideb", "lowersideb"},
-    "upperbulkb": {"upperb", "uppersideb"},
-    "lowerbulkb": {"lowerb", "lowersideb"},
-})
+#synonymes.update({
+#    "pore": {"poretop", "porecenter", "porebottom"},
+#    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
+#    "fluid": {"pore", "bulkfluid"},
+#    "solid": {"membrane", "channel", "molecule"},
+#    "protein": {"ahem"},
+#    "channel": {"ahem"},
+#    "proteinb": {"ahemb"},
+#    "noslip": {"proteinb", "membraneb"},
+#    "bulk": {"upperb", "lowerb"},
+#    "nopressure": {"bulk"},
+#    "ground": {"upperb"},
+#    "bV": {"lowerb"},
+#    "ions": {"fluid"},
+#    "lipid": {"membrane"},
+#    "exittime": {"fluid"},
+#    "exit": {"poreexit"},
+#    "sideb": {"uppersideb", "lowersideb"},
+#    "upperbulkb": {"upperb", "uppersideb"},
+#    "lowerbulkb": {"lowerb", "lowersideb"},
+#})
 

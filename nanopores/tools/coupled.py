@@ -129,10 +129,11 @@ class CoupledSolver(PDESystem):
         self.solvers = OrderedDict()
         for name, problem in coupled.problems.items():
             if problem.is_linear:
-                solver = IllposedLinearSolver(problem, **solverparams)
+                # TODO: include method update for specific solvers?
+                solver = IllposedLinearSolver(problem)
                 solver.is_linear = True
             else:
-                solver = IllposedNonlinearSolver(problem, **solverparams)
+                solver = IllposedNonlinearSolver(problem)
                 solver.is_linear = False
             self.solvers[name] = solver
             

@@ -1,7 +1,6 @@
 """ base class for all electrolyte related physics
 i.e. the most simple specifications that pnps should work with """
 
-import dolfin
 from nanopores.physics.default import *
 
 T = 293 # temperature [K]
@@ -15,19 +14,19 @@ cFarad = qq*mol  # Faraday constant [C/mol]
 debye = lambda bulkcon, kT: dolfin.sqrt(rpermw*eperm*kT/qq**2/2/mol/bulkcon)  # debye length [m]
 bulkconduct = lambda bulkcon, mu: 2.*bulkcon*cFarad*mu # electrolyte bulk conductivity [S/m]
 
+# rhs data
+surfcharge = dict() # surface charge densities for Neumann RHS
+volcharge = dict() # volume charges for RHS
+cpflux = dict()
+cmflux = dict()
+
+# diffusion constants for 1:1 electrolyte
+Dp = Dm = dict(default = "D", solid = 0.)
 
 # piece-wise boundary conditions
 v0 = dict()
 c0 = dict()
 cp0 = cm0 = c0
-
-# rhs data
-surfcharge = dict() # surface charge densities for Neumann RHS
-volcharge = dict(default = 0.) # volume charges for RHS
-cpflux = dict()
-cmflux = dict()
-
-Dp = Dm = dict(default = "D", solid = 0.)
 
 # no-slip velocity
 U0 = lambda dim: dolfin.Constant(tuple(0. for i in range(dim)))

@@ -3,7 +3,8 @@ import numpy
 from dolfin import *
 from collections import OrderedDict
 from nanopores.tools import (CoupledProblem, solvermethods,
-    GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver)
+    GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver,
+    GoalAdaptivePDE)
 
 __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem",
            "SimplePoissonProblem",
@@ -87,6 +88,38 @@ class SimplePNPProblem(GeneralNonlinearProblem):
                geo.pwBC(V.sub(1), "cp0") + \
                geo.pwBC(V.sub(2), "cm0")
                
+class SimpleLinearPBProblem(GeneralLinearProblem):
+    method = dict(solvermethods.bicgstab)
+    
+    @staticmethod
+    def space(mesh, k=1):
+        return FunctionSpace(mesh, 'CG', k)
+
+    @staticmethod
+    def forms(V, geo, phys, cyl=False):
+        dx = geo.dx()
+        dx_ions = geo.dx("fluid")
+        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        lscale = Constant(phys.lscale)
+        grad = phys.grad
+
+        eps = geo.pwconst("permittivity")
+        UT = Constant(phys.UT)
+        k = Constant(2*phys.cFarad*phys.bulkcon)
+        
+        u = TrialFunction(V)
+        w = TestFunction(V)
+        
+        a = inner(eps*grad(u), grad(w))*r2pi*dx + k/UT*u*w*r2pi*dx_ions
+        Lqvol = geo.linearRHS(w*r2pi, "volcharge")
+        Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
+        L = Lqvol + Lqsurf
+
+        return a, L
+    
+    @staticmethod
+    def bcs(V, geo, phys):
+        return geo.pwconstBC(V, "v0", homogenize=True)  
         
 class SimplePBProblem(GeneralNonlinearProblem):
     method = dict(solvermethods.bicgstab)
@@ -517,7 +550,6 @@ class PNPSFixedPoint(CoupledSolver):
 # bVscheme needs access to voltage bias = phys.bV
 # this would hamper generality of PNPSFixedPoint class
 import math
-
 class PNPSFixedPointbV(PNPSFixedPoint):
     "voltage is slowly increased and stokes solved only afterwards"
     
@@ -536,4 +568,41 @@ class PNPSFixedPointbV(PNPSFixedPoint):
             if i > ipnp:
                 self.solve_stokes()
             yield i
+            
+# --- goal-oriented adaptivity ----
+from nanopores.tools.errorest import pb_indicator_GO, pb_indicator_GO_cheap
+class SimpleLinearPBGO(GoalAdaptivePDE):
+    def __init__(self, geo, phys, goal=None, ref=None):
+        if goal is None and geo.params["x0"]:
+            goal = lambda v : phys.Fbare(v, 2)
+        self.ref = ref # reference value for functional
+        GoalAdaptivePDE.__init__(self, geo, phys, SimpleLinearPBProblem, goal)
+
+    def estimate(self):
+        u = self.functions["primal"]
+        z = self.functions["dual"]
+        ind, err, rep, errc, gl, glx = pb_indicator_GO(self.geo, self.phys, u, z)
+        self.save_estimate("err", err)
+        self.save_estimate("rep", rep)
+        self.save_estimate("goal", gl)
+        self.save_estimate("goal ex", glx)
+        return ind, rep
+
+    def estimate_cheap(self):
+        u = self.functions["primal"]
+        z = self.functions["dual"]
+        ind, err, gl = pb_indicator_GO_cheap(self.geo, self.phys, u, z)
+        self.save_estimate("err", err)
+        self.save_estimate("goal", gl)
+        return ind, err
+
+#    def print_functionals(self, name="goal"):
+#        PDESystem.print_functionals(self)
+#        J = self.functionals[name]
+#        Jval = J.value()
+#        if self.ref is not None:
+#            ref = self.ref
+#            err = abs((Jval-ref)/ref)
+#            self.save_estimate("err ref", err)
+#            self.save_estimate("goal ref", ref)
 

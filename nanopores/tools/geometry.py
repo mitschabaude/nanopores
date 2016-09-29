@@ -200,7 +200,7 @@ class Geometry(object):
                     "The module %s has not implemented '%s'" % (self.physics.__name__, string))
         return value
         
-    def NeumannRHS(self, v, string, value=None):
+    def NeumannRHS(self, v, string=None, value=None):
         # L = geo.NeumannRHS(v, "surfcharge") == charge("dna")*v*dS("dna") +
         #                                    charge("mol")*v*dS("mol") + ...
         # thus v should be TestFunction (or Function)
@@ -212,7 +212,7 @@ class Geometry(object):
         return sum([avg(inner(_wrapf(bou2value[i]), v)) * dS(i) for i in bou2value]) \
              + sum([inner(_wrapf(bou2value[i]), v) * ds(i) for i in bou2value])
 
-    def linearRHS(self, v, string, value=None):
+    def linearRHS(self, v, string=None, value=None):
         # L = geo.linearRHS(v, "volcharge") == charge("mol")*v*dx("mol") + ...
         # thus v should be TestFunction (or Function)
         # value can be dict or float
@@ -220,7 +220,7 @@ class Geometry(object):
         dx = self.dx()
         
         if isinstance(value, dict):
-            dom2value = self._pwconst_lookup(self._dom2phys, value)
+            dom2value = self._neumann_lookup(self._dom2phys, value)
             return sum([inner(_wrapf(dom2value[i]), v) * dx(i) for i in dom2value])
         else:
             return inner(_wrapf(value), v) * dx
@@ -425,8 +425,8 @@ class Geometry(object):
                 if s in value:
                     if i in bou2value and not bou2value[i] == value[s]:
                         dolfin_error(__name__+".py",
-                            "create Neumann RHS",
-                            "The value on '%s' is ambigous, check %s"%(s,self.physics.__name__))
+                            "create Neumann or volume RHS",
+                            "The value on '%s' is ambigous, check %s" %(s, self.physics.__name__))
                     else:
                         bou2value[i] = value[s]
         # partially defined is ok => don't need "if not i in bou2value:..."
@@ -493,7 +493,7 @@ class GeometricConstant(object):
         self.function.assign(c)
         self.value = c
     def __str__(self):
-        return "(%s, %s)" %(self.name, self.value)
+        return "%s = %s" %(self.name, self.value)
     
     
 class PhysicalBC(object):
