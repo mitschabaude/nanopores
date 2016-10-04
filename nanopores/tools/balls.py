@@ -168,6 +168,13 @@ class BallCollection(BoxCollection):
         coll = self._join(other)
         coll.csg = self.csg - other.csg
         return coll
+        
+class EmptySet(BallCollection):
+    def __init__(self, dim=3):
+        self.csg = csgExpression(self)
+        self.dim = dim
+        self.indexsets = [set() for k in range(dim+1)] 
+        BallCollection.__init__(self, [], [])
 
 class Ball(BallCollection):
     def __init__(self, m, r, lc=None):
@@ -187,6 +194,7 @@ class Box(BallCollection, box.Box):
         self.balls = []
         box.Box.__init__(self, *args, **params)
         self.indexsets = [set() for k in range(self.dim+1)] 
+        
         
 def gmsh_ball_surfs(ball, lc):
     if ball.lc is not None:

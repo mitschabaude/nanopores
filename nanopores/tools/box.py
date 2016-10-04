@@ -184,6 +184,9 @@ class BoxCollection(object):
             for sub, vol in zip(self.subdomains, self.gmsh_subs):
                 if vol is not None:
                     py4gmsh.PhysicalVolume(vol, sub.name, dimt)
+                else:
+                    py4gmsh.NoPhysicalVolume(sub.name)
+                    
         else:
             for sub in self.subdomains:
                 vols = [self.gmsh_entities[dimt][i] for i in sub.indexset]
@@ -192,7 +195,10 @@ class BoxCollection(object):
         for sub in self.boundaries:
             surfs = [self.gmsh_entities[dimt-1][i] for i in sub.indexset]
             surfs = [s for s in surfs if s is not None]
-            py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
+            if len(surfs)>0:
+                py4gmsh.PhysicalSurface(surfs, sub.name, dimt)
+            else:
+                py4gmsh.NoPhysicalSurface(sub.name)
         
     def create_geometry(self, lc=.5, merge=True):
         with Log("computing geometrical entities..."):
@@ -762,7 +768,7 @@ def to_mesh(clscale=1., pid=""):
     
         # after writing the geo file, call gmsh
         gmsh_out = subprocess.call(["gmsh", "-3", "-v", "1","-clscale", "%f" %clscale,
-                         fid_dict["fid_geo"], "-o", fid_dict["fid_msh"]])
+                         fid_dict["fid_geo"], "-o", fid_dict["fid_msh"], "-optimize"])
     
         if gmsh_out != 0:
             raise RuntimeError('Gmsh failed in generating this geometry')

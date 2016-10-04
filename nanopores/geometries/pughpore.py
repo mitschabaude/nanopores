@@ -1,6 +1,6 @@
 "Large DNA pore from Pugh et al. 2016"
 
-from nanopores.tools.balls import Box, Ball
+from nanopores.tools.balls import Box, Ball, EmptySet
 
 #........................R.............................
 #                                                     .
@@ -121,6 +121,10 @@ def get_domain(lc=1., **newparams):
     if x0 is not None:
         molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
         domain.addball(molecule, "molecule", "moleculeb")
+    else:
+        domain.addsubdomain(EmptySet(), "molecule")
+        domain.addboundary(EmptySet(), "moleculeb")
+    
     
     dnainnerb = enter_1.boundary("front", "back", "left", "right") |\
                 enter_2.boundary("front", "back", "left", "right") |\
@@ -175,6 +179,7 @@ def get_domain(lc=1., **newparams):
         dim = 3,
         nm = 1.,
         lscale = 1e9,
+        lpore = hpore,
     )
     return domain
     

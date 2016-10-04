@@ -553,12 +553,12 @@ import math
 class PNPSFixedPointbV(PNPSFixedPoint):
     "voltage is slowly increased and stokes solved only afterwards"
     
-    def fixedpoint(self, bVstep=0.025):
+    def fixedpoint(self, bVstep=0.025, ipnp=4):
         bV = self.coupled.params["phys"].bV
         
         idamp = math.ceil(abs(bV)/bVstep)
         damping = 1./idamp if idamp != 0 else 1.
-        ipnp = idamp + 1
+        ipnp = max(idamp + 1, ipnp)
 
         for i in self.generic_fixedpoint():
             if i <= idamp:
@@ -572,9 +572,14 @@ class PNPSFixedPointbV(PNPSFixedPoint):
 # --- goal-oriented adaptivity ----
 from nanopores.tools.errorest import pb_indicator_GO, pb_indicator_GO_cheap
 class SimpleLinearPBGO(GoalAdaptivePDE):
-    def __init__(self, geo, phys, goal=None, ref=None):
-        if goal is None and geo.params["x0"]:
-            goal = lambda v : phys.Fbare(v, 2)
+    def __init__(self, geo, phys, goal=None, ref=None, cheapest=False):
+        if goal is None:
+            if geo.params["x0"] is not None:
+                goal = lambda v : phys.Fbare(v, 2)
+            else:
+                goal = lambda v : Constant(1e-12*phys.lscale**3)*v*geo.dx("pore")
+        if cheapest:
+            self.estimate = self.estimate_cheap
         self.ref = ref # reference value for functional
         GoalAdaptivePDE.__init__(self, geo, phys, SimpleLinearPBProblem, goal)
 

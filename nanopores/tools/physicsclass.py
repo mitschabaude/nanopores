@@ -1,6 +1,6 @@
 ''' Physics class '''
 
-from .utilities import import_vars
+#from .utilities import import_vars
 from collections import defaultdict
 from importlib import import_module
 import inspect
@@ -19,12 +19,17 @@ def typestr(t): return d[type(t)]
 
 class Physics(object):
 
-    def __init__(self, name="default", geo=None, **params):
+    def __init__(self, name="default", geo=None, module=None, **params):
         # initialize from module nanopores.physics.name
-        name = "nanopores.physics."+name
-        mod = import_module(name)
+        if module is not None:
+            mod = module
+        else:
+            name = "nanopores.physics."+name
+            mod = import_module(name)
         mod = reload(mod)
-        var = import_vars(name)
+        #var = import_vars(name)
+        vardic = vars(mod)
+        var = {k: vardic[k] for k in vardic if not k.startswith("_")}
         #print var
 
         # override with user-specified parameters

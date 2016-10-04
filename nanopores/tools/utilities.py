@@ -98,14 +98,14 @@ def plot_cross(u, mesh2D, axis=1, **kwargs):
     u2D.interpolate(ucross)
     dolfin.plot(u2D, **kwargs)
     
-def plot_cross_vector(u, mesh2D, title="", axis=1):
+def plot_cross_vector(u, mesh2D, axis=1, **kwargs):
     # create Expression to evaluate u on a hyperplane
     ucross = uCrossVector(u=u, axis=axis)
     # interpolate u onto the 2D mesh
     V = dolfin.VectorFunctionSpace(mesh2D, "CG", 1)
     u2D = dolfin.Function(V)
     u2D.interpolate(ucross)
-    dolfin.plot(u2D, title=title)
+    dolfin.plot(u2D, **kwargs)
     
 def save_dict(data, dir=".", name="file"):
     # works for all data that can be recovered from their repr()

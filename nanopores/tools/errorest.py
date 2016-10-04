@@ -214,7 +214,8 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
 
     goal = J(z)
     goal_ex = J(Ez)
-    scale = abs(1./goal) # precise relevant scale for error (abs value of functional)
+    # precise relevant scale for error (abs value of functional)
+    scale = abs(1./goal) if not goal == 0. else 1e12*(1./phys.lscale**3)
     #scale = 1e12*(1./phys.lscale**3) # rough scale (cheaper)
     
     error_res = abs(R(z))*scale

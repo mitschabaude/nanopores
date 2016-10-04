@@ -91,6 +91,7 @@ class Geometry(object):
             dolfin_error(__name__+".py",
                          "interprete physical boundary description",
                          "This geometry has not implemented '%s'" %string)
+        return tup
 
     def physicaldomain(self, string):
         try:
@@ -99,6 +100,10 @@ class Geometry(object):
             dolfin_error(__name__+".py",
                 "interprete physical domain description",
                 "This geometry has not implemented '%s'" %string)
+                
+    def _notempty(self, tup):
+        "assure that assemble evaluates to 0. if subdomain is empty"
+        return tup if len(tup)>0 else (9999,)
 
     def interprete(self, string):
         if self.subdomains and self._physical_domain and self._physical_domain.has_key(string):
@@ -113,21 +118,21 @@ class Geometry(object):
     def dx(self, string=None):
         if string:
             return Measure("dx", domain=self.mesh, subdomain_data=self.subdomains,
-                    subdomain_id=self.physicaldomain(string))
+                    subdomain_id=self._notempty(self.physicaldomain(string)))
         else:
             return Measure("dx", domain=self.mesh, subdomain_data=self.subdomains)
 
     def ds(self, string=None):
         if string:
             return Measure("ds", domain=self.mesh, subdomain_data=self.boundaries,
-                    subdomain_id=self.physicalboundary(string))
+                    subdomain_id=self._notempty(self.physicalboundary(string)))
         else:
             return Measure("ds", domain=self.mesh, subdomain_data=self.boundaries)
 
     def dS(self, string=None):
         if string:
             return Measure("dS", domain=self.mesh, subdomain_data=self.boundaries,
-                    subdomain_id=self.physicalboundary(string))
+                    subdomain_id=self._notempty(self.physicalboundary(string)))
         else:
             return Measure("dS", domain=self.mesh, subdomain_data=self.boundaries)
 

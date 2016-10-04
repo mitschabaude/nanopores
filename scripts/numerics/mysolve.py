@@ -253,7 +253,7 @@ def geo_debug(geo):
         #plot(submesh, title=("initial mesh on %s" %subd), wireframe=True, elevate=-3e1)
     interactive()
     
-def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True):
+def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True, plot_cells=True):
     #vertex = VertexFunction("bool", mesh, False)
     dgncells = CellFunction("size_t", mesh, 0)
     
@@ -271,7 +271,7 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True):
         pyplot.figure()
         exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200), locals())
     # plot degenerate cells
-    if minrr < ratio:
+    if minrr < ratio and plot_cells:
         submesh = SubMesh(mesh, dgncells, 1)
         title = "degenerate N=%s" %mesh.num_cells()
         #plot(submesh, title=title)
