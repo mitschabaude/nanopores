@@ -222,6 +222,9 @@ class PDESystem(object):
                 functionals[Jstr] = J.evaluate()
         return functionals
         """
+        
+    def evaluate(self, f):
+        return f(self.solutions())
 
     def print_results(self, names=None):
         if not names:

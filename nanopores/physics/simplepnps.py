@@ -327,7 +327,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         delta = Constant(beta/lscale**2)*h**2
         eta = Constant(phys.eta)
         eta2 = Constant(2*phys.eta)
-        pscale = Constant(pscale)
+        pscale = Constant(phys.pscale)
         # scale pressure
         p *= pscale
         q *= pscale

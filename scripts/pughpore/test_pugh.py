@@ -10,12 +10,13 @@ from nanopores.models.mysolve import mesh_quality
 up = nano.user_params(
     h = 2.,
     Qmol = -1.,
+    Nmax = 1e6,
 )
 
 geop = nano.Params(
     R = 35.,
     H = 70.,
-    x0 = None, #[0.,0.,10.]
+    x0 = [0.,0.,8.]
 )
 physp = nano.Params(
     Qmol = up.Qmol,
@@ -26,7 +27,7 @@ physp = nano.Params(
 solverp = nano.Params(
     h = up.h,
     frac = 0.2,
-    Nmax = 1e6,  
+    Nmax = up.Nmax,  
     imax = 30,
     tol = 1e-2,
     cheapest = False,
@@ -66,8 +67,9 @@ simplepnps.SimpleLinearPBProblem.method["kparams"].update(
 )
 
 dolfin.tic()
-
-pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=phys.CurrentPB,
+# TODO
+goal = phys.CurrentPB
+pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal,
                                  cheapest=solverp.cheapest)
 pb.maxcells = solverp.Nmax
 pb.marking_fraction = solverp.frac
@@ -122,6 +124,9 @@ for i in pnps.fixedpoint(ipnp=5):
     
 print "CPU time (solve): %.3g s" %(dolfin.toc(),)
 
+print pnps.evaluate(phys.CurrentPNPS)
+print pnps.evaluate(phys.ForcesPNPS)
+
 # visualize
 v, cp, cm, u, p = pnps.solutions()
 #nano.plot_cross(v, mesh2D, title="potential")
@@ -130,9 +135,9 @@ nano.plot_cross(cp, mesh2D, title="cp")
 nano.plot_cross(p, mesh2D, title="p")
 nano.plot_cross_vector(u, mesh2D, title="u")
 
-if not solverp.cheapest:
-    pb.estimators["rep"].plot()
-    pb.estimators["err"].plot(rate=-2./3., fig=False)
+#if not solverp.cheapest:
+#    pb.estimators["rep"].plot()
+#    pb.estimators["err"].plot(rate=-2./3., fig=False)
 
 pnps.visualize("pore")
 nano.showplots()

@@ -6,6 +6,7 @@ from nanopores.physics.default import *
 T = 293 # temperature [K]
 bulkcon = 300. # bulk concentration of ions [mol/m**3]
 D = 1.9e-9  # diffusivity [m^2/s]
+pscale = 1e7 # scaling of pressure
 
 kT = lambda T: kB*T
 UT = lambda kT: kT/qq
