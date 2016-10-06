@@ -69,10 +69,10 @@ stokes = dict(
     kp = "hypre_euclid",
     fieldsplit = False, #True,
     kparams = dict(
-        maximum_iterations = 100,
+        maximum_iterations = 1000,
         monitor_convergence = False,
         # large rel.tol. together with nonzero initial guess = bad idea!!!
-        relative_tolerance = 1e-8,
+        relative_tolerance = 1e-5,
         # absolute tolerance must not be too large compared with newton tol
         # (but also not too low since that would be inefficient)
         absolute_tolerance = 1e-5,

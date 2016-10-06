@@ -87,10 +87,10 @@ def get_domain(lc=1., **newparams):
     
     # form building blocks
     
-    reservoir = Box(center=zero, l=R, w=R, h=H)
-    upperhalf = Box([-R, -R, cmem[2]], [R, R, 0.5*H])
+    reservoir = Box(center=zero, l=2.*R, w=2.*R, h=H)
+    upperhalf = Box([-2.*R, -2.*R, cmem[2]], [2.*R, 2.*R, 0.5*H])
     
-    closed_membrane = Box(center=cmem, l=R, w=R, h=hmem)
+    closed_membrane = Box(center=cmem, l=2.*R, w=2.*R, h=hmem)
     closed_dna = Box(center=zero, l=l0, w=l0, h=hpore)
     enter_1 = Box(center=c1, l=l1, w=l1, h=h1)
     enter_2 = Box(center=c2, l=l2, w=l2, h=h2-h1)
@@ -106,7 +106,7 @@ def get_domain(lc=1., **newparams):
     dna = closed_dna - enter_1 - enter_2 - enter_3 - substract_dna
     pore = enter_1 | enter_2 | enter_3
     
-    bulkfluid = reservoir - membrane - closed_dna | add_bulkfluid
+    bulkfluid = (reservoir - (membrane | closed_dna)) | add_bulkfluid
     bulkfluid_top = bulkfluid & upperhalf
     bulkfluid_bottom = bulkfluid - upperhalf
     
@@ -182,6 +182,55 @@ def get_domain(lc=1., **newparams):
         lpore = hpore,
     )
     return domain
+    
+def get_geo1D(lc=0.01, **newparams):
+    _params = dict(params, **newparams)
+    H = _params["H"]
+    hmem = _params["hmem"]
+    hpore = _params["hpore"]
+    cmem = -.5*(hpore-hmem)
+    
+    domain = Box([-.5*H], [.5*H])
+    upperhalf = Box([cmem], [.5*H])
+    membrane = Box([cmem - .5*hmem], [cmem + .5*hmem])
+    bulkfluid = domain - membrane
+    
+    lowerb = domain.boundary("left")
+    upperb = domain.boundary("right")
+    
+    domain.addsubdomains(
+        membrane = membrane,
+        bulkfluid_top = bulkfluid & upperhalf,
+        bulkfluid_bottom = bulkfluid - upperhalf,
+    )
+    domain.addboundaries(
+        lowerb = lowerb,
+        upperb = upperb,
+        memb = membrane.boundary(),
+    )
+    domain.params["lscale"] = 1e9
+    domain.synonymes = dict(
+        #subdomains
+        bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
+        fluid = {"bulkfluid"},
+        solid = {"membrane"},
+        ions = "fluid",
+    
+        #boundaries
+        noslip = "memb", # "upperb", "sideb", "lowerb"},
+        bV = "lowerb",
+        ground = "upperb",
+        bulk = {"lowerb", "upperb"},
+        nopressure = "upperb",
+    )
+    domain.params = dict(_params,
+        name = "pughpore",
+        dim = 1,
+        nm = 1.,
+        lscale = 1e9,
+    )
+    geo = domain.create_geometry(lc=lc)
+    return geo
     
     
 if __name__ == "__main__":

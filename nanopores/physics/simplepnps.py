@@ -5,6 +5,7 @@ from collections import OrderedDict
 from nanopores.tools import (CoupledProblem, solvermethods,
     GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver,
     GoalAdaptivePDE)
+from nanopores.models.mysolve import mesh_quality
 
 __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem",
            "SimplePoissonProblem",
@@ -19,11 +20,11 @@ class SimplePNPProblem(GeneralNonlinearProblem):
     
     @staticmethod
     def space(mesh, k=1):
-        V = FunctionSpace(mesh, 'CG', k)
+        V = FunctionSpace(mesh, "CG", k)
         return MixedFunctionSpace((V, V, V))
         
     @staticmethod
-    def initial_u(V, geo, phys, v0=None): # TODO incorporate initial guesses
+    def initial_u(V, geo, phys, v0=None):
         u = Function(V)
         if v0 is None:
             u.interpolate(Constant((0.0, phys.bulkcon, phys.bulkcon)))
@@ -90,6 +91,10 @@ class SimplePNPProblem(GeneralNonlinearProblem):
                
 class SimpleLinearPBProblem(GeneralLinearProblem):
     method = dict(solvermethods.bicgstab)
+    method["kparams"].update(
+        relative_tolerance = 1e-12,
+        absolute_tolerance = 1e-12,
+    )
     
     @staticmethod
     def space(mesh, k=1):
@@ -305,8 +310,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         return U*P
 
     @staticmethod
-    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True,
-                  pscale=1.):
+    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True):
         # beta = stabilization parameter, TODO: better lower in 2D?
         mesh = geo.mesh
         if f is None:
@@ -359,7 +363,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         # p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         return a, L
         
-    def precondition(self, geo, pscale=1., **kwargs):
+    def precondition(self, geo, **kwargs):
         # assumes conservative, non-axisymmetric formulation
         W = self.params["V"]
         phys = self.params["phys"]
@@ -370,7 +374,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
         grad = phys.grad
         lscale = Constant(phys.lscale)
-        pscale = Constant(pscale)
+        pscale = Constant(phys.pscale)
         # scale pressure
         p *= pscale
         q *= pscale
@@ -500,7 +504,7 @@ class PNPFixedPointNaive(CoupledSolver):
 
 class PNPSFixedPoint(CoupledSolver):
 
-    def __init__(self, geo, phys, goals=[], iterative=False,
+    def __init__(self, geo, phys, goals=[], taylorhood=False, iterative=False,
                  stokesiter=False, **params):
         problems = OrderedDict([
             ("poisson", LinearSGPoissonProblem),
@@ -527,6 +531,10 @@ class PNPSFixedPoint(CoupledSolver):
         couplers = dict(poisson=couple_poisson, npp=couple_npp,
                         npm=couple_npm, stokes=couple_stokes)
     
+        if taylorhood:
+            params["ku"] = 2
+            params["kp"] = 1
+            params["beta"] = 0.
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
@@ -600,6 +608,36 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
         self.save_estimate("err", err)
         self.save_estimate("goal", gl)
         return ind, err
+        
+    def adaptive_loop(self, Nmax=1e4, frac=0.2, verbose=True):
+        self.maxcells = Nmax
+        self.marking_fraction = frac
+        def printv(*strgs):
+            if verbose:
+                for strg in strgs:
+                    print strg,
+                print
+        refined = True
+        i = 0
+        printv("Number of cells:", self.geo.mesh.num_cells())
+        
+        while refined:
+            i += 1
+            printv("\nAssessing mesh quality.")
+            mesh_quality(self.geo.mesh, ratio=0.01, geo=self.geo, plothist=False)
+            
+            printv("\n- Adaptive Loop %d" %i)
+            printv("Solving PB.")
+            self.single_solve()
+            yield i
+            printv("\nError estimation.")
+            (ind, err) = self.estimate()
+            printv("\nMesh refinement.")
+            refined = self.refine(ind)
+            if not refined:
+                printv("Maximal number of cells reached.")
+            else:
+                printv("New total number of cells:", self.geo.mesh.num_cells())
 
 #    def print_functionals(self, name="goal"):
 #        PDESystem.print_functionals(self)

@@ -23,4 +23,10 @@ def div(lscale):
     
 def dim(geo):
     return geo.mesh.topology().dim()
+    
+cyl = False
+def r2pi(cyl):
+    return dolfin.Expression("2*pi*x[0]") if cyl else dolfin.Constant(1.)
 
+def invscale(lscale):
+    return lambda i: dolfin.Constant(1./lscale**i)

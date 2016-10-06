@@ -10,9 +10,7 @@ Qmolq = lambda Qmol, qq: Qmol*qq
 qTarget = Qmolq
 rpermMol = rpermDNA
 permMol = lambda rpermMol: eperm*rpermMol
-
-def r2pi(dim):
-    return dolfin.Expression("2*pi*x[0]") if dim==2 else dolfin.Constant(1.)
+cyl = lambda dim: True if dim==2 else False
 
 volcharge.update(
     molecule = "Moleculeqv",
@@ -34,9 +32,6 @@ def Moleculeqv(geo, Qmolq, lscale, r2pi): #
     
 def rTarget(geo, lscale):
     return geo.params["rMolecule"]/lscale
-    
-def invscale(lscale):
-    return lambda i: dolfin.Constant(1./lscale**i)
 
 # goal functionals of various continuous quantities
 def Fbare(geo, r2pi, Moleculeqv, grad, invscale):
@@ -46,38 +41,10 @@ def Fbare(geo, r2pi, Moleculeqv, grad, invscale):
         return Moleculeqv*(-r2pi*grad(v)[i])*dx
     return _Fel
     
-def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
-    "approximation of current at 100 mV as linear functional of PB solution"
-    bV0 = 0.1
-    def J0(v):
-        L = geo.params["lpore"]/lscale
-        E = bV0/L
-        dx = geo.dx("pore")
-        Jz = 2*cFarad*bulkcon*mu*rDPore*v/UT*E* r2pi/L*dx
-        return Jz
-    return J0
-    
 # results functionals
-def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale):
-    def _current(U):
-        v, cp, cm, u, p = U
-        L = dolfin.Constant(geo.params["lpore"])
-        Dp = geo.pwconst("Dp")
-        Dm = geo.pwconst("Dm")
-        cUT = dolfin.Constant(UT)
-        F = dolfin.Constant(cFarad)
-        
-        jm = -Dm*grad(cm) + Dm/cUT*cm*grad(v) + cm*u
-        jp = -Dp*grad(cp) - Dp/cUT*cp*grad(v) + cp*u
-        jz = F*(jp - jm)[dim-1]
-        
-        J = -jz/L * r2pi*invscale(2)*geo.dx("pore")
-        J = dolfin.assemble(J)
-        return dict(J=J)
-    return _current
-
-def ForcesPNPS(geo, Moleculeqv, div, grad, r2pi, eta,
+def ForcesPNPS(geo, Moleculeqv, div, grad, eta, r2pi,
                invscale, dim, cFarad, pscale):
+    "electric and drag forces in 3D based on volume integrals"
     def _forces(U):
         v, cp, cm, u, p = U
         p *= dolfin.Constant(pscale)
@@ -94,7 +61,7 @@ def ForcesPNPS(geo, Moleculeqv, div, grad, r2pi, eta,
 
         F_dict = dict(Fel=[], Fdrag=[])
         for i in range(dim):
-            Fbarevol = rho0*(-grad(v)[i]) * invscale(3)*dx
+            Fbarevol = rho0*(-grad(v)[i]) * r2pi*invscale(3)*dx
             
             ei = tuple((1. if j==i else 0.) for j in range(dim))
             ei = dolfin.Constant(ei)
@@ -103,11 +70,12 @@ def ForcesPNPS(geo, Moleculeqv, div, grad, r2pi, eta,
             
             Fdragvol = -(-inner(fstokes, uaux) + \
                 eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
-                div(uaux)*p) *invscale(3)*dxf
+                div(uaux)*p)* r2pi*invscale(3)*dxf
                 
             F_dict["Fel"].append(dolfin.assemble(Fbarevol))
             F_dict["Fdrag"].append(dolfin.assemble(Fdragvol))
             
+        F_dict["F"] = [Fe+Fd for Fe, Fd in zip(F_dict["Fel"], F_dict["Fdrag"])]
         return F_dict
     return _forces
 

@@ -57,6 +57,36 @@ Dp = dict(
 )
 Dm = Dp
 
+# functionals
+def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
+    "approximation of current at 100 mV as linear functional of PB solution"
+    bV0 = 0.1
+    def J0(v):
+        L = geo.params["lpore"]/lscale
+        E = bV0/L
+        dx = geo.dx("pore")
+        Jz = 2*cFarad*bulkcon*mu*rDPore*v/UT*E* r2pi/L*dx
+        return Jz
+    return J0
+    
+def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale):
+    def _current(U):
+        v, cp, cm, u, p = U
+        L = dolfin.Constant(geo.params["lpore"])
+        Dp = geo.pwconst("Dp")
+        Dm = geo.pwconst("Dm")
+        cUT = dolfin.Constant(UT)
+        F = dolfin.Constant(cFarad)
+        
+        jm = -Dm*grad(cm) + Dm/cUT*cm*grad(v) + cm*u
+        jp = -Dp*grad(cp) - Dp/cUT*cp*grad(v) + cp*u
+        jz = F*(jp - jm)[dim-1]
+        
+        J = -jz/L * r2pi*invscale(2)*geo.dx("pore")
+        J = dolfin.assemble(J)
+        return dict(J=J)
+    return _current
+
 # TODO: this seems a little much; clean it up
 #synonymes.update({
 #    "pore": {"poretop", "porecenter", "porebottom"},
