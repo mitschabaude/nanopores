@@ -21,11 +21,22 @@ def visualize1D(geo, pnp):
                 "x", dim=1, axlabels=("z [nm]", "concentrations [mol/m^3]"))
                 
 class u1D(dolfin.Expression):
-    def __init__(self, u):
+    def __init__(self, u, damping=1.):
         self.u = u
+        self.damping = damping
         dolfin.Expression.__init__(self)
+        
+    def damp(self, scalar):
+        self.damping *= scalar
+
+    def _eval(self, x, value):
+        self._eval(x, value)
+        print value
+        value = self.damping*value
+        print value
+
     def eval(self, value, x):
-        value[0] = self.u(x[2])
+        value[0] = self.damping*self.u(x[2])
         
 def set_sideBCs(phys, geop, physp):
     geo, pnp = solve1D(geop, physp)

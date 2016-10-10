@@ -12,19 +12,19 @@ up = nano.user_params(
     h = 2.,
     Qmol = -1.,
     Nmax = 1e5,
-    R = 35.,
+    R = 30.,
 )
 
 geop = nano.Params(
     R = up.R,
-    H = 70.,
+    H = 80.,
     x0 = [0.,0.,15.]
 )
 physp = nano.Params(
     Qmol = up.Qmol,
     bulkcon = 300.,
     dnaqsdamp = .5,
-    bV = -0.025,
+    bV = -0.1,
 )
 solverp = nano.Params(
     h = up.h,
@@ -71,32 +71,32 @@ dolfin.tic()
 goal = phys.CurrentPB
 pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal,
                                  cheapest=solverp.cheapest)
-print pb.solvers["primal"].problem.bcs
-print [bc.g([-R,0.,0.]) for bc in pb.solvers["primal"].problem.bcs]
+#print pb.solvers["primal"].problem.bcs
+#print [bc.g([-R,0.,0.]) for bc in pb.solvers["primal"].problem.bcs]
 
-for i in pb.adaptive_loop(solverp.Nmax, solverp.frac):
-    nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
+#for i in pb.adaptive_loop(solverp.Nmax, solverp.frac):
+#    nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
 
 print "CPU time (PB): %.3g s" %(dolfin.toc(),)
-nano.plot1D(dict(pbx=pb.solution), (-R, R, 1001), axis="x",
-            dim=3, axlabels=("x [nm]", "pb potential [V]"))
-nano.plot1D(dict(pby=pb.solution), (-R, R, 1001), axis="y",
-            dim=3, axlabels=("x [nm]", "pb potential [V]"), newfig=False)
-            
-nano.plot1D(dict(pbleft=pb.solution), (-H, H, 1001), axis="z",
-            origin=(-R-0.1,0.,0.),
-            dim=3, axlabels=("x [nm]", "pb potential [V]"))
-nano.plot1D(dict(pbfront=pb.solution), (-H, H, 1001), axis="z",
-            origin=(0,-R-0.1,0.),
-            dim=3, axlabels=("x [nm]", "pb potential [V]"), newfig=False)
+#nano.plot1D(dict(pbx=pb.solution), (-R, R, 1001), axis="x",
+#            dim=3, axlabels=("x [nm]", "pb potential [V]"))
+#nano.plot1D(dict(pby=pb.solution), (-R, R, 1001), axis="y",
+#            dim=3, axlabels=("x [nm]", "pb potential [V]"), newfig=False)
+#            
+#nano.plot1D(dict(pbleft=pb.solution), (-H, H, 1001), axis="z",
+#            origin=(-R-0.1,0.,0.),
+#            dim=3, axlabels=("x [nm]", "pb potential [V]"))
+#nano.plot1D(dict(pbfront=pb.solution), (-H, H, 1001), axis="z",
+#            origin=(0,-R-0.1,0.),
+#            dim=3, axlabels=("x [nm]", "pb potential [V]"), newfig=False)
 
-pb.visualize("fluid")
-nano.showplots()
+#pb.visualize("fluid")
+#nano.showplots()
 #dolfin.interactive()
 
-pnps = simplepnps.PNPSFixedPoint(geo, phys, ipicard=solverp.imax,
+pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
            #taylorhood=True,
-           stokesiter=True, v0=pb.solution, 
+           stokesiter=True, #v0=pb.solution, 
            tolnewton=solverp.tol, verbose=True, iterative=True)          
 
 print "Number of cells:", geo.mesh.num_cells()
@@ -112,6 +112,7 @@ for i in pnps.fixedpoint(ipnp=5):
 #        v = pnps.functions["poisson"]
     nano.plot_cross(v, mesh2D, title="potential", key="u")
     nano.plot_cross(cm, mesh2D, title="negative ions", key="cm")
+    #dolfin.interactive()
     #u = pnps.functions["stokes"].sub(0)
     #nano.plot_cross_vector(u, mesh2D, title="u", key="uu")
     print "v0 =", v([0., 0., -25.])
@@ -135,4 +136,4 @@ nano.plot_cross_vector(u, mesh2D, title="u")
 
 #pnps.visualize("pore")
 nano.showplots()
-#dolfin.interactive()
+dolfin.interactive()

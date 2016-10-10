@@ -223,7 +223,7 @@ class AdaptableLinearProblem(object):
         adaptfunction(self.u, mesh, interpolate=False, assign=True)
         return V
         
-    def damp_bcs(self, scalar): # works only for PhysicalBC
+    def damp_bcs(self, scalar): # works only for Constant PhysicalBC or Dampable bc.g
         for bc in self.bcs:
             bc.damp(scalar)
         
@@ -295,13 +295,20 @@ class AdaptableBC(DirichletBC):
         
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())
         
+    def damp(self, scalar):
+        self.g.damp(scalar)
+        
     # FIXME: this should work at least also with non-scalar Constants ...
     def damped(self, scalar):
-        if not isinstance(self.g, Constant):
-            raise Exception("Only boundary conditions of type Constant can be damped.")
-        self.g.assign(scalar*self.g(0.))
+        if isinstance(self.g, Constant):
+            self.g.assign(scalar*self.g(0.))
+        else:
+            self.g.damp(scalar)
+            print self.g
+            print self.g.damping
         V = self.function_space()
         return AdaptableBC(V, self.g, self.boundaries, self.i, self.method())
+   
             
 class Functional(object):
     # TODO: Functional should also be useable as linear form
