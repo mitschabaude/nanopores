@@ -321,4 +321,3 @@ class cache(CacheBase):
     def load(self, params):
         return get_entry(self.name, "result", **params)
         
-        

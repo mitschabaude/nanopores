@@ -1,3 +1,4 @@
+# (c) 2016 Gregor Mitscha-Baude and Benjamin Stadlbauer
 "Large DNA pore from Pugh et al. 2016"
 
 from nanopores.tools.balls import Box, Ball, EmptySet

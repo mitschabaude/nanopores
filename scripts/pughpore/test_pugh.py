@@ -1,3 +1,4 @@
+# (c) 2016 Gregor Mitscha-Baude
 import dolfin
 import nanopores as nano
 import nanopores.tools.box as box
@@ -74,8 +75,8 @@ pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal,
 #print pb.solvers["primal"].problem.bcs
 #print [bc.g([-R,0.,0.]) for bc in pb.solvers["primal"].problem.bcs]
 
-#for i in pb.adaptive_loop(solverp.Nmax, solverp.frac):
-#    nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
+for i in pb.adaptive_loop(solverp.Nmax, solverp.frac):
+    nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
 
 print "CPU time (PB): %.3g s" %(dolfin.toc(),)
 #nano.plot1D(dict(pbx=pb.solution), (-R, R, 1001), axis="x",

@@ -304,8 +304,6 @@ class AdaptableBC(DirichletBC):
             self.g.assign(scalar*self.g(0.))
         else:
             self.g.damp(scalar)
-            print self.g
-            print self.g.damping
         V = self.function_space()
         return AdaptableBC(V, self.g, self.boundaries, self.i, self.method())
    

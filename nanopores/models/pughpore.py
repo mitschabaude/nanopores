@@ -6,6 +6,7 @@ import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.box as box
+from nanopores.tools.solvers import Setup as SetupBase
 
 default = nano.Params(
 geop = nano.Params(
@@ -30,7 +31,7 @@ solverp = nano.Params(
 # change global settings of mesh generation
 box.set_tol(None)
 
-class Setup(nano.Setup):
+class Setup(SetupBase):
     default = default
                     
     def init_geo(self):
@@ -127,15 +128,12 @@ def join_dicts(list):
     # [{"F":1.0}, {"F":2.0}, ...] --> {"F":[1.0, 2.0, ...]}
     return {key:[dic[key] for dic in list] for key in list[0]}
     
-# evaluate finite-size model for a number of x positions    
-def F_explicit(X, **params):
-    values = []
-    for x0 in X:
-        setup = Setup(x0=x0, **params)
-        pb, pnps = solve(setup)
-        forces = get_forces(setup, pnps)
-        values.append(forces)
-    return join_dicts(values)
+# evaluate finite-size model for a single x0 position
+def F_explicit(x0, **params):
+    setup = Setup(x0=x0, **params)
+    pb, pnps = solve(setup)
+    return get_forces(setup, pnps)
+    
      
 # TODO
 ## evaluate point-size model for a number of z positions
