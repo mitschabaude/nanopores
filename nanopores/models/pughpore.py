@@ -69,8 +69,8 @@ def solve(setup, visualize=False):
             nano.plot_cross(v, mesh2D, title="potential", key="u")
             #nano.plot_cross(cm, mesh2D, title="negative ions", key="cm")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
-    if visualize:
-        nano.plot_cross_vector(u, mesh2D, title="u")
+    #if visualize:
+    #    nano.plot_cross_vector(u, mesh2D, title="u")
     return pb, pnps
 
 def get_forces(setup, pnps):
@@ -131,7 +131,7 @@ def join_dicts(list):
 # evaluate finite-size model for a single x0 position
 def F_explicit(x0, **params):
     setup = Setup(x0=x0, **params)
-    pb, pnps = solve(setup)
+    pb, pnps = solve(setup, True)
     return get_forces(setup, pnps)
     
      

@@ -56,7 +56,7 @@ def set_params(**newparams):
     
 def get_geo(lc=1., **newparams):
     domain = get_domain(lc, **newparams)
-    geo = domain.create_geometry(lc)
+    geo = domain.create_geometry(lc=lc)
     return geo
     
 def get_domain(lc=1., **newparams):

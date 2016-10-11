@@ -15,6 +15,7 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 # TODO: reasonable verbosity
 
 import sys
+import os
 from itertools import izip, product, combinations
 import nanopores.py4gmsh as py4gmsh
 import dolfin
@@ -735,6 +736,7 @@ def entities_to_gmsh(entities, indexsets, esets, lc=.5):
     return gmsh_entities
             
 def to_mesh(clscale=1., pid=""):
+    pid = str(os.getpid())
     with Log("executing gmsh..."):
         py4gmsh.raw_code(["General.ExpertMode = 1;"])
         code = py4gmsh.get_code()
@@ -742,7 +744,7 @@ def to_mesh(clscale=1., pid=""):
         if not meta["physical_domain"]:
             pass
     
-        import os, subprocess
+        import subprocess
         import nanopores
         inputfile = "input%s.geo" %pid
         outfile = "out%s.msh" %pid

@@ -132,7 +132,7 @@ def F_explicit(X, **params):
     values = []
     for x0 in X:
         setup = Setup(x0=x0, **params)
-        pb, pnps = solve(setup)
+        pb, pnps = solve(setup, True)
         forces = get_forces(setup, pnps)
         values.append(forces)
     return join_dicts(values)

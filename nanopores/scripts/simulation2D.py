@@ -93,9 +93,14 @@ def combinations(dic, iterkeys):
         #print P
     return P
 
-def join_dicts(list):
+def join_dicts(lst):
     # [{"F":1.0}, {"F":2.0}, ...] --> {"F":[1.0, 2.0, ...]}
-    return {key:[dic[key] for dic in list] for key in list[0]}
+    keys = []
+    for dic in lst:
+        if dic is not None:
+            keys = dic.keys()
+            
+    return {key:[dic[key] for dic in lst if dic is not None] for key in keys}
 
 def post_iteration(result, stamp, showplot=False):
     ''' in case method output is a dict, put result of iterate_in_parallel
