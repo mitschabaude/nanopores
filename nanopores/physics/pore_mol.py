@@ -9,7 +9,7 @@ Qmol = 0. # molecule charge [q]
 Qmolq = lambda Qmol, qq: Qmol*qq
 qTarget = Qmolq
 rpermMol = rpermDNA
-permMol = lambda rpermMol: eperm*rpermMol
+permMol = lambda eperm, rpermMol: eperm*rpermMol
 cyl = lambda dim: True if dim==2 else False
 
 volcharge.update(

@@ -1,13 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 import nanopores.models.pughpore as pugh
-from nanopores.tools.solvers import calculate_forcefield
 
-calculate = pugh.F_explicit
-params = dict(h=10., Nmax=2e2, dnaqsdamp=0.05)
-default = dict(pugh.default.geop)
-default.update(pugh.default.physp)
-default.update(pugh.default.solverp)
+params = dict(h=2., Nmax=2e2)
+X = [[0.,0.,float(t)] for t in [23.]]
 
-name = "testpugh"
-X = [[0.,0.,float(t)] for t in range(12)]
-calculate_forcefield(name, X, calculate, params, default, nproc=6)
+print pugh.F_explicit(X, nproc=1, name="testpugh", **params)

@@ -25,9 +25,9 @@ TODO: fields.list_all (with indices)
 TODO: fields.list[i]
 """
 import os, json
-from nanopores.dirnames import DATADIR
-import nanopores
-DIR = os.path.join(DATADIR, "fields")
+from nanopores.dirnames import DATADIR, INSTALLDIR
+#DIR = os.path.join(DATADIR, "fields")
+DIR = os.path.join(os.path.dirname(INSTALLDIR), "data", "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
     
@@ -76,12 +76,6 @@ def exists(name, **params):
     except KeyError:
         return False
     return True     
-    
-def print_header():
-    h = Header().header
-    h.pop("_flist")
-    for key in h:
-        print "%s: %s" % (key, h[key])
     
 # core class that communicates with txt files
 class Header(object):
@@ -320,4 +314,32 @@ class cache(CacheBase):
             
     def load(self, params):
         return get_entry(self.name, "result", **params)
+        
+    
+# print information
+def show():
+    h = Header().header
+    h.pop("_flist")
+    for key in h:
+        print "\n%s" %key
+        lst = h[key]
+        for i, dic in enumerate(lst):
+            dic.pop("FILE")
+            print "%d)" %(i+1,),
+            print ", ".join(["%s=%s" %x for x in dic.items()])
+            
+def showfields():
+    h = Header().header
+    h.pop("_flist")
+    for key in h:
+        print "\n%s" %key
+        lst = h[key]
+        for i, dic in enumerate(lst):
+            FILE = dic.pop("FILE")
+            content = _load(FILE)
+            if not "fields" in content or not content["fields"]:
+                continue
+            n = len(content["fields"].values()[0])
+            print "-) %d field values, params:" %(n,),
+            print ", ".join(["%s=%s" %x for x in dic.items()])
         

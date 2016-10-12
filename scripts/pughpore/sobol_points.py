@@ -1,52 +1,26 @@
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from numpy.random import random
+#from numpy.random import random
 import matplotlib.pyplot as plt
-
+import nanopores.tools.fields as fields
+import nanopores.geometries.pughpore as pughpore
 import nanopores
-nanopores.add_params(k=3)
 
-#........................R.............................
-#                                                     .
-#                                                     . 
-#              .........l0..........                  .
-#              .                   .                  .
-#              ._ _______________ _...............    .
-#              |D|               |D|     .   .   .    .
-#              |D|......l1.......|D|    h1   .   .    .
-#              |D|_ ____l2_____ _|D|......   h2  .    .
-#              |DDD|_ _______ _|DDD|..........   .    .
-#              |DDDDD|       |DDDDD|             .    .
-#              |DDDDD|       |DDDDD|             .    .
-#       DNA--->|DDDDD|       |DDDDD|           hpore  .
-#              |DDDDD|       |DDDDD|             .    .
-#              |DDDDD|..l3...|DDDDD|             .    .
-#   MEMBRANE   |DDDDD|       |DDDDD|             .    H
-#      |       |DDDDD|       |DDDDD|             .    .
-#      |       |DDDDD|       |DDDDD|....h4       .    .
-#______V_________|DDD|       |DDD|_____.________ .___ .......
-#MMMMMMMMMMMMMMMM|DDD|       |DDD|MMMMM.MMMMMMMMM.MMMM.    hmem
-#MMMMMMMMMMMMMMMM|DDD|_______|DDD|MMMMM.MMMMMMMMM.MMMM.......
-#                .               .                    .
-#                .......l4........                    .
-#                                                     .
-#                                                     .
-#                                                     .
-#......................................................
+up = nanopores.user_params(pughpore.params, k=3)
 
-R = 40
-H = 70
-l0 = 22.5
-l1 = 17.5
-l2 = 12.5
-l3 = 7.5
-l4 = 17.5
-hpore = 46
-hmem = 2.2
-h2 = hpore-35. 
-h1 = h2-2.5
-h4 = 10.
-rMolecule=1.
+R = up.R
+H = up.H
+l0 = up.l0
+l1 = up.l1
+l2 = up.l2
+l3 = up.l3
+l4 = up.l4
+hpore = up.hpore
+hmem = up.hmem
+h2 = up.h2
+h1 = up.h1
+h4 = up.h4
+rMolecule = up.rMolecule
 
 
 ####################################################
@@ -61,7 +35,7 @@ fac = np.array([.5*l0*1.2,.5*l0,.5*l1-rMolecule,.5*l1-rMolecule,.5*l2-rMolecule,
 z = np.array([.5*hpore+5.,.5*hpore+rMolecule,.5*hpore,.5*(hpore-h1),.5*hpore-h1,.5*hpore-h2,-.5*hpore+.75*(hpore-h2),-.5*hpore+.5*(hpore-h2),-.5*hpore+.25*(hpore-h2),-.5*hpore])
 
 k0=3 #start exponent 2^k0
-k=k #increase number of points to 2^(k0+k)
+k=up.k #increase number of points to 2^(k0+k)
 
 #if k0=3 :      k |  k=1  |  k=2  |  k=3  |  k=4  |  k=5  |  k=6 
 #          points |   21  |   37  |   73  |  137  |  273  |  529
@@ -96,6 +70,8 @@ array=[[X[i],Y[i],Z[i]] for i in range(X.shape[0])]
 ####################################################
 
 if __name__ == "__main__":
+    fields.save_entries("pughx", dict(up), x=array, N=len(array))
+    fields.update()
     
     def surfx(y1,y2,z1,z2,d,size,rs,cs):
         Y = np.linspace(y1,y2,size)

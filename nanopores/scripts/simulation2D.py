@@ -9,15 +9,15 @@ if simulation is finished at the end, save plot of the range in same DIR.
 
 from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
-from ..tools.mpipool import MPIPool, mpimap
+from ..tools.mpipool import mpimap
 from mpi4py import MPI
 from pathos.helpers import mp # mp = fork of multiprocessing package
-from .. import DATADIR
+from ..dirnames import DATADIR
 import numpy, os
-from .calculate_forces import calculate2D
+#from .calculate_forces import calculate2D
 
-__all__ = ["iterate_in_parallel", "post_iteration", "simulation2D",
-           "calculate2D", "simulate", "parallel_output"]
+__all__ = ["iterate_in_parallel", "post_iteration", "simulate",
+           "parallel_output"]
 
 # directory where data are saved
 savedir = DATADIR + "/sim/stamps/"
@@ -144,7 +144,7 @@ def post_iteration(result, stamp, showplot=False):
     input_params = {k:stamp[k] for k in iterkeys}
     params = combinations(input_params, iterkeys)
 
-    from matplotlib.pyplot import plot, xlabel, ylabel, legend, figure, savefig, show, close
+    from matplotlib.pyplot import plot, xlabel, ylabel, legend, savefig, show
     import matplotlib.pyplot as plt
     plots = {}
 
@@ -213,18 +213,18 @@ def parallel_output(calculate, nproc=1, plot=None, showplot=False, **params):
                  
 
 # simulation in 2D (script for howorka pore)
-def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):
-    if outputs is not None:
-        def f(**x):
-            res = calculate2D(**x)
-            return {key:res[key] for key in outputs}
-    else:
-        f = calculate2D
-    if plot is not None:
-        result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
-    else:
-        result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
-    if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
-        return
-    post_iteration(result, stamp, showplot=False)
-    return result
+#def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):
+#    if outputs is not None:
+#        def f(**x):
+#            res = calculate2D(**x)
+#            return {key:res[key] for key in outputs}
+#    else:
+#        f = calculate2D
+#    if plot is not None:
+#        result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
+#    else:
+#        result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
+#    if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
+#        return
+#    post_iteration(result, stamp, showplot=False)
+#    return result

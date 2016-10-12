@@ -18,8 +18,8 @@ rpermProtein = 2. # TODO ?????
 rDPore = 0.5
 
 DNAqs = lambda DNAqsPure, dnaqsdamp: DNAqsPure*dnaqsdamp
-permPore = lambda: eperm*rpermPore
-permProtein = lambda: eperm*rpermProtein
+permPore = lambda eperm, rPermPore: eperm*rpermPore
+permProtein = lambda eperm, rpermProtein: eperm*rpermProtein
 DPore = lambda D, rDPore: D*rDPore
 
 # piece-wise boundary conditions

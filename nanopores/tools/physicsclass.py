@@ -77,14 +77,14 @@ class Physics(object):
             argnames = inspect.getargspec(f).args
             args = [self.base[k] for k in argnames]
             self.base[fstr] = f(*args)
-            setattr(mod, fstr, self.base[fstr])
+            #setattr(mod, fstr, self.base[fstr])
 
         for mstr, m in self.maps.items():
             for k in m:
                 if isinstance(m[k], str):
                     m[k] = self.base[m[k]]
             self.base[mstr] = m
-            setattr(mod, mstr, m)
+            #setattr(mod, mstr, m)
             
     def __getattr__(self, name):
         if name in self.base:
@@ -96,7 +96,7 @@ class Physics(object):
             args = [getattr(self, k) for k in argnames]
             result = f(*args)
             self.base[name] = result
-            setattr(self.mod, name, result)
+            #setattr(self.mod, name, result)
             return result
             
         elif name in self.maps:
@@ -106,7 +106,7 @@ class Physics(object):
                 if isinstance(m[k], str):
                     m[k] = getattr(self, m[k])
             self.base[name] = m
-            setattr(self.mod, name, m)
+            #setattr(self.mod, name, m)
             return m
             
     # FIXME this next two functions were never tried out because we did not actually need them

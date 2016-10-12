@@ -15,7 +15,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
-           "user_params"]
+           "user_params", "dict_union", "union"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -326,12 +326,11 @@ def _argparse():
         dic[name] = val
     return dic
     
-def user_params(PARENT=None, **params):
+def user_params(default=None, **params):
     "cleaner version of add_params with less secret module mangling"
     "(magic is only included for ease of params inheritance)"
-    if PARENT is not None:
-        pparams = PARENT.PARAMS
-        params.update({key: pparams[key] for key in pparams if not key in params})
+    if default is not None:
+        params.update({key: default[key] for key in default if not key in params})
     args = _argparse()
     params.update({key: args[key] for key in args if key in params})
     frm = inspect.stack()[1]
@@ -345,6 +344,20 @@ class Params(dict):
     "for writing params.Qmol instead of params['Qmol']"
     def __getattr__(self, key):
         return self[key]
+    def __or__(self, other):
+        new = Params(self)        
+        new.update(other)
+        return new
+        
+def union(*seq):
+    return reduce(lambda x, y: x | y, seq)
+    
+def dict_union(*seq):
+    def union(a, b):
+        new = dict(a)
+        new.update(b)
+        return new
+    return reduce(union, seq)
 
 def RectangleMesh(a, b, nx, ny):
     return dolfin.RectangleMesh(dolfin.Point(array(a)), dolfin.Point(array(b)), nx, ny)
