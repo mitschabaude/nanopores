@@ -1,7 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude and Benjamin Stadlbauer
 "Large DNA pore from Pugh et al. 2016"
 
-from nanopores.tools.balls import Box, Ball, EmptySet
+from nanopores.tools.balls import Box, Ball, EmptySet, set_tol
 
 #........................R.............................
 #                                                     .
@@ -32,8 +32,8 @@ from nanopores.tools.balls import Box, Ball, EmptySet
 #......................................................
 
 params = dict(
-    R = 40,
-    H = 70,
+    R = 20.,
+    H = 70.,
     l0 = 22.5,
     l1 = 17.5,
     l2 = 12.5,
@@ -47,9 +47,12 @@ params = dict(
     h4 = 10.,
     
     rMolecule = 2.0779, # molecular radius of protein trypsin
-    x0 = [1., 0., .5*46 - 2. - 0.2],
-    lcMolecule = 0.2, # relative to global mesh size
+    x0 = [1., 0., -.5*46 + 2.3],
+    lcMolecule = 0.4, # relative to global mesh size
 )
+# change global settings for mesh generation
+#set_tol(None) # faster, may lead to degenerate elements or even gmsh error
+set_tol(0.5) # more robust
 
 def set_params(**newparams):
     params.update(newparams)
@@ -61,7 +64,7 @@ def get_geo(lc=1., **newparams):
     
 def get_domain(lc=1., **newparams):
     _params = dict(params, **newparams)
-    zero = [0, 0, 0]
+    zero = [0., 0., 0.]
     
     R = _params["R"]
     H = _params["H"]
@@ -85,9 +88,10 @@ def get_domain(lc=1., **newparams):
     rMolecule = _params["rMolecule"]
     x0 = _params["x0"]
     lcMolecule = lc*_params["lcMolecule"]
+        
+    lpore = hpore # for current calculation
     
     # form building blocks
-    
     reservoir = Box(center=zero, l=2.*R, w=2.*R, h=H)
     upperhalf = Box([-2.*R, -2.*R, cmem[2]], [2.*R, 2.*R, 0.5*H])
     
@@ -103,13 +107,36 @@ def get_domain(lc=1., **newparams):
     
     domain = reservoir
     membrane = closed_membrane - substract_mem
-    #membrane_boundary = closed_membrane - closed_dna
     dna = closed_dna - enter_1 - enter_2 - enter_3 - substract_dna
     pore = enter_1 | enter_2 | enter_3
     
     bulkfluid = (reservoir - (membrane | closed_dna)) | add_bulkfluid
     bulkfluid_top = bulkfluid & upperhalf
     bulkfluid_bottom = bulkfluid - upperhalf
+    
+    if x0 is not None:
+        # add molecule
+        molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
+        domain.addball(molecule, "molecule", "moleculeb")
+        # if molecule intersects pore boundary, change pore domain
+        hporetop = closed_dna.b[2]
+        hporebot = closed_dna.a[2]
+        epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
+        if abs(x0[2] - hporetop) <= rMolecule + epsi:
+            bulkentry = pore & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
+                                   b=[ l1/2, l1/2, hporetop])
+            bulkfluid_top |= bulkentry
+            pore -= bulkentry
+            lpore = (x0[2]-rMolecule-epsi) - hporebot
+        elif abs(x0[2] - hporebot) <= rMolecule + epsi:
+            bulkentry = pore & Box(a=[-l3/2,-l3/2, hporebot],
+                                   b=[ l3/2, l3/2, x0[2]+rMolecule+epsi])
+            bulkfluid_bottom |= bulkentry
+            pore -= bulkentry
+            lpore = hporetop - (x0[2]+rMolecule+epsi)
+    else:
+        domain.addsubdomain(EmptySet(), "molecule")
+        domain.addboundary(EmptySet(), "moleculeb")
     
     domain.addsubdomains(
         membrane = membrane,
@@ -118,15 +145,7 @@ def get_domain(lc=1., **newparams):
         bulkfluid_top = bulkfluid_top,
         bulkfluid_bottom = bulkfluid_bottom,
     )
-    
-    if x0 is not None:
-        molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
-        domain.addball(molecule, "molecule", "moleculeb")
-    else:
-        domain.addsubdomain(EmptySet(), "molecule")
-        domain.addboundary(EmptySet(), "moleculeb")
-    
-    
+
     dnainnerb = enter_1.boundary("front", "back", "left", "right") |\
                 enter_2.boundary("front", "back", "left", "right") |\
                 enter_3.boundary("front", "back", "left", "right")
@@ -167,7 +186,7 @@ def get_domain(lc=1., **newparams):
         #boundaries
         chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},
         dnab = {"chargeddnab"},
-        noslip = {"dnab", "memb", "moleculeb"}, # "upperb", "sideb", "lowerb"},
+        noslip = {"dnab", "memb", "moleculeb", "sideb"},
         bV = "lowerb",
         ground = "upperb",
         bulk = {"lowerb", "upperb"},
@@ -180,7 +199,7 @@ def get_domain(lc=1., **newparams):
         dim = 3,
         nm = 1.,
         lscale = 1e9,
-        lpore = hpore,
+        lpore = lpore,
     )
     return domain
     
@@ -254,11 +273,11 @@ if __name__ == "__main__":
         memb = domain.getboundary("memb"),
     )  
     print "COMPUTING SOLID"
-    solidgeo = solid.create_geometry(lc=2.)
+    solidgeo = solid.create_geometry(lc=4.)
     print solidgeo
     
     print "COMPUTING DOMAIN"
-    geo = get_geo(lc=1.)
+    geo = get_geo(lc=4.)
     print geo
     print geo.params
     

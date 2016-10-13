@@ -65,6 +65,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     # map iterator using multiprocessing.Pool
     # FIXME: this approach of distributing across multiple processors is inconvenient
     #        since a single error kills the whole simulation.
+    #        (not necessarily, error can be catched and displayed by method)
     #        also it's not supposed to be appropriate for HPC architectures
     elif nproc>1:
         pool = mp.Pool(nproc)

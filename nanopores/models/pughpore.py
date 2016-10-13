@@ -5,14 +5,13 @@ import dolfin
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import nanopores.physics.simplepnps as simplepnps
-import nanopores.tools.box as box
 import nanopores.tools.solvers as solvers
 
 default = nano.Params(
 geop = nano.Params(
-    R = 30.,
-    H = 80.,
-    x0 = [0.,0.,15.],
+    R = pughpore.params["R"],
+    H = pughpore.params["H"],
+    x0 = pughpore.params["x0"],
 ),
 physp = nano.Params(
     Qmol = -1.,
@@ -29,9 +28,7 @@ solverp = nano.Params(
     cheapest = False,
     stokesiter = True
 ))
-defaultp = nano.union(default.geop, default.physp)
-# change global settings of mesh generation
-box.set_tol(None)
+defaultp = default.geop | default.physp
 
 class Setup(solvers.Setup):
     default = default
@@ -71,8 +68,8 @@ def solve(setup, visualize=False):
             nano.plot_cross(v, mesh2D, title="potential", key="u")
             #nano.plot_cross(cm, mesh2D, title="negative ions", key="cm")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
-    #if visualize:
-    #    nano.plot_cross_vector(u, mesh2D, title="u")
+    if visualize:
+        pnps.mesh2D = mesh2D
     return pb, pnps
 
 def get_forces(setup, pnps):
@@ -83,7 +80,10 @@ def get_forces(setup, pnps):
 def prerefine(setup, visualize=False, mesh2D=None):
     geo, phys, p = setup.geo, setup.phys, setup.solverp
     dolfin.tic()
-    goal = phys.CurrentPB
+    if setup.geop.x0 is None:
+        goal = phys.CurrentPB
+    else:
+        goal = lambda v: phys.CurrentPB(v) + phys.Fbare(v, 2)
     pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal, cheapest=p.cheapest)
     
     for i in pb.adaptive_loop(p.Nmax, p.frac):
@@ -140,8 +140,6 @@ def F_explicit(X, **params):
         values.append(get_forces(setup, pnps))
     return join_dicts(values)
         
-
-     
 # TODO
 ## evaluate point-size model for a number of z positions
 #def F_implicit3D(Z, **params):
@@ -161,8 +159,15 @@ def F_explicit(X, **params):
 #    return F, Fel, Fdrag
     
 if __name__ == "__main__":
-    setup = Setup(h=10., Nmax=1e5, x0=None)
+    setup = Setup(h=6., Nmax=6e5) #, x0=None)
     _, pnps = solve(setup, True)
     print get_forces(setup, pnps)
+    
+    mesh2D = pnps.mesh2D
+    v, cp, cm, u, p = pnps.solutions()
+    nano.plot_cross_vector(u, mesh2D, title="u")
+    nano.plot_cross(cm, mesh2D, title="cm")
+    nano.plot_cross(cp, mesh2D, title="cp")
+    nano.plot_cross(p, mesh2D, title="p")
     dolfin.interactive()
     

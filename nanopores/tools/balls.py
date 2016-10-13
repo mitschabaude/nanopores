@@ -11,7 +11,8 @@ C.create_geometry(lc=0.1)
 import nanopores.py4gmsh as py4gmsh
 import box
 from box import (BoxCollection, Float, csgExpression, FacetLoop, Entity,
-                BoundaryCollection, union)
+                BoundaryCollection, union, set_tol)
+__all__ = ["Box", "Ball", "EmptySet"]
 
 class BallCollection(BoxCollection):
     def __init__(self, boxes, balls):
@@ -212,7 +213,7 @@ def add_ball(m, r, lc):
     elif len(m)==1:
         return [py4gmsh.Point([m[0]-r,0,0]), py4gmsh.Point([m[0]+r,0,0])]
     else:
-        raise Exception("Ball midpoint must have dimension 1, 2 or 3.")
+        raise Exception("Ball center m must have dimension 1, 2 or 3.")
     
 def add_circle(m, r, lc):
     m0, m1 = m[0], m[1]

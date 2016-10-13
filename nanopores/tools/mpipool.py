@@ -7,7 +7,7 @@ from __future__ import (division, print_function, absolute_import,
 __all__ = ["MPIPool", "mpimap"]
 __version__ = "0.0.1"
 
-import numpy
+#import numpy
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
