@@ -14,8 +14,8 @@ geop = nano.Params(
     x0 = pughpore.params["x0"],
 ),
 physp = nano.Params(
-    Qmol = -1.,
-    bulkcon = 300.,
+    Qmol = 8., # charge of trypsin at pH 8.
+    bulkcon = 1000.,
     dnaqsdamp = .5,
     bV = -0.1,
 ),

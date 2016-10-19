@@ -20,7 +20,6 @@ achievements of this module:
 -) reading AND saving fields can be done in parallel, only update() step not
 
 TODO: if demanded, overwrite already calculated values
-TODO: fields.exists()
 TODO: fields.list_all (with indices)
 TODO: fields.list[i]
 """

@@ -28,7 +28,7 @@ UT = kB*T/qq # thermal voltage [V] = ca. 25 mV
 cFarad = qq*mol  # Faraday [C/mol] cFarad=qq*mol
 mu = D/UT # 73e-9  # average mobility [m^2/Vs]
 
-bpq=-2*qq  #charge per base pair -keyser.pdf
+bpq = -2*qq  #charge per base pair -keyser.pdf
 distbp = 0.34*nm  # distance between two base pairs for dsDNA -keyser.pdf
 DNAql = bpq/distbp  # line charge of dsDNA
 DNAqs = -qq/nm**2 # surface charge of dsDNA (according to Howorka)
