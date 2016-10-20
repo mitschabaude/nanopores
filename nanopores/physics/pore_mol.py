@@ -12,6 +12,10 @@ rpermMol = rpermDNA
 permMol = lambda eperm, rpermMol: eperm*rpermMol
 cyl = lambda dim: True if dim==2 else False
 
+# params for unspecific binding
+bind_prob = 0.1
+bind_time = .04e6 # binding duration [ns]
+
 volcharge.update(
     molecule = "Moleculeqv",
 )
