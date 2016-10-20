@@ -72,7 +72,7 @@ def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
 def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale):
     def _current(U):
         v, cp, cm, u, p = U
-        L = dolfin.Constant(geo.params["lpore"])
+        L = dolfin.Constant(geo.params["lporecurrent"])
         Dp = geo.pwconst("Dp")
         Dm = geo.pwconst("Dm")
         cUT = dolfin.Constant(UT)
@@ -82,7 +82,7 @@ def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale):
         jp = -Dp*grad(cp) - Dp/cUT*cp*grad(v) + cp*u
         jz = F*(jp - jm)[dim-1]
         
-        J = -jz/L * r2pi*invscale(2)*geo.dx("pore")
+        J = -jz/L * r2pi*invscale(2)*geo.dx("porecurrent")
         J = dolfin.assemble(J)
         return dict(J=J)
     return _current

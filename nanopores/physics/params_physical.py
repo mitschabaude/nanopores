@@ -3,6 +3,7 @@ physical parameters for Simulations
 """
 nm = 1e-9
 cm = 1e-2
+pi = 3.14159265359
 
 # Define constants taken from
 # 'Effective force applied on DNA inside a solid-state nanopore'

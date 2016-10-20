@@ -47,7 +47,7 @@ params = dict(
     h4 = 10.,
     
     rMolecule = 2.0779, # molecular radius of protein trypsin
-    x0 = [1., 0., -.5*46 + 2.3],
+    x0 = [0., 0., -20.],
     lcMolecule = 0.4, # relative to global mesh size
 )
 # change global settings for mesh generation
@@ -88,8 +88,9 @@ def get_domain(lc=1., **newparams):
     rMolecule = _params["rMolecule"]
     x0 = _params["x0"]
     lcMolecule = lc*_params["lcMolecule"]
-        
-    lpore = hpore # for current calculation
+    
+    hcenter = hpore - h2    
+    lporecurrent = hcenter/3. # for current calculation
     
     # form building blocks
     reservoir = Box(center=zero, l=2.*R, w=2.*R, h=H)
@@ -99,7 +100,19 @@ def get_domain(lc=1., **newparams):
     closed_dna = Box(center=zero, l=l0, w=l0, h=hpore)
     enter_1 = Box(center=c1, l=l1, w=l1, h=h1)
     enter_2 = Box(center=c2, l=l2, w=l2, h=h2-h1)
-    enter_3 = Box(center=cpore, l=l3, w=l3, h=hpore-h2)
+
+    hporetop = closed_dna.b[2]
+    hporebot = closed_dna.a[2]
+    hcross0 = enter_2.a[2]    
+    hcross1 = cpore[2] + hcenter/6.
+    hcross2 = cpore[2] - hcenter/6.
+    poretop = Box([-l3/2, -l3/2, hcross1], [l3/2, l3/2, hcross0])
+    porectr = Box([-l3/2, -l3/2, hcross2], [l3/2, l3/2, hcross1])
+    porebot = Box([-l3/2, -l3/2, hporebot], [l3/2, l3/2, hcross2])
+    poreenter = enter_1 | enter_2
+    pore = poreenter | poretop | porectr | porebot
+    
+    enter_3 = Box(center=cpore, l=l3, w=l3, h=hcenter)
     substract_mem = Box(center=c4, l=l4, w=l4, h=h4)
     substract_mem_spanning = Box(center=c4, l=l0, w=l0, h=h4)
     substract_dna = substract_mem_spanning - substract_mem
@@ -107,8 +120,7 @@ def get_domain(lc=1., **newparams):
     
     domain = reservoir
     membrane = closed_membrane - substract_mem
-    dna = closed_dna - enter_1 - enter_2 - enter_3 - substract_dna
-    pore = enter_1 | enter_2 | enter_3
+    dna = closed_dna - pore - substract_dna
     
     bulkfluid = (reservoir - (membrane | closed_dna)) | add_bulkfluid
     bulkfluid_top = bulkfluid & upperhalf
@@ -119,29 +131,33 @@ def get_domain(lc=1., **newparams):
         molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
         domain.addball(molecule, "molecule", "moleculeb")
         # if molecule intersects pore boundary, change pore domain
-        hporetop = closed_dna.b[2]
-        hporebot = closed_dna.a[2]
         epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
+        
         if abs(x0[2] - hporetop) <= rMolecule + epsi:
-            bulkentry = pore & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
+            bulkentry = poreenter & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
                                    b=[ l1/2, l1/2, hporetop])
             bulkfluid_top |= bulkentry
-            pore -= bulkentry
-            lpore = (x0[2]-rMolecule-epsi) - hporebot
+            poreenter -= bulkentry
+            
         elif abs(x0[2] - hporebot) <= rMolecule + epsi:
-            bulkentry = pore & Box(a=[-l3/2,-l3/2, hporebot],
+            bulkentry = porebot & Box(a=[-l3/2,-l3/2, hporebot],
                                    b=[ l3/2, l3/2, x0[2]+rMolecule+epsi])
             bulkfluid_bottom |= bulkentry
-            pore -= bulkentry
-            lpore = hporetop - (x0[2]+rMolecule+epsi)
+            porebot -= bulkentry
+            
+        porecurrent = "porebot" if x0[2] >= cpore[2] else "poretop"
     else:
         domain.addsubdomain(EmptySet(), "molecule")
         domain.addboundary(EmptySet(), "moleculeb")
+        porecurrent = "poretop"
     
     domain.addsubdomains(
         membrane = membrane,
         dna = dna,
-        pore = pore,
+        poreenter = poreenter,
+        poretop = poretop,
+        porectr = porectr,
+        porebot = porebot,
         bulkfluid_top = bulkfluid_top,
         bulkfluid_bottom = bulkfluid_bottom,
     )
@@ -156,7 +172,8 @@ def get_domain(lc=1., **newparams):
                 substract_mem_spanning.boundary("front", "back", "left", "right")
     dnaouterb = dnaouterb | (substract_mem_spanning.boundary("top") - \
                 substract_mem.boundary("top"))
-    dnaouterb |= (substract_mem.boundary("front", "back", "right", "left") - membrane.boundary())
+    dnaouterb |= (substract_mem.boundary("front", "back", "right", "left")\
+                  - membrane.boundary())
     dnalowerb = substract_mem.boundary("bottom") - enter_3
     memb = closed_membrane.boundary("top", "bottom") - substract_mem
     outermemb = closed_membrane.boundary("front", "back", "left", "right")
@@ -178,10 +195,12 @@ def get_domain(lc=1., **newparams):
     # add synonymes for overlapping subdomains and boundaries
     domain.synonymes = dict(
         #subdomains
+        pore = {"poreenter", "poretop", "porectr", "porebot"},
         bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
         fluid = {"bulkfluid", "pore"},
         solid = {"membrane", "dna", "molecule"},
         ions = "fluid",
+        porecurrent = porecurrent,
     
         #boundaries
         chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},
@@ -199,7 +218,8 @@ def get_domain(lc=1., **newparams):
         dim = 3,
         nm = 1.,
         lscale = 1e9,
-        lpore = lpore,
+        lporecurrent = lporecurrent,
+        lpore = hpore,
     )
     return domain
     

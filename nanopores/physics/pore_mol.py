@@ -78,6 +78,31 @@ def ForcesPNPS(geo, Moleculeqv, div, grad, eta, r2pi,
         F_dict["F"] = [Fe+Fd for Fe, Fd in zip(F_dict["Fel"], F_dict["Fdrag"])]
         return F_dict
     return _forces
+    
+def Fdrag(geo, div, grad, eta, r2pi, invscale, dim, pscale):
+    "Drag force on Stokes solution with zero RHS"
+    def _force(U):
+        u, p = U
+        p *= dolfin.Constant(pscale)
+        dxf = geo.dx("fluid")
+        eta2 = dolfin.Constant(2.*eta)
+        sym = dolfin.sym
+        inner = dolfin.inner
+        V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
+    
+        F_dict = dict(Fdrag=[])
+        for i in range(dim):        
+            ei = tuple((1. if j==i else 0.) for j in range(dim))
+            ei = dolfin.Constant(ei)
+            uaux = dolfin.Function(V)
+            geo.BC(V, ei, "moleculeb").apply(uaux.vector())
+            
+            Fdragvol = -(eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
+                         div(uaux)*p)* r2pi*invscale(3)*dxf
+
+            F_dict["Fdrag"].append(dolfin.assemble(Fdragvol))
+        return F_dict
+    return _force
 
                 
     

@@ -18,6 +18,7 @@ physp = nano.Params(
     bulkcon = 1000.,
     dnaqsdamp = .5,
     bV = -0.1,
+    rDPore = 1.,
 ),
 solverp = nano.Params(
     h = 2.,
@@ -41,7 +42,19 @@ class Setup(solvers.Setup):
         
     def init_phys(self):
         self.phys = nano.Physics("pore_mol", self.geo, **self.physp)
-        set_sideBCs(self.phys, self.geop, self.physp)
+        #set_sideBCs(self.phys, self.geop, self.physp)
+        
+class Plotter(object):
+    def __init__(self, setup):
+        self.geo = setup.geo
+        R, H = self.geo.params["R"], self.geo.params["H"]
+        self.mesh2D = nano.RectangleMesh([-R,-H/2.], [R, H/2.],
+                                         int(4*R), int(2*H))
+    def plot(self, u, title="u"):
+        nano.plot_cross(u, self.mesh2D, title=title, key=title)
+    def plot_vector(self, u, title="u"):
+        nano.plot_cross_vector(u, self.mesh2D, title=title, key=title)
+    
 
 def solve(setup, visualize=False):
     geo, phys, solverp = setup.geo, setup.phys, setup.solverp
@@ -50,6 +63,7 @@ def solve(setup, visualize=False):
         mesh2D = nano.RectangleMesh([-R,-H/2.], [R, H/2.], int(4*R), int(2*H))
     else:
         mesh2D = None
+    set_sideBCs(phys, setup.geop, setup.physp)
     if geo.mesh.num_cells() < solverp.Nmax:
         pb = prerefine(setup, visualize, mesh2D)
     else:

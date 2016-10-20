@@ -57,7 +57,7 @@ print "   Fs/Fp = %.4f" %(Fs/Fp,)
 v0 = abs(v[1])
 Fd0 = 6*pi*eta*r*v0
 print
-print "Forces according to Stoke's Law [N]:"
+print "Forces according to Stokes' Law [N]:"
 print "   Fp = %.4e" %(Fd0/3.,)
 print "   Fs = %.4e" %(Fd0*2./3.,)
 print "   Fd = %.4e" %(Fd0,)
