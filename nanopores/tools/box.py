@@ -346,8 +346,9 @@ class Box(BoxCollection):
             a = tuple(Float(x) for x,y in intervals)
             b = tuple(Float(y) for x,y in intervals)
         if center is not None:
-            a = [c - x*.5 for c,x in zip(center, [l,w,h])]
-            b = [c + x*.5 for c,x in zip(center, [l,w,h])]
+            lengths = [l, w, h][:len(center)]
+            a = [c - x*.5 for c,x in zip(center, lengths)]
+            b = [c + x*.5 for c,x in zip(center, lengths)]
         # a, b should be tuples
         assert len(a) == len(b)
         a, b = _sort(a, b)

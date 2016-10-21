@@ -12,6 +12,7 @@ geop = nano.Params(
     R = pughpore.params["R"],
     H = pughpore.params["H"],
     x0 = pughpore.params["x0"],
+    rMolecule = pughpore.params["rMolecule"],
 ),
 physp = nano.Params(
     Qmol = 8., # charge of trypsin at pH 8.

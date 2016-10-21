@@ -34,11 +34,11 @@ from nanopores.tools.balls import Box, Ball, EmptySet, set_tol
 params = dict(
     R = 20.,
     H = 70.,
-    l0 = 22.5,
-    l1 = 17.5,
-    l2 = 12.5,
-    l3 = 7.5,
-    l4 = 17.5,
+    l0 = 18., #22.5,
+    l1 = 14., #17.5,
+    l2 = 10., #12.5,
+    l3 = 6., #7.5,
+    l4 = 14., #17.5,
     hpore = 46,
     hmem = 2.2,
     
@@ -47,7 +47,7 @@ params = dict(
     h4 = 10.,
     
     rMolecule = 2.0779, # molecular radius of protein trypsin
-    x0 = [0., 0., -20.],
+    x0 = [0., 0., 0.],
     lcMolecule = 0.4, # relative to global mesh size
 )
 # change global settings for mesh generation
@@ -145,19 +145,26 @@ def get_domain(lc=1., **newparams):
             bulkfluid_bottom |= bulkentry
             porebot -= bulkentry
             
-        porecurrent = "porebot" if x0[2] >= cpore[2] else "poretop"
+        if x0[2] >= cpore[2]:
+            porecurrent = porebot
+            porerest = poreenter | poretop | porectr
+            poreenter = EmptySet()
+        else:
+            porecurrent = poretop
+            porerest = porebot | porectr
     else:
         domain.addsubdomain(EmptySet(), "molecule")
         domain.addboundary(EmptySet(), "moleculeb")
-        porecurrent = "poretop"
+        porecurrent = porebot
+        porerest = poreenter | poretop | porectr
+        poreenter = EmptySet()
     
     domain.addsubdomains(
         membrane = membrane,
         dna = dna,
         poreenter = poreenter,
-        poretop = poretop,
-        porectr = porectr,
-        porebot = porebot,
+        porerest = porerest,
+        porecurrent = porecurrent,
         bulkfluid_top = bulkfluid_top,
         bulkfluid_bottom = bulkfluid_bottom,
     )
@@ -195,15 +202,183 @@ def get_domain(lc=1., **newparams):
     # add synonymes for overlapping subdomains and boundaries
     domain.synonymes = dict(
         #subdomains
-        pore = {"poreenter", "poretop", "porectr", "porebot"},
+        pore = {"porerest", "porecurrent", "poreenter"},
         bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
         fluid = {"bulkfluid", "pore"},
         solid = {"membrane", "dna", "molecule"},
         ions = "fluid",
-        porecurrent = porecurrent,
     
         #boundaries
         chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},
+        dnab = {"chargeddnab"},
+        noslip = {"dnab", "memb", "moleculeb", "sideb"},
+        bV = "lowerb",
+        ground = "upperb",
+        bulk = {"lowerb", "upperb"},
+        nopressure = "upperb",
+    )
+    
+    # add parameters (this should include params needed by physics module)
+    domain.params = dict(_params,
+        name = "pughpore",
+        dim = 3,
+        nm = 1.,
+        lscale = 1e9,
+        lporecurrent = lporecurrent,
+        lpore = hpore,
+    )
+    return domain
+    
+def get_domain_cyl(lc=1., **newparams):
+    # TODO
+    _params = dict(params, **newparams)
+    zero = [0., 0.]
+    
+    R = _params["R"]
+    H = _params["H"]
+    l0 = _params["l0"]
+    l1 = _params["l1"]
+    l2 = _params["l2"]
+    l3 = _params["l3"]
+    l4 = _params["l4"]
+    hpore = _params["hpore"]
+    hmem = _params["hmem"]
+    h2 = _params["h2"]
+    h1 = _params["h1"]
+    h4 = _params["h4"]
+    
+    cmem = [0.,-.5*(hpore-hmem)]
+    c1 = [0.,.5*(hpore-h1)]
+    c2 = [0.,hpore*.5-h1-(h2-h1)*.5]
+    cpore = [0.,-.5*h2]
+    c4 = [0.,-.5*(hpore-h4)]
+    
+    rMolecule = _params["rMolecule"]
+    x0 = _params["x0"]
+    # TODO
+    x0 = None
+    lcMolecule = lc*_params["lcMolecule"]
+    
+    hcenter = hpore - h2    
+    lporecurrent = hcenter/3. # for current calculation
+    
+    # form building blocks
+    reservoir = Box([0., -H], [R, H])
+    upperhalf = Box([-2.*R, cmem[1]], [2.*R, 0.5*H])
+    
+    closed_membrane = Box(center=cmem, l=2.*R, w=hmem)
+    closed_dna = Box(center=zero, l=l0, w=hpore)
+    enter_1 = Box(center=c1, l=l1, w=h1)
+    enter_2 = Box(center=c2, l=l2, w=h2-h1)
+
+    hporetop = closed_dna.b[1]
+    hporebot = closed_dna.a[1]
+    hcross0 = enter_2.a[1]    
+    hcross1 = cpore[1] + hcenter/6.
+    hcross2 = cpore[1] - hcenter/6.
+    poretop = Box([-l3/2, hcross1], [l3/2, hcross0])
+    porectr = Box([-l3/2, hcross2], [l3/2, hcross1])
+    porebot = Box([-l3/2, hporebot], [l3/2, hcross2])
+    poreenter = enter_1 | enter_2
+    pore = poreenter | poretop | porectr | porebot
+    
+    enter_3 = Box(center=cpore, l=l3, w=hcenter)
+    substract_mem = Box(center=c4, l=l4, w=h4)
+    substract_mem_spanning = Box(center=c4, l=l0, w=h4)
+    substract_dna = substract_mem_spanning - substract_mem
+    add_bulkfluid = substract_dna - closed_membrane
+    
+    domain = reservoir
+    membrane = closed_membrane - substract_mem
+    dna = closed_dna - pore - substract_dna
+    
+    bulkfluid = (reservoir - (membrane | closed_dna)) | add_bulkfluid
+    bulkfluid_top = bulkfluid & upperhalf
+    bulkfluid_bottom = bulkfluid - upperhalf
+    
+    if x0 is not None:
+        # add molecule
+        molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
+        domain.addball(molecule, "molecule", "moleculeb")
+        # if molecule intersects pore boundary, change pore domain
+        epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
+        
+        if abs(x0[2] - hporetop) <= rMolecule + epsi:
+            bulkentry = poreenter & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
+                                   b=[ l1/2, l1/2, hporetop])
+            bulkfluid_top |= bulkentry
+            poreenter -= bulkentry
+            
+        elif abs(x0[2] - hporebot) <= rMolecule + epsi:
+            bulkentry = porebot & Box(a=[-l3/2,-l3/2, hporebot],
+                                   b=[ l3/2, l3/2, x0[2]+rMolecule+epsi])
+            bulkfluid_bottom |= bulkentry
+            porebot -= bulkentry
+            
+        if x0[2] >= cpore[2]:
+            porecurrent = porebot
+            porerest = poreenter | poretop | porectr
+            poreenter = EmptySet()
+        else:
+            porecurrent = poretop
+            porerest = porebot | porectr
+    else:
+        domain.addsubdomain(EmptySet(), "molecule")
+        domain.addboundary(EmptySet(), "moleculeb")
+        porecurrent = porebot
+        porerest = poreenter | poretop | porectr
+        poreenter = EmptySet()
+    
+    domain.addsubdomains(
+        membrane = membrane &reservoir,
+        dna = dna &reservoir,
+        poreenter = poreenter &reservoir,
+        porerest = porerest &reservoir,
+        porecurrent = porecurrent &reservoir,
+        bulkfluid_top = bulkfluid_top &reservoir,
+        bulkfluid_bottom = bulkfluid_bottom &reservoir,
+    )
+    
+    dnab = dna.boundary() - membrane.boundary()
+
+#    dnainnerb = enter_1.boundary("right") |\
+#                enter_2.boundary("right") |\
+#                enter_3.boundary("right")
+#    dnaupperb = closed_dna.boundary("top") - enter_1
+#    dnaupperb = dnaupperb | enter_1.boundary("bottom") - enter_2
+#    dnaupperb = dnaupperb | enter_2.boundary("bottom") - enter_3
+#    dnaouterb = closed_dna.boundary("right") - \
+#                substract_mem_spanning.boundary("right")
+#    dnaouterb |= (substract_mem_spanning.boundary("top") - \
+#                  substract_mem.boundary("top"))
+#    dnaouterb |= (substract_mem.boundary("right")\
+#                  - membrane.boundary())
+#    dnalowerb = substract_mem.boundary("bottom") - enter_3
+    memb = closed_membrane.boundary("top", "bottom") - substract_mem
+    outermemb = closed_membrane.boundary("right")
+    sideb = reservoir.boundary("right") - outermemb
+    upperb = reservoir.boundary("top")
+    lowerb = reservoir.boundary("bottom")
+    
+    domain.addboundaries(
+#        dnab = dnab,
+#        memb = memb,
+#        sideb = sideb,
+        upperb = upperb,
+        lowerb = lowerb,
+    )
+    
+    # add synonymes for overlapping subdomains and boundaries
+    domain.synonymes = dict(
+        #subdomains
+        pore = {"porerest", "porecurrent", "poreenter"},
+        bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
+        fluid = {"bulkfluid", "pore"},
+        solid = {"membrane", "dna", "molecule"},
+        ions = "fluid",
+    
+        #boundaries
+        chargeddnab = {"dnab"},
         dnab = {"chargeddnab"},
         noslip = {"dnab", "memb", "moleculeb", "sideb"},
         bV = "lowerb",
@@ -276,6 +451,11 @@ def get_geo1D(lc=0.01, **newparams):
 if __name__ == "__main__":
     import dolfin
     from nanopores import plot_sliced
+    
+    domain2D = get_domain_cyl()
+    geo2D = domain2D.create_geometry(lc=1.)
+    dolfin.plot(geo2D.subdomains, title="subdomains")
+    dolfin.plot(geo2D.boundaries, title="boundaries")
     
     domain = get_domain()
     membrane = domain.getsubdomain("membrane")
