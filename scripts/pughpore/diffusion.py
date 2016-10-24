@@ -8,22 +8,23 @@ import nanopores.physics.simplepnps as pnps
 import nanopores.tools.solvers as solvers
 
 default = dict(
-    h = 4.,
-    Nmax = 2e5,
+    h = 2.,
+    Nmax = 5e5,
     rMolecule = 0.152, # radius of K+
 )
 
 def diffusivity(setup):
-    v0 = 1.
+    v0 = .001
     geo, phys = setup.geo, setup.phys
     r = setup.geop.rMolecule
     
-    goal = lambda v: phys.Fbare(v, 2)
-    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
-    for i in pb.adaptive_loop(setup.solverp.Nmax):
-        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
+    pugh.prerefine(setup)
+#    goal = lambda v: phys.Fbare(v, 2)
+#    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
+#    for i in pb.adaptive_loop(setup.solverp.Nmax):
+#        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
     
-    pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
+    pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 20000
     
     W = pnps.SimpleStokesProblem.space(geo.mesh)
     bcs = [geo.BC(W.sub(0), dolfin.Constant((0.,0.,0.)), "dnab"),

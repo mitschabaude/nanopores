@@ -328,8 +328,8 @@ class BoxCollection(object):
     def __contains__(self, coll):
         return self.csg.contains(coll)
         
-    def __str__(self):
-        return str(self.csg)
+    #def __str__(self):
+    #    return str(self.csg)
         
     def __repr__(self):
         return str(self.csg)

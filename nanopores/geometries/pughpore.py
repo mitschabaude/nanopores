@@ -2,6 +2,8 @@
 "Large DNA pore from Pugh et al. 2016"
 
 from nanopores.tools.balls import Box, Ball, EmptySet, set_tol
+import nanopores.tools.box as box
+import nanopores.py4gmsh as gmsh
 
 #........................R.............................
 #                                                     .
@@ -229,18 +231,24 @@ def get_domain(lc=1., **newparams):
     )
     return domain
     
+def square2circle(r):
+    "obtain radius of circle from half-sidelength of square with same area"
+    from math import pi, sqrt
+    return r*2./sqrt(pi)
+    
 def get_domain_cyl(lc=1., **newparams):
     # TODO
+    set_tol(1e-2)
     _params = dict(params, **newparams)
     zero = [0., 0.]
     
-    R = _params["R"]
+    R = square2circle(_params["R"])
     H = _params["H"]
-    l0 = _params["l0"]
-    l1 = _params["l1"]
-    l2 = _params["l2"]
-    l3 = _params["l3"]
-    l4 = _params["l4"]
+    l0 = square2circle(_params["l0"])
+    l1 = square2circle(_params["l1"])
+    l2 = square2circle(_params["l2"])
+    l3 = square2circle(_params["l3"])
+    l4 = square2circle(_params["l4"])
     hpore = _params["hpore"]
     hmem = _params["hmem"]
     h2 = _params["h2"]
@@ -255,15 +263,13 @@ def get_domain_cyl(lc=1., **newparams):
     
     rMolecule = _params["rMolecule"]
     x0 = _params["x0"]
-    # TODO
-    x0 = None
     lcMolecule = lc*_params["lcMolecule"]
     
     hcenter = hpore - h2    
     lporecurrent = hcenter/3. # for current calculation
     
     # form building blocks
-    reservoir = Box([0., -H], [R, H])
+    reservoir = Box([0., -.5*H], [R, .5*H])
     upperhalf = Box([-2.*R, cmem[1]], [2.*R, 0.5*H])
     
     closed_membrane = Box(center=cmem, l=2.*R, w=hmem)
@@ -282,7 +288,6 @@ def get_domain_cyl(lc=1., **newparams):
     poreenter = enter_1 | enter_2
     pore = poreenter | poretop | porectr | porebot
     
-    enter_3 = Box(center=cpore, l=l3, w=hcenter)
     substract_mem = Box(center=c4, l=l4, w=h4)
     substract_mem_spanning = Box(center=c4, l=l0, w=h4)
     substract_dna = substract_mem_spanning - substract_mem
@@ -297,25 +302,23 @@ def get_domain_cyl(lc=1., **newparams):
     bulkfluid_bottom = bulkfluid - upperhalf
     
     if x0 is not None:
-        # add molecule
-        molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
-        domain.addball(molecule, "molecule", "moleculeb")
+        # molecule will be added later with hack
         # if molecule intersects pore boundary, change pore domain
         epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
         
         if abs(x0[2] - hporetop) <= rMolecule + epsi:
-            bulkentry = poreenter & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
-                                   b=[ l1/2, l1/2, hporetop])
+            bulkentry = poreenter & Box(a=[0., x0[2]-rMolecule-epsi],
+                                   b=[l1/2, hporetop])
             bulkfluid_top |= bulkentry
             poreenter -= bulkentry
             
         elif abs(x0[2] - hporebot) <= rMolecule + epsi:
-            bulkentry = porebot & Box(a=[-l3/2,-l3/2, hporebot],
-                                   b=[ l3/2, l3/2, x0[2]+rMolecule+epsi])
+            bulkentry = porebot & Box(a=[0., hporebot],
+                                   b=[ l3/2, x0[2]+rMolecule+epsi])
             bulkfluid_bottom |= bulkentry
             porebot -= bulkentry
             
-        if x0[2] >= cpore[2]:
+        if x0[2] >= cpore[1]:
             porecurrent = porebot
             porerest = poreenter | poretop | porectr
             poreenter = EmptySet()
@@ -330,40 +333,26 @@ def get_domain_cyl(lc=1., **newparams):
         poreenter = EmptySet()
     
     domain.addsubdomains(
-        membrane = membrane &reservoir,
-        dna = dna &reservoir,
-        poreenter = poreenter &reservoir,
-        porerest = porerest &reservoir,
-        porecurrent = porecurrent &reservoir,
-        bulkfluid_top = bulkfluid_top &reservoir,
-        bulkfluid_bottom = bulkfluid_bottom &reservoir,
+        membrane = membrane,
+        dna = dna,
+        poreenter = poreenter,
+        porerest = porerest,
+        porecurrent = porecurrent,
+        bulkfluid_top = bulkfluid_top,
+        bulkfluid_bottom = bulkfluid_bottom,
     )
     
     dnab = dna.boundary() - membrane.boundary()
-
-#    dnainnerb = enter_1.boundary("right") |\
-#                enter_2.boundary("right") |\
-#                enter_3.boundary("right")
-#    dnaupperb = closed_dna.boundary("top") - enter_1
-#    dnaupperb = dnaupperb | enter_1.boundary("bottom") - enter_2
-#    dnaupperb = dnaupperb | enter_2.boundary("bottom") - enter_3
-#    dnaouterb = closed_dna.boundary("right") - \
-#                substract_mem_spanning.boundary("right")
-#    dnaouterb |= (substract_mem_spanning.boundary("top") - \
-#                  substract_mem.boundary("top"))
-#    dnaouterb |= (substract_mem.boundary("right")\
-#                  - membrane.boundary())
-#    dnalowerb = substract_mem.boundary("bottom") - enter_3
-    memb = closed_membrane.boundary("top", "bottom") - substract_mem
     outermemb = closed_membrane.boundary("right")
+    memb = membrane.boundary() - dna.boundary() - outermemb
     sideb = reservoir.boundary("right") - outermemb
     upperb = reservoir.boundary("top")
     lowerb = reservoir.boundary("bottom")
     
     domain.addboundaries(
-#        dnab = dnab,
-#        memb = memb,
-#        sideb = sideb,
+        dnab = dnab,
+        memb = memb,
+        sideb = sideb,
         upperb = upperb,
         lowerb = lowerb,
     )
@@ -379,7 +368,6 @@ def get_domain_cyl(lc=1., **newparams):
     
         #boundaries
         chargeddnab = {"dnab"},
-        dnab = {"chargeddnab"},
         noslip = {"dnab", "memb", "moleculeb", "sideb"},
         bV = "lowerb",
         ground = "upperb",
@@ -397,6 +385,159 @@ def get_domain_cyl(lc=1., **newparams):
         lpore = hpore,
     )
     return domain
+    
+def entity2box(ent):
+    intervals = [(f if isinstance(f, tuple) else (f,f)) for f in ent]
+    return Box(intervals=intervals)
+    
+def get_geo_cyl(lc=1., **newparams):
+    domain = get_domain_cyl(lc, **newparams)
+    if domain.params["x0"] is not None:
+        geo = add_molecule(domain, lc)
+    else:
+        geo = domain.create_geometry(lc=lc)
+    return geo
+        
+def add_molecule(dom, lc):
+    "hack to insert half molecule at left boundary"
+    x0 = [0., dom.params["x0"][2]]
+    
+    r = dom.params["rMolecule"]
+    lcMolecule = dom.params["lcMolecule"]    
+    
+    #dom = get_domain_cyl()
+    dom.addboundaries(leftb=dom.boundary("left"))
+    left = dom.getboundary("leftb")
+    
+    mol = EmptySet()
+    dom.addsubdomain(mol, "molecule")
+    dom.addboundary(mol.boundary() - left, "moleculeb")
+    
+    dom.compute_entities()
+    dom.compute_boundaries(True)
+        
+    edgeinds = list(left.indexsets[1])
+    edgeents = [dom.entities[1][i] for i in edgeinds]
+    print edgeents
+    edge = [entity2box(dom.entities[1][i]) for i in edgeinds]
+    points = [(x0[0], x0[1]-r), tuple(x0), (x0[0], x0[1]+r)]
+    circle = [Box(points[i], points[i+1]) for i in range(len(points)-1)]
+    N = len(edge)
+    
+    dic = box.multi_box_union(edge + circle)
+    
+    # add additional point entities
+    for p in dic["entities"][0]:
+        if not p in dom.entities[0]:
+            dom.entities[0].append(p)
+    
+    # add new edge entities and compute replacement
+    replace = {i:[] for i in edgeinds}
+    circleb = []
+    for s, ent in zip(dic["esets"][1], dic["entities"][1]):
+        for j in s:
+            if j < len(edgeinds): # is old edge
+                i = edgeinds[j]
+                replace[i].append(ent)
+            if j >= len(edgeinds): # belongs to circle
+                print j
+                circleb.append(ent)
+    print replace
+    for k in replace.keys():
+        for i, ent in enumerate(replace[k]):
+            if ent in dom.entities[1]:
+                j = dom.entities[1].index(ent)
+            else:
+                dom.entities[1].append(ent)
+                j = len(dom.entities[1]) - 1
+                print j, ent
+            replace[k][i] = j
+    for k, v in replace.items():
+        if len(v)==1 and k==v[0]:
+            replace.pop(k)
+    print replace
+    old = set(replace.keys())
+    new = box.union(set(v) for v in replace.values())
+    # replace edge indices in boundary
+    left.indexsets[1] = left.indexsets[1] - old | new
+    
+    # compute left circle boundary
+    for i, ent in enumerate(circleb):
+        if ent in dom.entities[1]:
+            j = dom.entities[1].index(ent)
+        else:
+            dom.entities[1].append(ent)
+            j = len(dom.entities[1]) - 1
+        circleb[i] = j
+    print "circle:", circleb
+    
+    # gmsh circle
+    lcCirc = lcMolecule*lc
+    m0, m1 = x0[0], x0[1]
+    pcirc = [(m0, m1), (m0, m1-r), (m0+r, m1), (m0, m1+r)]
+    dom.entities[0].append(pcirc[2])
+    
+    dom.gmsh_entities = [[None for e in k] for k in dom.entities]
+    pcirc = [dom.entity_to_gmsh(p, 0, lcCirc) for p in pcirc]
+    
+    surfs = [gmsh.Circle([pcirc[1], pcirc[0], pcirc[2]]),
+             gmsh.Circle([pcirc[2], pcirc[0], pcirc[3]])]
+    dom.gmsh_entities[1] += surfs
+    N = len(dom.gmsh_entities[1])
+    circlearc = [N-2, N-1]
+    
+    for k, v in replace.items():
+        removed = False
+        for j in list(v):
+            print "adding", j,"to replace"
+            if j in circleb:
+                replace[k].remove(j)
+                removed = True
+        if removed:
+            replace[k].extend(circlearc)
+    for j in circleb:
+        if not j in new and not j in replace:
+            print "adding", j,"to replace"
+            replace[j] = circlearc
+            
+    print replace
+        # replace edge indices sub.boundaries
+    for sub in dom.subdomains + dom.boundarysubs:
+        iset = sub.bdry().indexset
+        orients = sub.bdry().orients
+        for i in iset & set(replace.keys()):
+            iset.remove(i)
+            for j in replace[i]:
+                iset.add(j)
+                if j in circlearc:
+                    orients[j] = -1
+                else:
+                    orients[j] = orients[i]
+                print sub.name, i, j, orients[j]
+                
+    # add edge indices to molecule boundary
+    mol.bdry().indexset = set(circleb + circlearc)
+    mol.bdry().indexsets[1] = set(circleb + circlearc)
+    for i in circleb:
+        mol.bdry().orients[i] = -1
+    for i in circlearc:
+        mol.bdry().orients[i] = 1
+    
+    dom.entities_to_gmsh_merge(lc)
+    # rebuild boundaries involving balls
+    for bou in dom.boundaries:
+        bou.indexset = bou.csg.evalsets()[1]
+        
+    dom.physical_to_gmsh(True)
+    print gmsh.basic._PHYSSURF
+    print gmsh.basic._PHYSVOL
+    dom.geo = box.to_mesh()
+    dom.geo.params = dom.params
+    if hasattr(dom, "synonymes"):
+        dom.geo.import_synonymes(dom.synonymes)
+        
+    return dom.geo
+
     
 def get_geo1D(lc=0.01, **newparams):
     _params = dict(params, **newparams)
@@ -452,10 +593,10 @@ if __name__ == "__main__":
     import dolfin
     from nanopores import plot_sliced
     
-    domain2D = get_domain_cyl()
-    geo2D = domain2D.create_geometry(lc=1.)
+    geo2D = get_geo_cyl(lc=1.)
     dolfin.plot(geo2D.subdomains, title="subdomains")
     dolfin.plot(geo2D.boundaries, title="boundaries")
+    print geo2D
     
     domain = get_domain()
     membrane = domain.getsubdomain("membrane")

@@ -78,7 +78,7 @@ class BallCollection(BoxCollection):
             # build ball surface in gmsh
             surfs, n = gmsh_ball_surfs(ball, lc)
             # add facets at the end of gmsh_entities[d-1]
-            gfacets += surfs
+            gfacets += surfs # works for lists!
             indices = range(len(gfacets)-n, len(gfacets))
             # add indices and orientations to sub0.bdry() and ball.bdry()
             if sub0 is not None:
@@ -176,6 +176,9 @@ class EmptySet(BallCollection):
         self.dim = dim
         self.indexsets = [set() for k in range(dim+1)] 
         BallCollection.__init__(self, [], [])
+        
+    def __repr__(self):
+        return "EmptySet()"
 
 class Ball(BallCollection):
     def __init__(self, m, r, lc=None):
