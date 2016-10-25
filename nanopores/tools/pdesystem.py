@@ -139,7 +139,7 @@ class PDESystem(object):
         self.geo.adapt(mesh)
         
         for name, S in self.solvers.items():
-            print "Adapting %s." % name
+            #print "Adapting %s." % name
             S.adapt(mesh)
 
         #for S in self.solvers.values():

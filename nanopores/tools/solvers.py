@@ -73,15 +73,19 @@ class cache_forcefield(fields.CacheBase):
         self.nproc = nproc
         
     def __call__(self, f):
-        def wrapper(X, nproc=self.nproc, name=self.name, **params):
+        def wrapper(X, cache=True, nproc=self.nproc, name=self.name, **params):
+            if not cache:
+                return f(X, **params)
             # calculate remaining points (in parallel)
             calculate_forcefield(name, X, f, params,
                                  self.default, nproc)
             # load requested data points
+            load_params = dict(self.default, **params)
             try:
-                result = fields.get_fields(name, **params)
+                result = fields.get_fields(name, **load_params)
                 I = [i for i, x in enumerate(result["x"]) if x in X]
             except KeyError:
+                print "KeyError, returning nothing."
                 result = {}
                 I = []
             result = {key: [val[i] for i in I] for key, val in result.items()}

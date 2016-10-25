@@ -101,7 +101,8 @@ class SimpleLinearPBProblem(GeneralLinearProblem):
         return FunctionSpace(mesh, 'CG', k)
 
     @staticmethod
-    def forms(V, geo, phys, cyl=False):
+    def forms(V, geo, phys):
+        cyl = phys.cyl
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
@@ -578,33 +579,32 @@ class PNPSFixedPointbV(PNPSFixedPoint):
             yield i
             
 # --- goal-oriented adaptivity ----
-from nanopores.tools.errorest import pb_indicator_GO, pb_indicator_GO_cheap
+from nanopores.tools.errorest import simple_pb_indicator_GO, pb_indicator_GO_cheap
 class SimpleLinearPBGO(GoalAdaptivePDE):
     def __init__(self, geo, phys, goal=None, ref=None, cheapest=False):
         if goal is None:
             if geo.params["x0"] is not None:
-                goal = lambda v : phys.Fbare(v, 2)
+                goal = lambda v : phys.Fbare(v, phys.dim - 1)
             else:
-                goal = lambda v : Constant(1e-12*phys.lscale**3)*v*geo.dx("pore")
+                goal = lambda v : phys.CurrentPB(v)
         if cheapest:
             self.estimate = self.estimate_cheap
         self.ref = ref # reference value for functional
+        self.cyl = phys.cyl
         GoalAdaptivePDE.__init__(self, geo, phys, SimpleLinearPBProblem, goal)
 
     def estimate(self):
         u = self.functions["primal"]
         z = self.functions["dual"]
-        ind, err, rep, errc, gl, glx = pb_indicator_GO(self.geo, self.phys, u, z)
-        self.save_estimate("err", err)
-        self.save_estimate("rep", rep)
-        self.save_estimate("goal", gl)
-        self.save_estimate("goal ex", glx)
+        ind, rep = simple_pb_indicator_GO(self.geo, self.phys, u, z)
+        self.save_estimate("err", rep)
         return ind, rep
 
     def estimate_cheap(self):
         u = self.functions["primal"]
         z = self.functions["dual"]
-        ind, err, gl = pb_indicator_GO_cheap(self.geo, self.phys, u, z)
+        ind, err, gl = pb_indicator_GO_cheap(self.geo, self.phys, u,
+                                             z, cyl=self.cyl)
         self.save_estimate("err", err)
         self.save_estimate("goal", gl)
         return ind, err
@@ -623,15 +623,18 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
         
         while refined:
             i += 1
-            printv("\nAssessing mesh quality.")
-            mesh_quality(self.geo.mesh, ratio=0.01, geo=self.geo, plothist=False)
+            if verbose:
+                printv("\nAssessing mesh quality.")
+                mesh_quality(self.geo.mesh, ratio=0.01,
+                             geo=self.geo, plothist=False)
             
             printv("\n- Adaptive Loop %d" %i)
             printv("Solving PB.")
             self.single_solve()
             yield i
             printv("\nError estimation.")
-            (ind, err) = self.estimate()
+            ind, err = self.estimate()
+            printv("Rel. dual error estimate:", err)
             printv("\nMesh refinement.")
             refined = self.refine(ind)
             if not refined:

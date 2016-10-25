@@ -296,12 +296,12 @@ class Geometry(object):
         # if curved boundaries are defined, snap back those
         if hasattr(self, "curved"):
             for boundary, snap in self.curved.items():
-                print "Adapting curved boundary '%s'." % boundary
+                #print "Adapting curved boundary '%s'." % boundary
                 self.snap_to_boundary(boundary, snap)
                 
         for const in self.constants.values():
             const.recompute()
-            print "Recomputed %s." %const
+            #print "Recomputed %s." %const
             
         for meas in self.volumes:
             for name in self.volumes[meas]:

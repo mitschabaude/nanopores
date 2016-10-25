@@ -312,4 +312,65 @@ def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
     # return indicators, error_rep, error_sum
     return indicators, error_sum, goal
     
+def simple_pb_indicator_GO(geo, phys, u, z):
+    # u .. primal solution
+    # z .. dual solution
+    mesh = geo.mesh
+    V = FunctionSpace(mesh, "DG", 0)
+    EW = FunctionSpace(mesh, "CG", 2)
+    Ez = Function(EW)
+    Ez.extrapolate(z)
+    w = Ez - z #interpolate(Ez, W)
+
+    v = TestFunction(V)
+    n = FacetNormal(mesh)
+
+    r = phys.r2pi
+    dS = geo.dS() # interior facets
+    ds = geo.ds() # exterior facets
+    dx0 = geo.dx("ions")
+    dx = geo.dx()
+
+    c0 = phys.bulkcon
+    cFarad = phys.cFarad
+    UT = phys.UT
+    eps = geo.pwconst('permittivity')
+    k = Constant(cFarad*2.*c0/UT)
+    def Clscale(i):
+        return Constant( (phys.lscale)**i )
+
+    flux = eps*phys.grad(u)
+
+    # local residuals
+    def rform(w):
+        return -v*phys.div(flux)*w*r*dx + v*k*u*w*r*dx0 \
+        -geo.linearRHS(v*w*r, "volcharge") \
+        +Clscale(1)*(
+            +avg(v)*jump(n, flux*w)*r('+')*dS \
+            +v*inner(n, flux)*w*r*ds \
+            -geo.NeumannRHS(v*w*r, "surfcharge"))
+
+    # global residual
+    def R(w):
+        return assemble(
+            inner(flux, phys.grad(w))*r*dx + k*u*w*r*dx0 \
+            -geo.linearRHS(w*r, "volcharge")
+            -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
+            
+    # global functional value
+    def J(w):
+        return assemble(inner(flux, phys.grad(w))*r*dx + k*u*w*r*dx0)
+
+    indicators = Function(V)
+    vec = indicators.vector()
+    assemble(rform(w), tensor=vec)
+    vec[:] = numpy.abs(vec[:])
+
+    # precise relevant scale for error (abs value of functional)
+    goal = J(z)
+    scale = abs(1./goal) if not goal == 0. else 1e12*(1./phys.lscale**3)
+    error_rep = abs(R(Ez))*scale
+
+    return indicators, error_rep
+    
 

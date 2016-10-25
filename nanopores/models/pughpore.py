@@ -45,6 +45,18 @@ class Setup(solvers.Setup):
         self.phys = nano.Physics("pore_mol", self.geo, **self.physp)
         #set_sideBCs(self.phys, self.geop, self.physp)
         
+class Setup2D(solvers.Setup):
+    default = default
+                    
+    def init_geo(self):
+        geo = pughpore.get_geo_cyl(self.solverp.h, **self.geop)
+        molec = nano.curved.Circle(geo.params["rMolecule"], geo.params["x0"])
+        geo.curved = dict(moleculeb = molec.snap)
+        self.geo = geo
+        
+    def init_phys(self):
+        self.phys = nano.Physics("pore_mol", self.geo, cyl=True, **self.physp)
+        
 class Plotter(object):
     def __init__(self, setup):
         self.geo = setup.geo
@@ -98,12 +110,15 @@ def prerefine(setup, visualize=False, mesh2D=None):
     if setup.geop.x0 is None:
         goal = phys.CurrentPB
     else:
-        goal = lambda v: phys.CurrentPB(v) + phys.Fbare(v, 2)
+        goal = lambda v: phys.CurrentPB(v) + phys.Fbare(v, phys.dim-1)
     pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal, cheapest=p.cheapest)
     
-    for i in pb.adaptive_loop(p.Nmax, p.frac):
+    for i in pb.adaptive_loop(p.Nmax, p.frac, verbose=False):
         if visualize:
-            dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
+            if phys.dim==3:
+                dolfin.plot(geo.submesh("solid"), key="b", title="adapted solid mesh")
+            if phys.dim==2:
+                dolfin.plot(geo.boundaries, key="b", title="adapted mesh")
             #nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
     print "CPU time (PB): %.3g s" %(dolfin.toc(),)
     return pb    

@@ -8,33 +8,43 @@ import nanopores.physics.simplepnps as pnps
 import nanopores.tools.solvers as solvers
 
 default = dict(
-    h = 2.,
-    Nmax = 5e5,
+    h = .5,
+    Nmax = 7e4,
     rMolecule = 0.152, # radius of K+
+    lcMolecule = 0.1,
+    H = 100.,
+    Qmol = 4.,
 )
 
 def diffusivity(setup):
     v0 = .001
     geo, phys = setup.geo, setup.phys
     r = setup.geop.rMolecule
+    dim = setup.phys.dim
+    cyl = setup.phys.cyl
     
-    pugh.prerefine(setup)
+    pugh.prerefine(setup, True)
 #    goal = lambda v: phys.Fbare(v, 2)
 #    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
 #    for i in pb.adaptive_loop(setup.solverp.Nmax):
 #        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
-    
-    pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 20000
+    if dim==3:    
+        pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
+        iterative = True
+    else:
+        iterative = False
+    U0 = dolfin.Constant(tuple(0. for i in range(dim)))
+    U1 = dolfin.Constant(tuple((v0 if i==dim-1 else 0.) for i in range(dim)))
     
     W = pnps.SimpleStokesProblem.space(geo.mesh)
-    bcs = [geo.BC(W.sub(0), dolfin.Constant((0.,0.,0.)), "dnab"),
-           geo.BC(W.sub(0), dolfin.Constant((0.,0.,0.)), "memb"),
-           geo.BC(W.sub(0), dolfin.Constant((0.,0.,0.)), "sideb"),
-           geo.BC(W.sub(0), dolfin.Constant((0.,0.,v0)), "moleculeb"),
+    bcs = [geo.BC(W.sub(0), U0, "dnab"),
+           geo.BC(W.sub(0), U0, "memb"),
+           geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
            
-    stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, 
-                            phys=phys, iterative=True, bcs=bcs)
+    stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
+                            phys=phys, iterative=iterative, bcs=bcs)
     F = stokes.evaluate(phys.Fdrag)["Fdrag"]
     print F
     
@@ -42,7 +52,7 @@ def diffusivity(setup):
     eta = phys.eta
     kT = phys.kT
     
-    gamma = abs(F[2]/v0)
+    gamma = abs(F[dim-1]/v0)
     gamma0 = 6.*pi*eta*r*1e-9
     print "gamma (simulation):", gamma
     print "gamma (stokes law):", gamma0
@@ -64,5 +74,16 @@ def calculate_diffusivity(X, **params):
         values.append(D)
     return dict(D=[D])
     
+@solvers.cache_forcefield("pugh_diffusivity2D", default)
+def calculate_diffusivity2D(X, **params):
+    _params = dict(default, **params)
+    values = []
+    for x0 in X:
+        setup = pugh.Setup2D(x0=x0, **_params)
+        D = diffusivity(setup)
+        values.append(D)
+    return dict(D=[D])
+    
 if __name__ == "__main__":
-    print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)
+    print calculate_diffusivity2D([[0.,0.,30.]], cache=False)
+    #print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)
