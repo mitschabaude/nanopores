@@ -1,0 +1,1 @@
+{"params": {"Nmax": 20000.0, "dnaqsdamp": 0.5, "h": 1.0, "rMolecule": 0.5, "Rx": 12.0, "Ry": 12.0, "bV": 0.0, "Qmol": -1.0, "bulkcon": 300.0}, "name": "force2Dimp", "FNAME": "force2Dimp1477162897259949"}

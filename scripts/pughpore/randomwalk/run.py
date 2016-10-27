@@ -12,14 +12,16 @@ kT = physp.kT
 eta = physp.eta
 rMolecule = geop.rMolecule
 
-Dmol = kT/(6.*math.pi*eta*rMolecule*1e-9)
+Dmol = kT/(6.*math.pi*eta*rMolecule*1e-9) # [m^2/s]
+gamma = (6.*math.pi*eta*rMolecule) #friction [microgramm/s]
+steps = 1e8 # [ns]
+tau = .05 # [ns]
+C = tau/gamma*1e9 # [s^2/kg * 1e9 nm/m]
+coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
+
+F=[0.,0.,-1e-11]
 
 
-
-
-
-###########################################################
-#steps=
-#X = np.zeros(steps)
-#Y = np.zeros(steps)
-#Z = np.zeros(steps)
+X = np.zeros(steps)
+Y = np.zeros(steps)
+Z = np.zeros(steps)
