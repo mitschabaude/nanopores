@@ -401,7 +401,6 @@ def get_geo_cyl(lc=1., **newparams):
 def add_molecule(dom, lc):
     "hack to insert half molecule at left boundary"
     x0 = [0., dom.params["x0"][2]]
-    
     r = dom.params["rMolecule"]
     lcMolecule = dom.params["lcMolecule"]    
     
@@ -417,8 +416,8 @@ def add_molecule(dom, lc):
     dom.compute_boundaries(True)
         
     edgeinds = list(left.indexsets[1])
-    edgeents = [dom.entities[1][i] for i in edgeinds]
-    print edgeents
+    #edgeents = [dom.entities[1][i] for i in edgeinds]
+    #print edgeents
     edge = [entity2box(dom.entities[1][i]) for i in edgeinds]
     points = [(x0[0], x0[1]-r), tuple(x0), (x0[0], x0[1]+r)]
     circle = [Box(points[i], points[i+1]) for i in range(len(points)-1)]
@@ -440,9 +439,9 @@ def add_molecule(dom, lc):
                 i = edgeinds[j]
                 replace[i].append(ent)
             if j >= len(edgeinds): # belongs to circle
-                print j
+                #print j
                 circleb.append(ent)
-    print replace
+    #print replace
     for k in replace.keys():
         for i, ent in enumerate(replace[k]):
             if ent in dom.entities[1]:
@@ -450,12 +449,12 @@ def add_molecule(dom, lc):
             else:
                 dom.entities[1].append(ent)
                 j = len(dom.entities[1]) - 1
-                print j, ent
+                #print j, ent
             replace[k][i] = j
     for k, v in replace.items():
         if len(v)==1 and k==v[0]:
             replace.pop(k)
-    print replace
+    #print replace
     old = set(replace.keys())
     new = box.union(set(v) for v in replace.values())
     # replace edge indices in boundary
@@ -469,7 +468,7 @@ def add_molecule(dom, lc):
             dom.entities[1].append(ent)
             j = len(dom.entities[1]) - 1
         circleb[i] = j
-    print "circle:", circleb
+    #print "circle:", circleb
     
     # gmsh circle
     lcCirc = lcMolecule*lc
@@ -489,7 +488,7 @@ def add_molecule(dom, lc):
     for k, v in replace.items():
         removed = False
         for j in list(v):
-            print "adding", j,"to replace"
+            #print "adding", j,"to replace"
             if j in circleb:
                 replace[k].remove(j)
                 removed = True
@@ -497,10 +496,10 @@ def add_molecule(dom, lc):
             replace[k].extend(circlearc)
     for j in circleb:
         if not j in new and not j in replace:
-            print "adding", j,"to replace"
+            #print "adding", j,"to replace"
             replace[j] = circlearc
             
-    print replace
+    #print replace
         # replace edge indices sub.boundaries
     for sub in dom.subdomains + dom.boundarysubs:
         iset = sub.bdry().indexset
@@ -513,7 +512,7 @@ def add_molecule(dom, lc):
                     orients[j] = -1
                 else:
                     orients[j] = orients[i]
-                print sub.name, i, j, orients[j]
+                #print sub.name, i, j, orients[j]
                 
     # add edge indices to molecule boundary
     mol.bdry().indexset = set(circleb + circlearc)
@@ -529,8 +528,8 @@ def add_molecule(dom, lc):
         bou.indexset = bou.csg.evalsets()[1]
         
     dom.physical_to_gmsh(True)
-    print gmsh.basic._PHYSSURF
-    print gmsh.basic._PHYSVOL
+    #print gmsh.basic._PHYSSURF
+    #print gmsh.basic._PHYSVOL
     dom.geo = box.to_mesh()
     dom.geo.params = dom.params
     if hasattr(dom, "synonymes"):

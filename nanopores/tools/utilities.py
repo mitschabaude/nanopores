@@ -15,7 +15,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
-           "user_params", "dict_union", "union"]
+           "user_params", "dict_union", "union", "plot_sliced_mesh"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -63,6 +63,16 @@ def plot_sliced(geo):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
     dolfin.plot(subsub, title="sliced geometry with subdomains")
+    
+def plot_sliced_mesh(geo, **kwargs):
+    tol = 1e-5
+    class Back(dolfin.SubDomain):
+        def inside(self, x, on_boundary):
+            return x[1] >= -tol
+    back = dolfin.CellFunction("size_t", geo.mesh, 0)
+    Back().mark(back, 1)
+    submesh = dolfin.SubMesh(geo.mesh, back, 1)
+    dolfin.plot(submesh, **kwargs)
     
 class uCross(dolfin.Expression):
     def __init__(self, u, axis=1):

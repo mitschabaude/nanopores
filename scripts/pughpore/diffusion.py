@@ -8,11 +8,13 @@ import nanopores.physics.simplepnps as pnps
 import nanopores.tools.solvers as solvers
 
 default = dict(
-    h = .5,
-    Nmax = 7e4,
+    dim = 2,
+    h = .6,
+    Nmax = 2.7e5,
     rMolecule = 0.152, # radius of K+
     lcMolecule = 0.1,
-    H = 100.,
+    H = 200.,
+    R = 100.,
     Qmol = 4.,
 )
 
@@ -72,18 +74,19 @@ def calculate_diffusivity(X, **params):
         setup = pugh.Setup(x0=x0, **_params)
         D = diffusivity(setup)
         values.append(D)
-    return dict(D=[D])
+    return dict(D=values)
     
 @solvers.cache_forcefield("pugh_diffusivity2D", default)
 def calculate_diffusivity2D(X, **params):
-    _params = dict(default, **params)
+    _params = dict(default, frac=.5, **params)
+    _params["dim"] = 2
     values = []
     for x0 in X:
-        setup = pugh.Setup2D(x0=x0, **_params)
+        setup = pugh.Setup(x0=x0, **_params)
         D = diffusivity(setup)
         values.append(D)
-    return dict(D=[D])
+    return dict(D=values)
     
 if __name__ == "__main__":
-    print calculate_diffusivity2D([[0.,0.,30.]], cache=False)
+    print calculate_diffusivity2D([[0.,0.,50.]], cache=False, h=4., Nmax=2e4)
     #print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)
