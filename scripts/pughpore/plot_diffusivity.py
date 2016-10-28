@@ -18,16 +18,27 @@ H = 50.
 Z = np.linspace(-H, H, 96)
 X = [[0.,0.,z] for z in Z]
 
-fig, ax = plt.subplots(figsize=(5, 4))
-
+fig_big, ax_big = plt.subplots(figsize=(10, 8), num="all")
+fig_small, ax_small = plt.subplots(figsize=(6, 4), num="small")
 # get data
 for r in [0.152, 0.167, 0.25]:
-    data = calculate_diffusivity2D(X, nproc=6, rMolecule=r)
-    #data = f.get_fields("pugh_diffusivity2D", rMolecule=0.152, H=100., h=.5)
+    #data = calculate_diffusivity2D(X, nproc=6, rMolecule=r)
+    data = f.get_fields("pugh_diffusivity2D", rMolecule=r, h=.6, Nmax=2.7e5)
     Z, D = zsorted(data, "D")
 
     # plot
-    ax.plot(Z, D, "s-", label="r=%.3f, N=270k" %r)
+    ax = ax_big
+    ax.plot(Z, D, ".-", label="r=%.3f, N=270k" %r)
+    ax.set_xlabel("z position of molecule [nm]")
+    ax.set_ylabel("D/D0")
+    ax.set_title("rel. diffusivity (2D model)")
+    
+    if r==0.25: continue
+    names = {0.152:r"$\rm{Na}^{+}$", 0.167:r"$\rm{Cl}^{-}$"}
+    Dmax = max(D)
+    D0 = [d/Dmax for d in D]
+    ax = ax_small
+    ax.plot(Z, D0, ".-", label=names[r])
     ax.set_xlabel("z position of molecule [nm]")
     ax.set_ylabel("D/D0")
     ax.set_title("rel. diffusivity (2D model)")
@@ -35,18 +46,23 @@ for r in [0.152, 0.167, 0.25]:
 # coarser calculation for remaining radii
 for r in [0.5, 1., 1.5, 2.0779]:
     N = 2e4
-    data = calculate_diffusivity2D(X, nproc=6, rMolecule=r, h=4., Nmax=N)
-    #data = f.get_fields("pugh_diffusivity2D", rMolecule=0.152, H=100., h=.5)
+    #data = calculate_diffusivity2D(X, nproc=6, rMolecule=r, h=4., Nmax=N)
+    data = f.get_fields("pugh_diffusivity2D", rMolecule=r, h=4., Nmax=N)
     Z, D = zsorted(data, "D")
 
     # plot
-    ax.plot(Z, D, "s-", label="r=%.3f, N=20k" %r)
+    ax = ax_big
+    ax.plot(Z, D, ".-", label="r=%.3f, N=20k" %r)
     ax.set_xlabel("z position of molecule [nm]")
     ax.set_ylabel("D/D0")
     ax.set_title("rel. diffusivity (2D model)")
 
-ax.legend()
-from ..howorka.folders import FIGDIR
+ax_big.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
+ax_small.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
+ax_small.legend(loc="lower right")
+
+
+from folders import FIGDIR
 nanopores.savefigs("pugh_diffusivity", FIGDIR)
 plt.show()
 

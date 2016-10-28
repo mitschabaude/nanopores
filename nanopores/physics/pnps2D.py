@@ -4,9 +4,9 @@ from dolfin import *
 from ..tools import *
 from .pnps import PNPS
 from .params_physical import *
-from warnings import warn
-from importlib import import_module
-from .simplepnps import SimpleStokesProblem
+#from warnings import warn
+#from importlib import import_module
+#from .simplepnps import SimpleStokesProblem
 
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
 
@@ -239,8 +239,6 @@ class StokesProblemAxisym(AdaptableLinearProblem):
 
     @staticmethod
     def forms(W, geo, f):
-        mesh = geo.mesh
-
         (u, p) = TrialFunctions(W)
         (v, q) = TestFunctions(W)
 
@@ -308,7 +306,6 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
 
     def __init__(self, geo, phys=None, bcs=None, x=None, w=None):
         mesh = geo.mesh
-        V = FunctionSpace(mesh, 'CG', self.k)
         X = self.space(mesh)
 
         (v, cp, cm) = TrialFunctions(X)

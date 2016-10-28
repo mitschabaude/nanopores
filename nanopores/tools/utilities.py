@@ -156,9 +156,10 @@ def load_stuff(name):
     else:        
         return tuple(stuff)
     
-def save_functions(name, mesh, meta=None, **functions):
+def save_functions(name, mesh, meta=None, DIR=None, **functions):
     # save dolfin functions and mesh
-    DIR = os.path.join(DATADIR, "functions", "")
+    if DIR is None:
+        DIR = os.path.join(DATADIR, "functions", "")
     if not os.path.exists(DIR):
         os.makedirs(DIR)
     dolfin.File(DIR + name + "_mesh.xml") << mesh
@@ -171,10 +172,11 @@ def save_functions(name, mesh, meta=None, **functions):
 def _find_names_in_files(pre, post):
     return [string[len(pre):-len(post)] for string in glob.glob(pre + "*" + post)]
         
-def load_functions(name, space=None):
+def load_functions(name, space=None, DIR=None):
     # load dolfin functions with pattern matching approach
     # space is a lambda with input mesh
-    DIR = os.path.join(DATADIR, "functions", "")
+    if DIR is None:
+        DIR = os.path.join(DATADIR, "functions", "")
     mesh = dolfin.Mesh(DIR + name + "_mesh.xml")
     if space is None:
         space = lambda mesh: dolfin.FunctionSpace(mesh, "CG", 1)
@@ -191,15 +193,16 @@ def load_functions(name, space=None):
         meta = json.load(f)
     return functions, mesh, meta
     
-def load_mesh(name):
-    DIR = os.path.join(DATADIR, "functions", "")
+def load_mesh(name, DIR=None):
+    if DIR is None:
+        DIR = os.path.join(DATADIR, "functions", "")
     mesh = dolfin.Mesh(DIR + name + "_mesh.xml")
     return mesh
     
-def load_vector_functions(name):
+def load_vector_functions(name, DIR=None):
     def space(mesh):
         return dolfin.VectorFunctionSpace(mesh, "CG", 1)
-    return load_functions(name, space)
+    return load_functions(name, space, DIR)
         
 def _call(f, params):
     # call f without knowing its arguments --

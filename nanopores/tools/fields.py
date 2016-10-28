@@ -24,11 +24,20 @@ TODO: fields.list_all (with indices)
 TODO: fields.list[i]
 """
 import os, json
-from nanopores.dirnames import DATADIR, INSTALLDIR
-#DIR = os.path.join(DATADIR, "fields")
-DIR = os.path.join(os.path.dirname(INSTALLDIR), "data", "fields")
+from nanopores.dirnames import DATADIR, INSTALLDIR, HOME
+DIR = os.path.join(DATADIR, "fields")
+#DIR = os.path.join(os.path.dirname(INSTALLDIR), "data", "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
+
+def set_dir(NEWDIR):
+    global DIR
+    DIR = NEWDIR
+    # assert directory and header exists
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
+    if not HEADER in os.listdir(DIR):
+        _save(dict(_flist=[]), HEADER)
     
 # user interface that wraps Header object
 def update():
@@ -314,6 +323,75 @@ class cache(CacheBase):
     def load(self, params):
         return get_entry(self.name, "result", **params)
         
+"caching discrete dolfin functions"
+import dolfin
+    
+def _save_dolfin(data, FILE):
+    dolfin.File(os.path.join(DIR, FILE)) << data
+
+def save_functions(name, params, **functions):
+    # create common file prefix
+    PREFIX = name + _unique_id()
+    FILE = PREFIX + SUFFIX
+    data = dict(name=name, params=params, prefix=PREFIX)
+    keys = functions.keys()
+    data["functions"] = keys
+    
+    # if no functions are given, only save metadata 
+    if len(keys)==0:
+        data["empty"] = True
+        _save(data, FILE)
+        return
+    data["empty"] = False
+    
+    # save mesh (we assume functions are defined on the same mesh!)
+    mesh = functions.values()[0].function_space().mesh()
+    for f in functions.values():
+        assert f.function_space().mesh().id() == mesh.id()
+    MESHFILE = PREFIX + "_mesh.xml"
+    _save_dolfin(mesh, MESHFILE)
+
+    # save functions
+    # currently only scalar/vector CG1 is supported
+    ranks = []
+    for fname in keys:
+        f = functions[fname]
+        ranks.append(f.rank())
+        FFILE = PREFIX + "_" + fname + ".xml"
+        _save_dolfin(f, FFILE)
+    data["ranks"] = ranks
+        
+    # save metadata
+    _save(data, FILE)
+    
+def _space(mesh, rank):
+    if rank==0:
+        return dolfin.FunctionSpace(mesh, "CG", 1)
+    elif rank==1:
+        return dolfin.VectorFunctionSpace(mesh, "CG", 1)
+    else:
+        raise Exception("Loading Functions of rank > 1 is not supported.")
+            
+def _load_mesh(FILE):
+    return dolfin.Mesh(os.path.join(DIR, FILE))
+    
+def _load_function(FILE, mesh, rank):
+    V = _space(mesh, rank)
+    return dolfin.Function(V, os.path.join(DIR, FILE))
+
+def get_functions(name, **params):
+    data = load_file(name, **params)
+    if data["empty"]:
+        return dict(), None
+    
+    PREFIX = data["prefix"]
+    mesh = _load_mesh(PREFIX + "_mesh.xml")
+    functions = dict()
+    for fname, rank in zip(data["functions"], data["ranks"]):
+        FFILE = PREFIX + "_" + fname + ".xml"
+        functions[fname] = _load_function(FFILE, mesh, rank)
+        
+    return functions, mesh
     
 # print information
 def show():

@@ -4,7 +4,7 @@ import traceback
 from nanopores.scripts.simulation2D import iterate_in_parallel
 from nanopores.tools.utilities import Params
 from nanopores.tools import fields
-__all__ = ["Setup", "calculate_forcefield"]
+__all__ = ["Setup", "calculate_forcefield", "cache_forcefield"]
 
 class Setup(object):
     "handle input parameters and setup geometry"
