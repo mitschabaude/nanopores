@@ -373,11 +373,11 @@ def _space(mesh, rank):
         raise Exception("Loading Functions of rank > 1 is not supported.")
             
 def _load_mesh(FILE):
-    return dolfin.Mesh(os.path.join(DIR, FILE))
+    return dolfin.Mesh(str(os.path.join(DIR, FILE)))
     
 def _load_function(FILE, mesh, rank):
     V = _space(mesh, rank)
-    return dolfin.Function(V, os.path.join(DIR, FILE))
+    return dolfin.Function(V, str(os.path.join(DIR, FILE)))
 
 def get_functions(name, **params):
     data = load_file(name, **params)
