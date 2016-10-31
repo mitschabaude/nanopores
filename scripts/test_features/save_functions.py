@@ -2,6 +2,9 @@
 from dolfin import *
 from nanopores.tools import fields
 
+# set save/load directory
+fields.set_dir("/tmp/nanopores/")
+
 mesh = UnitSquareMesh(10, 10)
 V = FunctionSpace(mesh, "CG", 1)
 u = Function(V)
