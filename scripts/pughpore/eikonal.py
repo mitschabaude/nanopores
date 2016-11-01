@@ -1,13 +1,16 @@
 from dolfin import *
+from nanopores.tools import fields
 import nanopores.geometries.pughpore as pughpore
 import nanopores.models.pughpore as pughm
 import nanopores as nano
+fields.set_dir("/tmp/nanopores/")
+
 
 #geop = nano.Params(pughpore.params)
 
 def distance_boundary():
     up = nano.user_params(
-        h=4.,
+        h=8.,
         R=30.,
         H=80.,
     )
@@ -57,6 +60,12 @@ def distance_boundary():
             
     U = Function(V)
     U.interpolate(Distance())
+
+    fields.save_functions("pugh_distance", {}, pugh_distance=U)
+    fields.update()
+
+
+
     return U
 
 if __name__ == "__main__":

@@ -1,12 +1,23 @@
+from dolfin import *
+from nanopores.tools import fields
 import sys
 from random import gauss
 import math
 import numpy as np
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
+fields.set_dir("/tmp/nanopores/")
+
+functions, mesh = fields.get_functions("pugh_distance")
+u1 = functions["pugh_distance"]
+plot(u1, interactive=True)
+
+
+
 
 geop = nano.Params(pughpore.params)
 physp = nano.Physics(name="pore_mol")
+
 
 kT = physp.kT
 eta = physp.eta
@@ -25,3 +36,4 @@ F=[0.,0.,-1e-11]
 X = np.zeros(steps)
 Y = np.zeros(steps)
 Z = np.zeros(steps)
+Z[0] = 30.
