@@ -1,6 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 import nanopores.tools.fields as f
 import matplotlib.pyplot as plot
+import folders
 
 f.update()
 for h in [2.,4.]:

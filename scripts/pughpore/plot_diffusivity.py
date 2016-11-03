@@ -1,9 +1,10 @@
 # (c) 2016 Gregor Mitscha-Baude
 import numpy as np
 import matplotlib.pyplot as plt
-from diffusion import calculate_diffusivity2D
+#from diffusion import calculate_diffusivity2D
 import nanopores.tools.fields as f
 import nanopores
+import folders
 
 def zsorted(data, field):
     z = [x[2] for x in data["x"]]
@@ -34,7 +35,7 @@ for r in [0.152, 0.167, 0.25]:
     ax.set_title("rel. diffusivity (2D model)")
     
     if r==0.25: continue
-    names = {0.152:r"$\rm{Na}^{+}$", 0.167:r"$\rm{Cl}^{-}$"}
+    names = {0.152: r"$\rm{Na}^{+}$", 0.167: r"$\rm{Cl}^{-}$"}
     Dmax = max(D)
     D0 = [d/Dmax for d in D]
     ax = ax_small

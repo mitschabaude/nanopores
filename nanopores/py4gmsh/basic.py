@@ -312,27 +312,27 @@ def NoPhysicalVolume(label):
     _PHYSVOL[label] =  ()
     return
 
-def PhysicalLine(volume, label):
-    '''Gmsh Physical Line.
-    '''
-    global _PHYSLINE_ID, _PHYSLINE
-    _PHYSVOL_ID += 1
-    if hasattr(volume, "__iter__"):
-        volume = "{%s}" % (",".join(volume),)
-    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
-    _PHYSVOL[label] =  (_PHYSVOL_ID,)
-    return
-
-def PhysicalPoint(volume, label):
-    '''Gmsh Physical Point.
-    '''
-    global _PHYSVOL_ID, _PHYSVOL
-    _PHYSVOL_ID += 1
-    if hasattr(volume, "__iter__"):
-        volume = "{%s}" % (",".join(volume),)
-    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
-    _PHYSVOL[label] =  (_PHYSVOL_ID,)
-    return
+#def PhysicalLine(volume, label):
+#    '''Gmsh Physical Line.
+#    '''
+#    global _PHYSLINE_ID, _PHYSLINE
+#    _PHYSVOL_ID += 1
+#    if hasattr(volume, "__iter__"):
+#        volume = "{%s}" % (",".join(volume),)
+#    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+#    _PHYSVOL[label] =  (_PHYSVOL_ID,)
+#    return
+#
+#def PhysicalPoint(volume, label):
+#    '''Gmsh Physical Point.
+#    '''
+#    global _PHYSVOL_ID, _PHYSVOL
+#    _PHYSVOL_ID += 1
+#    if hasattr(volume, "__iter__"):
+#        volume = "{%s}" % (",".join(volume),)
+#    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
+#    _PHYSVOL[label] =  (_PHYSVOL_ID,)
+#    return
 
 
 
