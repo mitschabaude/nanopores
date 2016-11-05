@@ -220,6 +220,42 @@ class BoxCollection(object):
             self.geo.import_synonymes(self.synonymes)
         return self.geo
         
+    def write_gmsh_code(self, lc=1., merge=True):
+        with Log("computing geometrical entities..."):
+            self.compute_entities()
+        
+        with Log("computing boundaries..."):
+            self.compute_boundaries(merge)
+        
+        with Log("computing gmsh entities..."):
+            self.entities_to_gmsh(lc, merge)
+            self.physical_to_gmsh(merge)
+            
+    # TODO: in 3D, no Point in Volume
+    def insert_points_2D(self, points, lc=1., forbidden=()):
+        for x in points:
+            p = py4gmsh.Point(x, lc)
+            surf, name = self.get_gmsh_sub(x)
+            if name not in forbidden:
+                py4gmsh.raw_code(["Point{%s} In Surface{%s};" %(p, surf)])
+                
+    def get_gmsh_sub(self, x):
+        d = self.dim
+        for j, sub in enumerate(self.subdomains):
+            for i in sub.indexset:
+                e = self.entities[d][i]
+                if _inside_entity(x, e):
+                    #print "x in", sub.name
+                    return self.gmsh_subs[j], sub.name
+        return None, None
+            
+    def code_to_mesh(self):
+        self.geo = to_mesh()
+        self.geo.params = self.params
+        if hasattr(self, "synonymes"):
+            self.geo.import_synonymes(self.synonymes)
+        return self.geo
+        
     def recreate_geometry(self):
         self.geo = geo_from_meshdir()
         self.geo.params = self.params
@@ -573,6 +609,17 @@ def _unique(seq):
     unique = []
     [unique.append(x) for x in seq if not unique.count(x)]
     return unique
+    
+def _inside_entity(x, entity):
+    "test whether point x = (x0,x1,x2) lies in entity"
+    for t, e in zip(x, entity):
+        if isinstance(e, tuple):
+            if not e[0] <= t <= e[1]:
+                return False
+        else:
+            if not e == t:
+                return False
+    return True
         
 def multi_interval_union(intvs):
     " return disjoint subintervals with same union as intervals, plus parent information "

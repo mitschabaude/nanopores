@@ -59,9 +59,10 @@ _FIELD_ID = 0
 
 _PHYSSURF_ID = 0
 _PHYSVOL_ID = 0
+_PHYSPOINT_ID = 0
 _PHYSSURF = {}
 _PHYSVOL = {}
-
+_PHYSPOINT = {}
 
 def _header():
     '''Return file header.
@@ -323,18 +324,15 @@ def NoPhysicalVolume(label):
 #    _PHYSVOL[label] =  (_PHYSVOL_ID,)
 #    return
 #
-#def PhysicalPoint(volume, label):
-#    '''Gmsh Physical Point.
-#    '''
-#    global _PHYSVOL_ID, _PHYSVOL
-#    _PHYSVOL_ID += 1
-#    if hasattr(volume, "__iter__"):
-#        volume = "{%s}" % (",".join(volume),)
-#    _GMSH_CODE.append('Physical Volume(%s) = %s;' % (_PHYSVOL_ID, volume))
-#    _PHYSVOL[label] =  (_PHYSVOL_ID,)
-#    return
-
-
+def PhysicalPoint(point, label):
+    '''Gmsh Physical Point.
+    '''
+    global _PHYSPOINT_ID, _PHYSPOINT
+    _PHYSPOINT_ID += 1
+    if hasattr(point, "__iter__"):
+        point = "{%s}" % (",".join(point),)
+    _GMSH_CODE.append('Physical Point(%s) = %s;' % (_PHYSPOINT_ID, point))
+    _PHYSPOINT[label] =  (_PHYSPOINT_ID,)
 
 def Rotate(entity,
            rotation_axis=None,
