@@ -3,14 +3,14 @@ from nanopores.tools import fields
 import nanopores.geometries.pughpore as pughpore
 import nanopores.models.pughpore as pughm
 import nanopores as nano
-fields.set_dir("/tmp/nanopores/")
+fields.set_dir("/home/benjamin/Desktop/data/")
 
 
 #geop = nano.Params(pughpore.params)
 
 def distance_boundary():
     up = nano.user_params(
-        h=8.,
+        h=8.0,
         R=30.,
         H=80.,
     )
@@ -52,7 +52,6 @@ def distance_boundary():
     solve(F==0, y, bc)
     
     print "Max distance:", y.vector().max()
-    return y
     
     class Distance(Expression):
         def eval(self, value, x):
@@ -63,9 +62,6 @@ def distance_boundary():
 
     fields.save_functions("pugh_distance", {}, pugh_distance=U)
     fields.update()
-
-
-
     return U
 
 if __name__ == "__main__":
