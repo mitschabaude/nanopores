@@ -225,6 +225,7 @@ def get_domain(lc=1., **newparams):
         name = "pughpore",
         dim = 3,
         nm = 1.,
+        lc = lc,
         lscale = 1e9,
         lporecurrent = lporecurrent,
         lpore = hpore,
@@ -378,6 +379,7 @@ def get_domain_cyl(lc=1., **newparams):
     # add parameters (this should include params needed by physics module)
     domain.params = dict(_params,
         name = "pughpore",
+        lc = lc,
         dim = 3,
         nm = 1.,
         lscale = 1e9,

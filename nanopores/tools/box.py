@@ -234,7 +234,7 @@ class BoxCollection(object):
     # TODO: in 3D, no Point in Volume
     def insert_points_2D(self, points, lc=1., forbidden=()):
         for x in points:
-            p = py4gmsh.Point(x, lc)
+            p = py4gmsh.Point([x[0], x[1], 0.], lc)
             surf, name = self.get_gmsh_sub(x)
             if name not in forbidden:
                 py4gmsh.raw_code(["Point{%s} In Surface{%s};" %(p, surf)])

@@ -20,6 +20,7 @@ achievements of this module:
 -) reading AND saving fields can be done in parallel, only update() step not
 
 TODO: if demanded, overwrite already calculated values
+TODO: in remove/save_functions, remove obsolete dolfin and .txt files
 TODO: fields.list_all (with indices)
 TODO: fields.list[i]
 """
@@ -282,7 +283,7 @@ def calculate(params):
 
 exists should be generic
 save and load could be medium generic.
-several types of return values could be coverd:
+several types of return values could be covered:
 -) simple json-able objects
 -) fields, where calculation appends to previous one, e.g. 3D force field
 -) file links e.g. for continuous 2D force fields

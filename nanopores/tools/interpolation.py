@@ -1,9 +1,12 @@
 # (c) 2016 Gregor Mitscha-Baude
-"harmonic interpolation -- proof of concept."
+"harmonic interpolation."
 import numpy as np
 import dolfin
 
-class PointBC(object): 
+# TODO: add points in 3D
+# TODO: also interpolate from given values on subdomains and boundaries
+
+class PointBC(object):
     
     def __init__(self, V, points, values, tol=1e-5):
         self.V = V
@@ -72,10 +75,9 @@ def harmonic_interpolation(mesh, points, values):
     dolfin.solve(A, u.vector(), b)
     return u
 
-
 if __name__ == "__main__":    
     from nanopores.geometries import pughpore
-    from nanopores import user_params
+    from nanopores.tools.utilities import user_params
     
     h = 1.
     domain = pughpore.get_domain_cyl(h)

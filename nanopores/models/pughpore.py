@@ -53,18 +53,25 @@ class Setup(solvers.Setup):
         self.phys = nano.Physics("pore_mol", self.geo, cyl=cyl, **self.physp)
         
 class Plotter(object):
-    def __init__(self, setup):
-        self.geo = setup.geo
-        self.dim = setup.phys.dim
+    def __init__(self, setup=None, dim=3):
+        if setup is not None:
+            self.geo = setup.geo
+            self.dim = setup.phys.dim
+        else:
+            self.dim = dim
         if self.dim == 3:
-            R, H = self.geo.params["R"], self.geo.params["H"]
+            if setup is not None:
+                R, H = self.geo.params["R"], self.geo.params["H"]
+            else:
+                R, H = pughpore.params["R"], pughpore.params["H"]
             self.mesh2D = nano.RectangleMesh([-R,-H/2.], [R, H/2.],
-                                         int(4*R), int(2*H))
-    def plot(self, u, title="u"):
+                                                 int(4*R), int(2*H))
+             
+    def plot(self, u, title="u", **kwargs):
         if self.dim == 3:
-            nano.plot_cross(u, self.mesh2D, title=title, key=title)
+            nano.plot_cross(u, self.mesh2D, title=title, key=title, **kwargs)
         elif self.dim == 2:
-            dolfin.plot(u, title=title, key=title)
+            dolfin.plot(u, title=title, key=title, **kwargs)
         
     def plot_vector(self, u, title="u"):
         if self.dim == 3:
