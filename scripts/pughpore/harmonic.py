@@ -2,57 +2,12 @@
 "harmonic interpolation -- proof of concept."
 import numpy as np
 import dolfin
-
-class PointBC(object): 
-    
-    def __init__(self, V, points, values, tol=1e-5):
-        self.V = V
-        if callable(values):
-            self.values = [values(p) for p in points]
-        else:
-            self.values = values
-        self.points = points
-        self.bc_f = dolfin.Function(V)
-        mesh = V.mesh()
-        
-        co = mesh.coordinates()
-        dim = co.shape[1]
-        dof_map = dolfin.vertex_to_dof_map(V)
-        node_set = set()
-        bc_values = self.bc_f.vector().array()
-        for p, v in zip(points, self.values):
-            wh = np.where(sum((co[:,j] - p[j])**2 for j in range(dim)) < tol)[0]
-            if wh.shape[0]:
-                i = wh[0]
-                bc_values[dof_map[i]] = v
-                node_set.add(i)
-        
-        self.bc_f.vector().set_local(bc_values)
-        self.bc_f.vector().apply("insert") # TODO: what does this do?
-        self.dof_set = np.array(dof_map[list(node_set)], dtype="intc")
-        #self.bc_f = dolfin.interpolate(function, V)
-    
-    def apply(self, a):
-        # Manual application of bcs
-        if isinstance(a, dolfin.Matrix):
-            A = a
-            # Modif A: zero bc row & set diagonal to 1
-            A.ident_local(self.dof_set)
-            A.apply("insert")
-            
-        elif isinstance(a, dolfin.GenericVector):
-            b = a
-            # Modif b: entry in the bc row is taken from bc_f
-            bc_values = self.bc_f.vector().array()
-            b_values = b.array()
-            b_values[self.dof_set] = bc_values[self.dof_set]
-            b.set_local(b_values)
-            b.apply("insert")
-            
-        else:
-            dolfin.warning("Could not apply Point BC.")
-            
-def harmonic_interpolation(mesh, points, values):
+import nanopores
+      
+def harmonic_interpolation(geo, points, values,
+                           subdomains=dict(), boundaries=None):
+    mesh = geo.mesh                               
+                               
     # Laplace equation
     V = dolfin.FunctionSpace(mesh, "CG", 1)
     u = dolfin.TrialFunction(V)
@@ -61,42 +16,66 @@ def harmonic_interpolation(mesh, points, values):
     L = dolfin.Constant(0.)*v*dolfin.dx(domain=mesh)
     
     # Point-wise boundary condition
-    bc = PointBC(V, points, values)
+    bc = nanopores.PointBC(V, points, values)
+    bcs = [bc]
+    
+    # Volume boundary conditions
+    for sub, f in subdomains.items():
+        bc = geo.VolumeBC(V, sub, f)
+        bcs.append(bc)
+    
+    # Normal boundary conditions
+    if boundaries is not None:
+        bc = geo.pwBC(V, "", value=boundaries)
+        bcs.extend(bc)
     
     # Assemble, apply bc and solve
     A, b = dolfin.assemble_system(a, L)
-    bc.apply(A)
-    bc.apply(b)
+    for bc in bcs:
+        bc.apply(A)
+        bc.apply(b)
     
     u = dolfin.Function(V)
     dolfin.solve(A, u.vector(), b)
     return u
+    
+
+#from dolfin import *
+import nanopores.geometries.pughpore as pughpore
+from nanopores import user_params
+
+h = 1.
+domain = pughpore.get_domain_cyl(h)
+
+# create random points
+N = user_params(N=1000).N
+R, H = pughpore.square2circle(domain.params["R"]), domain.params["H"]
+px = R*np.random.random(N)
+py = H*np.random.random(N) - H/2.
+points = zip(px, py)
+
+# prepare mesh containing points
+domain.write_gmsh_code(h)
+domain.insert_points_2D(points, h, forbidden=["dna", "membrane"])
+geo = domain.code_to_mesh()
+mesh = geo.mesh
+
+#f = lambda x: np.sin(x[1]/5.)
+#V = dolfin.FunctionSpace(mesh, "CG", 1)
+#u = dolfin.Function(V)
+#bc = VolumeBC(V, geo, "bulkfluid_bottom", f)
+#bc.apply(u.vector())
 
 
-if __name__ == "__main__":    
-    from nanopores.geometries import pughpore
-    from nanopores import user_params
-    
-    h = 1.
-    domain = pughpore.get_domain_cyl(h)
-    
-    # create points
-    N = user_params(N=1000).N
-    R, H = pughpore.square2circle(domain.params["R"]), domain.params["H"]
-    px = R*np.random.random(N)
-    py = H*np.random.random(N) - H/2.
-    points = zip(px, py)
-    
-    # prepare mesh containing points
-    domain.write_gmsh_code(h)
-    domain.insert_points_2D(points, h, forbidden=["dna", "membrane"])
-    geo = domain.code_to_mesh()
-    mesh = geo.mesh
-    
-    # interpolate function from point values
-    values = np.sin(np.array(points)[:,1]/5.)
-    u = harmonic_interpolation(mesh, points, values)
-    
-    dolfin.plot(mesh)
-    dolfin.plot(u)
-    dolfin.interactive()
+# interpolate function from point values
+values = np.sin(np.array(points)[:,1]/5.)
+f = lambda x: np.sin(x[1]/5.)
+fexp = dolfin.Expression("sin(x[1]/5.)", domain=mesh)
+
+u = harmonic_interpolation(geo, points, values,
+                           dict(bulkfluid_bottom=f),
+                           dict(upperb=fexp))
+
+dolfin.plot(mesh)
+dolfin.plot(u)
+dolfin.interactive()

@@ -2,60 +2,47 @@
 "harmonic interpolation."
 import numpy as np
 import dolfin
+from nanopores.tools.geometry import PointBC
 
 # TODO: add points in 3D
-# TODO: also interpolate from given values on subdomains and boundaries
+# TODO: better use iterative solver for laplace
 
-class PointBC(object):
+def harmonic_interpolation(geo, points, values,
+                           subdomains=dict(), boundaries=None):
+    mesh = geo.mesh                               
+                               
+    # Laplace equation
+    V = dolfin.FunctionSpace(mesh, "CG", 1)
+    u = dolfin.TrialFunction(V)
+    v = dolfin.TestFunction(V)
+    a = dolfin.inner(dolfin.grad(u), dolfin.grad(v))*dolfin.dx
+    L = dolfin.Constant(0.)*v*dolfin.dx(domain=mesh)
     
-    def __init__(self, V, points, values, tol=1e-5):
-        self.V = V
-        if callable(values):
-            self.values = [values(p) for p in points]
-        else:
-            self.values = values
-        self.points = points
-        self.bc_f = dolfin.Function(V)
-        mesh = V.mesh()
-        
-        co = mesh.coordinates()
-        dim = co.shape[1]
-        dof_map = dolfin.vertex_to_dof_map(V)
-        node_set = set()
-        bc_values = self.bc_f.vector().array()
-        for p, v in zip(points, self.values):
-            wh = np.where(sum((co[:,j] - p[j])**2 for j in range(dim)) < tol)[0]
-            if wh.shape[0]:
-                i = wh[0]
-                bc_values[dof_map[i]] = v
-                node_set.add(i)
-        
-        self.bc_f.vector().set_local(bc_values)
-        self.bc_f.vector().apply("insert") # TODO: what does this do?
-        self.dof_set = np.array(dof_map[list(node_set)], dtype="intc")
-        #self.bc_f = dolfin.interpolate(function, V)
+    # Point-wise boundary condition
+    bc = PointBC(V, points, values)
+    bcs = [bc]
     
-    def apply(self, a):
-        # Manual application of bcs
-        if isinstance(a, dolfin.Matrix):
-            A = a
-            # Modif A: zero bc row & set diagonal to 1
-            A.ident_local(self.dof_set)
-            A.apply("insert")
+    # Volume boundary conditions
+    for sub, f in subdomains.items():
+        bc = geo.VolumeBC(V, sub, f)
+        bcs.append(bc)
+    
+    # Normal boundary conditions
+    if boundaries is not None:
+        bc = geo.pwBC(V, "", value=boundaries)
+        bcs.extend(bc)
+    
+    # Assemble, apply bc and solve
+    A, b = dolfin.assemble_system(a, L)
+    for bc in bcs:
+        bc.apply(A)
+        bc.apply(b)
+    
+    u = dolfin.Function(V)
+    dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
+    return u
             
-        elif isinstance(a, dolfin.GenericVector):
-            b = a
-            # Modif b: entry in the bc row is taken from bc_f
-            bc_values = self.bc_f.vector().array()
-            b_values = b.array()
-            b_values[self.dof_set] = bc_values[self.dof_set]
-            b.set_local(b_values)
-            b.apply("insert")
-            
-        else:
-            dolfin.warning("Could not apply Point BC.")
-            
-def harmonic_interpolation(mesh, points, values):
+def harmonic_interpolation_simple(mesh, points, values):
     # Laplace equation
     V = dolfin.FunctionSpace(mesh, "CG", 1)
     u = dolfin.TrialFunction(V)
@@ -72,7 +59,7 @@ def harmonic_interpolation(mesh, points, values):
     bc.apply(b)
     
     u = dolfin.Function(V)
-    dolfin.solve(A, u.vector(), b)
+    dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
     return u
 
 if __name__ == "__main__":    
@@ -97,7 +84,12 @@ if __name__ == "__main__":
     
     # interpolate function from point values
     values = np.sin(np.array(points)[:,1]/5.)
-    u = harmonic_interpolation(mesh, points, values)
+    f = lambda x: np.sin(x[1]/5.)
+    fexp = dolfin.Expression("sin(x[1]/5.)", domain=mesh)
+    
+    u = harmonic_interpolation(geo, points, values,
+                               dict(bulkfluid_bottom=f),
+                               dict(upperb=fexp, sideb=fexp))
     
     dolfin.plot(mesh)
     dolfin.plot(u)
