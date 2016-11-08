@@ -4,12 +4,14 @@ import nanopores
 from nanopores.tools.illposed import AdaptableBC, adaptmeshfunction, adaptfunction
 #from nanopores.tools.physicsclass import Physics
 from nanopores.physics import params_physical
+import dolfin
+import numpy as np
 
 from importlib import import_module
 import types
 
 __all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains",
-           "geo_from_xml", "geo_from_xml_threadsafe"]
+           "geo_from_xml", "geo_from_xml_threadsafe", "PointBC"]
 
 class Geometry(object):
     """ Interface between numerical routines and files describing the geometry.
@@ -194,6 +196,9 @@ class Geometry(object):
                     "assign boundary condition",
                     "Value for the BC '%s' is of unexpected type '%s'." % (string, type(val)))
             return [bc]
+            
+    def VolumeBC(self, V, name, f):
+        return _VolumeBC(V, self, name, f)
         
     def _getvalue(self, string, value):
         if value is None:
@@ -552,6 +557,83 @@ class PhysicalBC(object):
         new = scalar/self.damping if hasattr(self, "damping") else scalar
         self.damping = scalar
         self.bcs = [bc.damped(new) for bc in self.bcs]
+        
+class PointBC(object):
+    
+    def __init__(self, V, points, values, tol=1e-5):
+        self.V = V
+        if callable(values):
+            self.values = [values(p) for p in points]
+        else:
+            self.values = values
+        self.points = points
+        self.bc_f = dolfin.Function(V)
+        mesh = V.mesh()
+        
+        co = mesh.coordinates()
+        dim = co.shape[1]
+        dof_map = dolfin.vertex_to_dof_map(V)
+        node_set = set()
+        bc_values = self.bc_f.vector().array()
+        for p, v in zip(points, self.values):
+            wh = np.where(sum((co[:,j] - p[j])**2 for j in range(dim)) < tol)[0]
+            if wh.shape[0]:
+                i = wh[0]
+                bc_values[dof_map[i]] = v
+                node_set.add(i)
+        
+        self.bc_f.vector().set_local(bc_values)
+        self.bc_f.vector().apply("insert") # TODO: what does this do?
+        self.dof_set = np.array(dof_map[list(node_set)], dtype="intc")
+    
+    def apply(self, a):
+        # Manual application of bcs
+        if isinstance(a, dolfin.Matrix):
+            A = a
+            # Modif A: zero bc row & set diagonal to 1
+            A.ident_local(self.dof_set)
+            A.apply("insert")
+            
+        elif isinstance(a, dolfin.GenericVector):
+            b = a
+            # Modif b: entry in the bc row is taken from bc_f
+            bc_values = self.bc_f.vector().array()
+            b_values = b.array()
+            b_values[self.dof_set] = bc_values[self.dof_set]
+            b.set_local(b_values)
+            b.apply("insert")
+            
+        else:
+            dolfin.warning("Could not apply Point BC.")
+            
+class _VolumeBC(PointBC): 
+    
+    def __init__(self, V, geo, name, f):
+        self.V = V
+        # get dofs lying in subdomain
+        dofmap = V.dofmap()
+        tup = geo.physicaldomain(name)
+        sub = geo.subdomains
+        mesh = geo.mesh
+        
+        subdofs = set()
+        for i, cell in enumerate(dolfin.cells(mesh)):
+            if sub[cell] in tup:
+                celldofs = dofmap.cell_dofs(i)
+                subdofs.update(celldofs)
+                
+        subdofs = np.array(list(subdofs), dtype="intc")
+        d2v = dolfin.dof_to_vertex_map(V)
+        co = mesh.coordinates()
+
+        # create function with desired values
+        # could also be implemented with Expression.eval_cell like pwconst
+        bc_f = dolfin.Function(V)
+        for dof in subdofs:
+            x = co[d2v[dof]]
+            bc_f.vector()[dof] = f(x)
+        self.bc_f = bc_f
+        self.dof_set = subdofs
 
 
 def _wrapf(f):
