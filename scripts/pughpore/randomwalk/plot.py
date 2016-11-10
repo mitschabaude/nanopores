@@ -1,17 +1,39 @@
+import nanopores as nano
+import nanopores.geometries.pughpore as pughpore
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 #from numpy.random import random
 import matplotlib.pyplot as plt
 import nanopores.geometries.pughpore as pughpore
 import nanopores
+import sys
+import os
+import nanopores.tools.fields as f
+HOME = os.path.expanduser("~")
+PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
+FIGDIR = os.path.join(PAPERDIR, "figures", "")
+DATADIR = os.path.join(HOME, "Dropbox", "Paper Howorka", "data", "fields")
+f.set_dir(DATADIR)
+import sys
+if len(sys.argv)==1:
+    sys.exit('integer missing!')
+i=int(sys.argv[1])
 
-up = nanopores.user_params(pughpore.params, k=3)
+up = nano.Params(pughpore.params, k=3)
+hpore=up.hpore
 
-X = np.load('X.npy')
-Y = np.load('Y.npy')
-Z = np.load('Z.npy')
-J = np.load('J.npy')
-T = np.load('T.npy')
+#X = np.load('X.npy')
+#Y = np.load('Y.npy')
+#Z = np.load('Z.npy')
+#J = np.load('J.npy')
+#T = np.load('T.npy')
+params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
+data=f.get_fields("randomwalk1",**params)
+X = np.array(data["X"][i])
+Y = np.array(data["Y"][i])
+Z = np.array(data["Z"][i])
+T = np.array(data["T"][i])
+J = np.array(data["J"][i])
 amplitude = 2060.-np.inner(J,T)/np.sum(T)
 for i in range(1,T.shape[0]):
     T[i]=T[i]+T[i-1]
@@ -27,9 +49,9 @@ T=np.append(T,np.array([tau_off,1e9+tau_off]))
 T=T*1e-9
 
 #R = up.R
-R = 30.
+R = 50.
 #H = up.H
-H = 80.
+H = 100.
 l0 = up.l0
 l1 = up.l1
 l2 = up.l2
