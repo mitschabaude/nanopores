@@ -2,7 +2,7 @@
 "2D/3D boxes plus balls"
 
 """Interface:
-A = Box([0, 0], [1, 1])
+A = Box([-1, -1], [1, 1])
 m = [0, 0]; r = 0.25
 B = Ball(m, r)
 C = A | B
@@ -19,10 +19,10 @@ class BallCollection(BoxCollection):
         self.balls = list(balls)
         if self.balls:
             self.dim = max(ball.dim for ball in balls)
-            self.indexsets = [set() for k in range(self.dim+1)] 
+            self.indexsets = [set() for k in range(self.dim+1)]
         BoxCollection.__init__(self, *boxes)
-    
-    def entities_to_gmsh(self, lc=.5, merge=True): 
+
+    def entities_to_gmsh(self, lc=.5, merge=True):
         """
         at this point, all the box-related entities exist and
         all subdomains know the indices of their box boundaries
@@ -41,7 +41,7 @@ class BallCollection(BoxCollection):
         self.gmsh_entities = [[None for e in k] for k in self.entities]
         dim = self.dim
         gfacets = self.gmsh_entities[dim-1]
-        
+
         # compute ball facets and save their indices
         for ball in self.balls:
             #print
@@ -55,14 +55,14 @@ class BallCollection(BoxCollection):
                 if j in sub.indexsets[0]:
                     #print "inside", sub.name
                     sub0 = sub
-                    
+
                 if (j in sub.indexsets[0] and not sub.csg.excludes(ball) and\
                     not (hasattr(ball, "_added") and ball._added))\
                     or sub.csg.contains(ball):
                     ball.isubs.append(k)
             #if sub0 is None: print "no subdomain"
             # remember to add indices to abstract boundaries whose boundarysub
-            # mentions ball        
+            # mentions ball
             for k, sub in enumerate(self.boundarysubs):
                 if sub.csg.mentions(ball):
                     ball.ibousubs.append(k)
@@ -74,7 +74,7 @@ class BallCollection(BoxCollection):
             else:
                 ball.indomain = False
                 #print "not in domain"
-            
+
             # build ball surface in gmsh
             surfs, n = gmsh_ball_surfs(ball, lc)
             # add facets at the end of gmsh_entities[d-1]
@@ -87,11 +87,11 @@ class BallCollection(BoxCollection):
                     sub0.bdry().orients[i] = -1
             # remember indices for ball
             ball.ibdry = indices
-                    
+
         # gmsh all box volumes with balls cut out
         self.entities_to_gmsh_merge(lc)
         gsubs = self.gmsh_subs
-        
+
         # gmsh all ball volumes that are in domain
         # and add to gmsh_subs where appropriate
         for ball in self.balls:
@@ -110,19 +110,19 @@ class BallCollection(BoxCollection):
                         gsubs[k] = [gsubs[k], gmsh_e]
                 # update bdry indexsets
                 for k in ball.ibousubs:
-                    self.boundarysubs[k].bdry().indexsets[dim-1] |= set(ball.ibdry) 
-        
+                    self.boundarysubs[k].bdry().indexsets[dim-1] |= set(ball.ibdry)
+
         # rebuild boundaries involving balls
         for bou in self.boundaries:
             bou.indexset = bou.csg.evalsets()[dim-1]
-            
+
     def addsubdomain(self, sub, name):
         assert isinstance(sub, BallCollection)
         sub.name = name
         self.subdomains.append(sub)
         self.boxes = list(set(self.boxes + sub.boxes))
         self.balls = list(set(self.balls + sub.balls))
-        
+
     def addboundary(self, sub, name):
         assert isinstance(sub, BoxCollection)
         sub.name = name
@@ -136,47 +136,47 @@ class BallCollection(BoxCollection):
                 self.boundarysubs.append(A.coll)
                 self.boxes = list(set(self.boxes + A.coll.boxes))
                 self.balls = list(set(self.balls + A.coll.balls))
-                
+
     def addball(self, ball, subname="ball", boundaryname="ballb"):
         ball._added = True
         self.addsubdomain(ball, subname)
         self.addboundary(ball.bdry(), boundaryname)
-        
+
     def addballs(self, balls, subname="ball", boundaryname="ballb"):
         for ball in balls:
             ball._added = True
         sub = union(balls)
         self.addsubdomain(sub, subname)
         self.addboundary(sub.bdry(), boundaryname)
-        
+
     def _join(self, other):
         boxes = list(set(self.boxes + other.boxes))
         balls = (list(set(self.balls + other.balls))
             if hasattr(other, "balls") else self.balls)
         return BallCollection(boxes, balls)
-    
+
     def __or__(self, other):
         coll = self._join(other)
         coll.csg = self.csg | other.csg
         return coll
-        
+
     def __and__(self, other):
         coll = self._join(other)
         coll.csg = self.csg & other.csg
         return coll
-        
+
     def __sub__(self, other):
         coll = self._join(other)
         coll.csg = self.csg - other.csg
         return coll
-        
+
 class EmptySet(BallCollection):
     def __init__(self, dim=3):
         self.csg = csgExpression(self)
         self.dim = dim
-        self.indexsets = [set() for k in range(dim+1)] 
+        self.indexsets = [set() for k in range(dim+1)]
         BallCollection.__init__(self, [], [])
-        
+
     def __repr__(self):
         return "EmptySet()"
 
@@ -189,24 +189,24 @@ class Ball(BallCollection):
         self.csg = csgExpression(self)
         box = Box(m, m)
         BallCollection.__init__(self, [box], [self])
-        
+
     def __repr__(self):
         return "Ball(%s, %s, %s)" % (self.m, self.r, self.lc)
-        
+
 class Box(BallCollection, box.Box):
     def __init__(self, *args, **params):
         self.balls = []
         box.Box.__init__(self, *args, **params)
-        self.indexsets = [set() for k in range(self.dim+1)] 
-        
-        
+        self.indexsets = [set() for k in range(self.dim+1)]
+
+
 def gmsh_ball_surfs(ball, lc):
     if ball.lc is not None:
         lc=ball.lc
     surfs = add_ball(ball.m, ball.r, lc)
     n = len(surfs)
     return surfs, n
-    
+
 def add_ball(m, r, lc):
     # add ball in 1D, 2D, 3D
     if len(m)==3:
@@ -217,7 +217,7 @@ def add_ball(m, r, lc):
         return [py4gmsh.Point([m[0]-r,0,0]), py4gmsh.Point([m[0]+r,0,0])]
     else:
         raise Exception("Ball center m must have dimension 1, 2 or 3.")
-    
+
 def add_circle(m, r, lc):
     m0, m1 = m[0], m[1]
     point = lambda x, y: py4gmsh.Point([x,y,0], lc)
@@ -229,7 +229,7 @@ def add_circle(m, r, lc):
             py4gmsh.Circle([p[2], p[0], p[3]]),
             py4gmsh.Circle([p[3], p[0], p[4]]),
             py4gmsh.Circle([p[4], p[0], p[1]])]
-    
+
 if __name__ == "__main__":
     # unit square
     A = Box([-1, -1], [1, 1]) | Box([0.5, -1.2], [1.2, -0.5])
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     C.addboundaries(boxb=(A | B).boundary())
     C.addballs(balls) # adds ball boundaries automatically
     C.addballs(smallballs, "small", "smallb")
-    
+
     C.create_geometry(lc=0.1)
     print C.geo
     C.plot()

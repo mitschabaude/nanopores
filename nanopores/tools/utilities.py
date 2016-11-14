@@ -23,12 +23,12 @@ def crange(a, b, N): # continuous range with step 1/N
 def import_vars(mod):
     d = vars(import_module(mod))
     return {k:d[k] for k in d if not k.startswith("_")}
-    
+
 def get_mesh(geo_name, mesh_name = "mesh/mesh.xml"):
 
     from dolfin import Mesh
     return Mesh("/".join([DATADIR, geo_name, mesh_name]))
-    
+
 def u_to_matlab(mesh, u, name="u"):
     # save real-valued P1 Function u at the mesh nodes to matlab arrays X, U
     # X = mesh.coordinates() = [x1_1, .., x1_d; ...; xN_1, .., xN_d]
@@ -39,14 +39,14 @@ def u_to_matlab(mesh, u, name="u"):
     from scipy.io import savemat
     dic = {"X": X, "U": U[:,None]}
     savemat("%s.mat" %name, dic)
-    
+
 def plot_on_sub(u, geo, sub, expr=None, title=""):
     from nanopores.tools.illposed import adaptfunction
     submesh = geo.submesh(sub)
     u = adaptfunction(u, submesh, assign=False, interpolate=True)
     u0 = u if expr is None else expr
     dolfin.plot(u0, title=title)
-    
+
 def plot_sliced(geo):
     tol = 1e-5
     class Back(dolfin.SubDomain):
@@ -63,7 +63,7 @@ def plot_sliced(geo):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
     dolfin.plot(subsub, title="sliced geometry with subdomains")
-    
+
 def plot_sliced_mesh(geo, **kwargs):
     tol = 1e-5
     class Back(dolfin.SubDomain):
@@ -73,22 +73,20 @@ def plot_sliced_mesh(geo, **kwargs):
     Back().mark(back, 1)
     submesh = dolfin.SubMesh(geo.mesh, back, 1)
     dolfin.plot(submesh, **kwargs)
-    
+
 class uCross(dolfin.Expression):
-    def __init__(self, u, axis=1):
+    def __init__(self, u, axis=1, **kw):
         self.u = u
         self.i = axis
-        dolfin.Expression.__init__(self)
     def eval(self, value, x):
         y = list(x)
         y.insert(self.i, 0.)
         value[0] = self.u(y)
-        
+
 class uCrossVector(dolfin.Expression):
-    def __init__(self, u, axis=1):
+    def __init__(self, u, axis=1, **kw):
         self.u = u
         self.i = axis
-        dolfin.Expression.__init__(self)
     def eval(self, value, x):
         y = list(x)
         i = self.i
@@ -101,46 +99,46 @@ class uCrossVector(dolfin.Expression):
 
 def plot_cross(u, mesh2D, axis=1, **kwargs):
     # create Expression to evaluate u on a hyperplane
-    ucross = uCross(u=u, axis=axis)
+    ucross = uCross(u=u, axis=axis, degree=1)
     # interpolate u onto the 2D mesh
     V = dolfin.FunctionSpace(mesh2D, "CG", 1)
     u2D = dolfin.Function(V)
     u2D.interpolate(ucross)
     dolfin.plot(u2D, **kwargs)
-    
+
 def plot_cross_vector(u, mesh2D, axis=1, **kwargs):
     # create Expression to evaluate u on a hyperplane
-    ucross = uCrossVector(u=u, axis=axis)
+    ucross = uCrossVector(u=u, axis=axis, degree=1)
     # interpolate u onto the 2D mesh
     V = dolfin.VectorFunctionSpace(mesh2D, "CG", 1)
     u2D = dolfin.Function(V)
     u2D.interpolate(ucross)
     dolfin.plot(u2D, **kwargs)
-    
+
 def save_dict(data, dir=".", name="file"):
     # works for all data that can be recovered from their repr()
     if not os.path.exists(dir):
         os.makedirs(dir)
     with open(os.path.join(dir, name + ".txt"), 'w') as f:
         f.write(repr(data))
-        
+
 def load_dict(dir, name):
     fname = os.path.join(dir, name + ".txt")
     with open(fname, 'r') as f:
         data = f.read()
     return eval("".join(data.split("\n")))
-    
+
 def _open(name, folder, mode):
     DIR = os.path.join(DATADIR, folder)
     if not os.path.exists(DIR):
         os.makedirs(DIR)
     FILE = os.path.join(DIR, name + ".txt")
     return open(FILE, mode)
-    
+
 def save_stuff(name, *stuff):
     with _open(name, "stuff", "w") as f:
         json.dump(stuff, f)
-        
+
 def load_stuff(name):
     # Stuff API:
     # save_stuff("name", stuff) --> stuff = load_stuff("name")
@@ -153,9 +151,9 @@ def load_stuff(name):
         stuff = json.load(f)
     if len(stuff) == 1:
         return stuff[0]
-    else:        
+    else:
         return tuple(stuff)
-    
+
 def save_functions(name, mesh, meta=None, DIR=None, **functions):
     # save dolfin functions and mesh
     if DIR is None:
@@ -167,11 +165,11 @@ def save_functions(name, mesh, meta=None, DIR=None, **functions):
         assert f.function_space().mesh().id() == mesh.id()
         dolfin.File(DIR + name + "_" + fname + ".xml") << f
     with _open(name + "_meta", "functions", "w") as f:
-        json.dump(meta, f)  
-        
+        json.dump(meta, f)
+
 def _find_names_in_files(pre, post):
     return [string[len(pre):-len(post)] for string in glob.glob(pre + "*" + post)]
-        
+
 def load_functions(name, space=None, DIR=None):
     # load dolfin functions with pattern matching approach
     # space is a lambda with input mesh
@@ -192,31 +190,31 @@ def load_functions(name, space=None, DIR=None):
     with _open(name + "_meta", "functions", "r") as f:
         meta = json.load(f)
     return functions, mesh, meta
-    
+
 def load_mesh(name, DIR=None):
     if DIR is None:
         DIR = os.path.join(DATADIR, "functions", "")
     mesh = dolfin.Mesh(DIR + name + "_mesh.xml")
     return mesh
-    
+
 def load_vector_functions(name, DIR=None):
     def space(mesh):
         return dolfin.VectorFunctionSpace(mesh, "CG", 1)
     return load_functions(name, space, DIR)
-        
+
 def _call(f, params):
     # call f without knowing its arguments --
     # they just have to be subset of dict params.
     argnames = inspect.getargspec(f).args
     args = {k: params[k] for k in argnames if k in params}
     return f(**args)
-    
+
 def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
         line=[1.,0.,0.], origin=[0.,0.,0.], plot="plot", title="", legend="upper right",
         show=False, newfig=True, style="-x"):
     # functions is dict(string = callable)
     # output of functions should be real-valued
-    
+
     # create array of points
     x = np.linspace(*rng)
     if axis is not None:
@@ -226,7 +224,7 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
     origin = np.array(origin)[:dim]
     line = np.array(line)[:dim]
     z = np.array([t*line + origin for t in x]) # could also be done in a numpy way
-    
+
     # plot functions
     if newfig:
         plt.figure()
@@ -246,17 +244,17 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
         #plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     if show: plt.show()
     #return lines
-    
+
 def showplots():
     plt.show()
-    
+
 def savefigs(name="fig", DIR="/tmp/"):
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
         label = str(num) if label=="" else label
         fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches="tight")
-    
+
 def saveplots(name="plot", meta=None, uid=False):
     # collect data from every open figure
     plots = []
@@ -289,7 +287,7 @@ def saveplots(name="plot", meta=None, uid=False):
     name = name + "_" + str(unique_id()) if uid else name
     save_dict(data, DIR, name)
     return plots
-    
+
 def loadplots(name, show=True):
     defaultstyle = "-x"
     DIR = os.path.join(DATADIR, "plots")
@@ -310,7 +308,7 @@ def loadplots(name, show=True):
         plt.legend()
     if show: plt.show()
     return meta
-        
+
 # TODO: to make this truly magical, we could recursively modify all parents
 def add_params(PARENT=None, **params):
     # this is some magic to attach a set of parameters to a module
@@ -338,7 +336,7 @@ def _argparse():
             pass
         dic[name] = val
     return dic
-    
+
 def user_params(default=None, **params):
     "cleaner version of add_params with less secret module mangling"
     "(magic is only included for ease of params inheritance)"
@@ -358,13 +356,13 @@ class Params(dict):
     def __getattr__(self, key):
         return self[key]
     def __or__(self, other):
-        new = Params(self)        
+        new = Params(self)
         new.update(other)
         return new
-        
+
 def union(*seq):
     return reduce(lambda x, y: x | y, seq)
-    
+
 def dict_union(*seq):
     def union(a, b):
         new = dict(a)
@@ -374,12 +372,12 @@ def dict_union(*seq):
 
 def RectangleMesh(a, b, nx, ny):
     return dolfin.RectangleMesh(dolfin.Point(array(a)), dolfin.Point(array(b)), nx, ny)
-    
+
 def convert3D(mesh3D, *forces):
     "convert force from axisymmetric 2D simulation to 3D vector function"
     def rad(x, y):
         return dolfin.sqrt(x**2 + y**2)
-    
+
     class Convert3DExpression(dolfin.Expression):
         def __init__(self, F):
             self.F = F
@@ -396,7 +394,7 @@ def convert3D(mesh3D, *forces):
                 value[0] = x[0]/r*F[0]
                 value[1] = x[1]/r*F[0]
                 value[2] = F[1]
-    
+
     U = dolfin.FunctionSpace(mesh3D, "CG", 1)
     V = dolfin.MixedFunctionSpace([U, U, U])
     def to3D(F):
@@ -405,7 +403,7 @@ def convert3D(mesh3D, *forces):
         #F2.interpolate(Convert3DExpression(F))
         return F2
     return tuple(map(to3D, forces))
-    
+
 def convert2D(mesh2D, *forces):
     "convert force from axisymmetric 2D simulation to 2D vector function"
     dolfin.parameters['allow_extrapolation'] = False
@@ -431,5 +429,5 @@ def convert2D(mesh2D, *forces):
         #F2 = dolfin.Function(V)
         #F2.interpolate(Convert3DExpression(F))
         return F2
-    return tuple(map(to2D, forces))                    
+    return tuple(map(to2D, forces))
 
