@@ -16,14 +16,14 @@ geop = nano.Params(
     rMolecule = pughpore.params["rMolecule"],
 ),
 physp = nano.Params(
-    Qmol = 6., # charge of trypsin at pH 8.
+    Qmol = 5., # charge of trypsin at pH 8.
     bulkcon = 1000.,
     dnaqsdamp = .5,
     bV = -0.1,
-    rDPore = 1.,
+    rDPore = .9,
 ),
 solverp = nano.Params(
-    h = 2.,
+    h = 1.5,
     frac = 0.2,
     Nmax = 6e5,  
     imax = 30,

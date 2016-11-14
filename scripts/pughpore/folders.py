@@ -7,5 +7,5 @@ FIGDIR = os.path.join(PAPERDIR, "figures", "")
 
 DATADIR = os.path.join(HOME, "Dropbox", "Paper Howorka", "data", "fields")
 
-import nanopores.tools.fields as f
-f.set_dir(DATADIR)
+import nanopores.tools.fields as fields
+fields.set_dir(DATADIR)

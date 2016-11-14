@@ -7,16 +7,18 @@ from nanopores.tools.geometry import PointBC
 # TODO: add points in 3D
 # TODO: better use iterative solver for laplace
 
-def harmonic_interpolation(geo, points, values,
+def harmonic_interpolation(setup, points=(), values=(),
                            subdomains=dict(), boundaries=None):
-    mesh = geo.mesh                               
+    geo = setup.geo
+    phys = setup.phys
+    mesh = geo.mesh
                                
     # Laplace equation
     V = dolfin.FunctionSpace(mesh, "CG", 1)
     u = dolfin.TrialFunction(V)
     v = dolfin.TestFunction(V)
-    a = dolfin.inner(dolfin.grad(u), dolfin.grad(v))*dolfin.dx
-    L = dolfin.Constant(0.)*v*dolfin.dx(domain=mesh)
+    a = dolfin.inner(dolfin.grad(u), dolfin.grad(v))*phys.r2pi*geo.dx()
+    L = dolfin.Constant(0.)*v*phys.r2pi*geo.dx()
     
     # Point-wise boundary condition
     bc = PointBC(V, points, values)
@@ -39,7 +41,10 @@ def harmonic_interpolation(geo, points, values,
         bc.apply(b)
     
     u = dolfin.Function(V)
-    dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
+    if phys.cyl:
+        dolfin.solve(A, u.vector(), b, "bicgstab", "hypre_euclid")
+    else:
+        dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
     return u
             
 def harmonic_interpolation_simple(mesh, points, values):

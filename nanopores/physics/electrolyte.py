@@ -22,7 +22,11 @@ cpflux = dict()
 cmflux = dict()
 
 # diffusion constants for 1:1 electrolyte
-Dp = Dm = dict(default = "D", solid = 0.)
+Dpdict = Dmdict = dict(default = "D", solid = 0.)
+def Dp(geo, Dpdict):
+    return geo.pwconst("Dp", value=Dpdict)
+def Dm(geo, Dmdict):
+    return geo.pwconst("Dm", value=Dmdict)
 
 # piece-wise boundary conditions
 v0 = dict()

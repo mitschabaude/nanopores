@@ -109,6 +109,11 @@ class Physics(object):
             #setattr(self.mod, name, m)
             return m
             
+    # not good because this could mess with class functionality, e.g. in init
+    #def __setattr__(self, name, value):
+    def update(self, **values):
+        self.base.update(values)
+         
     # FIXME this next two functions were never tried out because we did not actually need them
     # could be useful at some time though
     """

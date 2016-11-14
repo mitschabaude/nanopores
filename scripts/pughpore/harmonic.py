@@ -73,8 +73,8 @@ f = lambda x: np.sin(x[1]/5.)
 fexp = dolfin.Expression("sin(x[1]/5.)", domain=mesh)
 
 u = harmonic_interpolation(geo, points, values,
-                           dict(bulkfluid_bottom=f),
-                           dict(upperb=fexp))
+                           dict(pore=f),
+                           dict(upperb=fexp, lowerb=fexp))
 
 dolfin.plot(mesh)
 dolfin.plot(u)

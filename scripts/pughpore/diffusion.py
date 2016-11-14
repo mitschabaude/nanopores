@@ -2,6 +2,7 @@
 "investigate ion diffusion constant inside pugh pore by computing drag"
 #import numpy as np
 import dolfin
+import numpy as np
 import nanopores as nano
 import nanopores.models.pughpore as pugh
 import nanopores.physics.simplepnps as pnps
@@ -60,6 +61,54 @@ def diffusivity(setup):
     print "gamma (stokes law):", gamma0
     print
     D = kT/gamma
+    D0 = kT/gamma0
+    print "D (simulation):", D
+    print "D (stokes law):", D0
+    print "Reducing factor due to confinement:", D/D0
+    return D/D0
+    
+def diffusivity_tensor(setup):
+    v0 = .001
+    geo, phys = setup.geo, setup.phys
+    r = setup.geop.rMolecule
+    dim = setup.phys.dim
+    cyl = setup.phys.cyl
+    
+    pugh.prerefine(setup, True)
+#    goal = lambda v: phys.Fbare(v, 2)
+#    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
+#    for i in pb.adaptive_loop(setup.solverp.Nmax):
+#        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
+    if dim==3:    
+        pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
+        iterative = True
+    else:
+        iterative = False
+    U0 = dolfin.Constant(tuple(0. for i in range(dim)))
+    W = pnps.SimpleStokesProblem.space(geo.mesh)
+    bcs = [geo.BC(W.sub(0), U0, "dnab"),
+           geo.BC(W.sub(0), U0, "memb"),
+           geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
+
+    gamma = np.zeros((dim, dim))
+    for i0 in range(dim):
+        U1 = dolfin.Constant(tuple((v0 if i==i0 else 0.) for i in range(dim)))
+        bcmol = [geo.BC(W.sub(0), U1, "moleculeb")]
+        stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
+                            phys=phys, iterative=iterative, bcs=bcs+bcmol)
+        F = stokes.evaluate(phys.Fdrag)["Fdrag"]
+        gamma[:,i0] = abs(np.array(F)/v0)
+    
+    pi = phys.pi
+    eta = phys.eta
+    kT = phys.kT
+
+    gamma0 = 6.*pi*eta*r*1e-9
+    print "gamma (simulation):", gamma
+    print "gamma (stokes law):", gamma0
+    print
+    D = kT*np.linalg.inv(gamma)
     D0 = kT/gamma0
     print "D (simulation):", D
     print "D (stokes law):", D0

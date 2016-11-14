@@ -53,8 +53,8 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         grad = phys.grad
 
         eps = geo.pwconst("permittivity")
-        Dp = geo.pwconst("Dp")
-        Dm = geo.pwconst("Dm")
+        Dp = phys.Dp #geo.pwconst("Dp")
+        Dm = phys.Dm #geo.pwconst("Dm")
         kT = Constant(phys.kT)
         q = Constant(phys.qq)
         F = Constant(phys.cFarad)
@@ -430,11 +430,11 @@ class PNPFixedPoint(CoupledSolver):
             return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))   
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dp")
+            D = phys.Dp #geo.pwconst("Dp")
             return dict(z=1., E=E, D=D)
         def couple_npm(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dm")
+            D = phys.Dm #geo.pwconst("Dm")
             return dict(z=-1., E=E, D=D)
             
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
@@ -458,11 +458,11 @@ class PNPFixedPointNonlinear(CoupledSolver):
                         dx_ions=geo.dx("fluid"))   
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dp")
+            D = phys.Dp
             return dict(z=1., E=E, D=D)
         def couple_npm(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dm")
+            D = phys.Dm
             return dict(z=-1., E=E, D=D)
             
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
@@ -487,11 +487,11 @@ class PNPFixedPointNaive(CoupledSolver):
             return dict(f=f, dxf=dxf)   
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dp")
+            D = phys.Dp
             return dict(z=1., E=E, D=D)
         def couple_npm(upoisson, geo, phys):
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dm")
+            D = phys.Dm
             return dict(z=-1., E=E, D=D)
             
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
@@ -517,13 +517,13 @@ class PNPSFixedPoint(CoupledSolver):
         def couple_poisson(unpp, unpm, geo):
             return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))     
         def couple_npp(upoisson, ustokes, geo, phys):
+            Dp = phys.Dp
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dp")
-            return dict(z=1., E=E, D=D, ustokes=ustokes.sub(0))
+            return dict(z=1., E=E, D=Dp, ustokes=ustokes.sub(0))
         def couple_npm(upoisson, ustokes, geo, phys):
+            Dm = phys.Dm
             E = -phys.grad(upoisson)
-            D = geo.pwconst("Dm")
-            return dict(z=-1., E=E, D=D, ustokes=ustokes.sub(0))
+            return dict(z=-1., E=E, D=Dm, ustokes=ustokes.sub(0))
         def couple_stokes(upoisson, unpp, unpm, phys):
             v, cp, cm = upoisson, unpp, unpm
             f = -phys.cFarad*(cp - cm)*phys.grad(v)

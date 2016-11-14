@@ -49,13 +49,13 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     ahemb = "ahemqs",
 )
 
-Dp = dict(
+Dpdict = dict(
     #default = "D",
     bulkfluid = "D",
     pore = "DPore",
     solid = 0.,
 )
-Dm = Dp
+Dmdict = Dpdict
 
 # functionals
 def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
@@ -69,12 +69,10 @@ def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
         return Jz
     return J0
     
-def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale):
+def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
     def _current(U):
         v, cp, cm, u, p = U
         L = dolfin.Constant(geo.params["lporecurrent"])
-        Dp = geo.pwconst("Dp")
-        Dm = geo.pwconst("Dm")
         cUT = dolfin.Constant(UT)
         F = dolfin.Constant(cFarad)
         
