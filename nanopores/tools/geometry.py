@@ -581,6 +581,11 @@ class PointBC(object):
                 i = wh[0]
                 bc_values[dof_map[i]] = v
                 node_set.add(i)
+                #print "found:", p
+            else:
+                pass
+                #print "not found:", p
+        print "Found %d of %d points." %(len(node_set), len(points))
         
         self.bc_f.vector().set_local(bc_values)
         self.bc_f.vector().apply("insert") # TODO: what does this do?

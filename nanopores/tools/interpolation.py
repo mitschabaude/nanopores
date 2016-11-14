@@ -2,15 +2,21 @@
 "harmonic interpolation."
 import numpy as np
 import dolfin
-from nanopores.tools.geometry import PointBC
+from nanopores.tools.geometry import PointBC, Geometry
+from nanopores.tools.physicsclass import Physics
 
 # TODO: add points in 3D
 # TODO: better use iterative solver for laplace
 
 def harmonic_interpolation(setup, points=(), values=(),
                            subdomains=dict(), boundaries=None):
-    geo = setup.geo
-    phys = setup.phys
+    if isinstance(setup, Geometry):
+        geo = setup
+        phys = Physics(geo=geo)
+        phys.update(cyl = phys.dim == 2)
+    else:            
+        geo = setup.geo
+        phys = setup.phys
     mesh = geo.mesh
 
     # Laplace equation
@@ -92,9 +98,9 @@ if __name__ == "__main__":
     f = lambda x: np.sin(x[1]/5.)
     fexp = dolfin.Expression("sin(x[1]/5.)", domain=mesh, degree=1)
 
-    u = harmonic_interpolation(geo, points, values,
-                               dict(bulkfluid_bottom=f),
-                               dict(upperb=fexp, sideb=fexp))
+    u = harmonic_interpolation(geo, points, values,)
+                               #dict(bulkfluid_bottom=f),
+                               #dict(upperb=fexp))
 
     dolfin.plot(mesh)
     dolfin.plot(u)

@@ -243,12 +243,14 @@ class BoxCollection(object):
         if not points: return
         if dim is None: dim = len(points[0])
         vol = {1: "Line", 2: "Surface", 3: "Volume"}[dim]
-        for x in points:
-            x_ = [x[i] if i<dim else 0. for i in range(3)]
-            p = py4gmsh.Point(x_, lc)
-            surf, name = self.get_gmsh_sub(x)
-            if name not in forbidden:
-                py4gmsh.raw_code(["Point{%s} In %s{%s};" %(p, vol, surf)])
+        with Log("inserting points..."):
+            for x in points:
+                x_ = [x[i] if i<dim else 0. for i in range(3)]
+                surf, name = self.get_gmsh_sub(x)
+                #print p, surf, name
+                if name not in forbidden:
+                    p = py4gmsh.Point(x_, lc)
+                    py4gmsh.raw_code(["Point{%s} In %s{%s};" %(p, vol, surf)])
 
     def get_gmsh_sub(self, x):
         d = self.dim

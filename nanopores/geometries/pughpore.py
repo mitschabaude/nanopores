@@ -163,6 +163,11 @@ def get_domain(lc=1., **newparams):
         porecurrent = porebot
         porerest = poreenter | poretop | porectr
         poreenter = EmptySet()
+    
+    # force order to debug    
+    domain.addsubdomains(
+        bulkfluid_top = bulkfluid_top,
+    )
 
     domain.addsubdomains(
         membrane = membrane,
@@ -170,7 +175,7 @@ def get_domain(lc=1., **newparams):
         poreenter = poreenter,
         porerest = porerest,
         porecurrent = porecurrent,
-        bulkfluid_top = bulkfluid_top,
+        #bulkfluid_top = bulkfluid_top,
         bulkfluid_bottom = bulkfluid_bottom,
     )
 
