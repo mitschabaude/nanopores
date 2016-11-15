@@ -24,7 +24,7 @@ def printnow(s):
     print s,
     sys.stdout.flush()
 
-__all__ = ["BoxCollection", "Box", "Interval"]
+__all__ = ["BoxCollection", "Box", "Interval", "Log"]
 MESHDIR = "/tmp/nanopores"
 
 class BoxCollection(object):
@@ -803,6 +803,7 @@ def to_mesh(clscale=1., pid=""):
     pid = str(os.getpid())
     with Log("executing gmsh..."):
         py4gmsh.raw_code(["General.ExpertMode = 1;"])
+        py4gmsh.raw_code(["Mesh.Algorithm3D = 2;"])
         code = py4gmsh.get_code()
         meta = py4gmsh.get_meta()
         if not meta["physical_domain"]:

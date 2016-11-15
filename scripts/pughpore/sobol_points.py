@@ -2,7 +2,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 #from numpy.random import random
 import matplotlib.pyplot as plt
-import nanopores.tools.fields as fields
+from folders import fields
 import nanopores.geometries.pughpore as pughpore
 import nanopores
 
@@ -21,7 +21,8 @@ h2 = up.h2
 h1 = up.h1
 h4 = up.h4
 rMolecule = up.rMolecule
-
+eps = 0.1
+r = rMolecule + eps
 
 ####################################################
 ################# GENERATE ARRAY ###################
@@ -30,14 +31,17 @@ rMolecule = up.rMolecule
 from sobol.sobol_seq import i4_sobol_generate as sobol
 
 # array of factors for pore width
-fac = np.array([.5*l0*1.2,.5*l0,.5*l1-rMolecule,.5*l1-rMolecule,.5*l2-rMolecule,.5*l3-rMolecule,.5*l3-rMolecule,.5*l3-rMolecule,.5*l3-rMolecule,.5*l3-rMolecule])
+fac = np.array([.5*l0*1.2,.5*l0,.5*l1-r,.5*l1-r,
+                .5*l2-r,.5*l3-r,.5*l3-r,.5*l3-r,.5*l3-r,.5*l3-r])
 #array of z values in pore
-z = np.array([.5*hpore+5.,.5*hpore+rMolecule,.5*hpore,.5*(hpore-h1),.5*hpore-h1,.5*hpore-h2,-.5*hpore+.75*(hpore-h2),-.5*hpore+.5*(hpore-h2),-.5*hpore+.25*(hpore-h2),-.5*hpore])
+z = np.array([.5*hpore+5.,.5*hpore+rMolecule,.5*hpore,.5*(hpore-h1),
+              .5*hpore-h1,.5*hpore-h2,-.5*hpore+.75*(hpore-h2),
+              -.5*hpore+.5*(hpore-h2),-.5*hpore+.25*(hpore-h2),-.5*hpore])
 
 k0=3 #start exponent 2^k0
 k=up.k #increase number of points to 2^(k0+k)
 
-#if k0=3 :      k |  k=1  |  k=2  |  k=3  |  k=4  |  k=5  |  k=6 
+#if k0=3 :      k |  k=1  |  k=2  |  k=3  |  k=4  |  k=5  |  k=6
 #          points |   21  |   37  |   73  |  137  |  273  |  529
 #    total points |   210 |   370 |   730 |  1370 |  2730 |  5290
 
@@ -53,7 +57,8 @@ for i in list(reversed(range(X_points.shape[0]))): # cut off other triangle
         X_points = np.delete(X_points,i)
         Y_points = np.delete(Y_points,i)
 
-print '# points = %d\n# z-values =%d\n# totals points= %d'%(X_points.shape[0],z.shape[0],X_points.shape[0]*z.shape[0])
+print '# points = %d\n# z-values =%d\n# totals points= %d'%(
+    X_points.shape[0],z.shape[0],X_points.shape[0]*z.shape[0])
 
 X, Y, Z = np.array([]), np.array([]), np.array([]) # concatenate all arrays
 for j in range(z.shape[0]):
@@ -72,28 +77,31 @@ array=[[X[i],Y[i],Z[i]] for i in range(X.shape[0])]
 if __name__ == "__main__":
     fields.save_entries("pughx", dict(up), x=array, N=len(array))
     fields.update()
-    
+
     def surfx(y1,y2,z1,z2,d,size,rs,cs):
         Y = np.linspace(y1,y2,size)
         Z = np.linspace(z1,z2,size)
         Y, Z = np.meshgrid(Y,Z)
         X = np.zeros(size)+d
-        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs, alpha=alpha,color=color)
-    
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
+
     def surfy(x1,x2,z1,z2,d,size,rs,cs):
         X = np.linspace(x1,x2,size)
         Z = np.linspace(z1,z2,size)
         X, Z = np.meshgrid(X,Z)
         Y = np.zeros(size)+d
-        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs, alpha=alpha,color=color)
-    
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
+
     def surfz(x1,x2,y1,y2,d,size,rs,cs):
         X = np.linspace(x1,x2,size)
         Y = np.linspace(y1,y2,size)
         X, Y = np.meshgrid(X,Y)
         Z = np.zeros(size)+d
-        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs, alpha=alpha,color=color)
-    
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
+
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.view_init(elev=0,azim=270)
@@ -101,12 +109,12 @@ if __name__ == "__main__":
     ax.set_ylim([-.5*R,.5*R])
     ax.set_zlim([-.5*H,.5*H])
     ax.set_aspect(1)
-    
+
     size=10
     alpha=.1
     rs, cs = 1, 1
     color='blue'
-    
+
     #front
     surfy(-.5*l3,.5*l3,-.5*hpore,.5*hpore-h2,.5*l3,size,1,1)
     surfy(-.5*l2,.5*l2,.5*hpore-h2,.5*hpore-h1,.5*l2,size,5,1)
@@ -122,7 +130,7 @@ if __name__ == "__main__":
     surfy(-.5*l2,-.5*l1,-.5*hpore,.5*hpore-h1,0.,size,5,5)
     surfy(-.5*l1,-.5*l0,-.5*hpore+hmem,.5*hpore,0.,size,5,5)
     surfy(-.5*l4,-.5*R,-.5*hpore,-.5*hpore+hmem,0.,size,5,5)
-    
+
     #top-front
     surfz(-.5*l0,.5*l0,.5*l1,.5*l0,.5*hpore,size,10,1)
     surfz(-.5*l1,.5*l1,.5*l2,.5*l1,.5*hpore-h1,size,10,1)
@@ -151,8 +159,8 @@ if __name__ == "__main__":
     surfx(0.,.5*l2,.5*hpore-h2,.5*hpore-h1,-.5*l2,size,5,5)
     surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,-.5*l3,size,5,5)
     surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,-.5*l0,size,5,5)
-    
-    
+
+
     ax.scatter(X,Y,Z)
     #ax.scatter(X,-Y,Z)
     #ax.scatter(-X,Y,Z)
@@ -163,8 +171,8 @@ if __name__ == "__main__":
     #ax.scatter(-Y,-X,Z)
     plt.tight_layout()
     plt.show()
-    
-    
+
+
     plt.scatter(X_points,Y_points)
     plt.plot([0.,1.,1.,0.,0.,1.],[0.,0.,1.,1.,0.,1.],color='blue')
     ax=plt.gca()

@@ -14,25 +14,24 @@ def tolist(array):
 
 params = dict(
     dim = 3,
-    h = 1.,
-    Nmax = 1e5,
+    h = .25,
+    Nmax = 1e4,
     rMolecule = 0.152, # radius of K+
-    lcMolecule = 0.1,
+    lcMolecule = 0.2,
 )
 
 geop = dict(
-        H = 10.,
-        R = 5.,
-        center_at_x0 = True
+        H = 20.,
+        R = 4.,
+        center_z_at_x0 = True
 )
-x0 = [0., 0., 15.]
+#x0 = [2.8, 0., 5.]
+x0 = [0., 0., 5.]
 setup = pugh.Setup(x0=x0, geop=geop, **params)
 nanopores.plot_sliced(setup.geo)
 D = diffusion.diffusivity_tensor(setup)
-print D
 dolfin.interactive()
 exit()
-
 
 @solvers.cache_forcefield("pugh_diff3D_test", {})
 def calculate_diffusivity(X, **params):
@@ -55,7 +54,7 @@ def _sorted(data, key):
 
 x = [z[0] for z in data["x"]]
 data, x = _sorted(data, x)
-dstr = {0:"x", 1:"y", 2:"z"}
+dstr = ["x", "y", "z"]
 for i, j in product(range(3), range(3)):
     Dxx = [D[i][j] for D in data["D"]]
     style = "s-" if i==j else "--"

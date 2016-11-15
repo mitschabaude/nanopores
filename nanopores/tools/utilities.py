@@ -62,7 +62,7 @@ def plot_sliced(geo):
     for cell in dolfin.cells(submesh):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
-    dolfin.plot(subsub, title="sliced geometry with subdomains")
+    dolfin.plot(subsub, title="sliced geometry with subdomains", elevate=-90.)
 
 def plot_sliced_mesh(geo, **kwargs):
     tol = 1e-5
@@ -72,7 +72,7 @@ def plot_sliced_mesh(geo, **kwargs):
     back = dolfin.CellFunction("size_t", geo.mesh, 0)
     Back().mark(back, 1)
     submesh = dolfin.SubMesh(geo.mesh, back, 1)
-    dolfin.plot(submesh, **kwargs)
+    dolfin.plot(submesh, elevate=-90., **kwargs)
 
 class uCross(dolfin.Expression):
     def __init__(self, u, axis=1, **kw):

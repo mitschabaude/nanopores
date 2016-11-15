@@ -14,7 +14,7 @@ def harmonic_interpolation(setup, points=(), values=(),
         geo = setup
         phys = Physics(geo=geo)
         phys.update(cyl = phys.dim == 2)
-    else:            
+    else:
         geo = setup.geo
         phys = setup.phys
     mesh = geo.mesh
@@ -47,10 +47,11 @@ def harmonic_interpolation(setup, points=(), values=(),
         bc.apply(b)
 
     u = dolfin.Function(V)
-    if phys.cyl:
-        dolfin.solve(A, u.vector(), b, "bicgstab", "hypre_euclid")
-    else:
-        dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
+    dolfin.solve(A, u.vector(), b, "bicgstab", "hypre_euclid")
+#    if phys.cyl:
+#        dolfin.solve(A, u.vector(), b, "bicgstab", "hypre_euclid")
+#    else:
+#        dolfin.solve(A, u.vector(), b, "cg", "hypre_amg")
     return u
 
 def harmonic_interpolation_simple(mesh, points, values):

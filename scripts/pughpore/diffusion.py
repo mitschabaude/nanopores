@@ -25,36 +25,34 @@ def diffusivity(setup):
     r = setup.geop.rMolecule
     dim = setup.phys.dim
     cyl = setup.phys.cyl
-    
-    pugh.prerefine(setup, True)
-#    goal = lambda v: phys.Fbare(v, 2)
-#    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
-#    for i in pb.adaptive_loop(setup.solverp.Nmax):
-#        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
-    if dim==3:    
+
+    if geo.mesh.num_cells() < setup.solverp.Nmax:
+        pugh.prerefine(setup, True)
+
+    if dim==3:
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
         iterative = True
     else:
         iterative = False
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))
     U1 = dolfin.Constant(tuple((v0 if i==dim-1 else 0.) for i in range(dim)))
-    
+
     W = pnps.SimpleStokesProblem.space(geo.mesh)
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
-           geo.BC(W.sub(0), U0, "sideb"),
+           #geo.BC(W.sub(0), U0, "sideb"),
            geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
-           
+
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
                             phys=phys, iterative=iterative, bcs=bcs)
     F = stokes.evaluate(phys.Fdrag)["Fdrag"]
     print F
-    
+
     pi = phys.pi
     eta = phys.eta
     kT = phys.kT
-    
+
     gamma = abs(F[dim-1]/v0)
     gamma0 = 6.*pi*eta*r*1e-9
     print "gamma (simulation):", gamma
@@ -66,20 +64,18 @@ def diffusivity(setup):
     print "D (stokes law):", D0
     print "Reducing factor due to confinement:", D/D0
     return D/D0
-    
+
 def diffusivity_tensor(setup):
     v0 = .001
     geo, phys = setup.geo, setup.phys
     r = setup.geop.rMolecule
     dim = setup.phys.dim
     cyl = setup.phys.cyl
-    
-    pugh.prerefine(setup, True)
-#    goal = lambda v: phys.Fbare(v, 2)
-#    pb = pnps.SimpleLinearPBGO(geo, phys, goal=goal)
-#    for i in pb.adaptive_loop(setup.solverp.Nmax):
-#        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
-    if dim==3:    
+
+    if geo.mesh.num_cells() < setup.solverp.Nmax:
+        pugh.prerefine(setup, True)
+
+    if dim==3:
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
         iterative = True
     else:
@@ -99,7 +95,7 @@ def diffusivity_tensor(setup):
                             phys=phys, iterative=iterative, bcs=bcs+bcmol)
         F = stokes.evaluate(phys.Fdrag)["Fdrag"]
         gamma[:,i0] = abs(np.array(F)/v0)
-    
+
     pi = phys.pi
     eta = phys.eta
     kT = phys.kT
@@ -124,7 +120,7 @@ def calculate_diffusivity(X, **params):
         D = diffusivity(setup)
         values.append(D)
     return dict(D=values)
-    
+
 @solvers.cache_forcefield("pugh_diffusivity2D", default)
 def calculate_diffusivity2D(X, **params):
     _params = dict(default, frac=.5, **params)
@@ -135,7 +131,7 @@ def calculate_diffusivity2D(X, **params):
         D = diffusivity(setup)
         values.append(D)
     return dict(D=values)
-    
+
 if __name__ == "__main__":
     print calculate_diffusivity2D([[0.,0.,50.]], cache=False, h=4., Nmax=2e4)
     #print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)

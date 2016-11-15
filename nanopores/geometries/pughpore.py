@@ -52,10 +52,11 @@ params = dict(
     x0 = [0., 0., 0.],
     lcMolecule = 0.4, # relative to global mesh size
     center_at_x0 = False,
+    center_z_at_x0 = False,
 )
 # change global settings for mesh generation
 #set_tol(None) # faster, may lead to degenerate elements or even gmsh error
-set_tol(0.5) # more robust
+set_tol(0.1) # more robust
 
 def set_params(**newparams):
     params.update(newparams)
@@ -92,6 +93,8 @@ def get_domain(lc=1., **newparams):
     x0 = _params["x0"]
     lcMolecule = lc*_params["lcMolecule"]
     center = zero if (not _params["center_at_x0"] or x0 is None) else x0
+    if _params["center_z_at_x0"]:
+        center[2] = x0[2]
 
     hcenter = hpore - h2
     lporecurrent = hcenter/3. # for current calculation
@@ -163,8 +166,8 @@ def get_domain(lc=1., **newparams):
         porecurrent = porebot
         porerest = poreenter | poretop | porectr
         poreenter = EmptySet()
-    
-    # force order to debug    
+
+    # force order to debug
     domain.addsubdomains(
         bulkfluid_top = bulkfluid_top,
     )
@@ -221,7 +224,7 @@ def get_domain(lc=1., **newparams):
         #boundaries
         chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},
         dnab = {"chargeddnab"},
-        noslip = {"dnab", "memb", "moleculeb", "sideb"},
+        noslip = {"dnab", "memb", "moleculeb"},# "sideb"},
         bV = "lowerb",
         ground = "upperb",
         bulk = {"lowerb", "upperb"},
