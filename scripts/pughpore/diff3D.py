@@ -5,11 +5,13 @@ import nanopores.models.pughpore as pugh
 import numpy as np
 from matplotlib import pyplot as plt
 from itertools import product
+import dolfin
+import nanopores
 #default = diffusion.default
 
 def tolist(array):
     return [list(a) for a in array]
-    
+
 params = dict(
     dim = 3,
     h = 1.,
@@ -17,6 +19,20 @@ params = dict(
     rMolecule = 0.152, # radius of K+
     lcMolecule = 0.1,
 )
+
+geop = dict(
+        H = 10.,
+        R = 5.,
+        center_at_x0 = True
+)
+x0 = [0., 0., 15.]
+setup = pugh.Setup(x0=x0, geop=geop, **params)
+nanopores.plot_sliced(setup.geo)
+D = diffusion.diffusivity_tensor(setup)
+print D
+dolfin.interactive()
+exit()
+
 
 @solvers.cache_forcefield("pugh_diff3D_test", {})
 def calculate_diffusivity(X, **params):

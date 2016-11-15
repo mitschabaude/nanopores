@@ -6,8 +6,8 @@ import ufl
 from warnings import warn
 
 __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
-    "replace_function_in_form", "AdaptableLinearProblem", 
-    "IllposedNonlinearSolver",  "AdaptableNonlinearProblem", 
+    "replace_function_in_form", "AdaptableLinearProblem",
+    "IllposedNonlinearSolver",  "AdaptableNonlinearProblem",
     "AdaptableBC", "Functional", "assemble_scalar"]
 
 class IllposedLinearSolver(object):
@@ -27,19 +27,19 @@ class IllposedLinearSolver(object):
                                lusolver="default",)
         if method:
             self.method.update(method)
-                       
+
         self.illposed = ("illposed" not in self.method) or self.method["illposed"]
         self.problem = problem
-        
+
         if self.illposed:
             self.problem.a = self.stab*self.problem.a
             self.problem.L = self.stab*self.problem.L
-        
+
         if self.method["reuse"]:
             self.assemble_A()
-                
+
     def assemble_A(self):
-        #print ("Process %s: I'm assembling a system of size %s now!" % 
+        #print ("Process %s: I'm assembling a system of size %s now!" %
         #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
         #print "DEBUG, form:\n", self.problem.a
         A = assemble(self.problem.a, keep_diagonal=True)
@@ -47,7 +47,7 @@ class IllposedLinearSolver(object):
             bc.apply(A)
         if self.illposed:
             A.ident_zeros()
-        
+
         if not self.method["iterative"]:
             self.S = LUSolver(self.method["lusolver"])
             try:
@@ -55,7 +55,7 @@ class IllposedLinearSolver(object):
             except KeyError:
                 pass
             self.S.set_operator(A)
-            
+
         else:
             if not "fieldsplit" in self.method:
                 self.method["fieldsplit"] = False
@@ -89,7 +89,7 @@ class IllposedLinearSolver(object):
                     ksp.setOperators(A, P)
                 ksp.setFromOptions()
                 self.S = ksp
-                
+
             else:
                 ks = (self.method["ks"] if ("ks" in self.method) else "default")
                 kp = (self.method["kp"] if ("kp" in self.method) else "default")
@@ -98,7 +98,7 @@ class IllposedLinearSolver(object):
                     self.S.parameters.update(self.method["kparams"])
                 except KeyError:
                     pass
-       
+
                 if self.method.has_key("preconditioning_form"):
                     P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
                     for bc in self.problem.bcs:
@@ -107,8 +107,8 @@ class IllposedLinearSolver(object):
                         P.ident_zeros()
                     self.S.set_operators(A, P)
                 else:
-                    self.S.set_operator(A)	
-              
+                    self.S.set_operator(A)
+
     def solve(self):
         u = self.problem.u
         #plot(u.sub(0))
@@ -116,7 +116,7 @@ class IllposedLinearSolver(object):
         b = assemble(self.problem.L)
         for bc in self.problem.bcs:
             bc.apply(b)
-        #print ("Process %s: I'm solving a system of size %s now!" % 
+        #print ("Process %s: I'm solving a system of size %s now!" %
         #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
         if isinstance(self.S, petsc4py.PETSc.KSP):
             l = as_backend_type(b).vec()
@@ -135,7 +135,7 @@ class IllposedLinearSolver(object):
             #print "DEBUG: dim u", u.vector().array().shape
             #print "DEBUG: dim b", b.array().shape
             self.S.solve(u.vector(),b)
-                           
+
     def adapt(self,mesh):
         """NOTE TO SELF: if assemble isn't working after adapt,
         check if in adaptform() EVERYTHING in this form is adapted to new mesh."""
@@ -146,13 +146,13 @@ class IllposedLinearSolver(object):
         self.problem.adapt(mesh)
         if(self.method["reuse"]): self.assemble_A()
         return self.problem.u
-        
+
     # TODO: I have the feeling that somehow this could be done cleaner
     def damp_bcs(self, scalar):
         self.problem.damp_bcs(scalar)
         if self.method["reuse"]:
             self.assemble_A()
-    
+
     def replace(self,functions,newfunctions):
         # INPUT is a tuple of the functions to be replaced by newfunctions
         # IMPORTANT: don't  supply subfunctions here, these are handled
@@ -161,30 +161,30 @@ class IllposedLinearSolver(object):
         for i,f in enumerate(functions):
             self.problem.a = replace_function_in_form(self.problem.a,f,newfunctions[i])
             self.problem.L = replace_function_in_form(self.problem.L,f,newfunctions[i])
-            
+
     def print_method(self):
         print self.method
         info(self.S.parameters, True)
-        
+
 # END of class
 
 class IllposedNonlinearSolver(IllposedLinearSolver):
     newtondamp = 1
-    
+
     def solve(self):
         IllposedLinearSolver.solve(self)
         #plot(self.problem.u.sub(0), title="newton increment (potential)")
         self.problem.uold.vector()[:] -= self.problem.u.vector()[:]*self.newtondamp
-        
+
     def adapt(self,mesh):
         IllposedLinearSolver.adapt(self,mesh)
         return self.problem.uold
-    
+
     def convergence(self,tolnewton):
         if norm(self.problem.u.vector(),'linf') >= 1e12:
             warning('\n linf norm of solution: %g' %self.problem.u.vector().norm('linf'))
         return self.problem.u.vector().norm('linf') <= tolnewton
-    
+
     #def relerror(self):
     #    return norm(self.problem.u,"H10")/norm(self.problem.uold,"H10")
     def relerror(self):
@@ -193,7 +193,7 @@ class IllposedNonlinearSolver(IllposedLinearSolver):
             return self.problem.u.vector().norm('l2')/norm
         else:
             return self.problem.u.vector().norm('l2')
-    
+
 class AdaptableLinearProblem(object):
     # TODO: any use for subclassing LinearVariationalProblem?
     # ATM this only adds unnessecary overhead
@@ -209,30 +209,30 @@ class AdaptableLinearProblem(object):
         else:
             self.boundaries = self.bcs[0].boundaries
         #LinearVariationalProblem.__init__(self,a,L,u,bcs,form_compiler_parameters)
-        
+
     def adapt(self,mesh):
         if (mesh.id() == self.meshid):
             return None
         self.meshid = mesh.id()
         V = adaptspace(self.u.function_space(),mesh)
         self.boundaries = adaptmeshfunction(self.boundaries,mesh)
-        
+
         self.bcs = [bc.adapt(mesh,V,self.boundaries) for bc in self.bcs]
         self.a = adaptform(self.a,mesh)
-        self.L = adaptform(self.L,mesh)		
+        self.L = adaptform(self.L,mesh)
         adaptfunction(self.u, mesh, interpolate=False, assign=True)
         return V
-        
+
     def damp_bcs(self, scalar): # works only for Constant PhysicalBC or Dampable bc.g
         for bc in self.bcs:
             bc.damp(scalar)
-        
+
     def solution(self):
         return self.u
-        
+
     def addRHS(self, L):
         self.L = self.L + L
-    
+
 class AdaptableNonlinearProblem(AdaptableLinearProblem):
     # TODO: compute Jacobian automatically, tolnewton etc.
     def __init__(self, a, L, uold, bcs=None, boundaries=None):
@@ -242,23 +242,23 @@ class AdaptableNonlinearProblem(AdaptableLinearProblem):
         for bc in bcs:
             bc.apply(self.uold.vector())
             bcs0.append(bc.homogenized()) # FIXME: this severely limits bcs to PhysicalBC type
-    	
+
         u = Function(self.uold.function_space())
         AdaptableLinearProblem.__init__(self, a, L, u, bcs0, boundaries)
-        
+
     def adapt(self, mesh):
         V = AdaptableLinearProblem.adapt(self, mesh)
         adaptfunction(self.uold, mesh, interpolate=True, assign=True)
         self.bcs1 = [bc.adapt(mesh, V, self.boundaries) for bc in self.bcs1]
         for bc in self.bcs1:
             bc.apply(self.uold.vector())
-        
+
     def increment(self):
         return self.u
-    
+
     def solution(self):
         return self.uold
-    
+
 class AdaptableBC(DirichletBC):
     # TODO: implement AdaptableBC(V,g,SubDomain)
     def __init__(self, V, g, boundaries, i, method="topological"):
@@ -270,7 +270,7 @@ class AdaptableBC(DirichletBC):
         self.i = i
         self.g = g
         DirichletBC.__init__(self, V, g, boundaries, i, method)
-            
+
     def adapt(self,mesh,V=None,boundaries=None):
         # returns adapted BC
         # get adapted function space V
@@ -286,18 +286,18 @@ class AdaptableBC(DirichletBC):
             boundaries = adaptmeshfunction(self.boundaries,mesh)
         self.boundaries = boundaries
         g = self.g #value()
-        #print g.__class__    
+        #print g.__class__
         if isinstance(g, Function):
             g = adaptfunction(g, mesh)
-        elif isinstance(g, GenericFunction) and not isinstance(g, Constant):  
+        elif isinstance(g, GenericFunction) and not isinstance(g, Constant):
             #print g.__dict__ # FIXME
             g = g.__class__()
-        
+
         return AdaptableBC(V, g, self.boundaries, self.i, self.method())
-        
+
     def damp(self, scalar):
         self.g.damp(scalar)
-        
+
     # FIXME: this should work at least also with non-scalar Constants ...
     def damped(self, scalar):
         if isinstance(self.g, Constant):
@@ -306,8 +306,8 @@ class AdaptableBC(DirichletBC):
             self.g.damp(scalar)
         V = self.function_space()
         return AdaptableBC(V, self.g, self.boundaries, self.i, self.method())
-   
-            
+
+
 class Functional(object):
     # TODO: Functional should also be useable as linear form
     def __init__(self,form):
@@ -318,17 +318,17 @@ class Functional(object):
         try:
             e = assemble_scalar(self.form)
         except TypeError:
-            e = self.form  #maybe it's already a float       
+            e = self.form  #maybe it's already a float
         self.values.append(e)
         return e
 
     def value(self):
         return self.values[-1]
-    
+
     def extrapolate(self):
         return single_aitken(self.values)
-    
-    def abserror(self):		
+
+    def abserror(self):
         if len(self.values) < 3:
             warn("Cannot give error estimate with fewer than 3 different evaluations")
             return 0.0
@@ -336,15 +336,15 @@ class Functional(object):
 
     def relerror(self):
         return self.abserror()/abs(self.value())
-    
+
     def adapt(self,mesh):
         self.form = adaptform(self.form,mesh)
-        
+
     def replace(self,fs,newfs):
         if not isinstance(fs, (list, tuple)):
             fs = (fs,)
         if not isinstance(newfs, (list, tuple)):
-            newfs = (newfs,)	
+            newfs = (newfs,)
         for i,f in enumerate(fs):
             self.form = replace_function_in_form(self.form,f,newfs[i])
 
@@ -354,7 +354,7 @@ class Functional(object):
                 f0 = c
                 break
         return f0
-    
+
     def __call__(self,f=None):
         if f:
             f0 = self.firstfunction()
@@ -364,7 +364,7 @@ class Functional(object):
         e = assemble_scalar(J)
         self.values.append(e)
         return e
-        
+
 
 def assemble_scalar(form):
     # assembles rank-0 form using the MPI communicator of the form's mesh,
@@ -377,7 +377,7 @@ def assemble_scalar(form):
     dolfin.assemble(form, tensor=x)
     return x.get_scalar_value()
 
-        
+
 
 def adaptform_evil(form,mesh): # doesn't work at all. why?
     #assert(isinstance(form, Form))
@@ -395,7 +395,7 @@ def adaptform(form,mesh,adapt_coefficients=False):
     newsubdata = form.subdomain_data().values()[0] # assuming single domain
     for k,meshfunction in newsubdata.items():
         newsubdata[k] = adaptmeshfunction(meshfunction,mesh)
-	
+
     # replace domain, meshfunctions in integrals
     integrals = []
     for itg in form.integrals():
@@ -403,29 +403,29 @@ def adaptform(form,mesh,adapt_coefficients=False):
                                  subdomain_data=newsubdata[itg.integral_type()])
         integrals.append(newitg)
     newform = ufl.Form(integrals)
-	
+
     # replace arguments and coefficients in form
     mapping = {}
     # adapt arguments
     for argument in form.arguments():
         newargument = adaptargument(argument,mesh)
         mapping[argument] = newargument
-    if (adapt_coefficients):	
-        # adapt coefficients	
+    if (adapt_coefficients):
+        # adapt coefficients
         for coeff in form.coefficients():
             adaptcoefficient(coeff,mesh) #MOD
             #newcoeff = adaptcoefficient(coeff,mesh)
             #mapping[coeff] = newcoeff
-    
+
     # TODO: is there more? is there a better way to ensure everything is adapted?
     # adapt FacetNormal
     mapping[FacetNormal(oldmesh)] = FacetNormal(mesh)
     # adapt CellSize -- have to use ufl.Circumradius or replace() complains
     mapping[ufl.Circumradius(oldmesh)] = ufl.Circumradius(mesh)
-    
+
     newform = replace(newform, mapping)
     return newform
-    
+
 def _compute_renumbering(self):
     # Include integration domains and coefficients in renumbering
     dn = self.domain_numbering()
@@ -459,7 +459,7 @@ def adaptargument(argument,mesh):
     return Argument(newspace,argument.number(),part=argument.part())
 
 def adaptspace(space,mesh):
-    # only adapt if mesh is actually new	
+    # only adapt if mesh is actually new
     if (space.mesh().id() == mesh.id()):
         return space
     newelement = space.ufl_element().reconstruct(domain=mesh.ufl_domain())
@@ -473,7 +473,7 @@ def adaptcoefficient(coeff,mesh): #MOD
         return coeff
 
 def adaptfunction(function,mesh,interpolate=True,assign=False):
-    # important: only adapt if mesh is actually new	
+    # important: only adapt if mesh is actually new
     if (function.function_space().mesh().id() == mesh.id()):
         return function
     newspace = adaptspace(function.function_space(),mesh)
@@ -495,7 +495,7 @@ def replace_function_in_form(form,f,newf):
     for i in range(f.function_space().num_sub_spaces()):
         form = replace_function_in_form(form,f.sub(i),newf.sub(i))
     return form
-	
+
 def _extract_bcs(bcs):
     "Extract and check argument bcs"
     if bcs is None:
@@ -516,5 +516,5 @@ def iterated_aitken(l):
 
 def single_aitken(l):
     if len(l) < 3:
-        return l[-1]	
+        return l[-1]
     return l[-3] - (l[-2]-l[-3])**2/(l[-1]-2*l[-2]+l[-3])
