@@ -11,12 +11,13 @@ import nanopores.tools.solvers as solvers
 default = dict(
     dim = 2,
     h = .6,
-    Nmax = 2.7e5,
-    rMolecule = 0.152, # radius of K+
-    lcMolecule = 0.1,
-    H = 200.,
-    R = 100.,
+    Nmax = 1e5,
+    rMolecule = 0.11, # Stokes radius of both K+ and Cl-
+    lcMolecule = .5,
+    H = 50.,
+    R = 25.,
     Qmol = 4.,
+    center_z_at_x0 = True,
 )
 
 def diffusivity(setup):
@@ -40,7 +41,8 @@ def diffusivity(setup):
     W = pnps.SimpleStokesProblem.space(geo.mesh)
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
-           #geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U0, "bulk"),
            geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
 
@@ -85,6 +87,7 @@ def diffusivity_tensor(setup):
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U0, "bulk"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
 
     gamma = np.zeros((dim, dim))
@@ -133,5 +136,6 @@ def calculate_diffusivity2D(X, **params):
     return dict(D=values)
 
 if __name__ == "__main__":
-    print calculate_diffusivity2D([[0.,0.,50.]], cache=False, h=4., Nmax=2e4)
+    up = nano.user_params(h=.1, H=8., R=4., Nmax=4e4)
+    print calculate_diffusivity2D([[0.,0.,0.]], cache=False, **up)
     #print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)

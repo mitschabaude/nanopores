@@ -17,12 +17,12 @@ __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem",
 class SimplePNPProblem(GeneralNonlinearProblem):
     method = dict(solvermethods.bicgstab)
     method["iterative"] = False
-    
+
     @staticmethod
     def space(mesh, k=1):
         V = FunctionSpace(mesh, "CG", k)
         return MixedFunctionSpace((V, V, V))
-        
+
     @staticmethod
     def initial_u(V, geo, phys, v0=None):
         u = Function(V)
@@ -44,7 +44,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         if ustokes is None:
             dim = geo.mesh.topology().dim()
             ustokes = Constant(tuple(0. for i in range(dim)))
-        
+
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         n = FacetNormal(geo.mesh)
@@ -58,44 +58,44 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         kT = Constant(phys.kT)
         q = Constant(phys.qq)
         F = Constant(phys.cFarad)
-        
+
         (v, cp, cm) = u.split()
         (w, dp, dm) = TestFunctions(V)
-        
+
         Jm = -Dm*(grad(cm) - q/kT*cm*grad(v)) + cm*ustokes
         Jp = -Dp*(grad(cp) + q/kT*cp*grad(v)) + cp*ustokes
-        
+
         apoisson = inner(eps*grad(v), grad(w))*r2pi*dx - F*(cp - cm)*w*r2pi*dx_ions
         aJm = inner(Jm, grad(dm))*r2pi*dx_ions
         aJp = inner(Jp, grad(dp))*r2pi*dx_ions
-        
+
         # TODO: investigate "no bcs" further. in the test problem, they don't work as expected
         aNoBCp = -jump(lscale*Jp*dp*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jp, n*dp)*r2pi*geo.ds("nocbc")
         aNoBCm = -jump(lscale*Jm*dm*r2pi, n)*geo.dS("nocbc") - lscale*inner(Jm, n*dm)*r2pi*geo.ds("nocbc")
-        
+
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
         LJm = lscale*geo.NeumannRHS(dm*r2pi, "cmflux")
         LJp = lscale*geo.NeumannRHS(dp*r2pi, "cpflux")
-        
+
         L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf - LJm - LJp
         a = derivative(L, (v, cp, cm))
 
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
         return geo.pwBC(V.sub(0), "v0") + \
                geo.pwBC(V.sub(1), "cp0") + \
                geo.pwBC(V.sub(2), "cm0")
-               
+
 class SimpleLinearPBProblem(GeneralLinearProblem):
     method = dict(solvermethods.bicgstab)
     method["kparams"].update(
         relative_tolerance = 1e-12,
         absolute_tolerance = 1e-12,
     )
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, 'CG', k)
@@ -112,24 +112,24 @@ class SimpleLinearPBProblem(GeneralLinearProblem):
         eps = geo.pwconst("permittivity")
         UT = Constant(phys.UT)
         k = Constant(2*phys.cFarad*phys.bulkcon)
-        
+
         u = TrialFunction(V)
         w = TestFunction(V)
-        
+
         a = inner(eps*grad(u), grad(w))*r2pi*dx + k/UT*u*w*r2pi*dx_ions
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
         L = Lqvol + Lqsurf
 
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
-        return geo.pwconstBC(V, "v0", homogenize=True)  
-        
+        return geo.pwconstBC(V, "v0", homogenize=True)
+
 class SimplePBProblem(GeneralNonlinearProblem):
     method = dict(solvermethods.bicgstab)
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, 'CG', k)
@@ -145,27 +145,27 @@ class SimplePBProblem(GeneralNonlinearProblem):
         eps = geo.pwconst("permittivity")
         UT = Constant(phys.UT)
         k = Constant(2*phys.cFarad*phys.bulkcon)
-        
+
         w = TestFunction(V)
-        
+
         apoisson = inner(eps*grad(u), grad(w))*r2pi*dx + k*sinh(u/UT)*w*r2pi*dx_ions
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
-        
+
         L = apoisson - Lqvol - Lqsurf
         a = derivative(L, u)
 
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
         # TODO: really only allow homogeneous BCs for PB?
-        return geo.pwconstBC(V, "v0", homogenize=True)    
-        
-        
+        return geo.pwconstBC(V, "v0", homogenize=True)
+
+
 class SimplePoissonProblem(GeneralLinearProblem):
     method = dict(solvermethods.poisson)
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, 'CG', k)
@@ -177,10 +177,10 @@ class SimplePoissonProblem(GeneralLinearProblem):
         lscale = Constant(phys.lscale)
         grad = phys.grad
         eps = geo.pwconst("permittivity")
-        
+
         v = TrialFunction(V)
         w = TestFunction(V)
-        
+
         a = inner(eps*grad(v), grad(w))*r2pi*dx
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
@@ -188,15 +188,15 @@ class SimplePoissonProblem(GeneralLinearProblem):
         if f is not None:
             L = L + f*w*r2pi*dxf
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
         return geo.pwBC(V, "v0")
-        
+
 class LinearSGPoissonProblem(GeneralLinearProblem):
     "Linearized Scharfetter-Gummel-type Poisson problem for fixed point PNP"
     method = dict(solvermethods.bicgstab)
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, 'CG', k)
@@ -210,18 +210,18 @@ class LinearSGPoissonProblem(GeneralLinearProblem):
         eps = geo.pwconst("permittivity")
         UT = Constant(phys.UT)
         F = Constant(phys.cFarad)
-        
+
         v = TrialFunction(V)
         w = TestFunction(V)
-        
+
         a = inner(eps*grad(v), grad(w))*r2pi*dx + F*v/UT*(cp + cm)*w*r2pi*dx_ions
-        
+
         Lqions = F*((cp - cm) + u/UT*(cp + cm))*w*r2pi*dx_ions
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
         L = Lqions + Lqvol + Lqsurf
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
         return geo.pwBC(V, "v0")
@@ -229,7 +229,7 @@ class LinearSGPoissonProblem(GeneralLinearProblem):
 class SGPoissonProblem(GeneralNonlinearProblem):
     "Scharfetter-Gummel-type Poisson problem for fixed point PNP"
     method = dict(solvermethods.bicgstab)
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, 'CG', k)
@@ -245,28 +245,28 @@ class SGPoissonProblem(GeneralNonlinearProblem):
         F = Constant(phys.cFarad)
 
         w = TestFunction(V)
-        
+
         apoisson = inner(eps*grad(u), grad(w))*r2pi*dx \
             - F*(exp(-(u-uold)/UT)*cp - exp((u-uold)/UT)*cm)*w*r2pi*dx_ions
 
         Lqvol = geo.linearRHS(w*r2pi, "volcharge")
         Lqsurf = lscale*geo.NeumannRHS(w*r2pi, "surfcharge")
-        
+
         L = apoisson - (Lqvol + Lqsurf)
         a = derivative(L, u)
         return a, L
-    
+
     @staticmethod
     def bcs(V, geo, phys):
-        return geo.pwBC(V, "v0")        
-        
+        return geo.pwBC(V, "v0")
+
 class SimpleNernstPlanckProblem(GeneralLinearProblem):
     method = dict(solvermethods.bicgstab)
-    
+
     @staticmethod
     def space(mesh, k=1):
         return FunctionSpace(mesh, "CG", k)
-        
+
     @staticmethod
     def initial_u(V, phys):
         u = Function(V)
@@ -280,25 +280,24 @@ class SimpleNernstPlanckProblem(GeneralLinearProblem):
             ustokes = Constant(tuple(0. for i in range(dim)))
         if D is None:
             D = geo.pwconst("D")
-            
+
         dx = geo.dx("fluid")
         r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
         grad = phys.grad
         kT = Constant(phys.kT)
         q = Constant(phys.qq)
-        
+
         c = TrialFunction(V)
         d = TestFunction(V)
-        
+
         J = -D*grad(c) + z*q*D/kT*E*c + c*ustokes
         a = inner(J, grad(d))*r2pi*dx
         L = Constant(0.)*d*dx
         return a, L
-            
+
     @staticmethod
     def bcs(V, geo, phys):
-        return geo.pwBC(V, "c0")  
-
+        return geo.pwBC(V, "c0")
 
 class SimpleStokesProblem(GeneralLinearProblem):
     "stabilized equal-order formulation; consistent for k=1"
@@ -324,7 +323,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         grad = phys.grad
         div = phys.div
         lscale = phys.lscale
-        
+
         dx = geo.dx("fluid")
         r = Expression("x[0]/L", L=Constant(lscale))
         pi2 = Constant(2.*pi)
@@ -348,7 +347,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
             a = (eta2*inner(eps(u), eps(v)) + div(v)*p + q*div(u))*dx \
                  - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
-            
+
         # optional non-conservative formulation with neumann BC n*grad(u) = 0
         if not conservative and cyl:
             a = (eta*inner(grad(u), grad(v))*r + eta*u[0]*v[0]/r - \
@@ -359,16 +358,16 @@ class SimpleStokesProblem(GeneralLinearProblem):
             a = (eta*inner(grad(u), grad(v)) - inner(v, grad(p)) + q*div(u))*dx \
                 - delta*inner(grad(p), grad(q))*dx
             L = inner(f, v - delta*grad(q))*dx
-        
+
         # TODO: be able to include preconditioning form
         # p = 2*inner(sym(grad(u)), sym(grad(v)))*dx + lscale*inner(p, q)*dx
         return a, L
-        
+
     def precondition(self, geo, **kwargs):
         # assumes conservative, non-axisymmetric formulation
         W = self.params["V"]
         phys = self.params["phys"]
-    
+
         u, p = TrialFunctions(W)
         v, q = TestFunctions(W)
         dx = geo.dx("fluid")
@@ -384,19 +383,19 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
         P = (eta2*inner(eps(u), eps(v)) + lscale/pscale*p*q)*dx
         self.method["preconditioning_form"] = P
-        
+
     def __init__(self, geo, **params):
-        GeneralLinearProblem.__init__(self, geo, **params)      
+        GeneralLinearProblem.__init__(self, geo, **params)
         self.precondition(geo, **params)
-        
+
     @staticmethod
     def bcs(V, geo):
         return geo.pwBC(V.sub(0), "noslip") + geo.pwBC(V.sub(1), "pressure")
-        
+
 # --- hybrid solver ---
 
 class PNPSHybrid(CoupledSolver):
-    
+
     def __init__(self, geo, phys, goals=[], iterative=False, **params):
         problems = OrderedDict([
             ("pnp", SimplePNPProblem),
@@ -409,14 +408,14 @@ class PNPSHybrid(CoupledSolver):
             f = -phys.cFarad*(cp - cm)*phys.grad(v)
             return dict(f = f)
         couplers = dict(pnp=couple_pnp, stokes=couple_stokes)
-    
+
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         problem.problems["pnp"].method["iterative"] = iterative
         problem.problems["stokes"].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
-    
+
 # --- PNP fixed-point solvers ---
-    
+
 class PNPFixedPoint(CoupledSolver):
 
     def __init__(self, geo, phys, goals=[], iterative=False, **params):
@@ -427,7 +426,7 @@ class PNPFixedPoint(CoupledSolver):
             ])
 
         def couple_poisson(unpp, unpm, geo):
-            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))   
+            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
             D = phys.Dp #geo.pwconst("Dp")
@@ -436,14 +435,14 @@ class PNPFixedPoint(CoupledSolver):
             E = -phys.grad(upoisson)
             D = phys.Dm #geo.pwconst("Dm")
             return dict(z=-1., E=E, D=D)
-            
+
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
-    
+
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
-        
+
 class PNPFixedPointNonlinear(CoupledSolver):
 
     def __init__(self, geo, phys, goals=[], iterative=False, **params):
@@ -455,7 +454,7 @@ class PNPFixedPointNonlinear(CoupledSolver):
 
         def couple_poisson(upoisson, unpp, unpm, geo):
             return dict(v0=upoisson, cp=unpp, cm=unpm,
-                        dx_ions=geo.dx("fluid"))   
+                        dx_ions=geo.dx("fluid"))
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
             D = phys.Dp
@@ -464,9 +463,9 @@ class PNPFixedPointNonlinear(CoupledSolver):
             E = -phys.grad(upoisson)
             D = phys.Dm
             return dict(z=-1., E=E, D=D)
-            
+
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
-    
+
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
@@ -484,7 +483,7 @@ class PNPFixedPointNaive(CoupledSolver):
         def couple_poisson(unpp, unpm, geo, phys):
             f = phys.cFarad*(unpp - unpm)
             dxf = geo.dx("fluid")
-            return dict(f=f, dxf=dxf)   
+            return dict(f=f, dxf=dxf)
         def couple_npp(upoisson, geo, phys):
             E = -phys.grad(upoisson)
             D = phys.Dp
@@ -493,15 +492,15 @@ class PNPFixedPointNaive(CoupledSolver):
             E = -phys.grad(upoisson)
             D = phys.Dm
             return dict(z=-1., E=E, D=D)
-            
+
         couplers = dict(poisson=couple_poisson, npp=couple_npp, npm=couple_npm)
-    
+
         problem = CoupledProblem(problems, couplers, geo, phys, **params)
         for name in problems:
             problem.problems[name].method["iterative"] = iterative
         CoupledSolver.__init__(self, problem, goals, **params)
-        
-# --- PNPS fixed-point solvers ---        
+
+# --- PNPS fixed-point solvers ---
 
 class PNPSFixedPoint(CoupledSolver):
 
@@ -515,7 +514,7 @@ class PNPSFixedPoint(CoupledSolver):
         ])
 
         def couple_poisson(unpp, unpm, geo):
-            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))     
+            return dict(cp=unpp, cm=unpm, dx_ions=geo.dx("fluid"))
         def couple_npp(upoisson, ustokes, geo, phys):
             Dp = phys.Dp
             E = -phys.grad(upoisson)
@@ -528,10 +527,10 @@ class PNPSFixedPoint(CoupledSolver):
             v, cp, cm = upoisson, unpp, unpm
             f = -phys.cFarad*(cp - cm)*phys.grad(v)
             return dict(f = f)
-            
+
         couplers = dict(poisson=couple_poisson, npp=couple_npp,
                         npm=couple_npm, stokes=couple_stokes)
-    
+
         if taylorhood:
             params["ku"] = 2
             params["kp"] = 1
@@ -541,30 +540,30 @@ class PNPSFixedPoint(CoupledSolver):
             problem.problems[name].method["iterative"] = iterative
         problem.problems["stokes"].method["iterative"] = stokesiter
         CoupledSolver.__init__(self, problem, goals, **params)
-        
+
     def solve_pnp(self):
         for pde in "poisson", "npp", "npm":
             self.solvers[pde].solve()
-            
+
     def solve_stokes(self):
         self.solvers["stokes"].solve()
-        
+
     def fixedpoint(self, ipnp=2):
         for i in self.generic_fixedpoint():
             self.solve_pnp()
             if i > ipnp:
                 self.solve_stokes()
             yield i
-          
+
 # bVscheme needs access to voltage bias = phys.bV
 # this would hamper generality of PNPSFixedPoint class
 import math
 class PNPSFixedPointbV(PNPSFixedPoint):
     "voltage is slowly increased and stokes solved only afterwards"
-    
+
     def fixedpoint(self, bVstep=0.025, ipnp=4):
         bV = self.coupled.params["phys"].bV
-        
+
         idamp = math.ceil(abs(bV)/bVstep)
         damping = 1./idamp if idamp != 0 else 1.
         ipnp = max(idamp + 1, ipnp)
@@ -572,12 +571,12 @@ class PNPSFixedPointbV(PNPSFixedPoint):
         for i in self.generic_fixedpoint():
             if i <= idamp:
                 self.solvers["poisson"].damp_bcs(damping*min(i, idamp))
-                
+
             self.solve_pnp()
             if i > ipnp:
                 self.solve_stokes()
             yield i
-            
+
 # --- goal-oriented adaptivity ----
 from nanopores.tools.errorest import simple_pb_indicator_GO, pb_indicator_GO_cheap
 class SimpleLinearPBGO(GoalAdaptivePDE):
@@ -608,7 +607,7 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
         self.save_estimate("err", err)
         self.save_estimate("goal", gl)
         return ind, err
-        
+
     def adaptive_loop(self, Nmax=1e4, frac=0.2, verbose=True):
         self.maxcells = Nmax
         self.marking_fraction = frac
@@ -620,14 +619,14 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
         refined = True
         i = 0
         printv("Number of cells:", self.geo.mesh.num_cells())
-        
+
         while refined:
             i += 1
             if verbose:
                 printv("\nAssessing mesh quality.")
                 mesh_quality(self.geo.mesh, ratio=0.01,
                              geo=self.geo, plothist=False)
-            
+
             printv("\n- Adaptive Loop %d" %i)
             printv("Solving PB.")
             self.single_solve()

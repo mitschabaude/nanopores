@@ -276,14 +276,15 @@ def get_domain_cyl(lc=1., **newparams):
     rMolecule = _params["rMolecule"]
     x0 = _params["x0"]
     lcMolecule = lc*_params["lcMolecule"]
-    zcenter = 0. if (not _params["center_at_x0"] or x0 is None) else x0[2]
+    zcenter = 0. if (not _params["center_at_x0"] and\
+                     not _params["center_z_at_x0"] or x0 is None) else x0[2]
 
     hcenter = hpore - h2
     lporecurrent = hcenter/3. # for current calculation
 
     # form building blocks
     reservoir = Box([0., zcenter-.5*H], [R, zcenter+.5*H])
-    upperhalf = Box([-2.*R, cmem[1]], [2.*R, 0.5*H])
+    upperhalf = Box([-2.*R, cmem[1]], [2.*R, zcenter+0.5*H])
 
     closed_membrane = Box(center=cmem, l=2.*R, w=hmem)
     closed_dna = Box(center=zero, l=l0, w=hpore)

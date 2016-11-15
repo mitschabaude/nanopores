@@ -72,7 +72,7 @@ def plot_sliced_mesh(geo, **kwargs):
     back = dolfin.CellFunction("size_t", geo.mesh, 0)
     Back().mark(back, 1)
     submesh = dolfin.SubMesh(geo.mesh, back, 1)
-    dolfin.plot(submesh, elevate=-90., **kwargs)
+    dolfin.plot(submesh, **kwargs)
 
 class uCross(dolfin.Expression):
     def __init__(self, u, axis=1, **kw):

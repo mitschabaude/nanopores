@@ -14,16 +14,16 @@ def tolist(array):
 
 params = dict(
     dim = 3,
-    h = .25,
-    Nmax = 1e4,
-    rMolecule = 0.152, # radius of K+
-    lcMolecule = 0.2,
+    h = .2,
+    Nmax = 287e3,
+    rMolecule = 0.11,
+    lcMolecule = .5,
 )
 
 geop = dict(
-        H = 20.,
-        R = 4.,
-        center_z_at_x0 = True
+    H = 8.,
+    R = 4.,
+    center_z_at_x0 = True
 )
 #x0 = [2.8, 0., 5.]
 x0 = [0., 0., 5.]

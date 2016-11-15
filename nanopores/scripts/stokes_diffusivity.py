@@ -8,20 +8,25 @@ eta = 1e-3
 
 def Dstokes(r):
     return k*T/(6*pi*eta*r) * 1e18
-    
+def rstokes(D):
+    return k*T/(6*pi*eta*D) * 1e18
+
 # experimental data
 # name : radius [nm], diffusivity [nm**2/ns]
-data = { 
+data = {
     "K+" : (0.152, 1.96),
     "Na+" : (0.116, 1.33),
     "Cl-" : (0.167, 2.03)
-} 
+}
 
 if __name__ == "__main__":
     # some examples
-    
-    s = "%s\nD (measured): %s\nD (Stokes): %s\n"
+
+    s0 = "%s\nD (measured): %s\nD (Stokes): %s"
+    s1 = "r (measured): %s\nr (Stokes): %s\n"
     for name, (r, D) in data.items():
         Ds = Dstokes(r)
-        print s % (name, D, Ds)
+        print s0 % (name, D, Ds)
+        rs = rstokes(D)
+        print s1 % (r, rs)
 
