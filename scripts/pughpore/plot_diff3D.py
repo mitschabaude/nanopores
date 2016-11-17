@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 from itertools import product
 import dolfin
 import nanopores
-import nanopores.tools.fields as fields
+#import nanopores.tools.fields as fields
+from folders import fields
 
 data = fields.get_fields("pugh_diff3D_test")
 
@@ -18,9 +19,9 @@ def _sorted(data, key):
 x = [z[0] for z in data["x"]]
 data, x = _sorted(data, x)
 dstr = ["x", "y", "z"]
-for i, j in product(range(3), range(3)):
-    Dxx = [D[i][j] for D in data["D"]]
-    style = "s-" if i==j else "--"
-    plt.plot(x, Dxx, style, label=r"$D_{%s%s}$" % (dstr[i], dstr[j]))
-plt.legend()
+for i in range(3):
+    Dxx = [D[i][i] for D in data["D"]]
+    style = "s-"
+    plt.plot(x, Dxx, style, label=r"$D_{%s%s}$" % (dstr[i], dstr[i]))
+plt.legend(loc="best")
 plt.show()

@@ -203,7 +203,7 @@ class AdaptableLinearProblem(object):
         self.L = L
         self.u = _extract_u(u)
         self.bcs = _extract_bcs(bcs)
-        self.meshid = self.a.domain().data().id()
+        self.meshid = self.u.function_space().mesh().id()
         if boundaries:
             self.boundaries = boundaries
         else:
