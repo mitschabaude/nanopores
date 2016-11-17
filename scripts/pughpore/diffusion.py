@@ -13,11 +13,11 @@ default = dict(
     h = .6,
     Nmax = 1e5,
     rMolecule = 0.11, # Stokes radius of both K+ and Cl-
-    lcMolecule = .5,
     H = 50.,
     R = 25.,
     Qmol = 4.,
     center_z_at_x0 = True,
+    bulkbc = True,
 )
 
 def diffusivity(setup):
@@ -42,9 +42,10 @@ def diffusivity(setup):
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
-           geo.BC(W.sub(0), U0, "bulk"),
            geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
+    if setup.physp.bulkbc:
+        bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
                             phys=phys, iterative=iterative, bcs=bcs)
@@ -77,18 +78,21 @@ def diffusivity_tensor(setup):
     if geo.mesh.num_cells() < setup.solverp.Nmax:
         pugh.prerefine(setup, True)
 
+    iterative = False
     if dim==3:
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
-        iterative = True
-    else:
-        iterative = False
+        #pnps.SimpleStokesProblem.method["lusolver"] = "mumps"
+        if geo.mesh.num_cells() > 2e5:
+            iterative = True
+
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))
     W = pnps.SimpleStokesProblem.space(geo.mesh)
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
-           geo.BC(W.sub(0), U0, "bulk"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
+    if setup.physp.bulkbc:
+        bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     gamma = np.zeros((dim, dim))
     for i0 in range(dim):
@@ -98,6 +102,8 @@ def diffusivity_tensor(setup):
                             phys=phys, iterative=iterative, bcs=bcs+bcmol)
         F = stokes.evaluate(phys.Fdrag)["Fdrag"]
         gamma[:,i0] = abs(np.array(F)/v0)
+        #dolfin.plot(stokes.solutions()[0])
+        #dolfin.plot(stokes.solutions()[1])
 
     pi = phys.pi
     eta = phys.eta
@@ -120,6 +126,7 @@ def calculate_diffusivity(X, **params):
     values = []
     for x0 in X:
         setup = pugh.Setup(x0=x0, **_params)
+        setup.physp["bulkbc"] = _params["bulkbc"]
         D = diffusivity(setup)
         values.append(D)
     return dict(D=values)
@@ -131,6 +138,7 @@ def calculate_diffusivity2D(X, **params):
     values = []
     for x0 in X:
         setup = pugh.Setup(x0=x0, **_params)
+        setup.physp["bulkbc"] = _params["bulkbc"]
         D = diffusivity(setup)
         values.append(D)
     return dict(D=values)

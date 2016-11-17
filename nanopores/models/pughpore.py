@@ -14,6 +14,7 @@ geop = nano.Params(
     H = pughpore.params["H"],
     x0 = pughpore.params["x0"],
     rMolecule = pughpore.params["rMolecule"],
+    lcMolecule = pughpore.params["lcMolecule"],
     center_z_at_x0 = False,
 ),
 physp = nano.Params(
