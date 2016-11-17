@@ -78,8 +78,9 @@ def diffusivity_tensor(setup):
         pugh.prerefine(setup, True)
 
     if dim==3:
+        pnps.SimpleStokesProblem.method["lusolver"] = "superlu"
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
-        iterative = True
+        iterative = False
     else:
         iterative = False
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))

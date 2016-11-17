@@ -158,6 +158,7 @@ class IllposedLinearSolver(object):
         # IMPORTANT: don't  supply subfunctions here, these are handled
         # automatically, i.e. if (u,v) = w.split(), only supply w.
         # TODO: reasonable interface, user input checking
+        return
         for i,f in enumerate(functions):
             self.problem.a = replace_function_in_form(self.problem.a,f,newfunctions[i])
             self.problem.L = replace_function_in_form(self.problem.L,f,newfunctions[i])
@@ -341,6 +342,7 @@ class Functional(object):
         self.form = adaptform(self.form,mesh)
 
     def replace(self,fs,newfs):
+        return
         if not isinstance(fs, (list, tuple)):
             fs = (fs,)
         if not isinstance(newfs, (list, tuple)):
@@ -377,15 +379,14 @@ def assemble_scalar(form):
     dolfin.assemble(form, tensor=x)
     return x.get_scalar_value()
 
+def adaptform(form, mesh): # doesn't work at all. why?
+    if not hasattr(form, "_compiled_form"):
+        form = Form(form)
+    adapted_form = adapt(form, mesh)
+    adapted_form._compiled_form = form._compiled_form
+    return adapted_form
 
-
-def adaptform_evil(form,mesh): # doesn't work at all. why?
-    #assert(isinstance(form, Form))
-    newform = adapt(form,mesh)
-    newform._compiled_form = form._compiled_form
-    return newform
-
-def adaptform(form,mesh,adapt_coefficients=False):
+def adaptform_OLD(form,mesh,adapt_coefficients=False):
     oldmesh = form.domain().data()
     if (oldmesh.id() == mesh.id()):
         return form
@@ -458,12 +459,13 @@ def adaptargument(argument,mesh):
     newspace = adaptspace(argument.function_space(),mesh)
     return Argument(newspace,argument.number(),part=argument.part())
 
-def adaptspace(space,mesh):
+def adaptspace(space, mesh):
     # only adapt if mesh is actually new
     if (space.mesh().id() == mesh.id()):
         return space
-    newelement = space.ufl_element().reconstruct(domain=mesh.ufl_domain())
-    return FunctionSpaceBase(mesh,newelement)
+    return adapt(space, mesh)
+    #newelement = space.ufl_element().reconstruct(domain=mesh.ufl_domain())
+    #return FunctionSpaceBase(mesh,newelement)
 
 def adaptcoefficient(coeff,mesh): #MOD
     if(isinstance(coeff, Function)):
@@ -472,15 +474,15 @@ def adaptcoefficient(coeff,mesh): #MOD
     else:
         return coeff
 
-def adaptfunction(function,mesh,interpolate=True,assign=False):
+def adaptfunction(function, mesh, interpolate=True, assign=False):
     # important: only adapt if mesh is actually new
     if (function.function_space().mesh().id() == mesh.id()):
         return function
-    newspace = adaptspace(function.function_space(),mesh)
+    newspace = adaptspace(function.function_space(), mesh)
     newfunction = Function(newspace)
-    if(interpolate):
+    if interpolate:
         newfunction.interpolate(function)
-    if(assign):
+    if assign:
         function.assign(newfunction)
     return newfunction
 

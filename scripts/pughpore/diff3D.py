@@ -14,8 +14,8 @@ def tolist(array):
 
 params = dict(
     dim = 3,
-    h = .2,
-    Nmax = 287e3,
+    h = .5,
+    Nmax = 5e4,
     rMolecule = 0.11,
     lcMolecule = .5,
 )
