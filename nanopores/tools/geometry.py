@@ -564,7 +564,9 @@ class PhysicalBC(object):
 class PointBC(object):
 
     def __init__(self, V, points, values, tol=1e-5):
-        self.V = V = V.collapse()
+        if V.component().shape[0] > 0: # V is subspace
+            V = V.collapse()
+        self.V = V
         if callable(values):
             self.values = [values(p) for p in points]
         else:

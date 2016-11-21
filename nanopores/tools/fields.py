@@ -50,7 +50,9 @@ def load_file(name, **params):
 def get_fields(name, **params):
     return Header().get_fields(name, **params)
 
-
+def _sorted(data, key):
+    I = sorted(range(len(key)), key=lambda k: key[k])
+    return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
 
 def get_field(name, field, **params):
     return Header().get_field(name, field, **params)
