@@ -3,5 +3,5 @@ import nanopores.models.pughpore as pugh
 from folders import fields
 
 X = fields.get_entry("pughx", "x", k=3)
-result = pugh.F_explicit(X, nproc=4, name="pugh")
+result = pugh.F_explicit(X, nproc=7, name="pugh")
 print result
