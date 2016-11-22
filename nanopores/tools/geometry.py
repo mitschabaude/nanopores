@@ -59,9 +59,9 @@ class Geometry(object):
                  synonymes=None, params=None):
         if module:
             exec 'from %s import *' %module.__name__ in globals(), locals()
-            
+
         self.mesh = mesh
-        
+
         # trivial default subdomains/boundaries
         if subdomains is None:
             subdomains = CellFunction("size_t", mesh, 0)
@@ -70,7 +70,7 @@ class Geometry(object):
             boundaries = FacetFunction("size_t", mesh, 0)
             AutoSubDomain(lambda x, on_boundary : on_boundary).mark(boundaries, 1)
             physical_boundary = {"boundary":(1,)}
-            
+
         self.subdomains = subdomains
         self.boundaries = boundaries
         self.params = params if params else {}
@@ -81,7 +81,7 @@ class Geometry(object):
         self._physical_boundary = physical_boundary
 
         self.import_synonymes((synonymes if synonymes else {}))
-            
+
         self.dg = {}
         self.constants = {}
         self.volumes = {}
@@ -102,7 +102,7 @@ class Geometry(object):
             dolfin_error(__name__+".py",
                 "interprete physical domain description",
                 "This geometry has not implemented '%s'" %string)
-                
+
     def _notempty(self, tup):
         "assure that assemble evaluates to 0. if subdomain is empty"
         return tup if len(tup)>0 else (9999,)
@@ -143,7 +143,7 @@ class Geometry(object):
             return PhysicalBC(V, g, string, self)
         else: # TODO: implement AdaptableBC(V,g,SubDomain)
             return DirichletBC(V, g, DomainBoundary())
-            
+
     # TODO: pwconstBC is DEPRECATED since pwBC has strictly more general functionality
     def pwconstBC(self, V, string, homogenize=False, value=None):
         " piecewise constant boundary condition from dict(boundary = value) where value is a number (or None) "
@@ -157,7 +157,7 @@ class Geometry(object):
             if homogenize:
                 value = 0.
             return [self.BC(V, Constant(value))] if value is not None else []
-            
+
     # TODO: OMG this is ugly code. readability = -1000000
     def pwBC(self, V, string, homogenize=False, value=None):
         """ piecewise boundary condition from dict(boundary = value) where value is a dolfin.GenericFunction.
@@ -166,7 +166,7 @@ class Geometry(object):
         #print "DEBUG:", value
         if isinstance(value, dict):
             # TODO: get rid of homogenize (it is only used for PB and is ugly, because assumes scalar pde)
-            if homogenize: 
+            if homogenize:
                 value = {key: Constant(0.) for key in value}
             bcs = []
             for key, val in value.items():
@@ -196,10 +196,13 @@ class Geometry(object):
                     "assign boundary condition",
                     "Value for the BC '%s' is of unexpected type '%s'." % (string, type(val)))
             return [bc]
-            
+
     def VolumeBC(self, V, name, f):
         return _VolumeBC(V, self, name, f)
-        
+
+    def PointBC(self, V, points, values):
+        return PointBC(V, points, values)
+
     def _getvalue(self, string, value):
         if value is None:
             try:
@@ -209,7 +212,7 @@ class Geometry(object):
                     "interprete string description",
                     "The module %s has not implemented '%s'" % (self.physics.__name__, string))
         return value
-        
+
     def NeumannRHS(self, v, string=None, value=None):
         # L = geo.NeumannRHS(v, "surfcharge") == charge("dna")*v*dS("dna") +
         #                                    charge("mol")*v*dS("mol") + ...
@@ -228,7 +231,7 @@ class Geometry(object):
         # value can be dict or float
         value = self._getvalue(string, value)
         dx = self.dx()
-        
+
         if isinstance(value, dict):
             dom2value = self._neumann_lookup(self._dom2phys, value)
             return sum([inner(_wrapf(dom2value[i]), v) * dx(i) for i in dom2value])
@@ -249,15 +252,15 @@ class Geometry(object):
             return dgfun
         else:
             return value
-            
+
     def constant(self, name, compute=None):
         # compute has to be provided the first time the constant is requested
         if not name in self.constants:
             self.constants[name] = GeometricConstant(name, compute, self)
             print "Computed %s." %(self.constants[name],)
         return self.constants[name].function
-        
-        
+
+
     def volume(self, string, dx="dx", cyl=True):
         if dx in self.volumes and string in self.volumes[dx]:
             return self.volumes[dx][string]
@@ -270,7 +273,7 @@ class Geometry(object):
         else:
             self.volumes[dx] = {string: cvol}
         return cvol
-            
+
     def avg(self, u, string, dx="dx"):
         meas = getattr(self, dx)(string)
         return assemble(u*meas)/assemble(Constant(1.0)*meas)
@@ -289,7 +292,7 @@ class Geometry(object):
         if not hasattr(self, "old"):
             self.old = []
         self.old.append((self.mesh, self.subdomains, self.boundaries))
-        
+
         self.mesh = mesh
         #print "subdomain id (geo):",self.subdomains.id()
         self.subdomains = adaptmeshfunction(self.subdomains, mesh)
@@ -297,17 +300,17 @@ class Geometry(object):
         # adapt functions and constants
         for f in self.dg.values():
             adaptfunction(f, mesh, interpolate=True, assign=True)
-        
+
         # if curved boundaries are defined, snap back those
         if hasattr(self, "curved"):
             for boundary, snap in self.curved.items():
                 #print "Adapting curved boundary '%s'." % boundary
                 self.snap_to_boundary(boundary, snap)
-                
+
         for const in self.constants.values():
             const.recompute()
             #print "Recomputed %s." %const
-            
+
         for meas in self.volumes:
             for name in self.volumes[meas]:
                 dmu = getattr(self, meas)(name)
@@ -316,15 +319,15 @@ class Geometry(object):
                 self.volumes[meas][name].assign(vol)
         #print self.volumes
 
-        # TODO maybe needed some time        
+        # TODO maybe needed some time
         # adapt self.Physics if we have one
         #if isinstance(self.physics, Physics):
         #    self.physics.adapt()
-            
+
 
     # alternative to adapt, should be overwritten dynamically
     rebuild = adapt
-    
+
     def import_synonymes(self, synonymes, conservative=False):
         if conservative:
             synonymes.update(self.synonymes)
@@ -354,7 +357,7 @@ class Geometry(object):
                         break
                 if t is not None:
                     dic[syn] = tuple(t)
-                    
+
     def add_subdomain(self, string, marker):
         i = max(self._dom2phys.keys()) + 1
         marker.mark(self.subdomains, i)
@@ -387,16 +390,16 @@ class Geometry(object):
                     i = dofmap.cell_dofs(cell.index())
                     chi.vector()[i] = 1
             return chi
-    
+
         chi = CellFunction("size_t", self.mesh, 0)
         for cell in cells(self.mesh):
             if sub[cell] in t:
                 chi[cell] = 1
-        
+
         if callable:
             return CallableMeshFunction(chi)
         return chi
-        
+
     def snap_to_boundary(self, name, snap, smooth=False):
         mesh = self.mesh
         # get vertices that lie on the boundary (via BC for CG1 function)
@@ -406,15 +409,15 @@ class Geometry(object):
         bc.apply(u.vector())
         d2v = dof_to_vertex_map(V)
         vertices_on_boundary = d2v[u.vector() == 1.0]
-        
+
         # DEBUG plot for check
         '''
         testf = VertexFunction("bool", mesh, False)
-        testf.array()[vertices_on_boundary] = True        
+        testf.array()[vertices_on_boundary] = True
         R = self.params["rMolecule"]
         C = self.params["x0"][::2]
         '''
-        
+
         # snap those vertices
         for v in vertices_on_boundary:
             x = mesh.coordinates()[v]
@@ -467,10 +470,10 @@ class Geometry(object):
         dgfun = Function(FunctionSpace(self.mesh,'DG',0))
         dgfun.interpolate(expr)
         return dgfun
-        
+
     def __str__(self):
         return "Boundaries:\n%s\nSubdomains:\n%s\n" % (self._physical_boundary, self._physical_domain)
-        
+
 
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
     def __init__(self, dom2value, subdomains):
@@ -478,9 +481,9 @@ class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
         self.dom2value = dom2value
     def eval_cell(self, values, x, cell):
         values[0] = self.dom2value[self.subdomains[cell.index]]
-        
 
-from numpy import array        
+
+from numpy import array
 class CallableMeshFunction(object):
     def __init__(self, f):
         self.f = f
@@ -489,7 +492,7 @@ class CallableMeshFunction(object):
         i = self.btree.compute_first_entity_collision(Point(array(x)))
         return self.f[int(i)]
 
-        
+
 class GeometricConstant(object):
     def __init__(self, name, compute, geo):
         c = compute(geo)
@@ -504,8 +507,8 @@ class GeometricConstant(object):
         self.value = c
     def __str__(self):
         return "%s = %s" %(self.name, self.value)
-    
-    
+
+
 class PhysicalBC(object):
     """ boundary condition defined by its physical meaning
         together with a geometry object to interprete that.
@@ -550,17 +553,19 @@ class PhysicalBC(object):
         shape = self.g.shape()
         c = Constant(tuple(0. for i in range(shape[0])) if shape else 0.)
         return PhysicalBC(self.V, c, self.description, self.geo)
-        
+
     def damp(self, scalar):
         if scalar == 0.:
             raise Exception("PhysicalBC: Cannot damp with 0.")
         new = scalar/self.damping if hasattr(self, "damping") else scalar
         self.damping = scalar
         self.bcs = [bc.damped(new) for bc in self.bcs]
-        
+
 class PointBC(object):
-    
+
     def __init__(self, V, points, values, tol=1e-5):
+        if V.component().shape[0] > 0: # V is subspace
+            V = V.collapse()
         self.V = V
         if callable(values):
             self.values = [values(p) for p in points]
@@ -569,7 +574,7 @@ class PointBC(object):
         self.points = points
         self.bc_f = dolfin.Function(V)
         mesh = V.mesh()
-        
+
         co = mesh.coordinates()
         dim = co.shape[1]
         dof_map = dolfin.vertex_to_dof_map(V)
@@ -586,11 +591,11 @@ class PointBC(object):
                 pass
                 #print "not found:", p
         print "Found %d of %d points." %(len(node_set), len(points))
-        
+
         self.bc_f.vector().set_local(bc_values)
         self.bc_f.vector().apply("insert") # TODO: what does this do?
         self.dof_set = np.array(dof_map[list(node_set)], dtype="intc")
-    
+
     def apply(self, a):
         # Manual application of bcs
         if isinstance(a, dolfin.Matrix):
@@ -598,7 +603,7 @@ class PointBC(object):
             # Modif A: zero bc row & set diagonal to 1
             A.ident_local(self.dof_set)
             A.apply("insert")
-            
+
         elif isinstance(a, dolfin.GenericVector):
             b = a
             # Modif b: entry in the bc row is taken from bc_f
@@ -607,12 +612,12 @@ class PointBC(object):
             b_values[self.dof_set] = bc_values[self.dof_set]
             b.set_local(b_values)
             b.apply("insert")
-            
+
         else:
             dolfin.warning("Could not apply Point BC.")
-            
-class _VolumeBC(PointBC): 
-    
+
+class _VolumeBC(PointBC):
+
     def __init__(self, V, geo, name, f):
         self.V = V
         # get dofs lying in subdomain
@@ -620,13 +625,13 @@ class _VolumeBC(PointBC):
         tup = geo.physicaldomain(name)
         sub = geo.subdomains
         mesh = geo.mesh
-        
+
         subdofs = set()
         for i, cell in enumerate(dolfin.cells(mesh)):
             if sub[cell] in tup:
                 celldofs = dofmap.cell_dofs(i)
                 subdofs.update(celldofs)
-                
+
         subdofs = np.array(list(subdofs), dtype="intc")
         d2v = dolfin.dof_to_vertex_map(V)
         co = mesh.coordinates()
@@ -731,58 +736,58 @@ def geo_from_name(name, mesh=None, check_midpoint=False, **params):
     #geo.rebuild = rebuild.__get__(geo, Geometry) #<-- equivalent
     geo.rebuild = types.MethodType(rebuild, geo)
     return geo
-    
-    
+
+
 def geo_from_xml(name):
     DIR = "%s/%s/mesh/" %(nanopores.DATADIR, name)
     mesh = Mesh(DIR+"mesh.xml")
     subdomains = MeshFunction("size_t", mesh, DIR+"mesh_physical_region.xml")
     boundaries = MeshFunction("size_t", mesh, DIR+"mesh_facet_region.xml")
-    
+
     with open(DIR+"meta.txt", "r") as f:
         meta = eval(f.read())
-    
+
     physdom = meta.pop("physical_domain")
     physbou = meta.pop("physical_boundary")
-    
+
     module = "nanopores.geometries.%s.params_geo" %name
     params = nanopores.import_vars(module)
     params.update(meta)
     params["name"] = name
     syn = params.pop("synonymes")
-    
+
     return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
-    
+
 def geo_from_xml_threadsafe(name, reuse_mesh=False, clscale=None, **params):
     import os, mpi4py
     comm = mpi_comm_self()
-    
+
     if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
         pid = str(mpi4py.MPI.COMM_WORLD.Get_rank())
     else:
         pid = str(os.getpid())
-        
+
     if not reuse_mesh:
         nanopores.generate_mesh(clscale, name, pid=pid, **params)
-        
+
     DIR = "%s/%s/mesh/" %(nanopores.DATADIR, name)
     mesh = Mesh(comm, DIR+"mesh%s.xml" %pid)
     subdomains = MeshFunction("size_t", mesh, DIR+"mesh%s_physical_region.xml" %pid)
     boundaries = MeshFunction("size_t", mesh, DIR+"mesh%s_facet_region.xml" %pid)
-    
+
     with open(DIR+"meta%s.txt" %pid, "r") as f:
         meta = eval(f.read())
-    
+
     physdom = meta.pop("physical_domain")
     physbou = meta.pop("physical_boundary")
-    
+
     module = "nanopores.geometries.%s.params_geo" %name
     params = nanopores.import_vars(module)
     params.update(meta)
     params["name"] = name
     syn = params.pop("synonymes")
-    
-    return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
-    
 
-    
+    return Geometry(None, mesh, subdomains, boundaries, physdom, physbou, syn, params)
+
+
+

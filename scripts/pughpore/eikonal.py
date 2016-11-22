@@ -10,7 +10,15 @@ up = nano.user_params(h=8.0)
 def distance_boundary():
     h = up.h
     geo = pughpore.get_geo(h)
+    y = distance_boundary_from_geo(geo)
+    print "Max distance:", y.vector().max()
 
+    if not fields.exists("pugh_distance", h=h):
+        fields.save_functions("pugh_distance", dict(h=h), y=y)
+        fields.update()
+    return y
+
+def distance_boundary_from_geo(geo):
     mesh = geo.mesh
     V = FunctionSpace(mesh, "CG", 1)
     v = TestFunction(V)
@@ -43,12 +51,6 @@ def distance_boundary():
     #params["newton_solver"]["preconditioner"] = "hypre_euclid"
     solver.solve()
     #solve(F==0, y, bc, solver_parameters=params)
-
-    print "Max distance:", y.vector().max()
-
-    if not fields.exists("pugh_distance", h=h):
-        fields.save_functions("pugh_distance", dict(h=h), y=y)
-        fields.update()
     return y
 
 if __name__ == "__main__":

@@ -13,7 +13,23 @@ def zsorted(data, field):
     z1 = [z[i] for i in I]
     J1 = [J[i] for i in I]
     return z1, J1
-    
+
+def plot_D_data(data, label=None, num=None):
+    fig, ax = plt.subplots(figsize=(5, 4), num=num)
+    Z, D = zsorted(data, "D")
+    # plot
+    ax.plot(Z, D, ".-", label=label)
+    ax.set_xlabel("z position of molecule [nm]")
+    ax.set_ylabel(r"D/D0")
+    ax.set_title("rel. diffusivity (2D model)")
+    ax.legend(loc="best")
+
+f.update()
+data = f.get_fields("pugh_diff2D")
+plot_D_data(data, "D")
+plt.show()
+exit()
+
 # points
 H = 50.
 Z = np.linspace(-H, H, 96)
@@ -23,7 +39,7 @@ fig_big, ax_big = plt.subplots(figsize=(10, 8), num="all")
 fig_small, ax_small = plt.subplots(figsize=(6, 4), num="small")
 # get data
 for r in [0.152, 0.167, 0.25, 2.0779]:
-    
+
     #data = calculate_diffusivity2D(X, nproc=6, rMolecule=r, h=.6, Nmax=2.7e5)
     #data = calculate_diffusivity2D(X, nproc=6, rMolecule=r)
     data = f.get_fields("pugh_diffusivity2D", rMolecule=r, h=.6, Nmax=2.7e5)
@@ -35,9 +51,9 @@ for r in [0.152, 0.167, 0.25, 2.0779]:
     ax.set_xlabel("z position of molecule [nm]")
     ax.set_ylabel("D/D0")
     ax.set_title("rel. diffusivity (2D model)")
-    
+
     if r>=0.25: continue
-    names = {0.152: r"$\rm{Na}^{+}$", 0.167: r"$\rm{Cl}^{-}$"}
+    names = {0.152: r"$\rm{K}^{+}$", 0.167: r"$\rm{Cl}^{-}$"}
     Dmax = max(D)
     D0 = [d/Dmax for d in D]
     ax = ax_small
@@ -45,7 +61,7 @@ for r in [0.152, 0.167, 0.25, 2.0779]:
     ax.set_xlabel("z position of molecule [nm]")
     ax.set_ylabel("D/D0")
     ax.set_title("rel. diffusivity (2D model)")
-    
+
 # coarser calculation for remaining radii
 for r in [0.5, 1., 1.5]:
     N = 2e4

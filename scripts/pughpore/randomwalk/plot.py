@@ -16,7 +16,7 @@ DATADIR = os.path.join(HOME, "Dropbox", "Paper Howorka", "data", "fields")
 f.set_dir(DATADIR)
 import sys
 if len(sys.argv)==1:
-    sys.exit('integer missing!')
+    sys.exit('Integer missing! Type:\npython plot.py i\nwith i=integer.')
 i=int(sys.argv[1])
 
 up = nano.Params(pughpore.params, k=3)
@@ -28,12 +28,13 @@ hpore=up.hpore
 #J = np.load('J.npy')
 #T = np.load('T.npy')
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk1",**params)
+data=f.get_fields("randomwalk2",**params)
 X = np.array(data["X"][i])
 Y = np.array(data["Y"][i])
 Z = np.array(data["Z"][i])
 T = np.array(data["T"][i])
 J = np.array(data["J"][i])
+long = np.where(T>100.)
 amplitude = 2060.-np.inner(J,T)/np.sum(T)
 for i in range(1,T.shape[0]):
     T[i]=T[i]+T[i-1]
@@ -144,6 +145,7 @@ surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,-.5*l3,size,5,5)
 surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,-.5*l0,size,5,5)
 
 plt.plot(X,Y,Z)
+ax.scatter(X[long],Y[long],Z[long],c='r',s=50)
 
 plt.tight_layout()
 plt.show()
@@ -154,4 +156,3 @@ ax.set_ylabel('Current [pA]')
 ax.set_ylim([1950,2100])
 plt.tight_layout()
 plt.show()
-
