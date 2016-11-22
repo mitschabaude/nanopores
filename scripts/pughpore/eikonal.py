@@ -1,3 +1,6 @@
+"solve eikonal equation to get distance to boundary"
+"TODO: implement also in 2D"
+
 from dolfin import *
 from nanopores.tools import fields
 import nanopores.geometries.pughpore as pughpore

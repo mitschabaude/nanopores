@@ -60,19 +60,19 @@ dist = distance_boundary_from_geo(setup.geo)
 def DPore(x):
     r = dist(x)
     z = x[-1]
-    return D0*float(fx(r)*fz(z)**5)
+    return D0*float(fx(r)*fz(z))
 
 def DBulk(x):
     r = dist(x)
     return D0*float(fx(r))
 
 D0 = setup.phys.D
-D = harmonic_interpolation(setup, [], [], dict(bulkfluid=DBulk, pore=DPore))
+# TODO: save geo along with functions
+D = harmonic_interpolation(setup, [], [], dict(bulkfluid=DBulk, poreregion=DPore))
                            #dict(upperb=D0, sideb=D0, lowerb=D0, dnaouterb=D0))
-if not f.exists("Dpugh", **params):
-    f.save_functions("Dpugh", params, dist=dist, D=D)
-    f.update()
-
+#if not f.exists("Dpugh", **params):
+#    f.save_functions("Dpugh", params, dist=dist, D=D)
+#    f.update()
 pugh.Plotter(setup).plot(D, title="D")
 dolfin.interactive()
 

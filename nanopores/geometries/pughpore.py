@@ -48,6 +48,8 @@ params = dict(
     h1 = 46.-35.-2.5,
     h4 = 10.,
 
+    hnear = 10.,
+
     rMolecule = 2.0779, # molecular radius of protein trypsin
     x0 = [0., 0., 0.],
     lcMolecule = 0.4, # relative to global mesh size
@@ -82,6 +84,7 @@ def get_domain(lc=1., **newparams):
     h2 = _params["h2"]
     h1 = _params["h1"]
     h4 = _params["h4"]
+    hnear = _params["hnear"]
 
     cmem = [0.,0.,-.5*(hpore-hmem)]
     c1 = [0.,0.,.5*(hpore-h1)]
@@ -106,11 +109,15 @@ def get_domain(lc=1., **newparams):
 
     closed_membrane = Box(center=cmem, l=2.*R, w=2.*R, h=hmem)
     closed_dna = Box(center=zero, l=l0, w=l0, h=hpore)
+
     enter_1 = Box(center=c1, l=l1, w=l1, h=h1)
     enter_2 = Box(center=c2, l=l2, w=l2, h=h2-h1)
 
     hporetop = closed_dna.b[2]
     hporebot = closed_dna.a[2]
+    nearpore_top = Box([-l0/2, -l0/2, hporetop], [l0/2, l0/2, hporetop+hnear])
+    nearpore_bot = Box([-l0/2, -l0/2, hporebot-hnear], [l0/2, l0/2, hporebot])
+
     hcross0 = enter_2.a[2]
     hcross1 = cpore[2] + hcenter/6.
     hcross2 = cpore[2] - hcenter/6.
@@ -131,8 +138,8 @@ def get_domain(lc=1., **newparams):
     dna = closed_dna - pore - substract_dna
 
     bulkfluid = (reservoir - (membrane | closed_dna)) | add_bulkfluid
-    bulkfluid_top = bulkfluid & upperhalf
-    bulkfluid_bottom = bulkfluid - upperhalf
+    bulkfluid_top = (bulkfluid & upperhalf) - nearpore_top
+    bulkfluid_bottom = (bulkfluid - upperhalf) - nearpore_bot
 
     if x0 is not None:
         # add molecule
@@ -144,13 +151,13 @@ def get_domain(lc=1., **newparams):
         if abs(x0[2] - hporetop) <= rMolecule + epsi:
             bulkentry = poreenter & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
                                    b=[ l1/2, l1/2, hporetop])
-            bulkfluid_top |= bulkentry
+            nearpore_top |= bulkentry
             poreenter -= bulkentry
 
         elif abs(x0[2] - hporebot) <= rMolecule + epsi:
             bulkentry = porebot & Box(a=[-l3/2,-l3/2, hporebot],
                                    b=[ l3/2, l3/2, x0[2]+rMolecule+epsi])
-            bulkfluid_bottom |= bulkentry
+            nearpore_bot |= bulkentry
             porebot -= bulkentry
 
         if x0[2] >= cpore[2]:
@@ -167,19 +174,16 @@ def get_domain(lc=1., **newparams):
         porerest = poreenter | poretop | porectr
         poreenter = EmptySet()
 
-    # force order to debug
-    domain.addsubdomains(
-        bulkfluid_top = bulkfluid_top,
-    )
-
     domain.addsubdomains(
         membrane = membrane,
         dna = dna,
         poreenter = poreenter,
         porerest = porerest,
         porecurrent = porecurrent,
-        #bulkfluid_top = bulkfluid_top,
+        bulkfluid_top = bulkfluid_top,
         bulkfluid_bottom = bulkfluid_bottom,
+        nearpore_top = nearpore_top,
+        nearpore_bottom = nearpore_bot,
     )
 
     dnainnerb = enter_1.boundary("front", "back", "left", "right") |\
@@ -217,7 +221,9 @@ def get_domain(lc=1., **newparams):
         #subdomains
         pore = {"porerest", "porecurrent", "poreenter"},
         bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
-        fluid = {"bulkfluid", "pore"},
+        nearpore = {"nearpore_bottom", "nearpore_top"},
+        poreregion = {"nearpore", "pore"},
+        fluid = {"bulkfluid", "pore", "nearpore"},
         solid = {"membrane", "dna", "molecule"},
         ions = "fluid",
 
