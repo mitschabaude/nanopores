@@ -19,13 +19,14 @@ number=(len(sys.argv)==2)
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk1",**params)
+data=f.get_fields("randomwalk2",**params)
 t1 = np.array([])
 t2 = np.array([])
 a1 = np.array([])
 a2 = np.array([])
 T=data["T"]
 J=data["J"]
+print '#data = %i'%len(T)
 for i in range(len(T)):
     T_=np.array(T[i])*1e-6
     J_=np.array(J[i])
