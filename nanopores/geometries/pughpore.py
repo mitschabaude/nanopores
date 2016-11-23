@@ -225,7 +225,7 @@ def get_domain(lc=1., **newparams):
         poreregion = {"nearpore", "pore"},
         fluid = {"bulkfluid", "pore", "nearpore"},
         solid = {"membrane", "dna", "molecule"},
-        ions = "fluid",
+        ions = {"bulkfluid", "pore", "nearpore"},
 
         #boundaries
         chargeddnab = {"dnaouterb", "dnainnerb", "dnaupperb", "dnalowerb"},

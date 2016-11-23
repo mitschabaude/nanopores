@@ -36,6 +36,7 @@ cp0 = cm0 = c0
 permittivity.update(
     #default = eperm*rpermw,
     bulkfluid = eperm*rpermw,
+    nearpore = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein", # for protein pores
     membrane = eperm*rpermLipid,
@@ -68,18 +69,18 @@ def CurrentPB(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad, invscale):
         Jz = 2*cFarad*bulkcon*mu*rDPore*v/UT*E* r2pi/L*dx
         return Jz
     return J0
-    
+
 def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
     def _current(U):
         v, cp, cm, u, p = U
         L = dolfin.Constant(geo.params["lporecurrent"])
         cUT = dolfin.Constant(UT)
         F = dolfin.Constant(cFarad)
-        
+
         jm = -Dm*grad(cm) + Dm/cUT*cm*grad(v) + cm*u
         jp = -Dp*grad(cp) - Dp/cUT*cp*grad(v) + cp*u
         jz = F*(jp - jm)[dim-1]
-        
+
         J = -jz/L * r2pi*invscale(2)*geo.dx("porecurrent")
         J = dolfin.assemble(J)
         return dict(J=J)

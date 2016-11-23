@@ -9,7 +9,7 @@ eps = 5.
 
 ran = np.linspace(-H/2.+eps, H/2.-eps, 48)
 X = [[0.,0.,t] for t in ran]
-pugh.F_explicit(X, nproc=6, name="pughcenter", **params)
+pugh.F_explicit(X, nproc=6, cache=False, name="pughcenter", **params)
 
 #hpore = pugh.pughpore.params["hpore"]
 #ran2 = np.linspace(-hpore/2.-1., -hpore/2.+4., 6)

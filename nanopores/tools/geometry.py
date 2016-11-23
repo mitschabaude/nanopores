@@ -461,7 +461,8 @@ class Geometry(object):
                 if default is not None:
                     dom2value[i] = default
                 else:
-                    warning("pwconst: no value specified for '%s' (used 0 as default)." %str(dom2phys[i][0]))
+                    #warning("pwconst: no value specified for '%s' (used 0 as default)." %str(dom2phys[i][0]))
+                    raise Exception("pwconst: no value specified on (part of) '%s'." %str(dom2phys[i][0]))
                     dom2value[i] = 0.
         return dom2value
 
