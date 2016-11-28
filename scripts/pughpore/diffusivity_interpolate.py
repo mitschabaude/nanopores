@@ -1,6 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 "interpolate 3D diffusivity from piecewise 2D data"
 #from nanopores.geometries import pughpore
+import numpy as np
 from nanopores.models import pughpore as pugh
 from nanopores.tools.interpolation import harmonic_interpolation
 from eikonal import distance_boundary_from_geo
@@ -12,7 +13,7 @@ import nanopores
 # read user parameters
 params = nanopores.user_params(
     dim = 3,
-    h = 2.,
+    h = 6.,
     Nmax = 1e5,
     r = 0.11,
 )
@@ -47,14 +48,33 @@ import matplotlib.pyplot as plt
 plt.plot(z, fz(z), "s-")
 plt.figure()
 plt.plot(x, fx(x), "s-")
-plt.show()
+#plt.show()
 
 # get geometry, prerefine mesh, compute distance function
 setup = pugh.Setup(dim=params.dim, x0=None, h=params.h, Nmax=params.Nmax)
-pugh.prerefine(setup, visualize=True)
+#pugh.prerefine(setup, visualize=True)
 dist = distance_boundary_from_geo(setup.geo)
+VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
+normal = dolfin.project(dolfin.grad(dist), VV)
+plotter = pugh.Plotter(setup)
+plotter.plot_vector(normal, "normal")
 #functions, mesh = f.get_functions("pugh_distance", h=h)
 #dist = functions["y"]
+
+def transformation(n):
+    U, S, V = np.linalg.svd(np.matrix(n))
+    return V.T
+
+x = [10, 0, 25]
+n = normal(x)
+print n
+T = transformation(n)
+print "T inverse", T
+print "T", T.T
+D = np.diag([1., 2., 3.])
+dot = np.dot
+print "D transformed", dot(T.T, dot(D, T))
+exit()
 
 # interpolate D
 def DPore(x):
@@ -68,14 +88,15 @@ def DBulk(x):
 
 D0 = setup.phys.D
 # TODO: save geo along with functions
-D = harmonic_interpolation(setup, [], [], dict(bulkfluid=DBulk, poreregion=DPore))
+D = harmonic_interpolation(setup, [], [],
+                           dict(bulkfluid=DBulk, poreregion=DPore))
                            #dict(upperb=D0, sideb=D0, lowerb=D0, dnaouterb=D0))
 #if not f.exists("Dpugh", **params):
 #    f.save_functions("Dpugh", params, dist=dist, D=D)
 #    f.update()
-pugh.Plotter(setup).plot(D, title="D")
+plotter.plot(D, title="D")
 dolfin.interactive()
-
+exit()
 # solve PNPS and obtain current
 geo, phys, solverp = setup.geo, setup.phys, setup.solverp
 phys.update(Dp=D, Dm=D)
