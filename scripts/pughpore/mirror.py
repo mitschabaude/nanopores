@@ -1,4 +1,8 @@
 from nanopores.tools import fields
+from nanopores.tools.interpolation import harmonic_interpolation
+import dolfin
+from nanopores.models.pughpore import Plotter
+import nanopores.geometries.pughpore as pughpore
 import folders
 params=dict(bulkcon=1000.)
 data=fields.get_fields("pugh",**params)
@@ -47,3 +51,29 @@ for i in range(len(xh)):
         Fdragf.append([Fdragh[i][0],-Fdragh[i][1],Fdragh[i][2]])
         Ff.append([Fh[i][0],-Fh[i][1],Fh[i][2]])
         Jf.append(Jh[i])
+len=len(xf)
+h=2.
+#shift all points up a little bit to ensure that they are in elements and not on facets
+eps=1e-2
+for i in range(len):
+    xf[i][2]+=eps
+Fx_=[Ff[i][0] for i in range(len)]
+Fy_=[Ff[i][1] for i in range(len)]
+Fz_=[Ff[i][2] for i in range(len)]
+Felx_=[Felf[i][0] for i in range(len)]
+Fely_=[Felf[i][1] for i in range(len)]
+Felz_=[Felf[i][2] for i in range(len)]
+Fdragx_=[Fdragf[i][0] for i in range(len)]
+Fdragy_=[Fdragf[i][1] for i in range(len)]
+Fdragz_=[Fdragf[i][2] for i in range(len)]
+
+
+
+domain = pughpore.get_domain(h, x0=None)
+domain.write_gmsh_code(h)
+domain.insert_points(xf,h)
+geo=domain.code_to_mesh()
+mesh=geo.mesh
+Fdragz = harmonic_interpolation(geo,xf,Fdragz_)
+Plotter().plot(Fdragz)
+dolfin.interactive()

@@ -19,7 +19,7 @@ number=(len(sys.argv)==2)
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk2",**params)
+data=f.get_fields("randomwalk3",**params)
 t1 = np.array([])
 t2 = np.array([])
 a1 = np.array([])
