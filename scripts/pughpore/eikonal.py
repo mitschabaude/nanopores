@@ -50,8 +50,8 @@ def distance_boundary_from_geo(geo):
     problem = NonlinearVariationalProblem(F, y, bc, J=derivative(F, y))
     solver  = NonlinearVariationalSolver(problem)
     params = solver.parameters
-    params["newton_solver"]["linear_solver"] = "bicgstab"
-    params["newton_solver"]["preconditioner"] = "hypre_euclid"
+    #params["newton_solver"]["linear_solver"] = "bicgstab"
+    #params["newton_solver"]["preconditioner"] = "hypre_euclid"
     solver.solve()
     #solve(F==0, y, bc, solver_parameters=params)
     return y

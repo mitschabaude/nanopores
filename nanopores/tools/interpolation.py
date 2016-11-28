@@ -80,7 +80,6 @@ if __name__ == "__main__":
 
     h = 1.
     domain = pughpore.get_domain_cyl(h)
-
     # create points
     N = user_params(N=1000).N
     R, H = pughpore.square2circle(domain.params["R"]), domain.params["H"]
@@ -99,9 +98,8 @@ if __name__ == "__main__":
     f = lambda x: np.sin(x[1]/5.)
     fexp = dolfin.Expression("sin(x[1]/5.)", domain=mesh, degree=1)
 
-    u = harmonic_interpolation(geo, points, values,)
-                               #dict(bulkfluid_bottom=f),
-                               #dict(upperb=fexp))
+    u = harmonic_interpolation(geo, points, values,
+                               dict(pore=f), dict(upperb=fexp))
 
     dolfin.plot(mesh)
     dolfin.plot(u)
