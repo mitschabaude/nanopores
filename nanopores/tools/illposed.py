@@ -379,7 +379,9 @@ def assemble_scalar(form):
     dolfin.assemble(form, tensor=x)
     return x.get_scalar_value()
 
-def adaptform(form, mesh): # doesn't work at all. why?
+def adaptform(form, mesh):
+    if dolfin.__version__ == "1.6.0":
+        return adaptform_OLD(form, mesh)
     if not hasattr(form, "_compiled_form"):
         form = Form(form)
     adapted_form = adapt(form, mesh)
@@ -463,9 +465,10 @@ def adaptspace(space, mesh):
     # only adapt if mesh is actually new
     if (space.mesh().id() == mesh.id()):
         return space
+    if dolfin.__version__ == "1.6.0":
+        newelement = space.ufl_element().reconstruct(domain=mesh.ufl_domain())
+        return FunctionSpaceBase(mesh, newelement)
     return adapt(space, mesh)
-    #newelement = space.ufl_element().reconstruct(domain=mesh.ufl_domain())
-    #return FunctionSpaceBase(mesh,newelement)
 
 def adaptcoefficient(coeff,mesh): #MOD
     if(isinstance(coeff, Function)):
