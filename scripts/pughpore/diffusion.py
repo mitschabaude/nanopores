@@ -80,10 +80,11 @@ def diffusivity_tensor(setup):
 
     iterative = False
     if dim==3:
+        pnps.SimpleStokesProblem.method["lusolver"] = "superlu"
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
-        #pnps.SimpleStokesProblem.method["lusolver"] = "mumps"
-        if geo.mesh.num_cells() > 2e5:
-            iterative = True
+        iterative = False
+    else:
+        iterative = False
 
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))
     W = pnps.SimpleStokesProblem.space(geo.mesh)

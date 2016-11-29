@@ -28,7 +28,7 @@ hpore=up.hpore
 #J = np.load('J.npy')
 #T = np.load('T.npy')
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk2",**params)
+data=f.get_fields("randomwalk3",**params)
 X = np.array(data["X"][i])
 Y = np.array(data["Y"][i])
 Z = np.array(data["Z"][i])

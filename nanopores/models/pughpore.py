@@ -31,7 +31,7 @@ solverp = nano.Params(
     imax = 30,
     tol = 1e-2,
     cheapest = False,
-    stokesiter = True
+    stokesiter = False #True
 ))
 defaultp = default.geop | default.physp
 
@@ -149,10 +149,10 @@ def visualize1D(geo, pnp):
                 "x", dim=1, axlabels=("z [nm]", "concentrations [mol/m^3]"))
 
 class u1D(dolfin.Expression):
-    def __init__(self, u, damping=1.):
+    def __init__(self, u, damping=1., **kw):
         self.u = u
         self.damping = damping
-        dolfin.Expression.__init__(self)
+        #dolfin.Expression.__init__(self)
 
     def damp(self, scalar):
         self.damping *= scalar
@@ -164,18 +164,19 @@ class u1D(dolfin.Expression):
 def set_sideBCs(phys, geop, physp):
     geo, pnp = solve1D(geop, physp)
     v, cp, cm = pnp.solutions()
-    phys.v0["sideb"] = u1D(v)
-    phys.cp0["sideb"] = u1D(cp)
-    phys.cm0["sideb"] = u1D(cm)
+    phys.v0["sideb"] = u1D(v, degree=1)
+    phys.cp0["sideb"] = u1D(cp, degree=1)
+    phys.cm0["sideb"] = u1D(cm, degree=1)
 
 def join_dicts(list):
     "[{'F':1.0}, {'F':2.0}, ...] --> {'F':[1.0, 2.0, ...]}"
     return {key:[dic[key] for dic in list] for key in list[0]}
 
-# evaluate finite-size model for a a number of x positions
+# evaluate finite-size model for a number of x positions
 @solvers.cache_forcefield("pugh", defaultp)
 def F_explicit(X, **params):
     _params = dict(defaultp, **params)
+    _params.pop("x0")
     values = []
     for x0 in X:
         setup = Setup(x0=x0, **_params)

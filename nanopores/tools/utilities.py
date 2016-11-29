@@ -344,11 +344,11 @@ def user_params(default=None, **params):
         params.update({key: default[key] for key in default if not key in params})
     args = _argparse()
     params.update({key: args[key] for key in args if key in params})
-    frm = inspect.stack()[1]
-    mod = inspect.getmodule(frm[0])
-    if not hasattr(mod, "PARAMS"):
-        mod.PARAMS = dict()
-    mod.PARAMS.update(params)
+    #frm = inspect.stack()[1]
+    #mod = inspect.getmodule(frm[0])
+    #if not hasattr(mod, "PARAMS"):
+    #    mod.PARAMS = dict()
+    #mod.PARAMS.update(params)
     return Params(params)
 
 class Params(dict):

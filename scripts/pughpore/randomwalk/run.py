@@ -98,4 +98,4 @@ def run(params=params):
     Z=[list(Z)]
     T=[list(T)]
     J1=[list(J1)]
-    fields.save_fields("randomwalk2",params,X=X,Y=Y,Z=Z,T=T,J=J1)
+    fields.save_fields("randomwalk3",params,X=X,Y=Y,Z=Z,T=T,J=J1)

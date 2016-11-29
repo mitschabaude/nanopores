@@ -230,14 +230,6 @@ class BoxCollection(object):
         with Log("computing gmsh entities..."):
             self.entities_to_gmsh(lc, merge)
             self.physical_to_gmsh(merge)
-#
-#    # TODO: in 3D, no Point in Volume
-#    def insert_points_2D(self, points, lc=1., forbidden=()):
-#        for x in points:
-#            p = py4gmsh.Point([x[0], x[1], 0.], lc)
-#            surf, name = self.get_gmsh_sub(x)
-#            if name not in forbidden:
-#                py4gmsh.raw_code(["Point{%s} In Surface{%s};" %(p, surf)])
 
     def insert_points(self, points, lc=1., dim=None, forbidden=()):
         if not points: return
