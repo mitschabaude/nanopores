@@ -269,6 +269,7 @@ def _load_global(FILE):
 def _load(FILE):
     return _load_global(os.path.join(DIR, FILE))
 
+
 # assert directory and header exists
 if not os.path.exists(DIR):
     os.makedirs(DIR)
@@ -397,6 +398,19 @@ def get_functions(name, **params):
         functions[fname] = _load_function(FFILE, mesh, rank)
 
     return functions, mesh
+
+def remove_functions(name, **params):
+    h = Header()
+    FILE, params = h.get_file_params(name, params)
+    data = _load(FILE)
+    PREFIX = data["prefix"]
+    files = [PREFIX + "_" + fname + ".xml" for fname in data["functions"]]
+    files.append(PREFIX + "_mesh.xml")
+    h.remove(name, params)
+    for f in files:
+        path = os.path.join(DIR, f)
+        print "Removing %s" %path
+        os.remove(path)
 
 # print information
 def show():
