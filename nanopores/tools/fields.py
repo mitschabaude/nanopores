@@ -20,7 +20,7 @@ achievements of this module:
 -) reading AND saving fields can be done in parallel, only update() step not
 
 TODO: if demanded, overwrite already calculated values
-TODO: in remove/save_functions, remove obsolete dolfin and .txt files
+TODO: in remove/save_functions, also remove obsolete dolfin and .txt files
 TODO: fields.list_all (with indices)
 TODO: fields.list[i]
 """
@@ -103,7 +103,7 @@ class Header(object):
     paramset also contains filename"""
 
     def __init__(self):
-        self.header = _load(HEADER)
+        self.header = Params(_load(HEADER))
 
     # TODO: could add pretty print of header content to view existing data
     def list_files(self):

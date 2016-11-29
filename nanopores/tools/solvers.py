@@ -9,12 +9,12 @@ __all__ = ["Setup", "calculate_forcefield", "cache_forcefield"]
 class Setup(object):
     "handle input parameters and setup geometry"
     default = {}
-    
+
     def __init__(self, geop=None, physp=None, solverp=None, **params):
         self.init_params(params, geop=geop, physp=physp, solverp=solverp)
         self.init_geo()
         self.init_phys()
-        
+
     def init_params(self, params, **paramsets):
         for p in paramsets:
             setattr(self, p, Params(self.default[p]))
@@ -24,9 +24,9 @@ class Setup(object):
             for k in dic:
                 if k in params:
                     dic[k] = params[k]
-                    
+
     # subclasses have to overwrite
-    def init_geo(self): 
+    def init_geo(self):
         self.geo = None
     def init_phys(self):
         self.phys = None
@@ -45,7 +45,7 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
             len(X), N)
     Xfailed = []
     iter_params = dict(x0=X)
-    
+
     def run(x0=None):
         try:
             result = calculate([x0], **params)
@@ -57,21 +57,21 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
             Xfailed.append(x0)
             result = None
         return result
-    
+
     results, _ = iterate_in_parallel(run, nproc, **iter_params)
-    
+
     if nproc == 1:
         print "%d of %d force calculations failed." % (len(Xfailed), len(X))
     fields.update()
     return results
-    
+
 class cache_forcefield(fields.CacheBase):
     "caching decorator for function calculate(X, **params) --> dict()"
     def __init__(self, name, default={}, nproc=1):
         self.name = name
         self.default = default
         self.nproc = nproc
-        
+
     def __call__(self, f):
         def wrapper(X, cache=True, nproc=self.nproc, name=self.name, **params):
             if not cache:
@@ -92,6 +92,3 @@ class cache_forcefield(fields.CacheBase):
             return result
         return wrapper
 
-    
-
-    

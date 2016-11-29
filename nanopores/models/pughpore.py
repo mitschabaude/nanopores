@@ -183,7 +183,6 @@ def F_explicit(X, **params):
         values.append(get_forces(setup, pnps))
     return join_dicts(values)
 
-
 # TODO
 ## evaluate point-size model for a number of z positions
 #def F_implicit3D(Z, **params):
