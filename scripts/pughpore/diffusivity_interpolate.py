@@ -27,7 +27,8 @@ Dz = data["D"]
 data = f.get_fields("pugh_diff3D_test", rMolecule=params.r, bulkbc=True)
 x = [x[0] for x in data["x"]]
 data, x = f._sorted(data, x)
-D = [d[2][2] for d in data["D"]]
+Dt = [d[2][2] for d in data["D"]]
+Dn = [d[0][0] for d in data["D"]]
 
 l0 = pugh.pughpore.params["l3"]
 r = params.r
@@ -37,22 +38,27 @@ x += [R, l0/2.+eps]
 x = list(reversed([l0/2.-t for t in x]))
 x += [100.]
 
-D += [eps, eps]
-D00 = D[0]
-D = list(reversed([d/D00 for d in D]))
-D += [1.]
+Dn += [eps, 0.]
+Dn = list(reversed([d/Dn[0] for d in Dn]))
+Dn += [1.]
+Dt += [eps, 0.]
+Dt = list(reversed([d/Dt[0] for d in Dt]))
+Dt += [1.]
 
 fz = interp1d(z, Dz)
-fx = interp1d(x, D)
+fn = interp1d(x, Dn)
+ft = interp1d(x, Dt)
 import matplotlib.pyplot as plt
 plt.plot(z, fz(z), "s-")
 plt.figure()
-plt.plot(x, fx(x), "s-")
+plt.plot(x, fn(x), "s-")
+plt.plot(x, ft(x), "s-")
 #plt.show()
+#exit()
 
 # get geometry, prerefine mesh, compute distance function
 setup = pugh.Setup(dim=params.dim, x0=None, h=params.h, Nmax=params.Nmax)
-#pugh.prerefine(setup, visualize=True)
+pugh.prerefine(setup, visualize=True)
 dist = distance_boundary_from_geo(setup.geo)
 VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
 normal = dolfin.project(dolfin.grad(dist), VV)
@@ -61,40 +67,49 @@ plotter.plot_vector(normal, "normal")
 #functions, mesh = f.get_functions("pugh_distance", h=h)
 #dist = functions["y"]
 
-def transformation(n):
+def transformation(n, Dn, Dt):
+    D = np.diag([Dn, Dt, Dt])
     U, S, V = np.linalg.svd(np.matrix(n))
-    return V.T
-
-x = [10, 0, 25]
-n = normal(x)
-print n
-T = transformation(n)
-print "T inverse", T
-print "T", T.T
-D = np.diag([1., 2., 3.])
-dot = np.dot
-print "D transformed", dot(T.T, dot(D, T))
-exit()
+    # U, S = 1., |n|
+    # V = orthogonal coordinate basis with n/|n| as first vector
+    D = np.dot(V, np.dot(D, V.T))
+    return np.diag(np.diag(D))
 
 # interpolate D
-def DPore(x):
+D0 = setup.phys.D
+
+def DPore(x, i):
     r = dist(x)
     z = x[-1]
-    return D0*float(fx(r)*fz(z))
+    Dz = float(fz(z))
+    n = normal(x)
+    Dn = D0*float(fn(r))
+    Dt = D0*float(ft(r))
+    D = transformation(n, Dz*Dn, Dz*Dt)
+    return D[i][i]
 
-def DBulk(x):
+def DBulk(x, i):
     r = dist(x)
-    return D0*float(fx(r))
+    n = normal(x)
+    Dn = D0*float(fn(r))
+    Dt = D0*float(ft(r))
+    D = transformation(n, Dn, Dt)
+    return D[i][i]
 
-D0 = setup.phys.D
+D = [dict(
+    bulkfluid = lambda x: DBulk(x, i),
+    poreregion = lambda x: DPore(x, i),
+) for i in 0, 1, 2]
+
 # TODO: save geo along with functions
-D = harmonic_interpolation(setup, [], [],
-                           dict(bulkfluid=DBulk, poreregion=DPore))
-                           #dict(upperb=D0, sideb=D0, lowerb=D0, dnaouterb=D0))
+Dx = harmonic_interpolation(setup, subdomains=D[0])
+Dz = harmonic_interpolation(setup, subdomains=D[2])
+
 #if not f.exists("Dpugh", **params):
 #    f.save_functions("Dpugh", params, dist=dist, D=D)
 #    f.update()
-plotter.plot(D, title="D")
+plotter.plot(Dx, title="Dx")
+plotter.plot(Dz, title="Dz")
 dolfin.interactive()
 exit()
 # solve PNPS and obtain current
