@@ -1,11 +1,13 @@
 # (c) 2016 Gregor Mitscha-Baude
 "PNPS solvers and visualization for pugh pore"
 
+import numpy as np
 import dolfin
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
+import nanopores.tools.fields as fields
 
 default = nano.Params(
 geop = nano.Params(
@@ -31,7 +33,8 @@ solverp = nano.Params(
     imax = 30,
     tol = 1e-2,
     cheapest = False,
-    stokesiter = False #True
+    stokesiter = False, #True
+    diffusivity_data = None,
 ))
 defaultp = default.geop | default.physp
 
@@ -85,13 +88,19 @@ def solve(setup, visualize=False):
     geo, phys, solverp = setup.geo, setup.phys, setup.solverp
     if visualize:
         plotter = Plotter(setup)
-    set_sideBCs(phys, setup.geop, setup.physp)
+
     if geo.mesh.num_cells() < solverp.Nmax:
         pb = prerefine(setup, visualize)
     else:
         pb = None
 
     it = phys.dim==3
+    # solve 1D problem for side BCs
+    set_sideBCs(phys, setup.geop, setup.physp)
+
+    # if given, use precomputed ion diffusivity
+    set_D_from_data(phys, solverp.diffusivity_data)
+
     pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
                verbose=True, tolnewton=solverp.tol, #taylorhood=True,
                stokesiter=(it and solverp.stokesiter), iterative=it,
@@ -133,6 +142,13 @@ def prerefine(setup, visualize=False):
                             scalarbar=False)
     print "CPU time (PB): %.3g s" %(dolfin.toc(),)
     return pb
+
+def set_D_from_data(phys, data):
+    if data is not None:
+        func, mesh = fields.get_functions(**data)
+        D = func["D"]
+        D = dolfin.as_matrix(np.diag([D[i] for i in range(phys.dim)]))
+        phys.update(Dp=D, Dm=D)
 
 def solve1D(geop, physp):
     geo = pughpore.get_geo1D(lc=.001, **geop)

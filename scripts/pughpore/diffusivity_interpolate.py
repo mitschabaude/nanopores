@@ -124,6 +124,7 @@ dolfin.plot(functions["D"][0], title="Dx")
 dolfin.plot(functions["D"][1], title="Dz")
 dolfin.plot(functions["dist"], title="dist")
 dolfin.interactive()
+
 exit()
 # solve PNPS and obtain current
 setup = pugh.Setup(dim=params.dim, x0=None, h=params.h, Nmax=2e5,
@@ -155,5 +156,4 @@ plotter.plot(cp, title="cp")
 plotter.plot(cm, title="cm")
 plotter.plot_vector(u, "u")
 dolfin.interactive()
-
 
