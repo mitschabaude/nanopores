@@ -32,23 +32,25 @@ class Setup(object):
         self.phys = None
 
 def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
-    "assuming function calculate(x0, **params)"
+    "assuming function calculate([x0], **params)"
     #fields.update()
-    if "x0" in default: default.pop("x0")
+    #if "x0" in default: default.pop("x0")
     save_params = dict(default, **params)
+    run_params = save_params
     # TODO calculate in parallel
     N = len(X)
     if fields.exists(name, **save_params):
         Xdone = fields.get_field(name, "x", **save_params)
         X = [x0 for x0 in X if x0 not in Xdone]
-        print "Existing force file found, %d/%d points remaining." % (
-            len(X), N)
+        if len(X) > 0:
+            print "Existing force file found, %d/%d points remaining." % (
+                len(X), N)
     Xfailed = []
     iter_params = dict(x0=X)
 
     def run(x0=None):
         try:
-            result = calculate([x0], **params)
+            result = calculate([x0], **run_params)
             #result = {k: [v] for k, v in result.items()}
             fields.save_fields(name, save_params, x=[x0], **result)
         except: # Exception, RuntimeError:
@@ -60,9 +62,10 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
 
     results, _ = iterate_in_parallel(run, nproc, **iter_params)
 
-    if nproc == 1:
-        print "%d of %d force calculations failed." % (len(Xfailed), len(X))
-    fields.update()
+    if len(X) > 0:
+        if nproc == 1:
+            print "%d of %d force calculations failed." % (len(Xfailed), len(X))
+        fields.update()
     return results
 
 class cache_forcefield(fields.CacheBase):
@@ -83,7 +86,7 @@ class cache_forcefield(fields.CacheBase):
             load_params = dict(self.default, **params)
             try:
                 result = fields.get_fields(name, **load_params)
-                I = [i for i, x in enumerate(result["x"]) if x in X]
+                I = [result["x"].index(x) for x in X if x in result["x"]]
             except KeyError:
                 print "KeyError, returning nothing."
                 result = {}

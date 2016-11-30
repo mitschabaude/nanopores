@@ -151,7 +151,7 @@ def set_D_from_data(phys, data):
         phys.update(Dp=D, Dm=D)
 
 def solve1D(geop, physp):
-    geo = pughpore.get_geo1D(lc=.001, **geop)
+    geo = pughpore.get_geo1D(lc=.01, **geop)
     phys = nano.Physics("pore", geo, **physp)
     pnp = nano.solve_pde(simplepnps.SimplePNPProblem, geo, phys)
     return geo, pnp
@@ -192,7 +192,7 @@ def join_dicts(list):
 @solvers.cache_forcefield("pugh", defaultp)
 def F_explicit(X, **params):
     _params = dict(defaultp, **params)
-    _params.pop("x0")
+    if "x0" in _params: _params.pop("x0")
     values = []
     for x0 in X:
         setup = Setup(x0=x0, **_params)

@@ -68,8 +68,8 @@ def save_entries(name, params, **entries):
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
-def remove(name, **params):
-    Header().remove(name, params)
+def remove(name, index=None, **params):
+    Header().remove(name, params, index)
 
 def purge(name, **params):
     while exists(name, **params):
@@ -82,6 +82,15 @@ def set_entries(name, params, **entries):
     # TODO could make sense also to change name/params
     assert all(k not in entries for k in ("name", "params"))
     Header().set_entries(name, params, **entries)
+
+def set_param(name, index, pname, pvalue):
+    h = Header()
+    FILE, params = h.get_file_params(name, {}, index)
+    h.header[name][index-1][pname] = pvalue
+    h._write()
+    f = _load(FILE)
+    f["params"][pname] = pvalue
+    _save(f, FILE)
 
 def exists(name, **params):
     try:
@@ -110,16 +119,21 @@ class Header(object):
         # TODO: could include global file names and sizes in list
         return self.header["_flist"]
 
-    def get_file_params(self, name, params):
+    def get_file_params(self, name, params, index=None):
         "take first file compatible with params"
         if name not in self.header:
             raise KeyError("Header: Name '%s' not found." %name)
-        for params0 in self.header[name]:
-            if _compatible(params0, params):
-                FILE = params0["FILE"]
-                break
+        if index is not None:
+            assert 0 <= index-1 < len(self.header[name])
+            params0 = self.header[name][index-1]
+            FILE = params0["FILE"]
         else:
-            raise KeyError("Header: No matching parameter set.")
+            for params0 in self.header[name]:
+                if _compatible(params0, params):
+                    FILE = params0["FILE"]
+                    break
+            else:
+                raise KeyError("Header: No matching parameter set.")
         return FILE, params0
 
     def get_file(self, name, params):
@@ -186,8 +200,8 @@ class Header(object):
         self.header = dict(_flist=[])
         self.update()
 
-    def remove(self, name, params):
-        FILE, params = self.get_file_params(name, params)
+    def remove(self, name, params, index=None):
+        FILE, params = self.get_file_params(name, params, index)
         self._delete_file(FILE)
         self.header[name].remove(params)
         if len(self.header[name]) == 0:
@@ -205,7 +219,9 @@ class Header(object):
     def _delete_file(self, FILE):
         if FILE in self.header["_flist"]:
             self.header["_flist"].remove(FILE)
-        os.remove(os.path.join(DIR, FILE))
+        path = os.path.join(DIR, FILE)
+        print "Removing %s" %path
+        os.remove(path)
 
     def _add_entry(self, name, params):
         if not name in self.header:

@@ -51,7 +51,7 @@ surfcharge = dict( # surface charge densities for Neumann RHS
 )
 
 Dpdict = dict(
-    #default = "D",
+    nearpore = "D",
     bulkfluid = "D",
     pore = "DPore",
     solid = 0.,
