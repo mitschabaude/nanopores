@@ -1,9 +1,39 @@
+#from matplotlib import cm
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 from nanopores.tools import fields
-from nanopores.tools.interpolation import harmonic_interpolation
-import dolfin
-from nanopores.models.pughpore import Plotter
-import nanopores.geometries.pughpore as pughpore
+#import nanopores.geometries.pughpore as pughpore
 import folders
+#import nanopores
+
+#up = nanopores.user_params(pughpore.params, k=3)
+
+
+#R = up.R
+#H = up.H
+#l0 = up.l0
+#l1 = up.l1
+#l2 = up.l2
+#l3 = up.l3
+#l4 = up.l4
+#hpore = up.hpore
+#hmem = up.hmem
+#h2 = up.h2
+#h1 = up.h1
+#h4 = up.h4
+#rMolecule = up.rMolecule
+#eps = 0.1
+#r = rMolecule + eps
+#
+#fac = np.array([.5*l0*1.2,.5*l0,.5*l1-r,.5*l1-r,
+#                .5*l2-r,.5*l3-r,.5*l3-r,.5*l3-r,.5*l3-r,.5*l3-r])
+#heights = np.array([.5*hpore+5.,.5*hpore+rMolecule,.5*hpore,.5*(hpore-h1),
+#              .5*hpore-h1,.5*hpore-h2,-.5*hpore+.75*(hpore-h2),
+#              -.5*hpore+.5*(hpore-h2),-.5*hpore+.25*(hpore-h2),-.5*hpore])
+#height=heights[6]
+
+
 params=dict(bulkcon=1000.)
 data=fields.get_fields("pugh",**params)
 x=data["x"]
@@ -51,29 +81,15 @@ for i in range(len(xh)):
         Fdragf.append([Fdragh[i][0],-Fdragh[i][1],Fdragh[i][2]])
         Ff.append([Fh[i][0],-Fh[i][1],Fh[i][2]])
         Jf.append(Jh[i])
-len=len(xf)
-h=2.
-#shift all points up a little bit to ensure that they are in elements and not on facets
-eps=1e-2
-for i in range(len):
-    xf[i][2]+=eps
-Fx_=[Ff[i][0] for i in range(len)]
-Fy_=[Ff[i][1] for i in range(len)]
-Fz_=[Ff[i][2] for i in range(len)]
-Felx_=[Felf[i][0] for i in range(len)]
-Fely_=[Felf[i][1] for i in range(len)]
-Felz_=[Felf[i][2] for i in range(len)]
-Fdragx_=[Fdragf[i][0] for i in range(len)]
-Fdragy_=[Fdragf[i][1] for i in range(len)]
-Fdragz_=[Fdragf[i][2] for i in range(len)]
+lenx=len(xf)
 
-
-
-domain = pughpore.get_domain(h, x0=None)
-domain.write_gmsh_code(h)
-domain.insert_points(xf,h)
-geo=domain.code_to_mesh()
-mesh=geo.mesh
-Fdragz = harmonic_interpolation(geo,xf,Fdragz_)
-Plotter().plot(Fdragz)
-dolfin.interactive()
+Felx=np.array([Felf[i][0] for i in range(lenx)])
+Fely=np.array([Felf[i][1] for i in range(lenx)])
+Felz=np.array([Felf[i][2] for i in range(lenx)])
+Fdragx=np.array([Fdragf[i][0] for i in range(lenx)])
+Fdragy=np.array([Fdragf[i][1] for i in range(lenx)])
+Fdragz=np.array([Fdragf[i][2] for i in range(lenx)])
+Fx=np.array([Ff[i][0] for i in range(lenx)])
+Fy=np.array([Ff[i][1] for i in range(lenx)])
+Fz=np.array([Ff[i][2] for i in range(lenx)])
+Ja=np.array(Jf)

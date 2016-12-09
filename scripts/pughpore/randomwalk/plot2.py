@@ -8,7 +8,7 @@ import nanopores.tools.fields as f
 HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
-DATADIR = os.path.join(HOME, "Dropbox", "Paper Howorka", "data", "fields")
+DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
 f.set_dir(DATADIR)
 
 plt.plot([5e-4,.2],[0.,0.],linewidth=2,color='lightgreen')
