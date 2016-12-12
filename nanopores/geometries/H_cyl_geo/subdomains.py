@@ -37,7 +37,7 @@ synonymes = {
     "dnab":{"chargeddnab", "unchargeddnab"},
     "chargedmembraneb":"membraneb",
     "crosssections2d":{"crosstop2d", "crosscentertop2d", "crosscenterbottom2d", "crossbottom2d"},
-    "noslip":{"dnab", "membraneb", "moleculeb"},
+    "noslip":{"dnab", "membraneb"}, #"moleculeb"},
     "nopressure":{"upperb","lowerb"},
     "ground":"upperb",
     "bV":"lowerb",
@@ -107,12 +107,12 @@ class OuterDNAB(SubDomain):
     def inside(self, x, on_boundary):
         return between(norm2(x[0], x[1]), (r1 -tolc, r1 +tolc))  \
                and between(abs(x[2]), (l1/2 -tolc, l0/2 +tolc))
-               
+
 class MembraneDNAB(SubDomain):
     def inside(self, x, on_boundary):
         return between(norm2(x[0], x[1]), (r1 -tolc, r1 +tolc))  \
                and between(abs(x[2]), (-tolc, l1/2 +tolc))
-               
+
 class OuterMembraneB(SubDomain):
     def inside(self, x, on_boundary):
         return between(norm2(x[0], x[1]), (R -tolc, R +tolc))  \

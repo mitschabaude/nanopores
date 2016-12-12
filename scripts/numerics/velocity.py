@@ -1,12 +1,31 @@
 # (c) 2016 Gregor Mitscha-Baude
+import dolfin, os
 from nanopores.models import Howorka
 from nanopores.tools import solvers
-
+import nanopores.tools.fields as fields
 from nanopores import (LinearPBGoalOriented, LinearPBAxisymGoalOriented,
-                       PNPSAxisym, PNPS)
+                       PNPSAxisym, PNPS, StokesProblem, PNPProblem, HOME)
+DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+fields.set_dir(DATADIR)
 
 def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False,
-                      taylorhood=False):
+                      taylorhood=False, stokesLU=False, **kwargs):
+    if not stokesLU and not cyl:
+        StokesProblem.method["iterative"] = True
+    PNPProblem.method["kparams"]["relative_tolerance"] = 1e-10
+    PNPProblem.method["kparams"]["absolute_tolerance"] = 1e-6
+    PNPProblem.method["kparams"]["nonzero_intial_guess"] = False
+    #StokesProblemEqualOrder.beta = 1.
+    StokesProblem.method["kparams"].update(
+        monitor_convergence = False,
+        relative_tolerance = 1e-10,
+        absolute_tolerance = 1e-5,
+        maximum_iterations = 2000,
+        nonzero_initial_guess = True,
+        )
+    PNPS.tolnewton = 1e-3
+    PNPS.alwaysstokes = True
+
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
     z = phys.dim - 1
@@ -44,38 +63,24 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False,
     print "  Newton iterations:", newton_iter
     return pb, pnps
 
-def solve3D(geo, phys, **params):
-    globals().update(params)
-    if not stokesLU:
-        StokesProblem.method["iterative"] = True
-    PNPProblem.method["kparams"]["relative_tolerance"] = 1e-10
-    PNPProblem.method["kparams"]["absolute_tolerance"] = 1e-6
-    PNPProblem.method["kparams"]["nonzero_intial_guess"] = False
-    #StokesProblemEqualOrder.beta = 1.
-    StokesProblem.method["kparams"].update(
-        monitor_convergence = False,
-        relative_tolerance = 1e-10,
-        absolute_tolerance = 1e-5,
-        maximum_iterations = 2000,
-        nonzero_initial_guess = True,
-        )
-    PNPS.tolnewton = 1e-3
-    PNPS.alwaysstokes = True
-    return pbpnps(geo, phys, frac=frac3D, Nmax=Nmax3D, cheapest=cheapest)
-
 # evaluate finite-size model for a number of z positions
-def F_explicit3D(x, **params):
-    import dolfin
+@solvers.cache_forcefield("howorka_nonzero_u")
+def F(x, dim=3, UMol=None, **params):
     values = []
+    setup = Howorka.setup3D if dim==3 else Howorka.setup2D
+    cyl = dim==2
     for x0 in x:
-        geo, phys = setup3D(x0=x0, **params)
-        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
-        pb, pnps = solve3D(geo, phys, **params)
-        dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
+        geo, phys = setup(x0=x0, **params)
+        if UMol is not None:
+            phys.update(UMol=UMol)
+        #dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
+        pb, pnps = pbpnps(geo, phys, cyl=cyl, **params)
+        #dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
         values.append(pnps.forces())
+        pnps.visualize("fluid")
     F, Fel, Fdrag = tuple(zip(*values))
-    return F, Fel, Fdrag
+    return dict(F=F, Fel=Fel, Fdrag=Fdrag)
 
-print Howorka.F_explicit3D([[0.,0.,0.]], Nmax3D=4e5, taylorhood=False,
-                           cheapest=True)
+print F([[0.,0.,0.]], Nmax=1e4, UMol=(0.,.01), dim=3,
+        taylorhood=False, cheapest=True, cache=False)
 

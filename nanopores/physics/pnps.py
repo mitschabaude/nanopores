@@ -52,7 +52,7 @@ class PNPS(PDESystem):
         else:
             v = interpolate(Constant(0.0), V)
             assign(x, [v, c0, c0])
-            
+
         # optional initial guess for stokes
         if w0 is not None:
             w.interpolate(w0)
@@ -113,16 +113,16 @@ class PNPS(PDESystem):
                 Fshear = (eta2*dot(sym(grad(u)),-n)[i])('-') * Cinvlscale(2)*dS
                 Fbare = rho*(-grad(v)[i])('-') * Cinvlscale(2)*dS
                 Fbarevol = rho0*(-grad(v)[i]) * Cinvlscale(3)*dx
-                
+
                 waux = Function(W)
                 uaux, paux = waux.split()
                 ei = tuple((1. if j==i else 0.) for j in range(dim))
                 geo.BC(W.sub(0), Constant(ei), "moleculeb").apply(waux.vector())
-                
+
                 Fdragvol = -(-inner(fstokes, uaux) + \
                     eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
                     div(uaux)*p) *Cinvlscale(3)*dxf
-                    
+
                 for F in ["Fp","Fshear","Fbare","Fbarevol", "Fdragvol"]:
                     F_dict[F+str(i)] = Functional(locals()[F])
 
@@ -166,7 +166,7 @@ class PNPS(PDESystem):
         Jz = (Jm + Jp)[2]
 
         # FIXME: this is just ugly, also because geo has to have "name" in params
-        """ up until now, a geo that "supports" some feature (e.g. currents) 
+        """ up until now, a geo that "supports" some feature (e.g. currents)
         had to provide the necessary information, i.e. geo.parameter("ltop") in this case.
         this is tricky for derived quantities...
         the solution is to have the derived quantity functionality in py4geo
@@ -227,7 +227,7 @@ class PNPS(PDESystem):
                 else:
                     self.single_solve()
                     PNPSsc = PNPSsc + 1
-                    
+
                 print "Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
                 #plot(self.functions["Stokes"].sub(0))
 
@@ -361,7 +361,7 @@ class PNPS(PDESystem):
         if string:
             return self.functions[string].split(deepcopy=deepcopy)
         return self.solutions("PNP", deepcopy) + self.solutions("Stokes", deepcopy)
-    
+
     def forces(self):
         dim = self.phys.dim
         fel = self.get_functionals(["Fbarevol"+str(i) for i in range(dim)])
@@ -370,7 +370,7 @@ class PNPS(PDESystem):
         Fdrag = [fdrag["Fdragvol"+str(i)] for i in range(dim)]
         F = [a + b for a, b in zip(Fel, Fdrag)]
         return F, Fel, Fdrag
-     
+
     def zforces(self):
         z = str(self.phys.dim - 1)
         #dic = self.get_functionals(["Fbarevol"+z, "Fshear"+z, "Fp"+z])
@@ -380,7 +380,7 @@ class PNPS(PDESystem):
         Fdrag = dic["Fdragvol"+z]
         F = Fel + Fdrag
         return F, Fel, Fdrag
-        
+
     def zforces_implicit(self, z0, cdrag=1.):
         (v, cp, cm, u, p) = self.solutions()
         lscale = self.phys.lscale
@@ -393,16 +393,16 @@ class PNPS(PDESystem):
         x0[-1] = z0
         x0p[-1] = z0+r
         x0m[-1] = z0-r
-        
+
         Q = self.phys.Qmol
         E = lscale*(v(x0m) - v(x0p))/(2.*r)
         Fel = 1e12*Q*E
-        
+
         eta = self.phys.eta
         gamma = 6.*pi*eta*r*cdrag
         U = u(x0)[dim-1]
         Fdrag = 1e12*gamma*U
-        
+
         F = Fdrag + Fel
         return F, Fel, Fdrag
 
@@ -521,8 +521,9 @@ class StokesProblem(AdaptableLinearProblem):
 
         if not bcs:
             try:
-                bcs = [geo.BC(W.sub(0), C0, "noslip"),
-                       geo.BC(W.sub(1), Constant(0.0), "nopressure")]
+                # bcs = [geo.BC(W.sub(0), C0, "noslip"),
+                bcs = geo.pwBC(W.sub(0), "noslip") + [
+                      geo.BC(W.sub(1), Constant(0.0), "nopressure")]
             except:
                 warning("No boundary conditions have been assigned to %s" %type(self).__name__)
 
@@ -555,7 +556,10 @@ class PNPProblem(AdaptableNonlinearProblem):
     @staticmethod
     def space(mesh):
         V = FunctionSpace(mesh, 'CG', PNPProblem.k)
-        return MixedFunctionSpace((V, V, V))
+        P1 = FiniteElement('P', tetrahedron, 1)
+        P = MixedElement((P1, P1, P1))
+        return FunctionSpace(mesh, P)
+        #return MixedFunctionSpace((V, V, V))
 
     def __init__(self, geo, phys, bcs=None, x=None, w=None):
         mesh = geo.mesh
@@ -660,9 +664,13 @@ class StokesProblemEqualOrder(StokesProblem):
     @staticmethod
     def space(mesh):
         k = StokesProblemEqualOrder.k
-        U = VectorFunctionSpace(mesh, 'CG', k)
-        P = FunctionSpace(mesh, 'CG', k)
-        return U*P
+        # Define function space
+        U = VectorElement('P', tetrahedron, k)
+        P = FiniteElement('P', tetrahedron, 1)
+        return FunctionSpace(mesh, U*P)
+#        U = VectorFunctionSpace(mesh, 'CG', k)
+#        P = FunctionSpace(mesh, 'CG', k)
+#        return U*P
 
     @staticmethod
     def forms(W, geo, f):

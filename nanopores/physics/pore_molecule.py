@@ -48,6 +48,13 @@ applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
 adaptMqv = True
+UMol = lambda dim: tuple(0. for i in dim) # velocity on molecule
+U0 = lambda dim: tuple(0. for i in dim)
+
+noslip = dict(
+    noslip = "U0",
+    moleculeb = "UMol",
+)
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!
@@ -108,7 +115,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
         return Qmol/MolVol if MolVol > 0. else 0.
     except Exception:
         return None
-        
+
 
 # 3. -- piecewise maps connecting physical domains to parameters
 #    -- these are DICTIONARIES of the form {"domain": "parameter_name"} OR
@@ -137,7 +144,7 @@ volcharge = dict( # volume charges for RHS
     default = 0.,
     molecule = ("Moleculeqv" if smearMolCharge else 0.),
 )
-    
+
 charge = {"volcharge":volcharge, "surfcharge":surfcharge}
 
 diffusion_factor = { # diffusivity of ions relative to bulk
@@ -192,7 +199,7 @@ def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad, lscale):
         return Fbare0
     except:
         return None
-        
+
 def Fbaresurf(geo, r2pi, Moleculeqs, grad, lscale):
     try: # to make geo not necessary
         if len(geo.physicalboundary("moleculeb"))==0:
@@ -241,7 +248,7 @@ def CurrentPBdrift(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad):
         return Jzdrift
     except:
         return None
-        
+
 def Feff(geo, grad, qTarget, rTarget):
     def Feff0(v, u):
         E = -grad(v)
@@ -251,7 +258,7 @@ def Feff(geo, grad, qTarget, rTarget):
         F = Fel + Fdrag
         return F
     return Feff0
-    
+
 def Forces(geo, grad, qTarget, rTarget):
     def Forces0(v, u):
         E = -grad(v)

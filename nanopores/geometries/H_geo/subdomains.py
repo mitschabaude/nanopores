@@ -42,7 +42,7 @@ synonymes = {
     "bulk":{"upperb","lowerb"}, #,"rightfluidb"},
     "chargeddnab":{"chargeddnainb","chargeddnaoutb"},
     "dnab":{"chargeddnab","unchargeddnab"},
-    "noslip":{"dnab","membraneb","moleculeb"},
+    "noslip":{"dnab","membraneb"}, #"moleculeb"},
     "nopressure":{"upperb","lowerb"},
     #"charged":{"chargeddnab","moleculeb","membraneb"},
     "ground":"upperb",
@@ -68,7 +68,7 @@ def subdomain_list(**params):
     class BulkFluidTop(SubDomain):
         def inside(self, x, on_boundary):
             return x[1] > -tolc  # other domains will overwrite
-            
+
     class BulkFluidBottom(SubDomain):
         def inside(self, x, on_boundary):
             return x[1] < tolc  # other domains will overwrite

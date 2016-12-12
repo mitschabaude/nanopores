@@ -50,6 +50,13 @@ applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
 adaptMqv = True
+UMol = lambda dim: tuple(0. for i in dim) # velocity on molecule
+U0 = lambda dim: tuple(0. for i in dim)
+
+noslip = dict(
+    noslip = "U0",
+    moleculeb = "UMol",
+)
 
 # FIXME: add a list of functionals that can generically be used by PNPS or any system as its results
 # --> because which functionals are calculated depends on the Physics of the problem!
@@ -110,7 +117,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
         return Qmol/MolVol if MolVol > 0. else 0.
     except Exception:
         return None
-        
+
 def DNAArea(geo, lscale):
     # this is for Howorka DNA nanopores
     h = geo.params["l0"] # height of DNA
@@ -120,11 +127,11 @@ def DNAArea(geo, lscale):
     pi = dolfin.pi
     geo.constant("DNAArea0", lambda geo: 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2)
     return 2.*pi*(h*r0 + (h-h1)*r1)/lscale**2
-    
+
 def QDNA(DNAqs, DNAArea):
     # total charge on DNA if boundary is exactly cylindrical, i.e. in 2D
     return DNAqs*DNAArea
-        
+
 def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
     if dim == 2:
         return DNAqs
@@ -134,7 +141,7 @@ def DNAqsHoworka(geo, DNAqs, QDNA, dim, r2pi, lscale):
         area = dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab"))
         return QDNA/area if area > 0. else 0.
     geo.constant("DNAArea", lambda geo: dolfin.assemble(dolfin.avg(scale*r2pi)*geo.dS("chargeddnab")))
-    
+
     return geo.constant("DNAqs", compute)
 
 # 3. -- piecewise maps connecting physical domains to parameters
@@ -164,7 +171,7 @@ volcharge = dict( # volume charges for RHS
     default = 0.,
     molecule = ("Moleculeqv" if smearMolCharge else 0.),
 )
-    
+
 charge = {"volcharge":volcharge, "surfcharge":surfcharge}
 
 diffusion_factor = { # diffusivity of ions relative to bulk
@@ -220,7 +227,7 @@ def Fbare(geo, r2pi, Moleculeqs, Moleculeqv, grad, lscale):
         return Fbare0
     except:
         return None
-        
+
 def Fbaresurf(geo, r2pi, Moleculeqs, grad, lscale):
     try: # to make geo not necessary
         if len(geo.physicalboundary("moleculeb"))==0:
@@ -269,7 +276,7 @@ def CurrentPBdrift(geo, r2pi, bulkcon, mu, rDPore, UT, lscale, cFarad):
         return Jzdrift
     except:
         return None
-        
+
 def Feff(geo, grad, qTarget, rTarget):
     def Feff0(v, u):
         E = -grad(v)
@@ -279,7 +286,7 @@ def Feff(geo, grad, qTarget, rTarget):
         F = Fel + Fdrag
         return F
     return Feff0
-    
+
 def Forces(geo, grad, qTarget, rTarget):
     def Forces0(v, u):
         E = -grad(v)

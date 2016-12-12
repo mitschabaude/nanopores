@@ -467,7 +467,7 @@ class Geometry(object):
         return dom2value
 
     def _dict_to_DG(self, dom2value): #TODO: not assume domain
-        expr = Dict2Expression(dom2value, self.subdomains)
+        expr = Dict2Expression(dom2value, self.subdomains, degree=0)
         dgfun = Function(FunctionSpace(self.mesh,'DG',0))
         dgfun.interpolate(expr)
         return dgfun
@@ -477,7 +477,7 @@ class Geometry(object):
 
 
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
-    def __init__(self, dom2value, subdomains):
+    def __init__(self, dom2value, subdomains, **kwargs):
         self.subdomains = subdomains
         self.dom2value = dom2value
     def eval_cell(self, values, x, cell):

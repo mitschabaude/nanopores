@@ -249,6 +249,7 @@ def showplots():
     plt.show()
 
 def savefigs(name="fig", DIR="/tmp/"):
+    if not DIR.endswith("/"): DIR = DIR + "/"
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
