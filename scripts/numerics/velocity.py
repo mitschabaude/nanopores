@@ -80,11 +80,11 @@ def F(x, dim=3, UMol=None, **params):
         pb, pnps = pbpnps(geo, phys, cyl=cyl, **params)
         #dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
         values.append(pnps.forces())
-        pnps.visualize("pore")
+        pnps.visualize("fluid")
     F, Fel, Fdrag = tuple(zip(*values))
     return dict(F=F, Fel=Fel, Fdrag=Fdrag)
 
-print F([[0.,0.,0.]], Nmax=5e4, UMol=(0., 0.1), dim=2, dnaqsdamp=0.5,
-        taylorhood=False, cheapest=True, cache=False, h3D=2.,
+print F([[0.2,0.,4.6798]], Nmax=5e4, UMol=(0., 0.1, 0.1), dim=3, dnaqsdamp=0.5,
+        taylorhood=False, cheapest=True, cache=False, h3D=8.,
         stokesLU=True)
 
