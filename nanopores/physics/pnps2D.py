@@ -233,8 +233,10 @@ class StokesProblemAxisym(AdaptableLinearProblem):
     @staticmethod
     def space(mesh):
         k = StokesProblemAxisym.k
-        #U = VectorFunctionSpace(mesh, 'CG', k)
-        #P = FunctionSpace(mesh, 'CG', k-1)
+        if dolfin.__version__ == "1.6.0":
+            U = VectorFunctionSpace(mesh, 'CG', k)
+            P = FunctionSpace(mesh, 'CG', k-1)
+            return U*P
         U = VectorElement('P', _element(mesh), k)
         P = FiniteElement('P', _element(mesh), k-1)
         return FunctionSpace(mesh, U*P)
@@ -306,11 +308,13 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
 
     @staticmethod
     def space(mesh):
-        #V = FunctionSpace(mesh, 'CG', PNPProblemAxisym.k)
-        P1 = FiniteElement('P', _element(mesh), PNPProblemAxisym.k)
+        k = PNPProblemAxisym.k
+        if dolfin.__version__ == "1.6.0":
+            V = FunctionSpace(mesh, 'CG', k)
+            return MixedFunctionSpace((V, V, V))
+        P1 = FiniteElement('P', _element(mesh), k)
         P = MixedElement((P1, P1, P1))
         return FunctionSpace(mesh, P)
-        #return MixedFunctionSpace((V, V, V))
 
     def __init__(self, geo, phys=None, bcs=None, x=None, w=None):
         mesh = geo.mesh
@@ -504,12 +508,13 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
     @staticmethod
     def space(mesh):
         k = StokesProblemAxisymEqualOrder.k
-        #U = VectorFunctionSpace(mesh, 'CG', k)
-        #P = FunctionSpace(mesh, 'CG', k)
+        if dolfin.__version__ == "1.6.0":
+            U = VectorFunctionSpace(mesh, 'CG', k)
+            P = FunctionSpace(mesh, 'CG', k)
+            return U*P
         U = VectorElement('P', _element(mesh), k)
         P = FiniteElement('P', _element(mesh), k)
         return FunctionSpace(mesh, U*P)
-        #return U*P
 
     @staticmethod
     def forms(W, geo, f):

@@ -445,7 +445,8 @@ class PNPS(PDESystem):
 
 def _element(mesh):
     dim = mesh.topology().dim()
-    return ufl.cell.simplex(dim)
+    return ["interval", "triangle", "tetrahedron"][dim-1]
+    #return ufl.cell.simplex(dim)
 
 class StokesProblem(AdaptableLinearProblem):
     k = 2
@@ -479,13 +480,16 @@ class StokesProblem(AdaptableLinearProblem):
                 ilu = dict(fill_level = 2)))
     )
 
-
     @staticmethod
     def space(mesh):
         k = StokesProblem.k
-        U = VectorFunctionSpace(mesh, 'CG', k)
-        P = FunctionSpace(mesh, 'CG', k-1)
-        return U*P
+        if dolfin.__version__ == "1.6.0":
+            U = VectorFunctionSpace(mesh, 'CG', k)
+            P = FunctionSpace(mesh, 'CG', k-1)
+            return U*P
+        U = VectorElement('P', _element(mesh), k)
+        P = FiniteElement('P', _element(mesh), k-1)
+        return FunctionSpace(mesh, U*P)
 
     @staticmethod
     def forms(W, geo, f):
@@ -559,11 +563,12 @@ class PNPProblem(AdaptableNonlinearProblem):
 
     @staticmethod
     def space(mesh):
-        #V = FunctionSpace(mesh, 'CG', PNPProblem.k)
+        if dolfin.__version__ == "1.6.0":
+            V = FunctionSpace(mesh, 'CG', PNPProblem.k)
+            return MixedFunctionSpace((V, V, V))
         P1 = FiniteElement('P', _element(mesh), PNPProblem.k)
         P = MixedElement((P1, P1, P1))
         return FunctionSpace(mesh, P)
-        #return MixedFunctionSpace((V, V, V))
 
     def __init__(self, geo, phys, bcs=None, x=None, w=None):
         mesh = geo.mesh
@@ -668,13 +673,14 @@ class StokesProblemEqualOrder(StokesProblem):
     @staticmethod
     def space(mesh):
         k = StokesProblemEqualOrder.k
-        # Define function space
+        if dolfin.__version__ == "1.6.0":
+            U = VectorFunctionSpace(mesh, 'CG', k)
+            P = FunctionSpace(mesh, 'CG', k)
+            return U*P
         U = VectorElement('P', _element(mesh), k)
-        P = FiniteElement('P', _element(mesh), 1)
+        P = FiniteElement('P', _element(mesh), k)
         return FunctionSpace(mesh, U*P)
-#        U = VectorFunctionSpace(mesh, 'CG', k)
-#        P = FunctionSpace(mesh, 'CG', k)
-#        return U*P
+
 
     @staticmethod
     def forms(W, geo, f):
