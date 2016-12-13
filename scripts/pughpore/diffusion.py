@@ -79,10 +79,10 @@ def diffusivity_tensor(setup):
         pugh.prerefine(setup, True)
 
     iterative = False
-    if dim==3:
-        pnps.SimpleStokesProblem.method["lusolver"] = "superlu"
+    if dim==3 and geo.mesh.num_cells()>2e5:
+        #pnps.SimpleStokesProblem.method["lusolver"] = "superlu"
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
-        iterative = False
+        iterative = True #False
     else:
         iterative = False
 
@@ -111,14 +111,14 @@ def diffusivity_tensor(setup):
     kT = phys.kT
 
     gamma0 = 6.*pi*eta*r*1e-9
-    print "gamma (simulation):", gamma
+    print "gamma (simulation):\n", gamma
     print "gamma (stokes law):", gamma0
     print
     D = kT*np.linalg.inv(gamma)
     D0 = kT/gamma0
-    print "D (simulation):", D
+    print "D (simulation):\n", D
     print "D (stokes law):", D0
-    print "Reducing factor due to confinement:", D/D0
+    print "Reducing factor due to confinement:\n", D/D0
     return D/D0
 
 @solvers.cache_forcefield("pugh_diffusivity", default)

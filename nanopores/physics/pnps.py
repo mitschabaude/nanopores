@@ -596,7 +596,7 @@ class PNPProblem(AdaptableNonlinearProblem):
 
         eps = geo.pwconst('permittivity')
         C = geo.pwconst('diffusion_factor')
-        SD = geo.pwconst('stokes_damp')
+        SD = Constant(1.) #geo.pwconst('stokes_damp') # TODO
 
         apoisson = inner(eps*grad(v),grad(vv))*dx - cFarad*(cp - cm)*vv*dx_ions
         aJm = inner(C*(D*grad(cm) - mu*(cm*grad(vold) + cmold*grad(v))) - SD*cm*uold, grad(dm))*dx_ions
@@ -612,47 +612,16 @@ class PNPProblem(AdaptableNonlinearProblem):
 
         L = Lpoisson + LJm + LJp - Lq
 
-        '''
-        Lq = Constant(0.0)*vv('+')*geo.dS('membraneb')
-        try:
-            x0 = geo.parameter("x0")
-        except:
-            x0 = None
-        if x0 is not None and "moleculeb" in geo._physical_boundary:
-            #ms_area = assemble(Constant((1.0/lscale)**2) * geo.dS("moleculeb"))
-            #print ms_area
-            #Moleculeqs = phys.Qmol/ms_area
-            f_Moleculeqs = Constant(phys.Moleculeqs)
-            LqMolecule = f_Moleculeqs*vv('+')*geo.dS('moleculeb')
-            Lq = Lq + LqMolecule
+        # quasi-static boundary conditions on moving particle
+        n = FacetNormal(mesh)
+        aQSBCp = jump(lscale*cp*uold*dp, n)*geo.dS("moleculeb")
+        aQSBCm = jump(lscale*cm*uold*dm, n)*geo.dS("moleculeb")
+        a = a + aQSBCp + aQSBCm
 
-        if "chargeddnab" in geo._physical_boundary:
-            #if "DNAqs" in phys_params:
-            #    DNAqs = phys_params["DNAqs"]
-            #else:
-            #    DNAQ = geo.parameter("ncbp")*bpq
-            #    cDNA_area = assemble(Constant((1.0/lscale)**2) * geo.dS("chargeddnab"))
-            #    DNAqs = DNAQ/cDNA_area*self.dnaqsdamp
-            f_DNAqs = Constant(phys.DNAqs)
-            LqDNA = f_DNAqs*vv('+')*geo.dS('chargeddnab')
-            Lq = Lq + LqDNA
+        LQSBCp = jump(lscale*cpold*uold*dp, n)*geo.dS("moleculeb")
+        LQSBCm = jump(lscale*cmold*uold*dm, n)*geo.dS("moleculeb")
+        L = L + LQSBCp + LQSBCm
 
-        if "chargedsinb" in geo._physical_boundary:
-            f_SiNqs = Constant(phys_params["SiNqs"])
-            LqSiN = f_SiNqs*vv('+')*geo.dS('chargedsinb')
-            Lq = Lq + LqSiN
-        if "chargedsamb" in geo._physical_boundary:
-            f_SAMqs = Constant(phys_params["SAMqs"])
-            LqSAM = f_SAMqs*vv('+')*geo.dS('chargedsamb')
-            Lq = Lq + LqSAM
-
-        if "membraneb" in geo._physical_boundary:
-            f_Membraneqs = Constant(phys.Membraneqs)
-            LqMembrane = f_Membraneqs*vv('+')*geo.dS('membraneb')
-            Lq = Lq + LqMembrane
-
-        L = Lpoisson + LJm + LJp - lscale*Lq
-        '''
         if not bcs:
             try:
                 bcs = [geo.BC(X.sub(0), Constant(phys.bV), "bV")] if phys.bV else []

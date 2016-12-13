@@ -15,7 +15,7 @@ params = nanopores.user_params(
     dim = 3,
     h = 2.,
     Nmax = 2e6,
-    r = 0.11,
+    r = 2.0779,
 )
 
 if not f.exists("Dpugh", **params):
