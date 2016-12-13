@@ -2,7 +2,7 @@
 
 from dolfin import *
 from ..tools import *
-from .pnps import PNPS
+from .pnps import PNPS, _element
 from .params_physical import *
 #from warnings import warn
 #from importlib import import_module
@@ -82,7 +82,7 @@ class PNPSAxisym(PNPS):
         F_dict = {}
         dim = mesh.topology().dim()
         n = FacetNormal(mesh)
-        r2pi = Expression("2*pi*x[0]")
+        r2pi = Expression("2*pi*x[0]", degree=1)
         def tang(x):
             return x - inner(x,n)*n
         scl2 = Constant(Fmult/phys.lscale**2)
@@ -100,20 +100,20 @@ class PNPSAxisym(PNPS):
             rho = Constant(phys.Moleculeqs)
             rho0 = Constant(phys.Moleculeqv)
             div = phys.div
-            r = Expression("x[0]")
+            r = Expression("x[0]", degree=1)
             eta2 = Constant(2.*eta)
-            
+
             for i in range(dim):
                 Fp = (-r2pi*p*n[i])('-') *scl2*dS
                 Fshear = (r2pi*eta*2.0*dot(sym(grad(u)),-n)[i])('-') *scl2*dS
                 Fbare = rho*(-r2pi*grad(v)[i])('-') * scl2*dS
                 Fbarevol = rho0*(-r2pi*grad(v)[i]) * scl3*dx
-                
+
                 waux = Function(W)
                 uaux, paux = waux.split()
                 ei = tuple((1. if j==i else 0.) for j in range(dim))
                 geo.BC(W.sub(0), Constant(ei), "moleculeb").apply(waux.vector())
-                
+
                 Fdragvol = -(-inner(fstokes, uaux)*r + \
                     eta2*inner(sym(grad(u)), sym(grad(uaux)))*r + \
                     eta2*u[0]*uaux[0]/r + (div(uaux)*r+uaux[0])*p)*Constant(2*pi)*scl3*dxf
@@ -233,9 +233,11 @@ class StokesProblemAxisym(AdaptableLinearProblem):
     @staticmethod
     def space(mesh):
         k = StokesProblemAxisym.k
-        U = VectorFunctionSpace(mesh, 'CG', k)
-        P = FunctionSpace(mesh, 'CG', k-1)
-        return U*P
+        #U = VectorFunctionSpace(mesh, 'CG', k)
+        #P = FunctionSpace(mesh, 'CG', k-1)
+        U = VectorElement('P', _element(mesh), k)
+        P = FiniteElement('P', _element(mesh), k-1)
+        return FunctionSpace(mesh, U*P)
 
     @staticmethod
     def forms(W, geo, f):
@@ -247,7 +249,7 @@ class StokesProblemAxisym(AdaptableLinearProblem):
         grad = geo.physics.grad
         div = geo.physics.div
         lscale = geo.physics.lscale
-        r = Expression("x[0]/L", L=lscale)
+        r = Expression("x[0]/L", L=lscale, degree=1)
 
         # conservative formulation for correct BC
         a = (2*eta*inner(sym(grad(u)),sym(grad(v)))*r + 2*eta*u[0]*v[0]/r + \
@@ -265,13 +267,16 @@ class StokesProblemAxisym(AdaptableLinearProblem):
             w = Function(W)
 
         if not bcs:
+            bcs = geo.pwBC(W.sub(0), "noslip") + [
+                  geo.BC(W.sub(1), Constant(0.0), "nopressure")]
             try:
                 if "inflow" in geo._physical_boundary:
                     bcs = [geo.BC(W.sub(0), Constant((0.0,0.0)), "noslip"),
                            geo.BC(W.sub(0), Constant(phys.inflow), "inflow"),
                            geo.BC(W.sub(1), Constant(0.0), "nopressure")]
                 else:
-                    bcs = [geo.BC(W.sub(0), Constant((0.0,0.0)), "noslip"),
+                    #bcs = [geo.BC(W.sub(0), Constant((0.0,0.0)), "noslip"),
+                    bcs = geo.pwBC(W.sub(0), "noslip") + [
                            geo.BC(W.sub(1), Constant(0.0), "nopressure")]
             except:
                 warning("No boundary conditions have been assigned to %s" %type(self).__name__)
@@ -301,8 +306,11 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
 
     @staticmethod
     def space(mesh):
-        V = FunctionSpace(mesh, 'CG', PNPProblemAxisym.k)
-        return MixedFunctionSpace((V, V, V))
+        #V = FunctionSpace(mesh, 'CG', PNPProblemAxisym.k)
+        P1 = FiniteElement('P', _element(mesh), PNPProblemAxisym.k)
+        P = MixedElement((P1, P1, P1))
+        return FunctionSpace(mesh, P)
+        #return MixedFunctionSpace((V, V, V))
 
     def __init__(self, geo, phys=None, bcs=None, x=None, w=None):
         mesh = geo.mesh
@@ -324,7 +332,7 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
 
         dx = geo.dx()
         dx_ions = geo.dx('ions')
-        r2pi = Expression("2*pi*x[0]")
+        r2pi = Expression("2*pi*x[0]", degree=1)
         grad = phys.grad
         lscale = Constant(phys.lscale)
 
@@ -345,7 +353,7 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
         Lq = Lqvol + Lqsurf
 
         L = Lpoisson + LJm + LJp - Lq
-        
+
         if not bcs:
             try:
                 bcs = [geo.BC(X.sub(0), Constant(phys.bV), "bV")] if phys.bV else []
@@ -374,7 +382,7 @@ class PoissonProblemAxisym(PoissonProblem):
         u = TrialFunction(V)
         v = TestFunction(V)
         dx = geo.dx()
-        r2pi = Expression("2*pi*x[0]")
+        r2pi = Expression("2*pi*x[0]", degree=1)
         grad = geo.physics.grad
         lscale = Constant(geo.physics.lscale)
 
@@ -400,7 +408,7 @@ class LinearPBProblemAxisym(PoissonProblem):
         v = TestFunction(V)
         dx = geo.dx()
         dx0 = geo.dx("ions")
-        r2pi = Expression("2*pi*x[0]")
+        r2pi = Expression("2*pi*x[0]", degree=1)
         c0 = geo.physics.bulkcon
         UT = geo.physics.UT
         grad = geo.physics.grad
@@ -426,7 +434,7 @@ class LinearPBAxisym(LinearPDE):
         return ind, err
 
 class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
-    
+
     def __init__(self, geo, phys, goal=None, ref=None):
         if goal is None:
             goal = lambda v : phys.Fbare(v, 1)
@@ -440,11 +448,11 @@ class LinearPBAxisymGoalOriented(GoalAdaptivePDE):
         self.save_estimate("err", err)
         self.save_estimate("rep", rep)
         self.save_estimate("err cheap", errc)
-        
+
         self.save_estimate("goal", gl)
         self.save_estimate("goal ex", glx)
         return ind, rep
-        
+
     def estimate_cheap(self):
         u = self.functions["primal"]
         z = self.functions["dual"]
@@ -496,9 +504,12 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
     @staticmethod
     def space(mesh):
         k = StokesProblemAxisymEqualOrder.k
-        U = VectorFunctionSpace(mesh, 'CG', k)
-        P = FunctionSpace(mesh, 'CG', k)
-        return U*P
+        #U = VectorFunctionSpace(mesh, 'CG', k)
+        #P = FunctionSpace(mesh, 'CG', k)
+        U = VectorElement('P', _element(mesh), k)
+        P = FiniteElement('P', _element(mesh), k)
+        return FunctionSpace(mesh, U*P)
+        #return U*P
 
     @staticmethod
     def forms(W, geo, f):
@@ -511,11 +522,11 @@ class StokesProblemAxisymEqualOrder(StokesProblemAxisym):
         grad = geo.physics.grad
         div = geo.physics.div
         lscale = geo.physics.lscale
-        
-        r = Expression("x[0]/L", L=lscale)
+
+        r = Expression("x[0]/L", L=lscale, degree=1)
         pi = 3.14159265359
         h = CellSize(mesh)
-        
+
         beta = StokesProblemAxisymEqualOrder.beta
         delta = Constant(beta/lscale**2)*h**2
 

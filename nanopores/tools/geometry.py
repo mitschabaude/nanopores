@@ -551,7 +551,10 @@ class PhysicalBC(object):
         return self.bcs[0].function_space() if self.bcs else self.V
 
     def homogenized(self): # TODO: arbitrary tensors
-        shape = self.g.shape()
+        if dolfin.__version__ == "1.6.0":
+            shape = self.g.shape()
+        else:
+            shape = self.g.ufl_shape
         c = Constant(tuple(0. for i in range(shape[0])) if shape else 0.)
         return PhysicalBC(self.V, c, self.description, self.geo)
 

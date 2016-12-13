@@ -127,7 +127,7 @@ def poisson_indicator(geo, u, f=None, cyl=False):
     Aperm = geo.pwconst("permittivity")
     volcharge = geo.pwconst("volcharge")
     flux = Aperm*geo.physics.grad(u)
-    r = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+    r = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
 
     residual = geo.physics.div(flux) + volcharge
     if f:
@@ -168,7 +168,7 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
     n = FacetNormal(mesh)
     h = CellSize(mesh)
 
-    r = Expression("2*pi*x[0]") if cyl else Constant(1.)
+    r = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.)
     dS = geo.dS() # interior facets
     ds = geo.ds() # exterior facets
     dx0 = geo.dx("ions")
@@ -200,7 +200,7 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
             +Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
             -geo.linearRHS(w*r, "volcharge")
             -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
-            
+
     # global functional value
     def J(w):
         return assemble(
@@ -217,11 +217,11 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
     # precise relevant scale for error (abs value of functional)
     scale = abs(1./goal) if not goal == 0. else 1e12*(1./phys.lscale**3)
     #scale = 1e12*(1./phys.lscale**3) # rough scale (cheaper)
-    
+
     error_res = abs(R(z))*scale
     error_rep = abs(R(Ez))*scale
     error_sum = sum(vec)*scale
-    
+
     # cheaper estimator without extrapolation
     indicators2 = Function(V)
     vec2 = indicators2.vector()
@@ -240,7 +240,7 @@ def pb_indicator_GO(geo, phys, u, z, cyl=False):
 
     # return indicators, error_rep, error_sum
     return indicators, error_sum, error_rep, cheap_sum, goal, goal_ex
-    
+
 def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
     # u .. primal solution
     # z .. dual solution
@@ -251,7 +251,7 @@ def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
     n = FacetNormal(mesh)
     h = CellSize(mesh)
 
-    r = Expression("2*pi*x[0]") if cyl else Constant(1.)
+    r = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.)
     dS = geo.dS() # interior facets
     ds = geo.ds() # exterior facets
     dx0 = geo.dx("ions")
@@ -283,7 +283,7 @@ def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
             +Constant(cFarad*2*c0/UT)*u*w*r*dx0 \
             -geo.linearRHS(w*r, "volcharge")
             -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
-            
+
     # global functional value
     def J(w):
         return assemble(
@@ -294,9 +294,9 @@ def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
     goal = J(z)
     scale = abs(1./goal) # precise relevant scale for error (abs value of functional)
     #scale = 1e12*(1./phys.lscale**3) # rough scale (cheaper)
-    
+
     error_res = abs(R(z))*scale
-    
+
     # cheap estimator without extrapolation
     indicators = Function(V)
     vec = indicators.vector()
@@ -311,7 +311,7 @@ def pb_indicator_GO_cheap(geo, phys, u, z, cyl=False):
 
     # return indicators, error_rep, error_sum
     return indicators, error_sum, goal
-    
+
 def simple_pb_indicator_GO(geo, phys, u, z):
     # u .. primal solution
     # z .. dual solution
@@ -356,7 +356,7 @@ def simple_pb_indicator_GO(geo, phys, u, z):
             inner(flux, phys.grad(w))*r*dx + k*u*w*r*dx0 \
             -geo.linearRHS(w*r, "volcharge")
             -Clscale(1)*geo.NeumannRHS(w*r, "surfcharge"))
-            
+
     # global functional value
     def J(w):
         return assemble(inner(flux, phys.grad(w))*r*dx + k*u*w*r*dx0)
@@ -372,5 +372,5 @@ def simple_pb_indicator_GO(geo, phys, u, z):
     error_rep = abs(R(Ez))*scale
 
     return indicators, error_rep
-    
+
 

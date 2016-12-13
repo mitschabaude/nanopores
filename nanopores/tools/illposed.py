@@ -317,7 +317,8 @@ class Functional(object):
 
     def evaluate(self):
         try:
-            e = assemble_scalar(self.form)
+            e = assemble(self.form)
+            #e = assemble_scalar(self.form)
         except TypeError:
             e = self.form  #maybe it's already a float
         self.values.append(e)
@@ -363,7 +364,8 @@ class Functional(object):
             replace(self.form,{f0:f})
         else:
             J = self.form
-        e = assemble_scalar(J)
+        #e = assemble_scalar(J)
+        e = assemble(J)
         self.values.append(e)
         return e
 
@@ -371,6 +373,7 @@ class Functional(object):
 def assemble_scalar(form):
     # assembles rank-0 form using the MPI communicator of the form's mesh,
     # i.e. sum values over processes only if mesh is distributed.
+    # FIXME: line below does not work in dolfin >= 2016.1
     comm = form.domain().data().mpi_comm()
     z = numpy.empty(shape=(0,2), dtype="uintp")
     tl = dolfin.TensorLayout(comm, z, 0, 0, z, False)

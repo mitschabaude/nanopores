@@ -3,6 +3,7 @@
 from dolfin import *
 from ..tools import *
 from .params_physical import *
+import ufl
 
 parameters["allow_extrapolation"] = True
 parameters["refinement_algorithm"] = "plaza_with_parent_facets"
@@ -104,7 +105,7 @@ class PNPS(PDESystem):
             rho = Constant(phys.Moleculeqs)
             rho0 = Constant(phys.Moleculeqv)
             div = phys.div
-            r = Expression("x[0]")
+            r = Expression("x[0]", degree=1)
             eta2 = Constant(2.*eta)
 
             F_dict = {}
@@ -442,6 +443,9 @@ class PNPS(PDESystem):
     # workaround for the time being:
     #adapt = rebuild
 
+def _element(mesh):
+    dim = mesh.topology().dim()
+    return ufl.cell.simplex(dim)
 
 class StokesProblem(AdaptableLinearProblem):
     k = 2
@@ -555,8 +559,8 @@ class PNPProblem(AdaptableNonlinearProblem):
 
     @staticmethod
     def space(mesh):
-        V = FunctionSpace(mesh, 'CG', PNPProblem.k)
-        P1 = FiniteElement('P', tetrahedron, 1)
+        #V = FunctionSpace(mesh, 'CG', PNPProblem.k)
+        P1 = FiniteElement('P', _element(mesh), PNPProblem.k)
         P = MixedElement((P1, P1, P1))
         return FunctionSpace(mesh, P)
         #return MixedFunctionSpace((V, V, V))
@@ -665,8 +669,8 @@ class StokesProblemEqualOrder(StokesProblem):
     def space(mesh):
         k = StokesProblemEqualOrder.k
         # Define function space
-        U = VectorElement('P', tetrahedron, k)
-        P = FiniteElement('P', tetrahedron, 1)
+        U = VectorElement('P', _element(mesh), k)
+        P = FiniteElement('P', _element(mesh), 1)
         return FunctionSpace(mesh, U*P)
 #        U = VectorFunctionSpace(mesh, 'CG', k)
 #        P = FunctionSpace(mesh, 'CG', k)

@@ -48,8 +48,8 @@ applylowerqs = False
 couplebVtoQmol = False
 exactMqv = False
 adaptMqv = True
-UMol = lambda dim: tuple(0. for i in dim) # velocity on molecule
-U0 = lambda dim: tuple(0. for i in dim)
+UMol = lambda dim: tuple(0. for i in range(dim)) # velocity on molecule
+U0 = lambda dim: tuple(0. for i in range(dim))
 
 noslip = dict(
     noslip = "U0",
@@ -85,7 +85,7 @@ def Moleculeqs(geo, Qmol): # Molecule surface charge density [C/m**2]
     try:
         lscale = geo.parameter("nm")/nm
         scale = dolfin.Constant(1.0/lscale**2)
-        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
+        r = dolfin.Expression("2*pi*x[0]", degree=1)*scale if geo.params["dim"] == 2 else scale
         MolArea = dolfin.assemble(r('+')*geo.dS("moleculeb"))
         return Qmol/MolArea if MolArea > 0. else 0.
     except Exception:
@@ -100,7 +100,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
         #return -327926363.681 #-305959545.378
     elif adaptMqv:
         scale = dolfin.Constant(1.0/lscale**3)
-        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
+        r = dolfin.Expression("2*pi*x[0]", degree=1)*scale if geo.params["dim"] == 2 else scale
         def compute(geo):
             vol = dolfin.assemble(r*geo.dx("molecule"))
             return Qmol/vol if vol > 0. else 0.
@@ -110,7 +110,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
     try:
         lscale = geo.parameter("nm")/nm
         scale = dolfin.Constant(1.0/lscale**3)
-        r = dolfin.Expression("2*pi*x[0]")*scale if geo.params["dim"] == 2 else scale
+        r = dolfin.Expression("2*pi*x[0]", degree=1)*scale if geo.params["dim"] == 2 else scale
         MolVol = dolfin.assemble(r*geo.dx("molecule"))
         return Qmol/MolVol if MolVol > 0. else 0.
     except Exception:
@@ -165,7 +165,7 @@ initial_ions = {
 }
 
 def r2pi(geo, dim):
-    return dolfin.Expression("2*pi*x[0]") if dim == 2 else dolfin.Constant(1.0)
+    return dolfin.Expression("2*pi*x[0]", degree=1) if dim == 2 else dolfin.Constant(1.0)
 
 # TODO: i don't know yet how we should handle functionals
 '''

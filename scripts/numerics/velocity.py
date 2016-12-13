@@ -12,6 +12,9 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False,
                       taylorhood=False, stokesLU=False, **kwargs):
     if not stokesLU and not cyl:
         StokesProblem.method["iterative"] = True
+    else:
+        StokesProblem.method["iterative"] = False
+    #PNPProblem.method["iterative"] = False
     PNPProblem.method["kparams"]["relative_tolerance"] = 1e-10
     PNPProblem.method["kparams"]["absolute_tolerance"] = 1e-6
     PNPProblem.method["kparams"]["nonzero_intial_guess"] = False
@@ -23,7 +26,7 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False,
         maximum_iterations = 2000,
         nonzero_initial_guess = True,
         )
-    PNPS.tolnewton = 1e-3
+    PNPS.tolnewton = 1e-7
     PNPS.alwaysstokes = True
 
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
@@ -77,10 +80,11 @@ def F(x, dim=3, UMol=None, **params):
         pb, pnps = pbpnps(geo, phys, cyl=cyl, **params)
         #dolfin.plot(geo.submesh("solid"), key="b", title="solid mesh")
         values.append(pnps.forces())
-        pnps.visualize("fluid")
+        pnps.visualize("pore")
     F, Fel, Fdrag = tuple(zip(*values))
     return dict(F=F, Fel=Fel, Fdrag=Fdrag)
 
-print F([[0.,0.,0.]], Nmax=1e4, UMol=(0.,.01), dim=3,
-        taylorhood=False, cheapest=True, cache=False)
+print F([[0.,0.,0.]], Nmax=1e5, UMol=(0.,0.1,0.05), dim=3, dnaqsdamp=0.5,
+        taylorhood=False, cheapest=True, cache=False, h3D=2.,
+        stokesLU=True)
 
