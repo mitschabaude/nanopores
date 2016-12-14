@@ -26,11 +26,11 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
     z = phys.dim - 1
-    
+
     bV = phys.bV
     print "biased voltage:", bV
     phys.bV = 0.
-    goal = lambda v : phys.Fbare(v, z) # phys.Fbaresurf(v, z) # + 
+    goal = lambda v : phys.Fbare(v, z) # phys.Fbaresurf(v, z) # +
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
     phys.bV = bV
     pb.maxcells = Nmax
@@ -40,9 +40,9 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     pb.add_functionals([QmolEff])
     refined = True
     i = 0
-    
+
     print "Number of cells:", pb.geo.mesh.num_cells()
-        
+
     while refined:
         i += 1
         if phys.dim == 3:
@@ -52,7 +52,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
         # solve pb
         pb.single_solve()
         pb.print_functionals()
-        
+
         # define and solve pnps
         '''
         if i==1:
@@ -94,7 +94,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             #pb.save_estimate("Fs", abs((Fshear-Fsref)/Fsref), N=dofs)
             Fref = Felref + Fdragref
             pb.save_estimate("F", abs((F-Fref)/Fref), N=dofs)
-        
+
         print "\nAdaptive refinement."
         (ind, err) = pb.estimate()
         pb.save_estimate("Fpb est", err, N=dofs)
@@ -105,7 +105,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             print "New total number of cells:", pb.geo.mesh.num_cells()
 
     return pb, pnps
-    
+
 def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
         ratio=.01, mesh2D=None, cheapest=False):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
@@ -122,7 +122,7 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
     pb.add_functionals([QmolEff])
     refined = True
     i = 0
-    
+
     print "Number of cells:", pb.geo.mesh.num_cells()
     while refined:
         i += 1
@@ -133,7 +133,7 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
         # solve pb
         pb.single_solve()
         pb.print_functionals(name="Fbare")
-        
+
         #plot(pb.geo.mesh)
         #plot(pb.geo.submesh("membrane"))
         #plot(pb.geo.submesh("pore"))
@@ -147,7 +147,7 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
             plot1D({"phi, N=%s" %dofs: pb.solution}, (-Rz, Rz, 101), "z", dim=3,
                 origin=(r0, 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
             #     origin=(0., 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
-        
+
         print "\nError estimation."
         (ind, err) = pb.estimate()
         print "\nMesh refinement."
@@ -157,7 +157,8 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
         else:
             print "New total number of cells:", pb.geo.mesh.num_cells()
     return pb
-    
+
+
 def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
     LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
     PNPStokes = PNPSAxisym if cyl else PNPS
@@ -173,7 +174,7 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
         pb.estimate = pb.estimate_cheap
     refined = True
     i = 0
-    
+
     print "Number of cells:", pb.geo.mesh.num_cells()
     while refined:
         i += 1
@@ -187,7 +188,7 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
             print "Maximal number of cells reached."
         else:
             print "New total number of cells:", pb.geo.mesh.num_cells()
-            
+
     pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=True)
     print "\nSolving PNPS."
     dofs = pnps.dofs()
@@ -199,11 +200,11 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
 def newton_solve(self, tol=None, damp=None, verbose=True):
     if tol is None: tol = self.tolnewton
     if damp is None: damp = self.newtondamp
-    S = self.solvers.values()[0]    
+    S = self.solvers.values()[0]
     S.newtondamp = damp
     tcum = 0.
     Uold = self.solutions(deepcopy=True)
-    
+
     for i in range(self.imax):
         tloop = Timer("loop")
         S.solve()
@@ -214,11 +215,11 @@ def newton_solve(self, tol=None, damp=None, verbose=True):
                 print "     Break loop because tolerance %s was reached." %tol
             converged = True
             break
-        # cumulative time 
+        # cumulative time
         tcum += tloop.stop()
         # calculate the error
         U = self.solutions(deepcopy=True)
-        err = sum(errornorm(u, uold, "L2", degree_rise=0) for u, uold in zip(U, Uold)) / sum(norm(u, "L2") for u in U) 
+        err = sum(errornorm(u, uold, "L2", degree_rise=0) for u, uold in zip(U, Uold)) / sum(norm(u, "L2") for u in U)
         Uold = U
         self.save_estimate("err newton i", err, N=i+1)
         self.save_estimate("err newton time", err, N=tcum)
@@ -229,22 +230,22 @@ def newton_solve(self, tol=None, damp=None, verbose=True):
     print "     Newton iterations:",i+1
         #print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
-    
+
 
 def hybrid_solve(self, tol=None, damp=None):
     for _ in self.fixedpoint():
-        try:        
+        try:
             v = self.functions["poisson"]
             plot(v)
             #interactive()
         except: pass
 
-            
+
 def geo_debug(geo):
     print "Boundaries:"
     for i in geo._bou2phys:
         print "%d: %s" %(i, str(geo._bou2phys[i]))
-        
+
     for subd in geo._physical_domain:
         submesh = geo.submesh(subd)
         geo_sub = geo_from_subdomains(submesh,
@@ -252,18 +253,18 @@ def geo_debug(geo):
         plot(geo_sub.boundaries, title=("boundaries on %s" %subd), elevate=-3e1)
         #plot(submesh, title=("initial mesh on %s" %subd), wireframe=True, elevate=-3e1)
     interactive()
-    
+
 def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True, plot_cells=False):
     #vertex = VertexFunction("bool", mesh, False)
     dgncells = CellFunction("size_t", mesh, 0)
-    
+
     ndeg = 0
     for c in cells(mesh):
         if c.radius_ratio() < ratio:
             dgncells[c] = 1
             ndeg += 1
-    
-    print "%s degenerate cells of radius ratio < %s." % (ndeg, ratio)            
+
+    print "%s degenerate cells of radius ratio < %s." % (ndeg, ratio)
     minrr = MeshQuality.radius_ratio_min_max(mesh)[0]
     print "Minimal radius ratio of mesh:", minrr
     if plothist:
@@ -284,7 +285,7 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True, plot_c
             oldcells = CellFunction("size_t", oldmesh, 0)
             oldcells.array()[:] = dgncells.array()
             plot(SubMesh(oldmesh, oldcells, 1), "old degenerate cells N=%s" %mesh.num_cells())
-            
+
 def save_Fref(pb, pnps):
     z = pnps.phys.dim - 1
     fs = pnps.get_functionals()
@@ -301,9 +302,9 @@ def save_Fref(pb, pnps):
         Fpbref = Fpbref,
     )
     save_dict(data, ".", "Fref")
-    
+
 def load_Fref():
     return load_dict(".", "Fref")
-    
-            
-            
+
+
+

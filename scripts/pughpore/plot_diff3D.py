@@ -5,8 +5,8 @@ from itertools import product
 from folders import fields, FIGDIR
 #fields.update()
 
-D2D = fields.get_field("pugh_diff2D_test", "D")[0]
-data = fields.get_fields("pugh_diff3D_test", bulkbc=True)
+#D2D = fields.get_field("pugh_diff2D_test", "D")[0]
+data = fields.get_fields("pugh_diff3D_test", bulkbc=True, rMolecule=0.11)
 
 #def _sorted(data, key):
 #    I = sorted(range(len(key)), key=lambda k: key[k])
@@ -35,10 +35,10 @@ for i in range(3):
     style = "s-"
     plt.plot(x, Dxx, style, label=r"$D_{%s%s}$" % (dstr[i], dstr[i]))
 
-plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
+#plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
 plt.xlabel("distance from pore center [nm]")
 plt.ylabel("diffusivity relative to bulk")
-plt.legend(loc="best") #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
+plt.legend(loc="lower left") #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
 plt.gcf().set_size_inches(5, 4)
-#nanopores.savefigs("pugh_diff3D", FIGDIR)
+#nanopores.savefigs("pugh_diff3D_r0.11", FIGDIR)
 plt.show()

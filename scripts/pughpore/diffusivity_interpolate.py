@@ -12,9 +12,12 @@ import nanopores
 
 # read user parameters
 params = nanopores.user_params(
-    dim = 3,
-    h = 2.,
-    Nmax = 2e6,
+#    dim = 3,
+#    h = 2.,
+#    Nmax = 2e6,
+    dim = 2,
+    h = 1.,
+    Nmax = 1e5,
     r = 2.0779,
 )
 
@@ -25,26 +28,19 @@ if not f.exists("Dpugh", **params):
     data, z = f._sorted(data, z)
     Dz = data["D"]
 
-    data = f.get_fields("pugh_diff3D_test", rMolecule=params.r, bulkbc=True)
+    data = f.get_fields("pugh_diff3D", rMolecule=params.r, bulkbc=True)
     x = [x[0] for x in data["x"]]
     data, x = f._sorted(data, x)
     Dt = [d[2][2] for d in data["D"]]
     Dn = [d[0][0] for d in data["D"]]
 
-    l0 = pugh.pughpore.params["l3"]
     r = params.r
     eps = 1e-2
-    R = l0/2. - r
-    x += [R, l0/2.+eps]
-    x = list(reversed([l0/2.-t for t in x]))
-    x += [100.]
-
-    Dn += [eps, 0.]
-    Dn = list(reversed([d/Dn[0] for d in Dn]))
-    Dn += [1.]
-    Dt += [eps, 0.]
-    Dt = list(reversed([d/Dt[0] for d in Dt]))
-    Dt += [1.]
+    x = [-eps, r] + x + [100.]
+    Dn = [d/Dn[-1] for d in Dn]
+    Dt = [d/Dt[-1] for d in Dt]
+    Dn = [0., eps] + Dn + [1.]
+    Dt = [0., eps] + Dt + [1.]
 
     fz = interp1d(z, Dz)
     fn = interp1d(x, Dn)
@@ -54,6 +50,8 @@ if not f.exists("Dpugh", **params):
     plt.figure()
     plt.plot(x, fn(x), "s-")
     plt.plot(x, ft(x), "s-")
+    plt.show()
+    exit()
 
     # get geometry, prerefine mesh, compute distance function
     setup = pugh.Setup(dim=params.dim, x0=None, h=params.h, Nmax=params.Nmax,

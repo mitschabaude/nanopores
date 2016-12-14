@@ -2,6 +2,7 @@ from importlib import import_module
 from nanopores import *
 from nanopores.geometries.curved import Cylinder, Sphere, Circle
 from mysolve import pbpnps
+import nanopores.tools.solvers as solvers
 
 __all__ = ["setup2D", "solve2D", "setup3D", "solve3D"]
 
@@ -32,9 +33,10 @@ Ry = 12.,
 bulkcon = 3e2,
 stokesLU = False, # determines solver behaviour in 3D
 lcpore = 0.5, # relative mesh width of pore in 3D
+dim = 2,
 )
 
-def geo_params(z0, rMolecule, Rx, Ry): 
+def geo_params(z0, rMolecule, Rx, Ry):
     x0 = None if z0 is None else [0., 0., z0]
     return dict(
 x0 = x0,
@@ -45,7 +47,7 @@ Rx = Rx,
 Ry = Ry,
 )
 
-def geo_params3D(x0, rMolecule, Rx, Ry, lcpore): 
+def geo_params3D(x0, rMolecule, Rx, Ry, lcpore):
     return dict(
 x0 = x0,
 rMolecule = rMolecule*nm3D,
@@ -66,6 +68,111 @@ bV = bV,
 qTarget = Qmol*qq,
 rTarget = rMolecule*1e-9
 )
+
+# make compatible with setup paradigm and new style physics
+default_geop = Params(geo_params3D(x0, rMolecule, Rx, Ry, lcpore))
+default_geop["dim"] = dim
+default_physp = Params(phys_params(bV, Qmol, dnaqsdamp, rMolecule, bulkcon))
+default_physp["Qmol"] = Qmol
+default_physp["bulkbc"] = False
+default_solverp = Params(
+    h = 2.,
+    Nmax = 1e4,
+    frac = 0.2,
+    cheapest = False,
+    stokesLU = False,
+)
+default = dict(geop=default_geop, physp=default_physp, solverp=default_solverp)
+
+class Setup(solvers.Setup):
+    default = default
+
+    def init_geo(self):
+        if self.geop.dim == 3:
+            generate_mesh(self.solverp.h, geo_name3D, **self.geop)
+            geo = geo_from_name(geo_name3D, **self.geop)
+
+            # define cylinders for DNA and side boundaries
+            innerdna = Cylinder(R=geo.params["r0"], L=geo.params["l0"])
+            outerdna = Cylinder(R=geo.params["r1"], L=geo.params["l0"])
+            side = Cylinder(R=geo.params["R"], L=2.*geo.params["Rz"])
+            geo.curved = dict(
+                innerdnab = innerdna.snap,
+                outerdnab = outerdna.snap,
+                membranednab = outerdna.snap,
+                sideb = side.snap,
+                outermembraneb = side.snap,
+                )
+            # define sphere for molecule
+            if self.geop.x0 is not None:
+                molec = Sphere(R=geo.params["rMolecule"],
+                               center=geo.params["x0"])
+                geo.curved.update(moleculeb = molec.snap)
+
+        if self.geop.dim == 2:
+            generate_mesh(self.solverp.h, geo_name, **self.geop)
+            geo = geo_from_name(geo_name, **self.geop)
+            if self.geop.x0 is not None:
+                molec = Circle(geo.params["rMolecule"],
+                               geo.params["x0"][::2])
+                geo.curved = dict(moleculeb = molec.snap)
+        # compatibility with new style physics current
+        geo.params["lpore"] = geo.params["l0"]
+        self.geo = geo
+
+
+    def init_phys(self):
+        cyl = self.geop.dim == 2
+        self.phys = Physics("pore_mol", self.geo, cyl=cyl, **self.physp)
+        #self.phys = Physics(phys_name, self.geo, **self.physp)
+
+    def prerefine(self, visualize=False):
+        return prerefine(self, visualize=visualize)
+
+from nanopores.models.pughpore import prerefine
+#def prerefine_old(setup, visualize=False):
+#    geo, phys, p = setup.geo, setup.phys, setup.solverp
+#    cyl = phys.dim == 2
+#    dolfin.tic()
+#
+#    LinearPB = LinearPBAxisymGoalOriented if cyl else LinearPBGoalOriented
+#    z = phys.dim - 1
+#    bV = phys.bV
+#    phys.update(bV=0.)
+#    goal = (lambda v : phys.Fbare(v, z)) if geo.parameter("x0")\
+#            else (lambda v : phys.CurrentPB(v))
+#    pb = LinearPB(geo, phys, goal=goal)
+#    phys.update(bV=bV)
+#    pb.maxcells = p.Nmax
+#    pb.marking_fraction = p.frac
+#    if p.cheapest:
+#        pb.estimate = pb.estimate_cheap
+#    refined = True
+#    i = 0
+#
+#    print "Number of cells:", pb.geo.mesh.num_cells()
+#    while refined:
+#        i += 1
+#        print "\nSolving PB."
+#        pb.single_solve()
+#        if visualize:
+#            if phys.dim==3:
+#                plot_sliced_mesh(geo, title="adapted mesh", key="b",
+#                                      elevate=-90. if i==1 else 0.)
+#            if phys.dim==2:
+#                dolfin.plot(geo.boundaries, key="b", title="adapted mesh",
+#                            scalarbar=False)
+#        print "\nError estimation."
+#        (ind, err) = pb.estimate()
+#        print "\nMesh refinement."
+#        refined = pb.refine(ind)
+#        if not refined:
+#            print "Maximal number of cells reached."
+#        else:
+#            print "New total number of cells:", pb.geo.mesh.num_cells()
+#
+#    print "CPU time (PB): %.3g s" %(dolfin.toc(),)
+#    return pb
 
 # TODO this should depend on the geo_params
 def polygon(rMem = 20.):
@@ -91,26 +198,26 @@ def setup2D(mesh=None, **params):
         z0 = round(z0, 4)
     geop = geo_params(z0, rMolecule, Rx, Ry)
     physp = phys_params(bV, Qmol, dnaqsdamp, rMolecule, bulkcon)
-    
+
     if mesh is None:
         generate_mesh(h, geo_name, **geop)
         geo = geo_from_name(geo_name, **geop)
     else:
         geo = geo_from_name(geo_name, mesh=mesh, **geop)
-    
+
     if z0 is not None:
         molec = Circle(R=geo.params["rMolecule"], center=geo.params["x0"][::2])
         geo.curved = dict(moleculeb = molec.snap)
-    
+
     phys = Physics(phys_name, geo, **physp)
     #phys.permittivity = {"default": phys.permittivity["water"]}
     return geo, phys
 
 def solve2D(geo, phys, **params):
     globals().update(params)
-    return pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax, cheapest=cheapest)    
+    return pbpnps(geo, phys, cyl=True, frac=frac, Nmax=Nmax, cheapest=cheapest)
 
-# evaluate finite-size model for a number of z positions    
+# evaluate finite-size model for a number of z positions
 def F_explicit(z, **params):
     import dolfin
     values = []
@@ -122,7 +229,7 @@ def F_explicit(z, **params):
         values.append(pnps.zforces())
     F, Fel, Fdrag = tuple(zip(*values))
     return F, Fel, Fdrag
-     
+
 # evaluate point-size model for a number of z positions
 def F_implicit(z, **params):
     geo, phys = setup2D(z0=None, **params)
@@ -139,7 +246,7 @@ def F_field_implicit(**params):
     (v, cp, cm, u, p) = pnps.solutions()
     F, Fel, Fdrag = phys.Forces(v, u)
     return F, Fel, Fdrag
-    
+
 # 3D from here on
 def setup3D(mesh=None, **params):
     # pass mesh argument to prevent mesh regeneration
@@ -150,13 +257,13 @@ def setup3D(mesh=None, **params):
         x0 = [round(t, 4) for t in x0]
     geop = geo_params3D(x0, rMolecule, Rx, Ry, lcpore)
     physp = phys_params(bV, Qmol, dnaqsdamp, rMolecule, bulkcon)
-    
+
     if mesh is None:
         generate_mesh(h3D, geo_name3D, **geop)
         geo = geo_from_name(geo_name3D, **geop)
     else:
         geo = geo_from_name(geo_name3D, mesh=mesh, **geop)
-        
+
     # define cylinders for inner and outer DNA boundary and side boundary
     innerdna = Cylinder(R=geo.params["r0"], L=geo.params["l0"])
     outerdna = Cylinder(R=geo.params["r1"], L=geo.params["l0"])
@@ -173,11 +280,11 @@ def setup3D(mesh=None, **params):
     if x0 is not None:
         molec = Sphere(R=geo.params["rMolecule"], center=geo.params["x0"])
         geo.curved.update(moleculeb = molec.snap)
-    
+
     phys = Physics(phys_name, geo, **physp)
     #phys.permittivity = {"default": phys.permittivity["water"]}
-    return geo, phys    
-    
+    return geo, phys
+
 def solve3D(geo, phys, **params):
     globals().update(params)
     if not stokesLU:
@@ -193,11 +300,11 @@ def solve3D(geo, phys, **params):
         maximum_iterations = 2000,
         nonzero_initial_guess = True,
         )
-    PNPS.tolnewton = 1e-3    
+    PNPS.tolnewton = 1e-3
     PNPS.alwaysstokes = True
     return pbpnps(geo, phys, frac=frac3D, Nmax=Nmax3D, cheapest=cheapest)
 
-# evaluate finite-size model for a number of z positions    
+# evaluate finite-size model for a number of z positions
 def F_explicit3D(x, **params):
     import dolfin
     values = []
@@ -209,7 +316,7 @@ def F_explicit3D(x, **params):
         values.append(pnps.forces())
     F, Fel, Fdrag = tuple(zip(*values))
     return F, Fel, Fdrag
-     
+
 # evaluate point-size model for a number of z positions
 def F_implicit3D(z, **params):
     geo, phys = setup2D(z0=None, **params)
@@ -225,4 +332,4 @@ def F_field_implicit3D(**params):
     pb, pnps = solve2D(geo, phys, **params)
     (v, cp, cm, u, p) = pnps.solutions()
     F, Fel, Fdrag = phys.Forces(v, u)
-    return F, Fel, Fdrag    
+    return F, Fel, Fdrag

@@ -41,6 +41,7 @@ synonymes = {
     "nopressure":{"upperb","lowerb"},
     "ground":"upperb",
     "bV":"lowerb",
+    "memb":"membraneb",
 }
 
 def norm2(x, y, z=0.0):

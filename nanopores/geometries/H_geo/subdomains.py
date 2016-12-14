@@ -40,6 +40,8 @@ synonymes = {
     "solid":{"dna", "membrane", "molecule"},
     "ions":"fluid",
     "bulk":{"upperb","lowerb"}, #,"rightfluidb"},
+    "sideb":"rightfluidb",
+    "memb":"membraneb",
     "chargeddnab":{"chargeddnainb","chargeddnaoutb"},
     "dnab":{"chargeddnab","unchargeddnab"},
     "noslip":{"dnab","membraneb"}, #"moleculeb"},

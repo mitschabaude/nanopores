@@ -14,7 +14,7 @@ up = nano.user_params(h=6., Nmax=1.7e5, H=60., R=60.)
 params = dict(
     H = up.H,
     R = up.R,
-    center_z_at_x0 = False, #True,
+    center_z_at_x0 = True, #False, #True,
     dim = 3,
     h = up.h,
     Nmax = up.Nmax,
@@ -40,11 +40,11 @@ def calculate_diff_field(params):
     X = fields.get_entry("pughx", "x", k=3)
     return D_tensor(X, nproc=1, **params)
 
-def calculate_1D_profile(params, N=96, H=50.):
+def calculate_1D_profile(params, N=100, H=50.):
     Z = np.linspace(-H, H, N)
     X = [[0.,0.,z] for z in Z]
-    params2D = dict(params, h=.2, Nmax=1e5, H=16., R=8.)
-    diffusion.calculate_diffusivity2D(X, nproc=2, name="pugh_diff2D", **params2D)
+    params2D = dict(params, h=1., Nmax=1e5, H=150., R=75.)
+    diffusion.calculate_diffusivity2D(X, nproc=5, name="pugh_diff2D", **params2D)
 
 def calculate_diff_plot(params):
     # calculate 2D reference value
@@ -62,6 +62,7 @@ def calculate_diff_plot(params):
     # calculate
     D_tensor(X, name="pugh_diff3D_test", nproc=2, **params)
 
+# TODO: next time, use geometry with x=0 corresponding to the wall!!
 def calculate_D_outside(params):
     # create points for 3D
     eps = 1e-2
@@ -76,8 +77,14 @@ def calculate_D_outside(params):
     D_tensor(X, name="pugh_diff3D_test", nproc=5, **params)
 
 if __name__ == "__main__":
+    pass
     #D_tensor([[params["R"]/2. + 9./2.,0.,0.]], cache=False,
     #         name="pugh_diff3D_test", nproc=1, **params)
     #calculate_diff_plot(params)
-    #calculate_1D_profile(params, N=96, H=50.)
-    calculate_D_outside(params)
+#    X = [[0.,0.,40.]]
+#    params2D = dict(params, h=1., Nmax=1e5, H=150., R=75.)
+#    diffusion.calculate_diffusivity2D(X, nproc=1, cache=False,
+#                                      name="pugh_diff2D", **params2D)
+
+    #calculate_1D_profile(params)
+    #calculate_D_outside(params)

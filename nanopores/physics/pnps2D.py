@@ -358,6 +358,17 @@ class PNPProblemAxisym(AdaptableNonlinearProblem):
 
         L = Lpoisson + LJm + LJp - Lq
 
+        # quasi-static boundary conditions on moving particle
+        if "moleculeb" in geo._physical_boundary:
+            n = FacetNormal(mesh)
+            aQSBCp = inner(lscale*cp*uold*dp*r2pi, n)("-")*geo.dS("moleculeb")
+            aQSBCm = inner(lscale*cm*uold*dm*r2pi, n)("-")*geo.dS("moleculeb")
+            a = a + aQSBCp + aQSBCm
+
+            LQSBCp = inner(lscale*cpold*uold*dp*r2pi, n)("-")*geo.dS("moleculeb")
+            LQSBCm = inner(lscale*cmold*uold*dm*r2pi, n)("-")*geo.dS("moleculeb")
+            L = L + LQSBCp + LQSBCm
+
         if not bcs:
             try:
                 bcs = [geo.BC(X.sub(0), Constant(phys.bV), "bV")] if phys.bV else []

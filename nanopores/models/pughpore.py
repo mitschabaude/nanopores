@@ -25,6 +25,7 @@ physp = nano.Params(
     dnaqsdamp = .5,
     bV = -0.1,
     rDPore = .9,
+    bulkbc = True,
 ),
 solverp = nano.Params(
     h = 1.5,
@@ -49,13 +50,16 @@ class Setup(solvers.Setup):
         if self.geop.dim == 2:
             geo = pughpore.get_geo_cyl(self.solverp.h, **self.geop)
             molec = nano.curved.Circle(geo.params["rMolecule"],
-                                       geo.params["x0"])
+                                       geo.params["x0"][::2])
         geo.curved = dict(moleculeb = molec.snap)
         self.geo = geo
 
     def init_phys(self):
         cyl = self.geop.dim == 2
         self.phys = nano.Physics("pore_mol", self.geo, cyl=cyl, **self.physp)
+
+    def prerefine(self, visualize=False):
+        return prerefine(self, visualize=visualize)
 
 class Plotter(object):
     def __init__(self, setup=None, dim=3):
