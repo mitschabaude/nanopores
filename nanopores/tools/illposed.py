@@ -8,7 +8,7 @@ from warnings import warn
 __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
     "replace_function_in_form", "AdaptableLinearProblem",
     "IllposedNonlinearSolver",  "AdaptableNonlinearProblem",
-    "AdaptableBC", "Functional", "assemble_scalar"]
+    "AdaptableBC", "Functional", "assemble_scalar", "meshelement"]
 
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
@@ -369,6 +369,9 @@ class Functional(object):
         self.values.append(e)
         return e
 
+def meshelement(mesh):
+    dim = mesh.topology().dim()
+    return ["interval", "triangle", "tetrahedron"][dim-1]
 
 def assemble_scalar(form):
     # assembles rank-0 form using the MPI communicator of the form's mesh,

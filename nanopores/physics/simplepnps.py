@@ -4,7 +4,7 @@ from dolfin import *
 from collections import OrderedDict
 from nanopores.tools import (CoupledProblem, solvermethods,
     GeneralNonlinearProblem, GeneralLinearProblem, CoupledSolver,
-    GoalAdaptivePDE)
+    GoalAdaptivePDE, meshelement)
 from nanopores.models.mysolve import mesh_quality
 
 __all__ = ["SimplePNPProblem", "SimplePBProblem", "SimpleStokesProblem",
@@ -20,8 +20,12 @@ class SimplePNPProblem(GeneralNonlinearProblem):
 
     @staticmethod
     def space(mesh, k=1):
-        V = FunctionSpace(mesh, "CG", k)
-        return MixedFunctionSpace((V, V, V))
+        if dolfin.__version__ == "1.6.0":
+            V = FunctionSpace(mesh, "CG", k)
+            return MixedFunctionSpace((V, V, V))
+        P1 = FiniteElement("P", meshelement(mesh), k)
+        P = MixedElement((P1, P1, P1))
+        return FunctionSpace(mesh, P)
 
     @staticmethod
     def initial_u(V, geo, phys, v0=None):
@@ -48,7 +52,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
         n = FacetNormal(geo.mesh)
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
 
@@ -105,7 +109,7 @@ class SimpleLinearPBProblem(GeneralLinearProblem):
         cyl = phys.cyl
         dx = geo.dx()
         dx_ions = geo.dx("fluid")
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
 
@@ -173,7 +177,7 @@ class SimplePoissonProblem(GeneralLinearProblem):
     @staticmethod
     def forms(V, geo, phys, f=None, dxf=None, cyl=False):
         dx = geo.dx()
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
         eps = geo.pwconst("permittivity")
@@ -204,7 +208,7 @@ class LinearSGPoissonProblem(GeneralLinearProblem):
     @staticmethod
     def forms(V, geo, phys, u, cp, cm, dx_ions, cyl=False):
         dx = geo.dx()
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
         eps = geo.pwconst("permittivity")
@@ -237,7 +241,7 @@ class SGPoissonProblem(GeneralNonlinearProblem):
     @staticmethod
     def forms(V, geo, phys, u, uold, cp, cm, dx_ions, cyl=False):
         dx = geo.dx()
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         lscale = Constant(phys.lscale)
         grad = phys.grad
         eps = geo.pwconst("permittivity")
@@ -282,7 +286,7 @@ class SimpleNernstPlanckProblem(GeneralLinearProblem):
             D = geo.pwconst("D")
 
         dx = geo.dx("fluid")
-        r2pi = Expression("2*pi*x[0]") if cyl else Constant(1.0)
+        r2pi = Expression("2*pi*x[0]", degree=1) if cyl else Constant(1.0)
         grad = phys.grad
         kT = Constant(phys.kT)
         q = Constant(phys.qq)
@@ -305,9 +309,14 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
     @staticmethod
     def space(mesh, ku=1, kp=1):
-        U = VectorFunctionSpace(mesh, 'CG', ku)
-        P = FunctionSpace(mesh, 'CG', kp)
-        return U*P
+        if dolfin.__version__ == "1.6.0":
+            U = VectorFunctionSpace(mesh, "CG", ku)
+            P = FunctionSpace(mesh, "CG", kp)
+            return U*P
+        U = VectorElement("P", meshelement(mesh), ku)
+        P = FiniteElement("P", meshelement(mesh), kp)
+        return FunctionSpace(mesh, U*P)
+
 
     @staticmethod
     def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True):
@@ -325,7 +334,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         lscale = phys.lscale
 
         dx = geo.dx("fluid")
-        r = Expression("x[0]/L", L=Constant(lscale))
+        r = Expression("x[0]/L", L=Constant(lscale), degree=1)
         pi2 = Constant(2.*pi)
         h = CellSize(mesh)
         delta = Constant(beta/lscale**2)*h**2

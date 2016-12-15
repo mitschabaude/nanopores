@@ -5,7 +5,7 @@ import numpy as np
 import nanopores as nano
 import nanopores.physics.simplepnps as pnps
 
-def diffusivity(setup):
+def diffusivity(setup, visualize=False):
     v0 = .001
     geo, phys = setup.geo, setup.phys
     r = setup.geop.rMolecule
@@ -15,11 +15,13 @@ def diffusivity(setup):
     if geo.mesh.num_cells() < setup.solverp.Nmax:
         setup.prerefine(True)
 
-    if dim==3:
+    if dim==3 and geo.mesh.num_cells()>2e5:
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
         iterative = True
     else:
+        pnps.SimpleStokesProblem.method["lusolver"] = "default"
         iterative = False
+
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))
     U1 = dolfin.Constant(tuple((v0 if i==dim-1 else 0.) for i in range(dim)))
 
@@ -36,6 +38,8 @@ def diffusivity(setup):
                             phys=phys, iterative=iterative, bcs=bcs)
     F = stokes.evaluate(phys.Fdrag)["Fdrag"]
     print F
+    if visualize:
+        stokes.visualize("fluid")
 
     pi = phys.pi
     eta = phys.eta
@@ -63,12 +67,11 @@ def diffusivity_tensor(setup):
     if geo.mesh.num_cells() < setup.solverp.Nmax:
         setup.prerefine(True)
 
-    iterative = False
     if dim==3 and geo.mesh.num_cells()>2e5:
-        #pnps.SimpleStokesProblem.method["lusolver"] = "superlu"
         pnps.SimpleStokesProblem.method["kparams"]["maximum_iterations"] = 5000
         iterative = True #False
     else:
+        pnps.SimpleStokesProblem.method["lusolver"] = "default"
         iterative = False
 
     U0 = dolfin.Constant(tuple(0. for i in range(dim)))
@@ -109,6 +112,7 @@ def diffusivity_tensor(setup):
 if __name__ == "__main__":
     #from nanopores.models.pughpore import Setup
     from nanopores.models.Howorka import Setup
-    setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,-8.1], dnaqsdamp=0.1)
-    diffusivity(setup)
+    #setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
+    setup = Setup(dim=3, Nmax=1.7e5, h=.7, x0=[0.,0.,4.6], dnaqsdamp=0.1)
+    diffusivity(setup, True)
     dolfin.interactive()
