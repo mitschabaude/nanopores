@@ -1,4 +1,5 @@
 from dolfin import *
+import os
 import ufl
 import nanopores
 from nanopores.tools.illposed import AdaptableBC, adaptmeshfunction, adaptfunction
@@ -711,6 +712,7 @@ def mark_domains_with_function(subdomains, physical_domain, flist, params):
 
 def geo_from_subdomains(mesh, module, check_midpoint=False, **params):
     subd = import_module(module)
+    subd = reload(subd)
 
     (subdomains, physical_domain) = make_domain(mesh, subd.subdomain_list(**params), check_midpoint)
     (boundaries, physical_boundary) = make_boundary(mesh, subd.boundaries_list(**params), check_midpoint)
@@ -723,7 +725,9 @@ def geo_from_subdomains(mesh, module, check_midpoint=False, **params):
 def geo_from_name(name, mesh=None, check_midpoint=False, **params):
 
     if not mesh:
-        mesh = Mesh("%s/%s/mesh/mesh.xml" %(nanopores.DATADIR,name))
+        pid = str(os.getpid())
+        print pid
+        mesh = Mesh("%s/%s/mesh/mesh%s.xml" %(nanopores.DATADIR, name, pid))
 
     module = "nanopores.geometries.%s.subdomains" %name
     tmp = vars(import_module('nanopores.geometries.%s.params_geo' %name))

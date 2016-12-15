@@ -5,10 +5,9 @@ import numpy as np
 import nanopores as nano
 import nanopores.physics.simplepnps as pnps
 
-def diffusivity(setup, visualize=False):
+def friction(setup, visualize=False):
     v0 = .001
     geo, phys = setup.geo, setup.phys
-    r = setup.geop.rMolecule
     dim = setup.phys.dim
     cyl = setup.phys.cyl
 
@@ -40,12 +39,17 @@ def diffusivity(setup, visualize=False):
     print F
     if visualize:
         stokes.visualize("fluid")
+    gamma = abs(F[dim-1]/v0)
+    return gamma
 
+def diffusivity(setup, visualize=False):
+    phys = setup.phys
+    r = setup.geop.rMolecule
     pi = phys.pi
     eta = phys.eta
     kT = phys.kT
 
-    gamma = abs(F[dim-1]/v0)
+    gamma = friction(setup, visualize=visualize)
     gamma0 = 6.*pi*eta*r*1e-9
     print "gamma (simulation):", gamma
     print "gamma (stokes law):", gamma0
@@ -57,10 +61,9 @@ def diffusivity(setup, visualize=False):
     print "Reducing factor due to confinement:", D/D0
     return D/D0
 
-def diffusivity_tensor(setup):
+def friction_tensor(setup):
     v0 = .001
     geo, phys = setup.geo, setup.phys
-    r = setup.geop.rMolecule
     dim = setup.phys.dim
     cyl = setup.phys.cyl
 
@@ -93,10 +96,15 @@ def diffusivity_tensor(setup):
         gamma[:,i0] = abs(np.array(F)/v0)
         #dolfin.plot(stokes.solutions()[0])
         #dolfin.plot(stokes.solutions()[1])
+    return gamma
 
+def diffusivity_tensor(setup):
+    phys = setup.phys
+    r = setup.geop.rMolecule
     pi = phys.pi
     eta = phys.eta
     kT = phys.kT
+    gamma = friction_tensor(setup)
 
     gamma0 = 6.*pi*eta*r*1e-9
     print "gamma (simulation):\n", gamma
@@ -113,6 +121,6 @@ if __name__ == "__main__":
     #from nanopores.models.pughpore import Setup
     from nanopores.models.Howorka import Setup
     #setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
-    setup = Setup(dim=3, Nmax=1.7e5, h=.7, x0=[0.,0.,4.6], dnaqsdamp=0.1)
-    diffusivity(setup, True)
+    setup = Setup(dim=3, Nmax=1.7e5, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
+    diffusivity_tensor(setup)
     dolfin.interactive()

@@ -6,7 +6,7 @@ from folders import fields, FIGDIR
 #fields.update()
 
 #D2D = fields.get_field("pugh_diff2D_test", "D")[0]
-data = fields.get_fields("pugh_diff3D_test", bulkbc=True, rMolecule=0.11)
+data = fields.get_fields("pugh_diff3D_cross", bulkbc=True, rMolecule=2.0779)
 
 #def _sorted(data, key):
 #    I = sorted(range(len(key)), key=lambda k: key[k])

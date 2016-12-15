@@ -3,6 +3,7 @@ from nanopores import *
 from nanopores.geometries.curved import Cylinder, Sphere, Circle
 from mysolve import pbpnps
 import nanopores.tools.solvers as solvers
+import dolfin
 
 __all__ = ["setup2D", "solve2D", "setup3D", "solve3D"]
 
@@ -112,6 +113,8 @@ class Setup(solvers.Setup):
         if self.geop.dim == 2:
             generate_mesh(self.solverp.h, geo_name, **self.geop)
             geo = geo_from_name(geo_name, **self.geop)
+            #dolfin.plot(geo.boundaries)
+            #dolfin.interactive()
             if self.geop.x0 is not None:
                 molec = Circle(geo.params["rMolecule"],
                                geo.params["x0"][::2])

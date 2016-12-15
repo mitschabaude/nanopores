@@ -15,13 +15,15 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, optimize=True, **params
            ...
     Out: geo_dict... file identifier dictionary + geo_dict
     """
-
+    pid = str(os.getpid())
     inputfile = "input%s.geo" %pid
     outfile = "out%s.msh" %pid
     meshfile = "mesh%s.xml" %pid
 
-    py4geo = "geometries.%s.py4geo" %gid
-    exec('from %s import get_geo' %py4geo)
+    py4geo = "nanopores.geometries.%s.py4geo" %gid
+    #exec('from %s import get_geo' %py4geo)
+    mod = import_module(py4geo)
+    get_geo = mod.get_geo
 
     # create path/to/nanoporesdata/gid/mesh if not already there
     meshdir = os.path.join(nanopores.DATADIR, gid, "mesh")
@@ -53,16 +55,16 @@ def generate_mesh(clscale, gid, xml=True, pid="", dim=3, optimize=True, **params
         subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
         # for debugging:
         #convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
-        
-        
+
+
     # optionally, write metadata to file ("meta" should be dict)
     if "meta" in geo_dict:
         save(geo_dict["meta"], meshdir, "meta%s" %pid)
 
     geo_dict.update(fid_dict)
     return geo_dict
-    
-    
+
+
 def save(data, dir=".", name="file"):
     with open('%s/%s.txt' % (dir,name), 'w') as f:
         f.write(repr(data))

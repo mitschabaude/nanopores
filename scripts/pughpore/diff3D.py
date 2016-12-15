@@ -10,7 +10,7 @@ import dolfin
 def tolist(array):
     return [list(a) for a in array]
 
-up = nano.user_params(h=6., Nmax=1.7e5, H=60., R=60.)
+up = nano.user_params(h=1., Nmax=2e5, H=10., R=3.1)
 params = dict(
     H = up.H,
     R = up.R,
@@ -72,9 +72,19 @@ def calculate_D_outside(params):
     R0 = l0/2. + r + eps
     R1 = (l0/2. + params["R"])/2.
     X = [[t, 0., 0.] for t in np.linspace(R0, R1, 40)]
-
-    # calculate
     D_tensor(X, name="pugh_diff3D_test", nproc=5, **params)
+
+def calculate_D_inside(params):
+    # create points for 3D
+    eps = 1e-2
+    l3 = pugh.pughpore.params["l3"]
+    r = params["rMolecule"]
+    eps = 1e-2
+    R0 = 0.
+    R1 = l3/2. - r - eps
+    X = [[t, 0., -1.] for t in np.linspace(R0, R1, 30)]
+    D_tensor(X, name="pugh_diff3D_cross", nproc=5,
+             dnaqsdamp=0.0, lcMolecule=.4, cheapest=True, **params)
 
 if __name__ == "__main__":
     pass
@@ -88,3 +98,8 @@ if __name__ == "__main__":
 
     #calculate_1D_profile(params)
     #calculate_D_outside(params)
+#    D_tensor([[0.5, 0., -1.]], cache=False, dnaqsdamp=0.0, lcMolecule=.4,
+#             cheapest=True,
+#             name="pugh_diff3D_cross", nproc=1, **params)
+#    dolfin.interactive()
+    calculate_D_inside(params)
