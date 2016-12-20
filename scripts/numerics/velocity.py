@@ -174,7 +174,8 @@ def velocities(X, **params):
 # working 3D setup
 #x = [0.2, 0., 0.]
 #setup = Howorka.Setup(dim=3, Nmax=1.5e5, h=1., x0=x, dnaqsdamp=0.5, Qmol=-1.)
-params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25, Qmol=-1., bulkcon=300.)
+params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
+                     Qmol=-1., bulkcon=300.)
 do_plot = False
 
 Z = np.linspace(-6., 6., 42)
