@@ -25,7 +25,7 @@ geop = nano.Params(pughpore.params)
 rMolecule = geop.rMolecule
 N = 2e4
 
-data = f.get_fields("pugh_diffusivity2D", rMolecule=rMolecule, h=4., Nmax=N)
+data = f.get_fields("pugh_diffusivity2D", rMolecule=rMolecule)#, h=4., Nmax=N)
 Z, D = zsorted(data, "D")
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt

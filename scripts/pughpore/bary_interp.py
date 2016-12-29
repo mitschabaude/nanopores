@@ -2,10 +2,16 @@ from matplotlib.collections import PolyCollection
 from matplotlib import cm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 import nanopores.geometries.pughpore as pughpore
 import nanopores
-from inv_interp import Fel, Fdrag, F, J, Fuz
+from  scipy.interpolate import LinearNDInterpolator
+import numpy as np
+from nanopores.tools import fields
+import folders
+from mirror import xf, Felx, Fely, Felz, Fdragx, Fdragy, Fdragz, Fx, Fy, Fz, Jf, Ja
+xf=np.array(xf)
+f=LinearNDInterpolator(xf,Ja)
+
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
@@ -42,17 +48,17 @@ poly.set_alpha(.3)
 ax.set_xlim3d(-15, 15)
 ax.set_ylim3d(-15, 15)
 ax.set_zlim3d(1.1e-9,1.3e-9)
-lx=40*2
-ly=80*2
-#X_=np.linspace(-R*.5,R*.5,lx)
-X_=np.linspace(-l3*.5+r,l3*.5-r)
+lx=80
+ly=160
+X_=np.linspace(-R*.5,R*.5,lx)
 Y_=np.linspace(-hpore*.5,hpore*.5,ly)
+#X_=np.linspace(-(l3*.5-r),l3*.5-r)
 X, Y = np.meshgrid(X_,Y_)
 #np.save('X',X)
 #np.save('Y',Y)
-#ZJ=np.array([[J([X_[i],0.,Y_[j]]) for i in range(X_.shape[0])] for j in range(Y_.shape[0])])
-#np.save('ZJ4_shrink_dist5',ZJ)
-ZJ=np.load('ZJ4_shrink_dist20.npy')
+#ZJ=np.array([[f.__call__(np.array([X_[i],0.,Y_[j]]))[0] for i in range(X_.shape[0])] for j in range(Y_.shape[0])])
+#np.save('J_int_shrink',ZJ)
+ZJ=np.load('J_int.npy')
 surf=ax.plot_surface(X,Y,ZJ, rstride=1, cstride=1, cmap=cm.viridis, linewidth=0., alpha=1.)
 fig.colorbar(surf, shrink=0.5, aspect=5)
 

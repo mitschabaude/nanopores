@@ -46,11 +46,15 @@ from mirror import xf, Felx, Fely, Felz, Fdragx, Fdragy, Fdragz, Fx, Fy, Fz, Jf,
 #
 #plt.show()
 lenx=len(xf)
-p=2.
+p=4.
+maxdist=5.
 def d(x,y):
     return (x[0]-y[0])**2+(x[1]-y[1])**2+(x[2]-y[2])**2
 def w(i,x):
-    return 1./(d(x,xf[i])**(p/2.))
+    dist=d(x,xf[i])**.5
+    if dist<=maxdist:
+        return 1./(d(x,xf[i])**p)
+    else: return 0.
 def Point(x):
     if x in xf:
         return xf.index(x)

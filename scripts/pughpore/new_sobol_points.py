@@ -91,7 +91,7 @@ for i in list(reversed(range(X_points.shape[0]))): # cut off other triangle
         X_points = np.delete(X_points,i)
         Y_points = np.delete(Y_points,i)
 
-print '# points = %d\n# z-values =%d\n# totals points= %d'%(
+print '# points in plane = %d\n# z-values =%d\n# totals points= %d'%(
     X_points.shape[0],z.shape[0],X_points.shape[0]*z.shape[0])
 
 X, Y, Z = np.array([]), np.array([]), np.array([]) # concatenate all arrays
@@ -104,107 +104,108 @@ for j in range(z.shape[0]):
     Z = np.append(Z,Z_p)
 array=[[X[i],Y[i],Z[i]] for i in range(X.shape[0])]
 
-##fields.save_entries("pughx", dict(up), x=array, N=len(array))
-##fields.update()
+if __name__ == "__main__":
+    fields.save_entries("pughx_new", dict(up), x=array, N=len(array))
+    fields.update()
 
-def surfx(y1,y2,z1,z2,d,size,rs,cs):
-    Y = np.linspace(y1,y2,size)
-    Z = np.linspace(z1,z2,size)
-    Y, Z = np.meshgrid(Y,Z)
-    X = np.zeros(size)+d
-    surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
-                           alpha=alpha,color=color)
+    def surfx(y1,y2,z1,z2,d,size,rs,cs):
+        Y = np.linspace(y1,y2,size)
+        Z = np.linspace(z1,z2,size)
+        Y, Z = np.meshgrid(Y,Z)
+        X = np.zeros(size)+d
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
 
-def surfy(x1,x2,z1,z2,d,size,rs,cs):
-    X = np.linspace(x1,x2,size)
-    Z = np.linspace(z1,z2,size)
-    X, Z = np.meshgrid(X,Z)
-    Y = np.zeros(size)+d
-    surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
-                           alpha=alpha,color=color)
+    def surfy(x1,x2,z1,z2,d,size,rs,cs):
+        X = np.linspace(x1,x2,size)
+        Z = np.linspace(z1,z2,size)
+        X, Z = np.meshgrid(X,Z)
+        Y = np.zeros(size)+d
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
 
-def surfz(x1,x2,y1,y2,d,size,rs,cs):
-    X = np.linspace(x1,x2,size)
-    Y = np.linspace(y1,y2,size)
-    X, Y = np.meshgrid(X,Y)
-    Z = np.zeros(size)+d
-    surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
-                           alpha=alpha,color=color)
+    def surfz(x1,x2,y1,y2,d,size,rs,cs):
+        X = np.linspace(x1,x2,size)
+        Y = np.linspace(y1,y2,size)
+        X, Y = np.meshgrid(X,Y)
+        Z = np.zeros(size)+d
+        surf = ax.plot_surface(X,Y,Z, rstride=rs, cstride=cs,
+                               alpha=alpha,color=color)
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.view_init(elev=0,azim=270)
-ax.set_xlim([-.5*R,.5*R])
-ax.set_ylim([-.5*R,.5*R])
-ax.set_zlim([-.5*H,.5*H])
-#ax.set_aspect(1)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.view_init(elev=0,azim=270)
+    ax.set_xlim([-.5*R,.5*R])
+    ax.set_ylim([-.5*R,.5*R])
+    ax.set_zlim([-.5*H,.5*H])
+    #ax.set_aspect(1)
 
-size=10
-alpha=.1
-rs, cs = 1, 1
-color='blue'
+    size=10
+    alpha=.1
+    rs, cs = 1, 1
+    color='blue'
 
-#front
-surfy(-.5*l3,.5*l3,-.5*hpore,.5*hpore-h2,.5*l3,size,1,1)
-surfy(-.5*l2,.5*l2,.5*hpore-h2,.5*hpore-h1,.5*l2,size,5,1)
-surfy(-.5*l1,.5*l1,.5*hpore-h1,.5*hpore,.5*l1,size,10,1)
-surfy(.5*l0,-.5*l0,-.5*hpore+hmem,.5*hpore,.5*l0,size,5,5)
-#front-right
-surfy(.5*l3,.5*l2,-.5*hpore,.5*hpore-h2,0.,size,5,5)
-surfy(.5*l2,.5*l1,-.5*hpore,.5*hpore-h1,0.,size,5,5)
-surfy(.5*l1,.5*l0,-.5*hpore+hmem,.5*hpore,0.,size,5,5)
-surfy(.5*l4,.5*R,-.5*hpore,-.5*hpore+hmem,0.,size,5,5)
-#front-left
-surfy(-.5*l3,-.5*l2,-.5*hpore,.5*hpore-h2,0.,size,5,5)
-surfy(-.5*l2,-.5*l1,-.5*hpore,.5*hpore-h1,0.,size,5,5)
-surfy(-.5*l1,-.5*l0,-.5*hpore+hmem,.5*hpore,0.,size,5,5)
-surfy(-.5*l4,-.5*R,-.5*hpore,-.5*hpore+hmem,0.,size,5,5)
+    #front
+    surfy(-.5*l3,.5*l3,-.5*hpore,.5*hpore-h2,.5*l3,size,1,1)
+    surfy(-.5*l2,.5*l2,.5*hpore-h2,.5*hpore-h1,.5*l2,size,5,1)
+    surfy(-.5*l1,.5*l1,.5*hpore-h1,.5*hpore,.5*l1,size,10,1)
+    surfy(.5*l0,-.5*l0,-.5*hpore+hmem,.5*hpore,.5*l0,size,5,5)
+    #front-right
+    surfy(.5*l3,.5*l2,-.5*hpore,.5*hpore-h2,0.,size,5,5)
+    surfy(.5*l2,.5*l1,-.5*hpore,.5*hpore-h1,0.,size,5,5)
+    surfy(.5*l1,.5*l0,-.5*hpore+hmem,.5*hpore,0.,size,5,5)
+    surfy(.5*l4,.5*R,-.5*hpore,-.5*hpore+hmem,0.,size,5,5)
+    #front-left
+    surfy(-.5*l3,-.5*l2,-.5*hpore,.5*hpore-h2,0.,size,5,5)
+    surfy(-.5*l2,-.5*l1,-.5*hpore,.5*hpore-h1,0.,size,5,5)
+    surfy(-.5*l1,-.5*l0,-.5*hpore+hmem,.5*hpore,0.,size,5,5)
+    surfy(-.5*l4,-.5*R,-.5*hpore,-.5*hpore+hmem,0.,size,5,5)
 
-#top-front
-surfz(-.5*l0,.5*l0,.5*l1,.5*l0,.5*hpore,size,10,1)
-surfz(-.5*l1,.5*l1,.5*l2,.5*l1,.5*hpore-h1,size,10,1)
-surfz(-.5*l2,.5*l2,.5*l3,.5*l2,.5*hpore-h2,size,10,1)
-surfz(-.5*R,.5*R,.5*l0,.5*R,-.5*hpore+hmem,size,5,5)
-surfz(-.5*R,.5*R,.5*l0,.5*R,-.5*hpore,size,5,5)
-#top-right
-surfz(.5*l1,.5*l0,0.,.5*l1,.5*hpore,size,5,5)
-surfz(.5*l2,.5*l1,0.,.5*l2,.5*hpore-h1,size,5,5)
-surfz(.5*l3,.5*l2,0.,.5*l3,.5*hpore-h2,size,5,5)
-surfz(.5*l0,.5*R,0.,.5*l0,-.5*hpore+hmem,size,5,5)
-surfz(.5*l0,.5*R,0.,.5*l0,-.5*hpore,size,5,5)
-#top-left
-surfz(-.5*l1,-.5*l0,0.,.5*l1,.5*hpore,size,5,5)
-surfz(-.5*l2,-.5*l1,0.,.5*l2,.5*hpore-h1,size,5,5)
-surfz(-.5*l3,-.5*l2,0.,.5*l3,.5*hpore-h2,size,5,5)
-surfz(-.5*l0,-.5*R,0.,.5*l0,-.5*hpore+hmem,size,5,5)
-surfz(-.5*l0,-.5*R,0.,.5*l0,-.5*hpore,size,5,5)
-#right
-surfx(0.,.5*l1,.5*hpore-h1,.5*hpore,.5*l1,size,5,5)
-surfx(0.,.5*l2,.5*hpore-h2,.5*hpore-h1,.5*l2,size,5,5)
-surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,.5*l3,size,5,5)
-surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,.5*l0,size,5,5)
-#left
-surfx(0.,.5*l1,.5*hpore-h1,.5*hpore,-.5*l1,size,5,5)
-surfx(0.,.5*l2,.5*hpore-h2,.5*hpore-h1,-.5*l2,size,5,5)
-surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,-.5*l3,size,5,5)
-surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,-.5*l0,size,5,5)
-
-
-ax.scatter(X,Y,Z)
-ax.scatter(X,-Y,Z)
-ax.scatter(-X,Y,Z)
-ax.scatter(-X,-Y,Z)
-ax.scatter(Y,X,Z)
-ax.scatter(Y,-X,Z)
-ax.scatter(-Y,X,Z)
-ax.scatter(-Y,-X,Z)
-plt.tight_layout()
-plt.show()
+    #top-front
+    surfz(-.5*l0,.5*l0,.5*l1,.5*l0,.5*hpore,size,10,1)
+    surfz(-.5*l1,.5*l1,.5*l2,.5*l1,.5*hpore-h1,size,10,1)
+    surfz(-.5*l2,.5*l2,.5*l3,.5*l2,.5*hpore-h2,size,10,1)
+    surfz(-.5*R,.5*R,.5*l0,.5*R,-.5*hpore+hmem,size,5,5)
+    surfz(-.5*R,.5*R,.5*l0,.5*R,-.5*hpore,size,5,5)
+    #top-right
+    surfz(.5*l1,.5*l0,0.,.5*l1,.5*hpore,size,5,5)
+    surfz(.5*l2,.5*l1,0.,.5*l2,.5*hpore-h1,size,5,5)
+    surfz(.5*l3,.5*l2,0.,.5*l3,.5*hpore-h2,size,5,5)
+    surfz(.5*l0,.5*R,0.,.5*l0,-.5*hpore+hmem,size,5,5)
+    surfz(.5*l0,.5*R,0.,.5*l0,-.5*hpore,size,5,5)
+    #top-left
+    surfz(-.5*l1,-.5*l0,0.,.5*l1,.5*hpore,size,5,5)
+    surfz(-.5*l2,-.5*l1,0.,.5*l2,.5*hpore-h1,size,5,5)
+    surfz(-.5*l3,-.5*l2,0.,.5*l3,.5*hpore-h2,size,5,5)
+    surfz(-.5*l0,-.5*R,0.,.5*l0,-.5*hpore+hmem,size,5,5)
+    surfz(-.5*l0,-.5*R,0.,.5*l0,-.5*hpore,size,5,5)
+    #right
+    surfx(0.,.5*l1,.5*hpore-h1,.5*hpore,.5*l1,size,5,5)
+    surfx(0.,.5*l2,.5*hpore-h2,.5*hpore-h1,.5*l2,size,5,5)
+    surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,.5*l3,size,5,5)
+    surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,.5*l0,size,5,5)
+    #left
+    surfx(0.,.5*l1,.5*hpore-h1,.5*hpore,-.5*l1,size,5,5)
+    surfx(0.,.5*l2,.5*hpore-h2,.5*hpore-h1,-.5*l2,size,5,5)
+    surfx(0.,.5*l3,-.5*hpore,.5*hpore-h2,-.5*l3,size,5,5)
+    surfx(0.,.5*l0,-.5*hpore+hmem,.5*hpore,-.5*l0,size,5,5)
 
 
-plt.scatter(X_points,Y_points)
-plt.plot([0.,1.,1.,0.,0.,1.],[0.,0.,1.,1.,0.,1.],color='blue')
-ax=plt.gca()
-ax.set_aspect(1)
-plt.tight_layout()
-plt.show()
+    ax.scatter(X,Y,Z)
+    ax.scatter(X,-Y,Z)
+    ax.scatter(-X,Y,Z)
+    ax.scatter(-X,-Y,Z)
+    ax.scatter(Y,X,Z)
+    ax.scatter(Y,-X,Z)
+    ax.scatter(-Y,X,Z)
+    ax.scatter(-Y,-X,Z)
+    plt.tight_layout()
+    plt.show()
+
+
+    plt.scatter(X_points,Y_points)
+    plt.plot([0.,1.,1.,0.,0.,1.],[0.,0.,1.,1.,0.,1.],color='blue')
+    ax=plt.gca()
+    ax.set_aspect(1)
+    plt.tight_layout()
+    plt.show()

@@ -11,15 +11,15 @@ FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
 f.set_dir(DATADIR)
 
-plt.plot([5e-4,.2],[0.,0.],linewidth=2,color='lightgreen')
-plt.plot([.3,1e2],[0.,0.],linewidth=2,color='green')
+plt.plot([5e-4,.1],[0.,0.],linewidth=2,color='lightgreen')
+plt.plot([.2,1e2],[0.,0.],linewidth=2,color='green')
 ax=plt.gca()
 number=(len(sys.argv)==2)
 
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk3",**params)
+data=f.get_fields("randomwalk2",**params)
 t1 = np.array([])
 t2 = np.array([])
 a1 = np.array([])
@@ -33,7 +33,7 @@ for i in range(len(T)):
     tau_off=np.sum(T_)
     amp = (2060.-np.inner(J_,T_)/tau_off)/2060.*100
     if number: ax.text(tau_off,amp,'%i'%i,fontsize=9)
-    if tau_off<.2:
+    if tau_off<.1:
         t1=np.append(t1,np.array([tau_off]))
         a1=np.append(a1,np.array([amp]))
     else:
