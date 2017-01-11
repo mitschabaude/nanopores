@@ -16,13 +16,13 @@ data, z = fields._sorted(data, z)
 v0 = [x[1] for x in data["v0"]]
 v1 = [x[1] for x in data["v1"]]
 
-plt.plot(z, v1, "o--", label="v (exact)")
-plt.plot(z, v0, ".-", label="v (approx.)")
+plt.plot(z, v1, "o-", label="v (exact)")
+plt.plot(z, v0, ".--r", label="v (linear approximation)")
 plt.xlabel("z position of molecule [nm]")
 plt.ylabel("molecule velocity [m/s]")
 plt.legend(loc="upper left")
 #plt.plot(z, np.abs(np.array(v0)-np.array(v1)))
 fig = plt.gcf()
-fig.set_size_inches((6,4.5))
-#nanopores.savefigs("howorka_velo", FIGDIR)
+fig.set_size_inches((5,4))
+nanopores.savefigs("howorka_velo", FIGDIR)
 #plt.show()

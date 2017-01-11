@@ -126,6 +126,8 @@ def pnps(geo, phys, cyl=False, taylorhood=False, stokesLU=True, **kwargs):
 class Values(list):
     def __str__(self):
         return str(self[-1])
+    def tolist(self):
+        return [x.tolist() for x in self]
 
 def velocity_iteration(setup, imax=15):
     dim = setup.geop.dim
@@ -157,7 +159,8 @@ def velocity_iteration(setup, imax=15):
         print "v =", v
 
     #pde.visualize()
-    return f, v[1:], dv
+    v.pop(0)
+    return f, v, dv
 
 @nanopores.tools.solvers.cache_forcefield("howorka_velo1")
 def velocities(X, **params):
@@ -176,27 +179,33 @@ def velocities(X, **params):
 #setup = Howorka.Setup(dim=3, Nmax=1.5e5, h=1., x0=x, dnaqsdamp=0.5, Qmol=-1.)
 params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
                      Qmol=-1., bulkcon=300.)
-do_plot = False
 
 Z = np.linspace(-6., 6., 42)
 X = [[0.,0.,z] for z in Z]
 #X = [[0.,0.,0.]]
-print velocities(X, nproc=7, **params)
+#print velocities(X, nproc=7, **params)
+
+do_plot = True
+redo_plot = False
 
 if do_plot:
-    x = [0., 0., 0.]
-
     imax = user_params(imax=15)["imax"]
-    setup = Howorka.Setup(x0=x, **params)
-    f, v, dv = velocity_iteration(setup, imax)
+    if redo_plot:
+        x = [0., 0., 0.]
+        setup = Howorka.Setup(x0=x, **params)
+        f, v, dv = velocity_iteration(setup, imax)
+        nanopores.save_stuff("velocity_iteration", f.tolist(), v.tolist(), dv.tolist())
+    f, v, dv = nanopores.load_stuff("velocity_iteration")
 
     import matplotlib.pyplot as plt
     dim = params["dim"]
-    plt.semilogy(1e12*np.sqrt(np.sum(np.array(f)**2, 1)), "s-")
-    plt.ylabel("force on molecule [pN]")
+    plt.semilogy(range(1,imax+1), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
+                 "s-", label="net force on molecule")
+    plt.ylabel("force [pN]")
     plt.xlabel("# iterations")
-    #plt.figure()
-    #plt.plot(np.array(v)[1:,dim-1], "s-")
-    #plt.ylabel("infered velocity [m/s]")
-    #plt.xlabel("# iterations")
-    nanopores.savefigs("howorka_velocity_z4.6", FIGDIR)
+    plt.xlim(xmin=1, xmax=imax)
+    plt.xticks(range(1,imax+1))
+    plt.legend(loc="best")
+    fig = plt.gcf()
+    fig.set_size_inches((5,4))
+    nanopores.savefigs("howorka_velocity_z0", FIGDIR)
