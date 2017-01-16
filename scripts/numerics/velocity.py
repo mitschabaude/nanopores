@@ -162,12 +162,12 @@ def velocity_iteration(setup, imax=15):
     v.pop(0)
     return f, v, dv
 
-@nanopores.tools.solvers.cache_forcefield("howorka_velo1")
+@nanopores.tools.solvers.cache_forcefield("howorka_velo2")
 def velocities(X, **params):
     v0, v1 = [], []
     for x0 in X:
         setup = Howorka.Setup(x0=x0, **params)
-        f, v, dv = velocity_iteration(setup, 4)
+        f, v, dv = velocity_iteration(setup, 6)
         assert np.linalg.norm(1e12*f[-1]) < 1e-3
         #assert np.linalg.norm(dv[-1]) < 1e-3*np.linalg.norm(dv[0])
         v0.append(list(v[0]))
@@ -175,23 +175,34 @@ def velocities(X, **params):
     return dict(v0=v0, v1=v1)
 
 # working 3D setup
-#x = [0.2, 0., 0.]
-#setup = Howorka.Setup(dim=3, Nmax=1.5e5, h=1., x0=x, dnaqsdamp=0.5, Qmol=-1.)
-params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
+params = user_params(dim=3, Nmax=1.5e5, h=1., dnaqsdamp=0.25,
                      Qmol=-1., bulkcon=300.)
+# 2D setup
+#params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
+#                     Qmol=-1., bulkcon=300.)
 
-Z = np.linspace(-6., 6., 42)
-X = [[0.,0.,z] for z in Z]
+# along axis
+#Z = np.linspace(-6., 6., 42)
+#X = [[0.,0.,z] for z in Z]
+
+# at crosssection
+r0 = Howorka.params_geo3D.r0
+rMol = Howorka.default_geop.rMolecule
+eps = 1e-2
+R = r0 - rMol - eps
+Z = np.linspace(-R, R, 21)
+X = [[z,0.,0.] for z in Z]
 #X = [[0.,0.,0.]]
-#print velocities(X, nproc=7, **params)
+print velocities(X, nproc=7, name="howorka_velo3D_2", **params)
 
-do_plot = True
+do_plot = False
 redo_plot = False
 
 if do_plot:
     imax = user_params(imax=15)["imax"]
     if redo_plot:
-        x = [0., 0., 0.]
+        x = [0.2, 0., 0.]
+        #x = [0., 0., 0.]
         setup = Howorka.Setup(x0=x, **params)
         f, v, dv = velocity_iteration(setup, imax)
         nanopores.save_stuff("velocity_iteration", f.tolist(), v.tolist(), dv.tolist())
@@ -199,7 +210,7 @@ if do_plot:
 
     import matplotlib.pyplot as plt
     dim = params["dim"]
-    plt.semilogy(range(1,imax+1), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
+    plt.semilogy(range(1, imax+1), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
                  "s-", label="net force on molecule")
     plt.ylabel("force [pN]")
     plt.xlabel("# iterations")
@@ -207,5 +218,5 @@ if do_plot:
     plt.xticks(range(1,imax+1))
     plt.legend(loc="best")
     fig = plt.gcf()
-    fig.set_size_inches((5,4))
-    nanopores.savefigs("howorka_velocity_z0", FIGDIR)
+    fig.set_size_inches((4,3))
+    nanopores.savefigs("howorka_velocity_3D_z0", FIGDIR)
