@@ -6,10 +6,10 @@ from utilities import *
 from coupled import *
 from physicsclass import *
 from protocol import *
-from mpipool import *
+#from mpipool import *
 from transientpde import *
 from box import *
 from axisym import *
 import solvermethods
 
-from solvers import *
+#from solvers import *
