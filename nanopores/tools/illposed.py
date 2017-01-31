@@ -1,7 +1,7 @@
 import numpy, dolfin
 from dolfin import *
 from dolfin.fem.solving import _extract_u
-import petsc4py #, mpi4py
+#import petsc4py #, mpi4py
 import ufl
 from warnings import warn
 
@@ -57,57 +57,57 @@ class IllposedLinearSolver(object):
             self.S.set_operator(A)
 
         else:
-            if not "fieldsplit" in self.method:
-                self.method["fieldsplit"] = False
-            if self.method["fieldsplit"]:
-                ksp = petsc4py.PETSc.KSP().create()
-                ksp.setType(petsc4py.PETSc.KSP.Type.TFQMR)
-                pc = ksp.getPC()
-                pc.setType(petsc4py.PETSc.PC.Type.FIELDSPLIT)
+#            if not "fieldsplit" in self.method:
+#                self.method["fieldsplit"] = False
+#            if self.method["fieldsplit"]:
+#                ksp = petsc4py.PETSc.KSP().create()
+#                ksp.setType(petsc4py.PETSc.KSP.Type.TFQMR)
+#                pc = ksp.getPC()
+#                pc.setType(petsc4py.PETSc.PC.Type.FIELDSPLIT)
+#
+#                W = self.problem.u.function_space()
+#                is0 = petsc4py.PETSc.IS().createGeneral(W.sub(0).dofmap().dofs())
+#                is1 = petsc4py.PETSc.IS().createGeneral(W.sub(1).dofmap().dofs())
+#                pc.setFieldSplitIS(('u', is0), ('p', is1))
+#                pc.setFieldSplitType(0) # 0=additive
+#                subksps = pc.getFieldSplitSubKSP()
+#                subksps[0].setType("preonly")
+#                subksps[0].getPC().setType("hypre")
+#                subksps[1].setType("preonly")
+#                subksps[1].getPC().setType("hypre")
+#
+#                A = as_backend_type(A).mat()   # export to petsc4py
+#                if not self.method.has_key("preconditioning_form"):
+#                    ksp.setOperators(A)
+#                else:
+#                    P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
+#                    for bc in self.problem.bcs:
+#                        bc.apply(P)
+#                    if self.illposed:
+#                        P.ident_zeros()
+#                    P = as_backend_type(P).mat()
+#                    ksp.setOperators(A, P)
+#                ksp.setFromOptions()
+#                self.S = ksp
+#
+#            else:
+            ks = (self.method["ks"] if ("ks" in self.method) else "default")
+            kp = (self.method["kp"] if ("kp" in self.method) else "default")
+            self.S = PETScKrylovSolver(ks, kp)
+            try:
+                self.S.parameters.update(self.method["kparams"])
+            except KeyError:
+                pass
 
-                W = self.problem.u.function_space()
-                is0 = petsc4py.PETSc.IS().createGeneral(W.sub(0).dofmap().dofs())
-                is1 = petsc4py.PETSc.IS().createGeneral(W.sub(1).dofmap().dofs())
-                pc.setFieldSplitIS(('u', is0), ('p', is1))
-                pc.setFieldSplitType(0) # 0=additive
-                subksps = pc.getFieldSplitSubKSP()
-                subksps[0].setType("preonly")
-                subksps[0].getPC().setType("hypre")
-                subksps[1].setType("preonly")
-                subksps[1].getPC().setType("hypre")
-
-                A = as_backend_type(A).mat()   # export to petsc4py
-                if not self.method.has_key("preconditioning_form"):
-                    ksp.setOperators(A)
-                else:
-                    P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
-                    for bc in self.problem.bcs:
-                        bc.apply(P)
-                    if self.illposed:
-                        P.ident_zeros()
-                    P = as_backend_type(P).mat()
-                    ksp.setOperators(A, P)
-                ksp.setFromOptions()
-                self.S = ksp
-
+            if self.method.has_key("preconditioning_form"):
+                P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
+                for bc in self.problem.bcs:
+                    bc.apply(P)
+                if self.illposed:
+                    P.ident_zeros()
+                self.S.set_operators(A, P)
             else:
-                ks = (self.method["ks"] if ("ks" in self.method) else "default")
-                kp = (self.method["kp"] if ("kp" in self.method) else "default")
-                self.S = PETScKrylovSolver(ks, kp)
-                try:
-                    self.S.parameters.update(self.method["kparams"])
-                except KeyError:
-                    pass
-
-                if self.method.has_key("preconditioning_form"):
-                    P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
-                    for bc in self.problem.bcs:
-                        bc.apply(P)
-                    if self.illposed:
-                        P.ident_zeros()
-                    self.S.set_operators(A, P)
-                else:
-                    self.S.set_operator(A)
+                self.S.set_operator(A)
 
     def solve(self):
         u = self.problem.u
@@ -118,13 +118,13 @@ class IllposedLinearSolver(object):
             bc.apply(b)
         #print ("Process %s: I'm solving a system of size %s now!" %
         #      (mpi4py.MPI.COMM_WORLD.Get_rank(), self.problem.u.function_space().dim()))
-        if isinstance(self.S, petsc4py.PETSc.KSP):
-            l = as_backend_type(b).vec()
-            (x, _) = self.S.getOperators()[0].getVecs()
-            print "Solving system iteratively with PETSc fieldsplit ..."
-            self.S.solve(l, x)
-            u.vector().set_local(x.array.astype("float_"))
-        elif isinstance(self.S, PETScKrylovSolver):
+#        if isinstance(self.S, petsc4py.PETSc.KSP):
+#            l = as_backend_type(b).vec()
+#            (x, _) = self.S.getOperators()[0].getVecs()
+#            print "Solving system iteratively with PETSc fieldsplit ..."
+#            self.S.solve(l, x)
+#            u.vector().set_local(x.array.astype("float_"))
+        if isinstance(self.S, PETScKrylovSolver):
             i = self.S.solve(u.vector(),b)
             # print DEBUG
             if not "kparams" in self.method or i < self.method["kparams"]["maximum_iterations"]:
