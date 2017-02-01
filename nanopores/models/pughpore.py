@@ -14,6 +14,13 @@ geop = nano.Params(
     dim = 3,
     R = pughpore.params["R"],
     H = pughpore.params["H"],
+    l0 = pughpore.params["l0"],
+    l1 = pughpore.params["l1"],
+    l2 = pughpore.params["l2"],
+    l3 = pughpore.params["l3"],
+    l4 = pughpore.params["l4"],
+    diamPore = None, # will override l0,.. if set
+    diamDNA = 2.5, # will override l0,.. if diamPore set
     x0 = pughpore.params["x0"],
     rMolecule = pughpore.params["rMolecule"],
     lcMolecule = pughpore.params["lcMolecule"],
@@ -43,15 +50,28 @@ class Setup(solvers.Setup):
     default = default
 
     def init_geo(self):
+        if self.geop.diamPore is not None:
+            diamPore = self.geop.diamPore # inner (effective) pore diameter
+            diamDNA = self.geop.diamDNA # dna diameter of outer dna layers
+            l0 = diamPore + 6.*diamDNA
+            l1 = diamPore + 4.*diamDNA
+            l2 = diamPore + 2.*diamDNA
+            l3 = diamPore
+            l4 = l1
+            self.geop.update(l0=l0, l1=l1, l2=l2, l3=l3, l4=l4)
+
         if self.geop.dim == 3:
             geo = pughpore.get_geo(self.solverp.h, **self.geop)
-            molec = nano.curved.Sphere(geo.params["rMolecule"],
-                                       geo.params["x0"])
+            if geo.params["x0"] is not None:
+                molec = nano.curved.Sphere(geo.params["rMolecule"],
+                                           geo.params["x0"])
+                geo.curved = dict(moleculeb = molec.snap)
         if self.geop.dim == 2:
             geo = pughpore.get_geo_cyl(self.solverp.h, **self.geop)
-            molec = nano.curved.Circle(geo.params["rMolecule"],
-                                       geo.params["x0"][::2])
-        geo.curved = dict(moleculeb = molec.snap)
+            if geo.params["x0"] is not None:
+                molec = nano.curved.Circle(geo.params["rMolecule"],
+                                           geo.params["x0"][::2])
+                geo.curved = dict(moleculeb = molec.snap)
         self.geo = geo
 
     def init_phys(self):
@@ -113,10 +133,11 @@ def solve(setup, visualize=False):
     print "Number of cells:", geo.mesh.num_cells()
     print "DOFs:", pnps.dofs()
     dolfin.tic()
-    for i in pnps.fixedpoint(ipnp=5):
+    for i in pnps.fixedpoint(ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
+            #plotter.plot_vector(u, "velocity")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
     return pb, pnps
 

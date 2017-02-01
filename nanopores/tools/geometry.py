@@ -476,6 +476,15 @@ class Geometry(object):
     def __str__(self):
         return "Boundaries:\n%s\nSubdomains:\n%s\n" % (self._physical_boundary, self._physical_domain)
 
+    def plot_mesh(self, **params):
+        plot(self.mesh, **params)
+
+    def plot_subdomains(self, **params):
+        plot(self.subdomains, **params)
+
+    def plot_boundaries(self, **params):
+        plot(self.boundaries, **params)
+
 
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
     def __init__(self, dom2value, subdomains, **kwargs):

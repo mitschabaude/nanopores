@@ -248,12 +248,14 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
 def showplots():
     plt.show()
 
-def savefigs(name="fig", DIR="/tmp/"):
+def savefigs(name="fig", DIR="/tmp/", size=None):
     if not DIR.endswith("/"): DIR = DIR + "/"
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
         label = str(num) if label=="" else label
+        if size is not None:
+            fig.set_size_inches(size)
         fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches="tight")
 
 def saveplots(name="plot", meta=None, uid=False):
