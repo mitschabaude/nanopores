@@ -8,6 +8,7 @@ import nanopores.geometries.pughpore as pughpore
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
 import nanopores.tools.fields as fields
+from nanopores.models.pughpoints import tensorgrid as tensorgrid_
 
 default = nano.Params(
 geop = nano.Params(
@@ -250,6 +251,10 @@ def F_explicit(X, **params):
 #    (v, cp, cm, u, p) = pnps.solutions()
 #    F, Fel, Fdrag = phys.Forces(v, u)
 #    return F, Fel, Fdrag
+
+def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10., **params):
+    setup = SetupNoGeo(**params)
+    return tensorgrid_(nz, nr, plot, eps, eps2, buf, **setup.geop)
 
 if __name__ == "__main__":
     setup = Setup(h=1., Nmax=2e6, dim=3) #, x0=None)
