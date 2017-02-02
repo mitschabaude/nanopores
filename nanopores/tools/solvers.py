@@ -76,12 +76,14 @@ class cache_forcefield(fields.CacheBase):
         self.nproc = nproc
 
     def __call__(self, f):
-        def wrapper(X, cache=True, nproc=self.nproc, name=self.name, **params):
+        def wrapper(X, cache=True, calc=True, nproc=self.nproc,
+                    name=self.name, **params):
             if not cache:
                 return f(X, **params)
-            # calculate remaining points (in parallel)
-            calculate_forcefield(name, X, f, params,
-                                 self.default, nproc)
+            if calc:
+                # calculate remaining points (in parallel)
+                calculate_forcefield(name, X, f, params,
+                                     self.default, nproc)
             # load requested data points
             load_params = dict(self.default, **params)
             try:

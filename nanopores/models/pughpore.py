@@ -49,7 +49,7 @@ defaultp = default.geop | default.physp
 class Setup(solvers.Setup):
     default = default
 
-    def init_geo(self):
+    def init_geo(self, create_geo=True):
         if self.geop.diamPore is not None:
             diamPore = self.geop.diamPore # inner (effective) pore diameter
             diamDNA = self.geop.diamDNA # dna diameter of outer dna layers
@@ -59,7 +59,9 @@ class Setup(solvers.Setup):
             l3 = diamPore
             l4 = l1
             self.geop.update(l0=l0, l1=l1, l2=l2, l3=l3, l4=l4)
-
+        if not create_geo:
+            self.geo = None
+            return
         if self.geop.dim == 3:
             geo = pughpore.get_geo(self.solverp.h, **self.geop)
             if geo.params["x0"] is not None:
@@ -80,6 +82,12 @@ class Setup(solvers.Setup):
 
     def prerefine(self, visualize=False):
         return prerefine(self, visualize=visualize)
+
+class SetupNoGeo(Setup):
+    def __init__(self, geop=None, physp=None, solverp=None, **params):
+        self.init_params(params, geop=geop, physp=physp, solverp=solverp)
+        self.init_geo(create_geo=False)
+        self.init_phys()
 
 class Plotter(object):
     def __init__(self, setup=None, dim=3):

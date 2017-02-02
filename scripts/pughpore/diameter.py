@@ -34,24 +34,39 @@ def Idiam(diam, **params):
 
 params = {2: dict(dim=2, h=1., Nmax=2e4, rDPore=0.95, x0=[0.,0.,0.], diamDNA=2.5,
                   bV=-0.08),
-          3: dict(dim=3, h=2., Nmax=2e5, rDPore=0.95, x0=[0.,0.,0.], diamDNA=2.5,
-                  bV=-0.08, stokesiter=False, cheapest=True)}
+          3: dict(dim=3, h=2., Nmax=5e5, rDPore=0.95, x0=[0.,0.,0.], diamDNA=2.5,
+                  bV=-0.08, stokesiter=True, cheapest=False)}
 
-diam = {2: [3.7, 3.8, 3.9, 4.0, 4.2, 4.4, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.],
-        3: [4.16, 4.2, 4.225, 4.25, 4.275, 4.3, 4.35, 4.4, 4.45, 4.5, 4.6, 4.8, 5.5, 6., 7., 7.5]}
+# old setup
+params1 = dict(params)
+params1[3] = dict(dim=3, h=2., Nmax=2e5, rDPore=0.95, x0=[0.,0.,0.], diamDNA=2.5,
+                  bV=-0.08, stokesiter=False, cheapest=True)
+
+diam = {2: [3.7, 3.8, 3.9, 4.0, 4.2, 4.4, 4.6,
+            4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.],
+        3: [4.16, 4.17, 4.18, 4.19, 4.2, 4.21, 4.22, 4.23, 4.25, 4.275, 4.3, 4.4,
+            4.5, 4.6, 4.8, 5.]}
+# for old setup:
+#        3: [4.16, 4.17, 4.18, 4.19, 4.2, 4.21, 4.22, 4.23, 4.25, 4.275, 4.3, 4.4,
+#            4.45, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
 
 for dim in 2, 3:
-    n = len(diam[dim])
-
     plt.figure("abs_%dD" % dim)
-    result = Idiam(diam[dim], nproc=4, **params[dim])
+    result = Idiam(diam[dim], calc=True, nproc=4, **params[dim])
+    d = result["x"]
+    print "diameters (%dD):" % dim, d
+    print "missing:", set(diam[dim]) - set(d)
+    n = len(d)
     Jon = 1e9*np.array(result["Jon"])
     Joff = 1e9*np.array(result["Joff"])
-    plt.plot(diam[dim], Jon, "s-", label="without molecule")
-    plt.plot(diam[dim], Joff, "s-", label="with molecule")
-    plt.plot(diam[dim], [2.29*0.08]*n, "--k", label="Pugh et al.")
-    plt.fill_between(diam[dim], [(2.29 - 0.26)*0.08]*n, [(2.29 + 0.26)*0.08]*n,
-                     color="#cccccc")
+    plt.plot(d, Jon, "s-b", label="without molecule")
+    plt.plot(d, [2.29*0.08]*n, "--b", label="Pugh et al.")
+    plt.fill_between(d, [(2.29 - 0.26)*0.08]*n, [(2.29 + 0.26)*0.08]*n,
+                     color="#ccccff")
+    plt.plot(d, Joff, "s-g", label="with molecule")
+    plt.plot(d, [2.29*0.08*(1 - 0.262)]*n, "--g", label="Pugh et al.")
+    plt.fill_between(d, [(2.29*(1 - 0.262) - 0.26)*0.08]*n,
+                        [(2.29*(1 - 0.262) + 0.26)*0.08]*n, color="#ccffcc")
     plt.xlabel("pore diameter [nm]")
     plt.ylabel("current at -80mV [nA]")
     #plt.title("influence of pore diameter on current (%dD)" %dim)
@@ -59,13 +74,13 @@ for dim in 2, 3:
 
     plt.figure("drop_%dD" % dim)
     drop = (1. - Joff/Jon)*100
-    plt.plot(diam[dim], drop, "s-", label="% drop with molecule")
-    plt.plot(diam[dim], [26.2]*n, "--k", label="Pugh et al.")
-    plt.fill_between(diam[dim], [26.2 - 0.7]*n, [26.2 + 0.7]*n,
-                     color="#cccccc")
+    plt.plot(d, drop, "s-", label="% drop with molecule")
+    plt.plot(d, [26.2]*n, "--k", label="Pugh et al.")
+    plt.fill_between(d, [26.2 - 0.7]*n, [26.2 + 0.7]*n, color="#cccccc")
     plt.xlabel("pore diameter [nm]")
     plt.ylabel("current drop [%]")
     plt.legend(loc="best")
 
 import folders
-pugh.nano.savefigs("pugh_Idiam", folders.FIGDIR, (5, 4))
+pugh.nano.savefigs("pugh_Idiam", folders.FIGDIR, (10, 8))
+#plt.show()
