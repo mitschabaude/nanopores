@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from dolfin import *
 from nanopores.tools import fields
@@ -17,7 +19,7 @@ HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 
-DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+DATADIR = os.path.join(HOME, "fields")
 
 import nanopores.tools.fields as fields
 fields.set_dir(DATADIR)
@@ -98,4 +100,4 @@ def run(params=params):
     Z=[list(Z)]
     T=[list(T)]
     J1=[list(J1)]
-    fields.save_fields("randomwalk3",params,X=X,Y=Y,Z=Z,T=T,J=J1)
+    fields.save_fields("randomwalk5",params,X=X,Y=Y,Z=Z,T=T,J=J1)

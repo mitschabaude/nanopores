@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 from mpl_toolkits.mplot3d import Axes3D
@@ -12,7 +14,7 @@ import nanopores.tools.fields as f
 HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
-DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+DATADIR = os.path.join(HOME, "fields")
 f.set_dir(DATADIR)
 import sys
 if len(sys.argv)==1:
@@ -28,7 +30,7 @@ hpore=up.hpore
 #J = np.load('J.npy')
 #T = np.load('T.npy')
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk3",**params)
+data=f.get_fields("randomwalk5",**params)
 X = np.array(data["X"][i])
 Y = np.array(data["Y"][i])
 Z = np.array(data["Z"][i])

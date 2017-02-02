@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import matplotlib.pyplot as plt
@@ -8,7 +10,7 @@ import nanopores.tools.fields as f
 HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
-DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+DATADIR = os.path.join(HOME, "fields")
 f.set_dir(DATADIR)
 
 plt.plot([5e-4,.1],[0.,0.],linewidth=2,color='lightgreen')
@@ -19,7 +21,7 @@ number=(len(sys.argv)==2)
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
-data=f.get_fields("randomwalk2",**params)
+data=f.get_fields("randomwalk5",**params)
 t1 = np.array([])
 t2 = np.array([])
 a1 = np.array([])
