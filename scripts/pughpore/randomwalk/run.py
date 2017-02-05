@@ -36,13 +36,50 @@ physp = nano.Physics(name="pore_mol")
 
 kT = physp.kT
 eta = physp.eta
-rMolecule = geop.rMolecule
 #H = geop.H
 #R = geop.R
 H = 100.
 R = 50.
+
+
+l0 = geop.l0
+l1 = geop.l1
+l2 = geop.l2
+l3 = geop.l3
+l4 = geop.l4
 hpore = geop.hpore
+hmem = geop.hmem
 h2 = geop.h2
+h1 = geop.h1
+h4 = geop.h4
+rMolecule = geop.rMolecule
+eps = 0.1
+r = rMolecule + eps
+p0=hpore/2.
+p1=p0-h1
+p2=p0-h2
+p3=-hpore/2.
+
+def fac(z):
+    if z>=p3 and z<=p2:
+        return l3/2.-r
+    elif z>p2 and z<p2+r:
+        x=z-p2
+        return -sqrt(r**2-x**2)+l3/2.
+    elif z>=p2+r and z<=p1:
+        return l2/2.-r
+    elif z>p1 and z<p1+r:
+        x=z-p1
+        return -sqrt(r**2-x**2)+l2/2.
+    elif z>=p1+r and z<=p0:
+        return l0/2.-r
+    elif z>p0 and z<p0+r:
+        x=z-p0
+        return -sqrt(r**2-x**2)+l0/2.
+    elif z<p3 and z>p3-r:
+        x=z-p3
+        return -sqrt(r**2-x**2)+l3/2.
+    else: return R/2.
 
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
 
@@ -74,7 +111,7 @@ def D(x,y,z):
             ang=atan2(y,x)
             ang2=hat(ang)
             A=np.array([[cos(ang),-sin(ang)],[sin(ang),cos(ang)]])
-            dist=sqrt(x**2+y**2)*cos(ang2)/(geop.l3/2.)
+            dist=sqrt(x**2+y**2)*cos(ang2)/(fac(z))
             vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
             vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
             return [list(vec1),list(vec2)]
