@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 import numpy as np
 import nanopores
@@ -9,7 +11,7 @@ HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 
-DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+DATADIR = os.path.join(HOME, "fields")
 
 fields.set_dir(DATADIR)
 
@@ -66,47 +68,54 @@ Dx = interp1d(x,Dxx)
 Dy = interp1d(x,Dyy)
 Dz = interp1d(x,Dzz)
 
-xc=np.linspace(0.,1.,100)
-
-
-plt.plot(x_,Dxx_,color='blue',linestyle=':')
-plt.scatter(x_,Dxx_,color='blue')
-plt.scatter(x,Dxx,color='blue')
-plt.plot(x,Dxx,color='blue',label=r"$D_{%s%s}$" % (dstr[0], dstr[0]))
-plt.plot(xc,Dx(xc),color='blue')
-
 DDxx = [0.]+[(Dxx[i+1]-Dxx[i-1])/(x[i+1]-x[i-1]) for i in range(1,len(x)-1)]+[0.]
-plt.scatter(x,DDxx,color='blue')
-plt.plot(x,DDxx,color='blue')
-
-
-
-plt.plot(x_,Dyy_,color='red',linestyle=':')
-plt.scatter(x_,Dyy_,color='red')
-plt.scatter(x,Dyy,color='red')
-plt.plot(x,Dyy,color='red',label=r"$D_{%s%s}$" % (dstr[1], dstr[1]))
-plt.plot(xc,Dy(xc),color='red')
-
 DDyy = [0.]+[(Dyy[i+1]-Dyy[i-1])/(x[i+1]-x[i-1]) for i in range(1,len(x)-1)]+[0.]
-plt.scatter(x,DDyy,color='red')
-plt.plot(x,DDyy,color='red')
-
-
-
-plt.plot(x_,Dzz_,color='green',linestyle=':')
-plt.scatter(x_,Dzz_,color='green')
-plt.scatter(x,Dzz,color='green')
-plt.plot(x,Dzz,color='green',label=r"$D_{%s%s}$" % (dstr[2], dstr[2]))
-plt.plot(xc,Dz(xc),color='green')
-
 DDzz = [0.]+[(Dzz[i+1]-Dzz[i-1])/(x[i+1]-x[i-1]) for i in range(1,len(x)-1)]+[0.]
-plt.scatter(x,DDzz,color='green')
-plt.plot(x,DDzz,color='green')
+
+dDx = interp1d(x,DDxx)
+dDy = interp1d(x,DDyy)
+dDz = interp1d(x,DDzz)
+
+if __name__=='__main__':
+	xc=np.linspace(0.,1.,100)
+	plt.plot(x_,Dxx_,color='blue',linestyle=':')
+	plt.scatter(x_,Dxx_,color='blue')
+	plt.scatter(x,Dxx,color='blue')
+	#plt.plot(x,Dxx,color='blue')
+	plt.plot(xc,Dx(xc),color='blue',label=r"$D_{%s%s}$" % (dstr[0], dstr[0]))
+
+	plt.scatter(x,DDxx,color='blue')
+	#plt.plot(x,DDxx,color='blue')
+	plt.plot(xc,dDx(xc),color='blue')
 
 
 
-plt.xlabel('distance from pore center [nm]')
-plt.ylabel('diffusivity relative to bulk')
-plt.legend(loc='lower left')
-plt.tight_layout()
-plt.show()
+	plt.plot(x_,Dyy_,color='red',linestyle=':')
+	plt.scatter(x_,Dyy_,color='red')
+	plt.scatter(x,Dyy,color='red')
+	#plt.plot(x,Dyy,color='red')
+	plt.plot(xc,Dy(xc),color='red',label=r"$D_{%s%s}$" % (dstr[1], dstr[1]))
+
+	plt.scatter(x,DDyy,color='red')
+	#plt.plot(x,DDyy,color='red')
+	plt.plot(xc,dDy(xc),color='red')
+
+
+
+	plt.plot(x_,Dzz_,color='green',linestyle=':')
+	plt.scatter(x_,Dzz_,color='green')
+	plt.scatter(x,Dzz,color='green')
+	#plt.plot(x,Dzz,color='green')
+	plt.plot(xc,Dz(xc),color='green',label=r"$D_{%s%s}$" % (dstr[2], dstr[2]))
+
+	plt.scatter(x,DDzz,color='green')
+	#plt.plot(x,DDzz,color='green')
+	plt.plot(xc,dDz(xc),color='green')
+
+
+
+	plt.xlabel('distance from pore center [nm]')
+	plt.ylabel('diffusivity relative to bulk')
+	plt.legend(loc='lower left')
+	plt.tight_layout()
+	plt.savefig('get_new.png')

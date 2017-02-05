@@ -6,10 +6,12 @@ from nanopores.tools import fields
 import sys
 from random import gauss, expovariate
 import math
+from math import atan, pi, atan2, sqrt
 import numpy as np
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
-from get_D import f, fp
+#from get_D import f, fp
+from get_D_new import Dx, Dy, Dz, dDx, dDy, dDz
 from get_J import Jf as J
 import os
 from time import time as timer
@@ -56,6 +58,26 @@ coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 F=[0.,0.,-1e-11]
 #F=[0.,0.,0.]
 
+def hat(ang):
+    x=(ang+pi)%(pi/2.)
+    if x<=pi/4.:
+        return x
+    else:
+        pi/2.-x
+def D(x,y,z):
+    if z>hpore/2. or z<-hpore/2.:
+        return [[1.,1.,1.],[0.,0.,0.]]
+    else:
+        if x==0 and y==0:
+            return [[Dx(0.),Dy(0.),Dz(0.)],[dDx(0.),dDy(0.),dDz(0.)]]
+        else:
+            ang=atan2(y,x)
+            ang2=hat(ang)
+            A=np.array([[cos(ang),-sin(ang)],[sin(ang),cos(ang)]])
+            dist=sqrt(x**2+y**2)*cos(ang2)/(geop.l3/2.)
+            vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
+            vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
+            return [list(vec1),list(vec2)]
 
 def run(params=params):
     X = np.array([0.])
@@ -71,10 +93,10 @@ def run(params=params):
         xi_y=gauss(0.,1.)
         xi_z=gauss(0.,1.)
         Force = F
-        Dfac = f(Z[-1])
-        x_new = X[-1] + coeff*xi_x + C*Force[0]
-        y_new = Y[-1] + coeff*xi_y + C*Force[1]
-        z_new = Z[-1] + coeff*xi_z*math.sqrt(Dfac) + C*Force[2]*Dfac + fp(Z[i])*Dmol*tau
+	[[Dxfac, Dyfac, Dzfac],[DDx,DDy,DDz]]=D(X[-1],Y[-1],Z[-1])
+        x_new = X[-1] + coeff*xi_x*math.sqrt(Dxfac) + C*Force[0]*Dxfac + DDx*tau*Dmol
+        y_new = Y[-1] + coeff*xi_y*math.sqrt(Dyfac) + C*Force[1]*Dyfac + DDy*tau*Dmol
+        z_new = Z[-1] + coeff*xi_z*math.sqrt(Dzfac) + C*Force[2]*Dzfac + DDz*tau*Dmol
         if dis(argument(x_new,y_new,z_new)) < rMolecule:
             x_new = X[-1]
             y_new = Y[-1]
