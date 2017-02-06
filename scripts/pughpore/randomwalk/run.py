@@ -105,12 +105,12 @@ coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 F=[0.,0.,-1e-11]
 #F=[0.,0.,0.]
 
-def hat(ang):
-    x=(ang+pi)%(pi/2.)
+def hatfct(ang):
+    x=(ang+2*pi)%(pi/2.)
     if x<=pi/4.:
         return x
     else:
-        pi/2.-x
+        return pi/2.-x
 def D(x,y,z):
     if z>hpore/2. or z<-hpore/2.:
         return [[1.,1.,1.],[0.,0.,0.]]
@@ -119,8 +119,8 @@ def D(x,y,z):
             return [[Dx(0.),Dy(0.),Dz(0.)],[dDx(0.),dDy(0.),dDz(0.)]]
         else:
             ang=atan2(y,x)
-            ang2=hat(ang)
-            A=np.array([[cos(ang),-sin(ang)],[sin(ang),cos(ang)]])
+            ang2=hatfct(ang)
+            A=np.array([[cos(ang),-sin(ang),0.],[sin(ang),cos(ang),0.],[0.,0.,1.]])
             dist=sqrt(x**2+y**2)*cos(ang2)/(R_(z))
             vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
             vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
@@ -141,9 +141,9 @@ def run(params=params):
         xi_z=gauss(0.,1.)
         Force = F
 	[[Dxfac, Dyfac, Dzfac],[DDx,DDy,DDz]]=D(X[-1],Y[-1],Z[-1])
-        x_new = X[-1] + coeff*xi_x*math.sqrt(Dxfac) + C*Force[0]*Dxfac + DDx*tau*Dmol
-        y_new = Y[-1] + coeff*xi_y*math.sqrt(Dyfac) + C*Force[1]*Dyfac + DDy*tau*Dmol
-        z_new = Z[-1] + coeff*xi_z*math.sqrt(Dzfac) + C*Force[2]*Dzfac + DDz*tau*Dmol
+        x_new = X[-1] + coeff*xi_x*math.sqrt(abs(Dxfac)) + C*Force[0]*Dxfac + DDx*tau*Dmol
+        y_new = Y[-1] + coeff*xi_y*math.sqrt(abs(Dyfac)) + C*Force[1]*Dyfac + DDy*tau*Dmol
+        z_new = Z[-1] + coeff*xi_z*math.sqrt(abs(Dzfac)) + C*Force[2]*Dzfac + DDz*tau*Dmol
         if dis(argument(x_new,y_new,z_new)) < rMolecule:
             x_new = X[-1]
             y_new = Y[-1]
@@ -169,4 +169,4 @@ def run(params=params):
     Z=[list(Z)]
     T=[list(T)]
     J1=[list(J1)]
-    fields.save_fields("randomwalk5",params,X=X,Y=Y,Z=Z,T=T,J=J1)
+    fields.save_fields("randomwalk6",params,X=X,Y=Y,Z=Z,T=T,J=J1)
