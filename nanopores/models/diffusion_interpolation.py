@@ -94,8 +94,9 @@ def cache_pugh_diffusivity(**params):
         r = setup_params.pop("r")
         ddata_z = fields.get_fields("pugh_diff2D", rMolecule=r)
         ddata_r = fields.get_fields("pugh_diff3D", rMolecule=r, bulkbc=True)
-
-        setup = pugh.Setup(x0=None, cheapest=True, **setup_params)
+        if not "cheapest" in setup_params:
+            setup_params["cheapest"] = True
+        setup = pugh.Setup(x0=None, **setup_params)
         functions = diffusivity_field(setup, r, ddata_r, ddata_z)
         fields.save_functions("Dpugh", params, **functions)
         fields.update()

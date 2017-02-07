@@ -4,12 +4,12 @@ import nanopores
 phys = nanopores.Physics("electrolyte")
 
 # parameters
-L = 9. #35.
-diam = 2. #7.5
+L = 35.
+diam = 7.5
 
 nano = 1e-9
 L = nano*L # m
-bV = 0.02 # V
+bV = 0.08 # V
 #A = nano**2 * diam**2 # m**2
 A = nano**2 * diam**2 * 3.141592/4 # m**2
 c0 = 1000 # mol/m**3

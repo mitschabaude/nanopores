@@ -1,6 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from nanopores.geometries.pughpore import params as pugh_params
 from nanopores import Params
@@ -31,7 +32,6 @@ def grid_piecewise1D(nodes, h, N=100, ep=None):
         #print grid
         grids.append(grid)
     #print n
-    #print sum(n)
     return grids
 
 def lround(x, nd):
@@ -60,10 +60,12 @@ def plot_1Dgrid(z, grids):
     plt.xlim(z[0]-1, z[-1]+1)
     plt.axis('off')
 
+def neg(x):
+    return [-t for t in x]
+
 def plot_2Dgrid(xy):
     xx = [xi for (xi, yi) in xy]
     yy = [yi for (xi, yi) in xy]
-    neg = lambda x: [-t for t in x]
     fig = plt.figure("triangle")
     fig.set_size_inches(4, 4)
     plt.scatter(xx, yy, color="red")
@@ -75,9 +77,30 @@ def plot_2Dgrid(xy):
     plt.xlim(-1, 1)
     plt.ylim(-1, 1)
 
+def plot_xz_grid(xyz):
+    # project to x-z plane
+    xy = list(set([(x, z) for x, y, z in xyz]))
+    xx = [xi for (xi, yi) in xy]
+    yy = [yi for (xi, yi) in xy]
+    fig = plt.figure("porexz")
+    fig.set_size_inches(4, 4)
+    plt.scatter(neg(xx) + xx, yy + yy)
+
+def plot_polygon(ax, polygon):
+    settings = dict(closed=True, facecolor="#eeeeee", linewidth=3.,
+                    edgecolor="black")
+    polygon = np.array(polygon)
+    polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
+
+    patch = patches.Polygon(polygon, **settings)
+    patchm = patches.Polygon(polygon_m, **settings)
+    #patch.set_zorder(10)
+    #patchm.set_zorder(10)
+    ax.add_patch(patch)
+    ax.add_patch(patchm)
 
 # will result in roughly nz * nr*(nr+1)/2 points
-def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
+def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
                **params):
     params = Params(pugh_params) | Params(params)
     r = params.rMolecule
@@ -116,20 +139,20 @@ def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
     xyz = tensor(xy, grids, rpore)
 
     if plot:
-        plot_1Dgrid(z, grids)
+        print "Created %d points in z direction." % (sum(len(g) for g in grids),)
+        print "Created %d points in xy direction." % (len(xy),)
+        print "Total number of points:", len(xyz)
+        #plot_1Dgrid(z, grids)
         plot_2Dgrid(xy)
+        plot_xz_grid(xyz)
+        ax = plt.gca()
+        from nanopores.models.pughpore import polygon
+        plot_polygon(ax, polygon())
     return xyz
 
 if __name__ == "__main__":
-    xyz = tensorgrid(nz=40, nr=5, plot=True)
-
-    #for point in xyz:
-    #    print "(%.3f, %.3f, %.3f)" % tuple(point)
-    #
-    #print
-    print "total number of points:", len(xyz)
+    xyz = tensorgrid(nz=30, nr=5, eps2=3e-2, plot=True)
     plt.show()
-
 #........................R.............................
 #                                                     .
 #                                                     .

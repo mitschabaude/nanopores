@@ -34,6 +34,7 @@ physp = nano.Params(
     bV = -0.1,
     rDPore = .9,
     bulkbc = True,
+    Membraneqs = -0.0,
 ),
 solverp = nano.Params(
     h = 1.5,
@@ -255,6 +256,49 @@ def F_explicit(X, **params):
 def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10., **params):
     setup = SetupNoGeo(**params)
     return tensorgrid_(nz, nr, plot, eps, eps2, buf, **setup.geop)
+
+def polygon(rmem = 20., **params):
+    "polygon of pore + membrane for plotting"
+    setup = SetupNoGeo(**params)
+    params = nano.Params(pughpore.params) | setup.geop
+
+    r = [0.5*params.l3, 0.5*params.l2, 0.5*params.l1, 0.5*params.l0,
+         0.5*params.l4, rmem]
+    ztop = params.hpore/2.
+    zbot = -ztop
+    z = [zbot, ztop - params.h2, ztop - params.h1, ztop, zbot + params.h4,
+         zbot + params.hmem]
+    # indices: [(0,0), (0,1), (1,1), (1,2), ..., (5,5), (5,0)]
+    return [(r[i / 2 % 6], z[(i+1) / 2 % 6]) for i in range(12)]
+
+
+#........................R.............................
+#                                                     .
+#                                                     .
+#              .........l0..........                  .
+#              .                   .                  .
+#              ._ _______________ _...............    .
+#              |D|               |D|     .   .   .    .
+#              |D|......l1.......|D|    h1   .   .    .
+#              |D|_ ____l2_____ _|D|......   h2  .    .
+#              |DDD|_ _______ _|DDD|..........   .    .
+#              |DDDDD|       |DDDDD|             .    .
+#              |DDDDD|       |DDDDD|             .    .
+#       DNA--->|DDDDD|       |DDDDD|           hpore  .
+#              |DDDDD|       |DDDDD|             .    .
+#              |DDDDD|..l3...|DDDDD|             .    .
+#   MEMBRANE   |DDDDD|       |DDDDD|             .    H
+#      |       |DDDDD|       |DDDDD|             .    .
+#      |       |DDDDD|       |DDDDD|....h4       .    .
+#______V_________|DDD|       |DDD|_____.________ .___ .......
+#MMMMMMMMMMMMMMMM|DDD|       |DDD|MMMMM.MMMMMMMMM.MMMM.    hmem
+#MMMMMMMMMMMMMMMM|DDD|_______|DDD|MMMMM.MMMMMMMMM.MMMM.......
+#                .               .                    .
+#                .......l4........                    .
+#                                                     .
+#                                                     .
+#                                                     .
+#......................................................
 
 if __name__ == "__main__":
     setup = Setup(h=1., Nmax=2e6, dim=3) #, x0=None)
