@@ -4,6 +4,3 @@ num = sys.argv[1]
 
 for i in range(int(num)):
 	run(params)
-fields.update()
-from plot2 import *
-save_fig(params)

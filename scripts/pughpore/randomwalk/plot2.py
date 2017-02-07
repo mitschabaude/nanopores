@@ -23,7 +23,7 @@ hpore=geop.hpore
 params=dict(avgbind=1e7,P_bind=3.e-4,z0=hpore/2.+5.)
 def save_fig(params=params):
 	figname = str(params["avgbind"])+'_'+str(params["P_bind"])+'_'+str(params["z0"])+'.eps'
-	data=f.get_fields("randomwalk5",**params)
+	data=f.get_fields("randomwalk7",**params)
 	t1 = np.array([])
 	t2 = np.array([])
 	a1 = np.array([])
@@ -57,4 +57,5 @@ def save_fig(params=params):
 	ax.text(.011,-0.03,'I',fontsize=15)
 	ax.text(5.,-0.03,'II',fontsize=15)
 	plt.tight_layout()
-	plt.savefig(figname)
+	nano.savefigs(name='type',DIR='/home/lv70496/benjamin/plots/')
+#	plt.savefig(figname)
