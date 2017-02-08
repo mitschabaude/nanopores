@@ -123,7 +123,7 @@ if __name__ == "__main__":
     plt.ylim(-25, 28)
     #plt.xlabel("x [nm]")
     #plt.ylabel("z [nm]")
-    fig.axes[1].set_ylabel(r"$D/D_0$")
+    fig.axes[1].set_ylabel(r"$D_x / D_0$")
     #cb = fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
     import folders
     nanopores.savefigs("pugh_Dfield", folders.FIGDIR)
