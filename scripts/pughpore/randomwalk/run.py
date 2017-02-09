@@ -157,6 +157,8 @@ def run(params=params):
         X = np.append(X,x_new)
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
+        if abs(Z[-1])>30.:
+            print 'Traceback fehler????????????'
         J1=np.append(J1,J(Z[-1]))
         T =np.append(T,add)
         i+=1
