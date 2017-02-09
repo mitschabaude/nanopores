@@ -63,7 +63,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         q = Constant(phys.qq)
         F = Constant(phys.cFarad)
 
-        (v, cp, cm) = u.split()
+        (v, cp, cm) = split(u) #u.split() # WTF??????
         (w, dp, dm) = TestFunctions(V)
 
         Jm = -Dm*(grad(cm) - q/kT*cm*grad(v)) + cm*ustokes
@@ -83,7 +83,10 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         LJp = lscale*geo.NeumannRHS(dp*r2pi, "cpflux")
 
         L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf - LJm - LJp
-        a = derivative(L, (v, cp, cm))
+        if dolfin.__version__ == "1.6.0":
+            a = derivative(L, (v, cp, cm))
+        else:
+            a = derivative(L, u)
 
         return a, L
 
@@ -413,7 +416,7 @@ class PNPSHybrid(CoupledSolver):
         def couple_pnp(ustokes):
             return dict(ustokes = ustokes.sub(0))
         def couple_stokes(upnp, phys):
-            v, cp, cm = upnp.split()
+            v, cp, cm = split(upnp) #upnp.split()
             f = -phys.cFarad*(cp - cm)*phys.grad(v)
             return dict(f = f)
         couplers = dict(pnp=couple_pnp, stokes=couple_stokes)

@@ -47,7 +47,7 @@ def plot_on_sub(u, geo, sub, expr=None, title=""):
     u0 = u if expr is None else expr
     dolfin.plot(u0, title=title)
 
-def plot_sliced(geo):
+def plot_sliced(geo, **params):
     tol = 1e-5
     class Back(dolfin.SubDomain):
         def inside(self, x, on_boundary):
@@ -62,7 +62,9 @@ def plot_sliced(geo):
     for cell in dolfin.cells(submesh):
         iparent = bb.compute_first_entity_collision(cell.midpoint())
         subsub[cell] = sub[int(iparent)]
-    dolfin.plot(subsub, title="sliced geometry with subdomains", elevate=-90.)
+    plot_params = dict(title="sliced geometry with subdomains",
+                       elevate=-90., **params)
+    dolfin.plot(subsub, **plot_params)
 
 def plot_sliced_mesh(geo, **kwargs):
     tol = 1e-5

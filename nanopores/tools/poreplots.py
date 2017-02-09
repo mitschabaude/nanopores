@@ -94,6 +94,7 @@ if __name__ == "__main__":
     # obtain diffusivity field and project to x-z plane
     functions = get_pugh_diffusivity(**dparams[2])
     D3D = functions["D"][0]
+    
     D0 = nanopores.D
     def F(x, z):
         if x>=0:
