@@ -15,7 +15,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
-           "user_params", "dict_union", "union", "plot_sliced_mesh"]
+           "user_params", "user_param", "dict_union", "union", "plot_sliced_mesh"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -248,12 +248,14 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
 def showplots():
     plt.show()
 
-def savefigs(name="fig", DIR="/tmp/"):
+def savefigs(name="fig", DIR="/tmp/", size=None):
     if not DIR.endswith("/"): DIR = DIR + "/"
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
         label = str(num) if label=="" else label
+        if size is not None:
+            fig.set_size_inches(size)
         fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches="tight")
 
 def saveplots(name="plot", meta=None, uid=False):
@@ -339,8 +341,7 @@ def _argparse():
     return dic
 
 def user_params(default=None, **params):
-    "cleaner version of add_params with less secret module mangling"
-    "(magic is only included for ease of params inheritance)"
+    "cleaner version of add_params without secret module mangling"
     if default is not None:
         params.update({key: default[key] for key in default if not key in params})
     args = _argparse()
@@ -351,6 +352,10 @@ def user_params(default=None, **params):
     #    mod.PARAMS = dict()
     #mod.PARAMS.update(params)
     return Params(params)
+
+def user_param(**params):
+    "expect len(params) = 1"
+    return user_params(**params)[params.keys()[0]]
 
 class Params(dict):
     "for writing params.Qmol instead of params['Qmol']"

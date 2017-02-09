@@ -25,7 +25,8 @@ def plot_D_data(data, label=None, num=None):
     ax.legend(loc="best")
 
 f.update()
-data = f.get_fields("pugh_diff2D", rMolecule=2.0779)
+data = f.get_fields("pugh_diff2D", rMolecule=0.11)
+                    #rMolecule=2.0779)
 plot_D_data(data, "D")
 plt.show()
 exit()

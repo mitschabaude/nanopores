@@ -1,3 +1,4 @@
+# (c) 2016 Gregor Mitscha-Baude
 import dolfin
 import nanopores
 import colormaps as cm
@@ -7,9 +8,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
+def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
                     maxvalue=None, **fields):
-    "streamlines plot of vector field around nanopore"
+    "streamlines plot of 2D vector field around nanopore"
+    # TODO: make work for 3D vector field
 
     # interpolate on regular mesh symmetric w.r.t. center axis
     mesh2D = nanopores.RectangleMesh([-rx-0.1,-ry-0.1], [rx+0.1,ry+0.1], Nx, Ny)
@@ -28,7 +30,7 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
     Y, X = np.mgrid[-ry:ry:Ny*1j, -rx:rx:Nx*1j]
     U = np.zeros((Ny,Nx))
     V = np.zeros((Ny,Nx))
-    formt = matplotlib.ticker.FuncFormatter(fmt)
+    formt = matplotlib.ticker.FuncFormatter(exp_format)
     ticks = [0] + [10**n for n in range(-16, -9)]
 
     # determine uniform color range from fields (maybe round to nearest 10-power)
@@ -66,7 +68,7 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
             ax.add_patch(patch)
             ax.add_patch(patchm)
 
-def fmt(x, pos):
+def exp_format(x, pos):
     a, b = '{:.1e}'.format(x).split('e')
     b = int(b)
     if a=="1.0":
@@ -77,26 +79,53 @@ def fmt(x, pos):
         return r'${}\cdot10^{{{}}}$'.format(a,b)
 
 if __name__ == "__main__":
-    # do the plot with imported force field and polygon
-    from forcefield import F0, Fel0, Fdrag0, params, Howorka
-    print "parameters:", params
+    import nanopores.models.pughpore as pugh
+    from nanopores.models.pughpoints import plot_polygon
+    from nanopores.models.diffusion import get_pugh_diffusivity
 
-    F, Fel, Fdrag = F0, Fel0, Fdrag0
-    poly = Howorka.polygon()
+    from nanopores.tools.utilities import uCross, RectangleMesh
+    from math import pi, sqrt
 
-    rx, ry = 6., 8.
-    porestreamlines(poly, rx, ry, Fel=Fel, Fdrag=Fdrag) #, maxvalue = 1e-11)
+    dparams = {2: dict(diamPore=6.*sqrt(pi)/2., diamDNA=2.5*sqrt(pi)/2.,
+                       Nmax=1.2e5, dim=2, r=0.11, h=.75,
+                       cheapest=False, Membraneqs=-.5),
+               3: dict(diamPore=6., Nmax=1e6, dim=3, r=0.11, h=2.0, cheapest=False)}
 
-    # modify plot for better output in paper
-    fig1 = plt.figure("Fel")
-    fig2 = plt.figure("Fdrag")
-    fig1.delaxes(fig1.axes[1])
-    fig2.axes[0].set_ylabel("")
-    fig2.axes[1].set_ylabel("force [N]")
+    # obtain diffusivity field and project to x-z plane
+    functions = get_pugh_diffusivity(**dparams[2])
+    D3D = functions["D"][0]
+    D0 = nanopores.D
+    def F(x, z):
+        if x>=0:
+            return D3D([x, z])/D0
+        else:
+            return D3D([-x, z])/D0
+    #D = uCross(u=D3D, axis=1, degree=1, dim=2)
 
-    # save to paper dir
-    #from folders import NUMERICSFIGDIR as DIR
-    #nanopores.savefigs("streamplot", DIR)
+    # obtain 2D mesh where we will evaluate field
+    rx, ry = pugh.pughpore.params["R"], 0.5*pugh.pughpore.params["H"]
+    rx, ry = 13, 28
+    Nx, Ny = 101, 201
+    #mesh2D = RectangleMesh([-R,-H/2.], [R, H/2.], int(4*R), int(2*H))
 
-    plt.show()
+    Y, X = np.mgrid[-ry:ry:Ny*1j, -rx:rx:Nx*1j]
+    U = np.zeros((Ny,Nx))
+
+    for y in range(Ny):
+        for x in range(Nx):
+            U[y][x] = F(X[y][x], Y[y][x])
+
+    fig, ax = plt.subplots(figsize=(6.5, 6.5), num="r0.11")
+    pc = plt.pcolor(X, Y, U, cmap=cm.inferno, vmin=0, vmax=1)
+    plt.colorbar(pc)
+    plot_polygon(ax, pugh.polygon(diamPore=6., rmem=13))
+    plt.xlim(-13, 13)
+    plt.ylim(-25, 28)
+    #plt.xlabel("x [nm]")
+    #plt.ylabel("z [nm]")
+    fig.axes[1].set_ylabel(r"$D_x / D_0$")
+    #cb = fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
+    import folders
+    nanopores.savefigs("pugh_Dfield", folders.FIGDIR)
+    #plt.show()
 

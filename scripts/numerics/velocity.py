@@ -1,6 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 import dolfin, os
 import numpy as np
+import matplotlib.pyplot as plt
 from nanopores.models import Howorka
 from nanopores.models.diffusion import friction_tensor, friction
 import nanopores.tools.fields as fields
@@ -174,26 +175,116 @@ def velocities(X, **params):
         v1.append(list(v[-1]))
     return dict(v0=v0, v1=v1)
 
-# working 3D setup
+def velo2force_2D(v, setup):
+    geo = setup.geo
+    phys = Physics("howorka", geo, **setup.physp)
+    phys.update(Qmol=phys.Qmol*phys.qq)
+    vv = [0.]*setup.geop.dim
+    vv[-1] = v
+    phys.update(UMol=tuple(vv))
+    pde = pnps(geo, phys, cyl=setup.phys.cyl)
+    v, cp, cm, u, p = pde.solutions()
+    dolfin.plot(u)
+    Force, Fel, Fdrag = pde.forces()
+    return 1e-12*Force[1]
+
+def velo2force_3D(v, setup):
+    geo = setup.geo
+    phys = Physics("howorka", geo, **setup.physp)
+    phys.update(Qmol=phys.Qmol*phys.qq)
+    phys.update(UMol=tuple(v))
+    pde = pnps(geo, phys, cyl=setup.phys.cyl)
+    #v, cp, cm, u, p = pde.solutions()
+    #dolfin.plot(u)
+    pde.visualize("fluid")
+    Force, Fel, Fdrag = pde.forces()
+    return 1e-12*Force[-1] #[1e-12*f for f in Force]
+
+#@nanopores.tools.solvers.cache_forcefield("howorka_veloforce")
+def nonzero_velocities_2D(V, **params):
+    setup = Howorka.Setup(**params)
+    gamma = friction(setup)
+    print "friction gamma", gamma
+    # determine F(0), only once
+    if not 0. in V:
+        V.append(0.)
+        V.sort()
+
+    F = [None]*len(V)
+    i0 = V.index(0.)
+    F[i0] = velo2force_2D(0., setup)
+    F0 = F[i0]
+    print "F(0)", F0
+
+    for i, v in enumerate(V):
+        if not i == i0:
+            print "\n--- Velocity %d ---" %(i+1,)
+            F[i] = velo2force_2D(v, setup)
+            print "Velocity", v
+            print "Force (exact)", F[i]
+            print "Force (linear)", F0 - gamma*v
+
+    return F, gamma, F0
+
 params = user_params(dim=3, Nmax=1.5e5, h=1., dnaqsdamp=0.25,
-                     Qmol=-1., bulkcon=300.)
-# 2D setup
-#params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
-#                     Qmol=-1., bulkcon=300.)
+                     x0=[0.2,0.,4.01], Qmol=-1., bulkcon=300.)
+setup = Howorka.Setup(**params)
+setup.prerefine()
+velo2force_3D([0., 0.1, 0.2], setup)
 
-# along axis
-#Z = np.linspace(-6., 6., 42)
-#X = [[0.,0.,z] for z in Z]
+do_v2f = False
+redo_v2f = False
+if do_v2f:
+    if redo_v2f:
+        params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
+                             x0=[0.,0.,4.5], Qmol=-1., bulkcon=300.)
+        V = list(np.linspace(-1., 1., 3))
+        F, gamma, F0 = nonzero_velocities_2D(V, **params)
+        fields.save_entries("howorka_velo2force_3", params, V=V, F=F, gamma=gamma, F0=F0)
+        fields.update()
 
-# at crosssection
-r0 = Howorka.params_geo3D.r0
-rMol = Howorka.default_geop.rMolecule
-eps = 1e-2
-R = r0 - rMol - eps
-Z = np.linspace(-R, R, 21)
-X = [[z,0.,0.] for z in Z]
-#X = [[0.,0.,0.]]
-print velocities(X, nproc=7, name="howorka_velo3D_2", **params)
+    dolfin.interactive()
+    data = fields.load_file("howorka_velo2force_3")
+    V, F, F0, gamma = tuple(data[key] for key in ["V", "F", "F0", "gamma"])
+    ax = plt.axes()
+    ax.axhline(y=0, color='#999999', linewidth=0.5)
+    ax.axvline(x=0, color='#999999', linewidth=0.5)
+    #ax.plot(V, [0.]*len(V), "-", color="#999999")
+    ax.plot(V, [1e12*(F0 - gamma*v) for v in V], "-g", label=r"$F(0) - \gamma v$")
+    ax.plot(V, [1e12*f for f in F], ".b", label=r"$F(v)$")
+
+    ax.set_ylabel("force [pN]")
+    ax.set_xlabel("velocity [m/s]")
+
+    ax.legend(loc="best")
+    #ax.grid()
+    fig = plt.gcf()
+    fig.set_size_inches((4,3))
+    #nanopores.savefigs("howorka_v2f_2", FIGDIR)
+    plt.show()
+
+do_profile = False
+if do_profile:
+    # working 3D setup
+    params = user_params(dim=3, Nmax=1.5e5, h=1., dnaqsdamp=0.25,
+                         Qmol=-1., bulkcon=300.)
+    # 2D setup
+    #params = user_params(dim=2, Nmax=2e4, h=.5, dnaqsdamp=0.25,
+    #                     Qmol=-1., bulkcon=300.)
+
+    # along axis
+    #Z = np.linspace(-6., 6., 42)
+    #X = [[0.,0.,z] for z in Z]
+
+    # at crosssection
+    r0 = Howorka.params_geo3D.r0
+    rMol = Howorka.default_geop.rMolecule
+    eps = 1e-2
+    R = r0 - rMol - eps
+    Z = np.linspace(-R, R, 21)
+    X = [[z,0.,0.] for z in Z]
+    #X = [[0.,0.,0.]]
+    print velocities(X, nproc=7, name="howorka_velo3D_2", **params)
 
 do_plot = False
 redo_plot = False
@@ -208,7 +299,6 @@ if do_plot:
         nanopores.save_stuff("velocity_iteration", f.tolist(), v.tolist(), dv.tolist())
     f, v, dv = nanopores.load_stuff("velocity_iteration")
 
-    import matplotlib.pyplot as plt
     dim = params["dim"]
     plt.semilogy(range(1, imax+1), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
                  "s-", label="net force on molecule")

@@ -8,12 +8,20 @@ import nanopores.geometries.pughpore as pughpore
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
 import nanopores.tools.fields as fields
+from nanopores.models.pughpoints import tensorgrid as tensorgrid_
 
 default = nano.Params(
 geop = nano.Params(
     dim = 3,
     R = pughpore.params["R"],
     H = pughpore.params["H"],
+    l0 = pughpore.params["l0"],
+    l1 = pughpore.params["l1"],
+    l2 = pughpore.params["l2"],
+    l3 = pughpore.params["l3"],
+    l4 = pughpore.params["l4"],
+    diamPore = None, # will override l0,.. if set
+    diamDNA = 2.5, # will override l0,.. if diamPore set
     x0 = pughpore.params["x0"],
     rMolecule = pughpore.params["rMolecule"],
     lcMolecule = pughpore.params["lcMolecule"],
@@ -26,6 +34,7 @@ physp = nano.Params(
     bV = -0.1,
     rDPore = .9,
     bulkbc = True,
+    Membraneqs = -0.0,
 ),
 solverp = nano.Params(
     h = 1.5,
@@ -42,16 +51,31 @@ defaultp = default.geop | default.physp
 class Setup(solvers.Setup):
     default = default
 
-    def init_geo(self):
+    def init_geo(self, create_geo=True):
+        if self.geop.diamPore is not None:
+            diamPore = self.geop.diamPore # inner (effective) pore diameter
+            diamDNA = self.geop.diamDNA # dna diameter of outer dna layers
+            l0 = diamPore + 6.*diamDNA
+            l1 = diamPore + 4.*diamDNA
+            l2 = diamPore + 2.*diamDNA
+            l3 = diamPore
+            l4 = l1
+            self.geop.update(l0=l0, l1=l1, l2=l2, l3=l3, l4=l4)
+        if not create_geo:
+            self.geo = None
+            return
         if self.geop.dim == 3:
             geo = pughpore.get_geo(self.solverp.h, **self.geop)
-            molec = nano.curved.Sphere(geo.params["rMolecule"],
-                                       geo.params["x0"])
+            if geo.params["x0"] is not None:
+                molec = nano.curved.Sphere(geo.params["rMolecule"],
+                                           geo.params["x0"])
+                geo.curved = dict(moleculeb = molec.snap)
         if self.geop.dim == 2:
             geo = pughpore.get_geo_cyl(self.solverp.h, **self.geop)
-            molec = nano.curved.Circle(geo.params["rMolecule"],
-                                       geo.params["x0"][::2])
-        geo.curved = dict(moleculeb = molec.snap)
+            if geo.params["x0"] is not None:
+                molec = nano.curved.Circle(geo.params["rMolecule"],
+                                           geo.params["x0"][::2])
+                geo.curved = dict(moleculeb = molec.snap)
         self.geo = geo
 
     def init_phys(self):
@@ -60,6 +84,12 @@ class Setup(solvers.Setup):
 
     def prerefine(self, visualize=False):
         return prerefine(self, visualize=visualize)
+
+class SetupNoGeo(Setup):
+    def __init__(self, geop=None, physp=None, solverp=None, **params):
+        self.init_params(params, geop=geop, physp=physp, solverp=solverp)
+        self.init_geo(create_geo=False)
+        self.init_phys()
 
 class Plotter(object):
     def __init__(self, setup=None, dim=3):
@@ -113,10 +143,11 @@ def solve(setup, visualize=False):
     print "Number of cells:", geo.mesh.num_cells()
     print "DOFs:", pnps.dofs()
     dolfin.tic()
-    for i in pnps.fixedpoint(ipnp=5):
+    for i in pnps.fixedpoint(ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
+            #plotter.plot_vector(u, "velocity")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
     return pb, pnps
 
@@ -221,6 +252,53 @@ def F_explicit(X, **params):
 #    (v, cp, cm, u, p) = pnps.solutions()
 #    F, Fel, Fdrag = phys.Forces(v, u)
 #    return F, Fel, Fdrag
+
+def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10., **params):
+    setup = SetupNoGeo(**params)
+    return tensorgrid_(nz, nr, plot, eps, eps2, buf, **setup.geop)
+
+def polygon(rmem = 20., **params):
+    "polygon of pore + membrane for plotting"
+    setup = SetupNoGeo(**params)
+    params = nano.Params(pughpore.params) | setup.geop
+
+    r = [0.5*params.l3, 0.5*params.l2, 0.5*params.l1, 0.5*params.l0,
+         0.5*params.l4, rmem]
+    ztop = params.hpore/2.
+    zbot = -ztop
+    z = [zbot, ztop - params.h2, ztop - params.h1, ztop, zbot + params.h4,
+         zbot + params.hmem]
+    # indices: [(0,0), (0,1), (1,1), (1,2), ..., (5,5), (5,0)]
+    return [(r[i / 2 % 6], z[(i+1) / 2 % 6]) for i in range(12)]
+
+
+#........................R.............................
+#                                                     .
+#                                                     .
+#              .........l0..........                  .
+#              .                   .                  .
+#              ._ _______________ _...............    .
+#              |D|               |D|     .   .   .    .
+#              |D|......l1.......|D|    h1   .   .    .
+#              |D|_ ____l2_____ _|D|......   h2  .    .
+#              |DDD|_ _______ _|DDD|..........   .    .
+#              |DDDDD|       |DDDDD|             .    .
+#              |DDDDD|       |DDDDD|             .    .
+#       DNA--->|DDDDD|       |DDDDD|           hpore  .
+#              |DDDDD|       |DDDDD|             .    .
+#              |DDDDD|..l3...|DDDDD|             .    .
+#   MEMBRANE   |DDDDD|       |DDDDD|             .    H
+#      |       |DDDDD|       |DDDDD|             .    .
+#      |       |DDDDD|       |DDDDD|....h4       .    .
+#______V_________|DDD|       |DDD|_____.________ .___ .......
+#MMMMMMMMMMMMMMMM|DDD|       |DDD|MMMMM.MMMMMMMMM.MMMM.    hmem
+#MMMMMMMMMMMMMMMM|DDD|_______|DDD|MMMMM.MMMMMMMMM.MMMM.......
+#                .               .                    .
+#                .......l4........                    .
+#                                                     .
+#                                                     .
+#                                                     .
+#......................................................
 
 if __name__ == "__main__":
     setup = Setup(h=1., Nmax=2e6, dim=3) #, x0=None)

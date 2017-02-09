@@ -20,6 +20,7 @@ params = nanopores.user_params(
     Nmax = 1e5,
     r = 2.0779,
 )
+print "params", params
 
 if not f.exists("Dpugh", **params):
     # build 1D interpolations from data
@@ -50,8 +51,6 @@ if not f.exists("Dpugh", **params):
     plt.figure()
     plt.plot(x, fn(x), "s-")
     plt.plot(x, ft(x), "s-")
-    plt.show()
-    exit()
 
     # get geometry, prerefine mesh, compute distance function
     setup = pugh.Setup(dim=params.dim, x0=None, h=params.h, Nmax=params.Nmax,

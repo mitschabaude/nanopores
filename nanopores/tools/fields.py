@@ -349,7 +349,7 @@ class cache(CacheBase):
 import dolfin
 
 def _save_dolfin(data, FILE):
-    dolfin.File(os.path.join(DIR, FILE)) << data
+    dolfin.File(str(os.path.join(DIR, FILE))) << data
 
 def save_functions(name, params, **functions):
     # create common file prefix
@@ -378,7 +378,8 @@ def save_functions(name, params, **functions):
     ranks = []
     for fname in keys:
         f = functions[fname]
-        ranks.append(f.rank())
+        #ranks.append(f.rank())
+        ranks.append(len(f.ufl_shape))
         FFILE = PREFIX + "_" + fname + ".xml"
         _save_dolfin(f, FFILE)
     data["ranks"] = ranks

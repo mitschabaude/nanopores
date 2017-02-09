@@ -4,6 +4,8 @@ import dolfin
 import numpy as np
 import nanopores as nano
 import nanopores.physics.simplepnps as pnps
+from diffusion_interpolation import (diffusivity_field, cache_pugh_diffusivity,
+    get_pugh_diffusivity)
 
 def friction(setup, visualize=False):
     v0 = .001
