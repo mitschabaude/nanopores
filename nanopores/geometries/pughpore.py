@@ -171,8 +171,7 @@ def get_domain(lc=1., **newparams):
         domain.addsubdomain(EmptySet(), "molecule")
         domain.addboundary(EmptySet(), "moleculeb")
         porecurrent = porebot
-        porerest = poreenter | poretop | porectr
-        poreenter = EmptySet()
+        porerest = poretop | porectr
 
     domain.addsubdomains(
         membrane = membrane,
@@ -353,8 +352,7 @@ def get_domain_cyl(lc=1., **newparams):
         domain.addsubdomain(EmptySet(), "molecule")
         domain.addboundary(EmptySet(), "moleculeb")
         porecurrent = porebot
-        porerest = poreenter | poretop | porectr
-        poreenter = EmptySet()
+        porerest = poretop | porectr
 
     domain.addsubdomains(
         membrane = membrane,
