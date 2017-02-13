@@ -620,7 +620,7 @@ def get_geo1D(lc=0.01, **newparams):
 if __name__ == "__main__":
     import dolfin
     from nanopores import plot_sliced, user_params
-    up = user_params(params)
+    up = user_params(params, h=4.)
 
     geo2D = get_geo_cyl(lc=1., **up)
     dolfin.plot(geo2D.subdomains, title="subdomains")
@@ -643,15 +643,15 @@ if __name__ == "__main__":
         memb = domain.getboundary("memb"),
     )
     print "COMPUTING SOLID"
-    solidgeo = solid.create_geometry(lc=4.)
+    solidgeo = solid.create_geometry(lc=up.h)
     print solidgeo
 
     print "COMPUTING DOMAIN"
-    geo = get_geo(lc=4., **up)
+    geo = get_geo(lc=up.h, **up)
     print geo
     print geo.params
 
-    plot_sliced(geo)
-    dolfin.plot(solidgeo.boundaries, title="boundaries")
+    plot_sliced(geo, scalarbar=False)
+    dolfin.plot(solidgeo.boundaries, title="boundaries", scalarbar=False)
     dolfin.interactive()
 

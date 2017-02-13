@@ -85,27 +85,30 @@ def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
         J = dolfin.assemble(J)
         return dict(J=J)
     return _current
+    
+def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
+    def _current(U):
+        v, cp, cm, u, p = U
+        L = dolfin.Constant(geo.params["lporecurrent"])
+        cUT = dolfin.Constant(UT)
+        F = dolfin.Constant(cFarad)
 
-# TODO: this seems a little much; clean it up
-#synonymes.update({
-#    "pore": {"poretop", "porecenter", "porebottom"},
-#    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
-#    "fluid": {"pore", "bulkfluid"},
-#    "solid": {"membrane", "channel", "molecule"},
-#    "protein": {"ahem"},
-#    "channel": {"ahem"},
-#    "proteinb": {"ahemb"},
-#    "noslip": {"proteinb", "membraneb"},
-#    "bulk": {"upperb", "lowerb"},
-#    "nopressure": {"bulk"},
-#    "ground": {"upperb"},
-#    "bV": {"lowerb"},
-#    "ions": {"fluid"},
-#    "lipid": {"membrane"},
-#    "exittime": {"fluid"},
-#    "exit": {"poreexit"},
-#    "sideb": {"uppersideb", "lowersideb"},
-#    "upperbulkb": {"upperb", "uppersideb"},
-#    "lowerbulkb": {"lowerb", "lowersideb"},
-#})
+        j = dict(
+        Jmdif = -Dm*grad(cm),
+        Jmmig = Dm/cUT*cm*grad(v),
+        Jmconv = cm*u,
+        Jpdif = Dp*grad(cp),
+        Jpmig = Dp/cUT*cp*grad(v),
+        Jpconv = -cp*u
+        )
 
+        jform = lambda jz: -F*jz[dim-1]/L * r2pi*invscale(2)*geo.dx("porecurrent")
+        Jdict = {key: dolfin.assemble(jform(j[key])) for key in j}
+        Jdict["Jm"] = sum(Jdict[s] for s in ["Jmdif", "Jmmig", "Jmconv"])
+        Jdict["Jp"] = sum(Jdict[s] for s in ["Jpdif", "Jpmig", "Jpconv"])
+        Jdict["Jdif"] = Jdict["Jmdif"] + Jdict["Jpdif"]
+        Jdict["Jmig"] = Jdict["Jmmig"] + Jdict["Jpmig"]
+        Jdict["Jconv"] = Jdict["Jmconv"] + Jdict["Jpconv"]
+        Jdict["J"] = Jdict["Jm"] + Jdict["Jp"]
+        return Jdict
+    return _current

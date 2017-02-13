@@ -41,18 +41,41 @@ params = {2: dict(dim=2, h=1., Nmax=2e4, rDPore=0.95088702818),
 Rho = np.linspace(.1, .8, 8)
 Rho = list(-Rho)[::-1] + [0.001] + list(Rho)
 
+colors = {True: "violet", False: "blue"}
+dnaqs = {3: -0.5882, 2: -0.6638}
+
 for dim in 2, 3:
-    plt.figure()
+    plt.figure("%dD" % dim)
     for data in None, ddata[dim]:
-        result = Irho(Rho, nproc=2, diffusivity_data=data, **params[dim])
+        result = Irho(Rho, nproc=2, calc=False,
+                      diffusivity_data=data, **params[dim])
         #Rho = map(lambda x: -x, Rho)
-        J = result["J"][::-1]
+        J = [1e12*j for j in result["J"][::-1]]
         label = "constant D in pore" if data is None else "position-dep. D"
-        plt.plot(Rho, J, "-x", label=label)
+        plt.plot(Rho, J, "s-", label=label, color=colors[data is None])
+        
+    plt.plot([-1, 1], [2.29*1e3*0.1]*2, "--b", label="Pugh et al.")
+    plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1*1e3]*2,
+                     [(2.29 + 0.26)*0.1*1e3]*2, color="#ccccff")
 
     plt.xlabel("DNA surface charge [q/nm^2]")
-    plt.ylabel("current  at -100 mV [A]")
-    plt.title("influence of surf. charge on current (%dD)" %dim)
-    plt.legend()
 
-pugh.nano.savefigs("pugh_Irho", folders.FIGDIR)
+    plt.axvline(x=dnaqs[dim], linestyle="--", color="#666666")
+    if dim==3:
+        plt.annotate("estimated surface charge", (dnaqs[dim], 500),
+                 xytext=(dnaqs[dim] + 0.1, 500-20), color="#666666",
+                 arrowprops=dict(arrowstyle="->", color="#666666"))
+        plt.ylabel("current  at -100 mV [pA]")
+    else:
+        #plt.gca().axes.get_yaxis().set_visible(False)
+        loc, _ = plt.yticks()
+        plt.yticks(loc, [])
+    plt.xlim(-.82, .82)
+    plt.ylim(0, 1500)
+    
+    #plt.title("influence of surf. charge on current (%dD)" %dim)
+    if dim==2:
+        plt.legend(bbox_to_anchor=(.4, .55), loc="upper left")
+
+pugh.nano.savefigs("Irho/", folders.FIGDIR, (5, 3.75))
+#plt.show()

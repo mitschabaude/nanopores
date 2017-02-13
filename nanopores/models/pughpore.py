@@ -152,7 +152,7 @@ def solve(setup, visualize=False):
     return pb, pnps
 
 def get_forces(setup, pnps):
-    forces = pnps.evaluate(setup.phys.CurrentPNPS)
+    forces = pnps.evaluate(setup.phys.CurrentPNPSDetail)
     forces.update(pnps.evaluate(setup.phys.ForcesPNPS))
     return forces
 
@@ -231,7 +231,7 @@ def F_explicit(X, **params):
     values = []
     for x0 in X:
         setup = Setup(x0=x0, **_params)
-        pb, pnps = solve(setup, False)
+        pb, pnps = solve(setup, True)
         values.append(get_forces(setup, pnps))
     return join_dicts(values)
 
