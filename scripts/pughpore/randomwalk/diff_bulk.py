@@ -22,14 +22,20 @@ rMolecule = geop.rMolecule
 params = dict(rMolecule=rMolecule)
 eps=1e-2
 
-l=np.linspace(rMolecule+eps,10*rMolecule,100)
+x=np.linspace(rMolecule+eps,10*rMolecule,100)
 
 def Cp(l,rMolecule):
-    return 1./(1.-(9./16.)*rMolecule*(1./l))
+    return 1.-(9./16.)*rMolecule*(1./l)
 
 def Cn(l,rMolecule):
     alpha=acosh(l/rMolecule)
     sum = 0.
-    for n in range(1,1000):
+    for n in range(1,100):
         sum+=float(n*(n+1))/float((2*n-1))/float((2*n+3))*((2*sinh((2*n+1)*alpha)+(2*n+1)*sinh(2*alpha))/(4*(sinh((n+.5)*alpha))**2-(2*n+1)**2*(sinh(alpha))**2)-1)
-    return (4./3.)*sinh(alpha)*sum
+    return 1./((4./3.)*sinh(alpha)*sum)
+
+yp=np.array([Cp(r,rMolecule) for r in x])
+yn=np.array([Cn(r,rMolecule) for r in x])
+np.save('X',x)
+np.save('Cp',yp)
+np.save('Cn',yn)
