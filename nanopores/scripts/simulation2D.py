@@ -9,9 +9,9 @@ if simulation is finished at the end, save plot of the range in same DIR.
 
 from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
-from ..tools.mpipool import mpimap
-from mpi4py import MPI
-from pathos.helpers import mp # mp = fork of multiprocessing package
+#from ..tools.mpipool import mpimap
+#from mpi4py import MPI
+#from pathos.helpers import mp # mp = fork of multiprocessing package
 from ..dirnames import DATADIR
 import numpy, os
 #from .calculate_forces import calculate2D
@@ -36,7 +36,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     '''
     # find the parameters to be iterated through
     iterkeys2 = [key for key in params if hasattr(params[key], "__iter__")]
-    
+
     if iterkeys is None:
         iterkeys = iterkeys2
     elif set(iterkeys) <= set(iterkeys2):
@@ -58,23 +58,8 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     # create the function to be mapped with
     def f(params): return method(**params)
 
-    # map iterator using mpi4py
-    # FIXME: doesn't work if some dolfin function are used, e.g. Function.extrapolate
-    if MPI.COMM_WORLD.Get_size() > 1:
-        result = mpimap(f, iterator)
-    # map iterator using multiprocessing.Pool
-    # FIXME: this approach of distributing across multiple processors is inconvenient
-    #        since a single error kills the whole simulation.
-    #        (not necessarily, error can be catched and displayed by method)
-    #        also it's not supposed to be appropriate for HPC architectures
-    elif nproc>1:
-        pool = mp.Pool(nproc)
-        result = pool.map(f, iterator)
-        pool.close()
-        pool.join()
-    # map in serial
-    else:
-        result = map(f, iterator)
+    # no parallelism. DO NOT MERGE BACK TO MASTER
+    result = map(f, iterator)
 
     return join_dicts(result), stamp
 
@@ -100,7 +85,7 @@ def join_dicts(lst):
     for dic in lst:
         if dic is not None:
             keys = dic.keys()
-            
+
     return {key:[dic[key] for dic in lst if dic is not None] for key in keys}
 
 def post_iteration(result, stamp, showplot=False):
@@ -191,8 +176,6 @@ def simulate(name, nproc=1, outputs=None, plot=None,
         result, stamp = iterate_in_parallel(f, nproc=nproc, iterkeys=[plot], **params)
     else:
         result, stamp = iterate_in_parallel(f, nproc=nproc, **params)
-    if MPI.COMM_WORLD.Get_rank() > 0 or not write_files:
-        return
 
     stamp["script"] = name
     print result, stamp
@@ -201,17 +184,15 @@ def simulate(name, nproc=1, outputs=None, plot=None,
     else:
         post_iteration(result, stamp, showplot=False)
     return result
-    
+
 def parallel_output(calculate, nproc=1, plot=None, showplot=False, **params):
     if plot is not None:
         result, stamp = iterate_in_parallel(calculate, nproc=nproc, iterkeys=[plot], **params)
     else:
         result, stamp = iterate_in_parallel(calculate, nproc=nproc, **params)
-    if MPI.COMM_WORLD.Get_rank() > 0:
-        return
     plots = post_iteration(result, stamp, showplot=showplot)
     return plots
-                 
+
 
 # simulation in 2D (script for howorka pore)
 #def simulation2D(nproc=1, outputs=None, plot=None, write_files=True, **params):

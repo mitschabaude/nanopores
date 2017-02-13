@@ -45,7 +45,7 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
         if len(X) > 0:
             print "Existing force file found, %d/%d points remaining." % (
                 len(X), N)
-    Xfailed = []
+
     iter_params = dict(x0=X)
 
     def run(x0=None):
@@ -56,15 +56,12 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
         except: # Exception, RuntimeError:
             print "Error occured, continuing without saving."
             print traceback.print_exc()
-            Xfailed.append(x0)
             result = None
         return result
 
     results, _ = iterate_in_parallel(run, nproc, **iter_params)
 
     if len(X) > 0:
-        if nproc == 1:
-            print "%d of %d force calculations failed." % (len(Xfailed), len(X))
         fields.update()
     return results
 
