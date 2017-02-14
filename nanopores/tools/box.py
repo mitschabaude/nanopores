@@ -826,7 +826,7 @@ def to_mesh(clscale=1., pid=""):
         fobj.close()
 
         # after writing the geo file, call gmsh
-        gmsh_out = subprocess.call(["gmsh", "-3", "-v", "1","-clscale", "%f" %clscale,
+        gmsh_out = subprocess.call(["/home/lv70496/benjamin/nanopores/nanopores/tools/gmsh", "-3", "-v", "1","-clscale", "%f" %clscale,
                          fid_dict["fid_geo"], "-o", fid_dict["fid_msh"], "-optimize"])
 
         if gmsh_out != 0:
