@@ -53,7 +53,7 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
             #result = {k: [v] for k, v in result.items()}
             fields.save_fields(name, save_params, x=[x0], **result)
         except: # Exception, RuntimeError:
-            print "Error occured, continuing without saving."
+            print "x = %s: Error occured, continuing without saving." %x0
             print traceback.print_exc()
             result = None
         return result

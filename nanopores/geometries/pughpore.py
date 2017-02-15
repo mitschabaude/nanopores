@@ -48,7 +48,7 @@ params = dict(
     h1 = 46.-35.-2.5,
     h4 = 10.,
 
-    hnear = 10.,
+    hnear = 12,
 
     rMolecule = 2.0779, # molecular radius of protein trypsin
     x0 = [0., 0., 0.],
@@ -58,7 +58,7 @@ params = dict(
 )
 # change global settings for mesh generation
 #set_tol(None) # faster, may lead to degenerate elements or even gmsh error
-set_tol(0.1) # more robust
+set_tol(0.01) # more robust
 
 def set_params(**newparams):
     params.update(newparams)
