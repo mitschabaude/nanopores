@@ -18,11 +18,12 @@ default = {
     3: dict(physp, dim=3, h=1.25, Nmax=7e5, diffusivity_data=ddata[3],
                   stokesiter=True)}
 
-dim = 3
+dim = user_param(dim=3)
 params = user_params(default[dim])
 x0 = user_param(x0=[0.,0.,0.])
+cache = user_param(cache=True)
 
-result = pugh.F_explicit([x0], name="pugh_vsc_test", **params)
+result = pugh.F_explicit([x0], name="pugh_vsc_test", cache=cache, **params)
 
 print result
 print result["J"]
