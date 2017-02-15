@@ -1,6 +1,6 @@
-# (c) 2016 Gregor Mitscha-Baude
+# (c) 2017 Gregor Mitscha-Baude
 import numpy as np
-from nanopores import user_params
+from nanopores import user_params, user_param
 import nanopores.models.pughpore as pugh
 from folders import fields
 
@@ -14,19 +14,15 @@ physp = dict(
     dnaqsdamp = 0.5882,
 )
 default = {
-
     2: dict(physp, dim=2, h=.75, Nmax=1e5, diffusivity_data=ddata[2]),
     3: dict(physp, dim=3, h=1.25, Nmax=7e5, diffusivity_data=ddata[3],
                   stokesiter=True)}
 
 dim = 3
 params = user_params(default[dim])
+x0 = user_param(x0=[0.,0.,0.])
 
-ran = np.linspace(-30, 30, 10)
-X = [[0.,0.,t] for t in ran]
-
-X = pugh.tensorgrid(nz=30, nr=4)
-result = pugh.F_explicit(X, name="pugh_vsc_test", **params)
+result = pugh.F_explicit([x0], name="pugh_vsc_test", **params)
 
 print result
 print result["J"]

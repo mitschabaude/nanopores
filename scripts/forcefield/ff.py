@@ -22,7 +22,7 @@ dim = 3
 params = user_params(default[dim])
 
 X = pugh.tensorgrid(nz=30, nr=4)
-result = pugh.F_explicit(X, nproc=3, **params)
+result = pugh.F_explicit(X, nproc=3, name="pugh_vsc", **params)
 
 print result
 print result["J"]
