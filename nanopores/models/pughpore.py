@@ -224,14 +224,14 @@ def join_dicts(list):
     return {key:[dic[key] for dic in list] for key in list[0]}
 
 # evaluate finite-size model for a number of x positions
-@solvers.cache_forcefield("pugh", defaultp)
+@solvers.cache_forcefield("pugh_force", defaultp)
 def F_explicit(X, **params):
     _params = dict(defaultp, **params)
     if "x0" in _params: _params.pop("x0")
     values = []
     for x0 in X:
         setup = Setup(x0=x0, **_params)
-        pb, pnps = solve(setup, True)
+        pb, pnps = solve(setup, False)
         values.append(get_forces(setup, pnps))
     return join_dicts(values)
 
@@ -253,7 +253,7 @@ def F_explicit(X, **params):
 #    F, Fel, Fdrag = phys.Forces(v, u)
 #    return F, Fel, Fdrag
 
-def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=8e-2, buf=10., **params):
+def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=5e-2, buf=7., **params):
     setup = SetupNoGeo(**params)
     return tensorgrid_(nz, nr, plot, eps, eps2, buf, **setup.geop)
 

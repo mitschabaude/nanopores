@@ -94,7 +94,7 @@ if __name__ == "__main__":
     # obtain diffusivity field and project to x-z plane
     functions = get_pugh_diffusivity(**dparams[2])
     D3D = functions["D"][0]
-    
+
     D0 = nanopores.D
     def F(x, z):
         if x>=0:
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     # obtain 2D mesh where we will evaluate field
     rx, ry = pugh.pughpore.params["R"], 0.5*pugh.pughpore.params["H"]
     rx, ry = 13, 28
-    Nx, Ny = 101, 201
+    Nx, Ny = 201, 401
     #mesh2D = RectangleMesh([-R,-H/2.], [R, H/2.], int(4*R), int(2*H))
 
     Y, X = np.mgrid[-ry:ry:Ny*1j, -rx:rx:Nx*1j]

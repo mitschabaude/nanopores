@@ -2,17 +2,12 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 import numpy as np
-import nanopores
 import os
 from nanopores.tools import fields
 from scipy.interpolate import interp1d
 
 HOME = os.path.expanduser("~")
-PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
-FIGDIR = os.path.join(PAPERDIR, "figures", "")
-
-DATADIR = os.path.join(HOME, "fields")
-
+DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
 fields.set_dir(DATADIR)
 
 data = fields.get_fields("pugh_diff3D_cross", bulkbc=True, rMolecule=2.0779)

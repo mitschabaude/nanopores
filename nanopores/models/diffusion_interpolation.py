@@ -84,6 +84,68 @@ def diffusivity_field(setup, r, ddata_r, ddata_z):
 
     return dict(dist=dist, D=D)
 
+def preprocess_Dr(data, r):
+    x = data["x"] #[xx[0] for xx in data["x"]]
+    data, x = fields._sorted(data, x)
+    Dt = [d[2][2] for d in data["D"]]
+    Dn = [d[0][0] for d in data["D"]]
+
+    eps = 1e-2
+    x = [-eps, r] + x + [100.]
+    Dn = [d/Dn[-1] for d in Dn]
+    Dt = [d/Dt[-1] for d in Dt]
+    Dn = [0., 0.] + Dn + [1.]
+    Dt = [0., 0.] + Dt + [1.]
+
+    fn = interp1d(x, Dn)
+    ft = interp1d(x, Dt)
+    return fn, ft
+
+def diffusivity_field_alt(setup, r, ddata_pore, ddata_bulk):
+    "interpolates diffusivity field defined on the geometry given by setup"
+
+    # build 1D interpolations from data
+    fn, ft = preprocess_Dr(ddata_bulk, r)
+    fn_pore, ft_pore = preprocess_Dr(ddata_pore, r)
+
+    setup.prerefine(visualize=True)
+    dist = distance_boundary_from_geo(setup.geo)
+    VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
+    normal = dolfin.project(dolfin.grad(dist), VV)
+
+    D0 = setup.phys.D
+
+    def DPore(x, i):
+        r = dist(x)
+        n = normal(x)
+        Dn = D0*float(fn_pore(r))
+        Dt = D0*float(ft_pore(r))
+        D = transformation(n, Dn, Dt)
+        return D[i][i]
+
+    def DBulk(x, i):
+        r = dist(x)
+        n = normal(x)
+        Dn = D0*float(fn(r))
+        Dt = D0*float(ft(r))
+        D = transformation(n, Dn, Dt)
+        return D[i][i]
+
+    D = lambda i: dict(
+        bulkfluid = lambda x: DBulk(x, i),
+        nearpore = lambda x: DBulk(x, i),
+        poreenter = lambda x: DBulk(x, i),
+        porecurrent = lambda x: DPore(x, i),
+        porerest = lambda x: DPore(x, i),
+    )
+
+    dim = setup.geop.dim
+    DD = [harmonic_interpolation(setup, subdomains=D(i)) for i in range(dim)]
+    D = dolfin.Function(VV)
+    dolfin.assign(D, DD)
+
+    return dict(dist=dist, D=D)
+
 from nanopores.models import pughpore as pugh
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
@@ -104,6 +166,25 @@ def cache_pugh_diffusivity(**params):
 def get_pugh_diffusivity(**params):
     cache_pugh_diffusivity(**params)
     functions, mesh = fields.get_functions("Dpugh", **params)
+    return functions
+
+def cache_pugh_diffusivity_alt(**params):
+    "the function above applied to the pugh pore"
+    if not fields.exists("Dpugh_alt", **params):
+        setup_params = dict(params)
+        r = setup_params.pop("r")
+        ddata_pore = fields.get_fields("pugh_diff_pore", rMolecule=r)
+        ddata_bulk = fields.get_fields("pugh_diff_bulk", rMolecule=r)
+        if not "cheapest" in setup_params:
+            setup_params["cheapest"] = True
+        setup = pugh.Setup(x0=None, **setup_params)
+        functions = diffusivity_field_alt(setup, r, ddata_pore, ddata_bulk)
+        fields.save_functions("Dpugh_alt", params, **functions)
+        fields.update()
+
+def get_pugh_diffusivity_alt(**params):
+    cache_pugh_diffusivity_alt(**params)
+    functions, mesh = fields.get_functions("Dpugh_alt", **params)
     return functions
 
 if __name__ == "__main__":

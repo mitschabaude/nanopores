@@ -63,7 +63,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         q = Constant(phys.qq)
         F = Constant(phys.cFarad)
 
-        (v, cp, cm) = split(u) #u.split() # WTF??????
+        (v, cp, cm) = split(u)
         (w, dp, dm) = TestFunctions(V)
 
         Jm = -Dm*(grad(cm) - q/kT*cm*grad(v)) + cm*ustokes
@@ -83,10 +83,7 @@ class SimplePNPProblem(GeneralNonlinearProblem):
         LJp = lscale*geo.NeumannRHS(dp*r2pi, "cpflux")
 
         L = apoisson + aJm + aJp + aNoBCp + aNoBCm - Lqvol - Lqsurf - LJm - LJp
-        if dolfin.__version__ == "1.6.0":
-            a = derivative(L, (v, cp, cm))
-        else:
-            a = derivative(L, u)
+        a = derivative(L, u)
 
         return a, L
 
@@ -652,14 +649,3 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
                 printv("Maximal number of cells reached.")
             else:
                 printv("New total number of cells:", self.geo.mesh.num_cells())
-
-#    def print_functionals(self, name="goal"):
-#        PDESystem.print_functionals(self)
-#        J = self.functionals[name]
-#        Jval = J.value()
-#        if self.ref is not None:
-#            ref = self.ref
-#            err = abs((Jval-ref)/ref)
-#            self.save_estimate("err ref", err)
-#            self.save_estimate("goal ref", ref)
-

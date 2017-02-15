@@ -10,21 +10,20 @@ physp = dict(
     bV = -0.08,
     Qmol = 5.,
     bulkcon = 1000.,
-    dnaqsdamp = .5
+    dnaqsdamp = 0.5882,
 )
 default = {
-    2: dict(physp, dim=2, h=.75, Nmax=1e4, diffusivity_data=ddata[2]),
-    3: dict(physp, dim=3, h=1.5, Nmax=7e5, diffusivity_data=ddata[3],
+
+    2: dict(physp, dim=2, h=.75, Nmax=1e5, diffusivity_data=ddata[2]),
+    3: dict(physp, dim=3, h=1.25, Nmax=7e5, diffusivity_data=ddata[3],
                   stokesiter=True)}
 
-dim = 2
+dim = 3
 params = user_params(default[dim])
 
-z = [-26., 1., 26.]
-X = [[0.,0.,t] for t in z]
+X = pugh.tensorgrid(nz=30, nr=4)
+result = pugh.F_explicit(X, nproc=3, **params)
 
-result = pugh.F_explicit(X, nproc=3, name="pugh_test0", **params)
 print result
 print result["J"]
-
 

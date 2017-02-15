@@ -87,7 +87,7 @@ def plot_xz_grid(xyz):
     plt.scatter(neg(xx) + xx, yy + yy)
 
 def plot_polygon(ax, polygon):
-    settings = dict(closed=True, facecolor="#eeeeee", linewidth=3.,
+    settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
                     edgecolor="black")
     polygon = np.array(polygon)
     polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
@@ -100,7 +100,7 @@ def plot_polygon(ax, polygon):
     ax.add_patch(patchm)
 
 # will result in roughly nz * nr*(nr+1)/2 points
-def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
+def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=5e-2, buf=7.,
                **params):
     params = Params(pugh_params) | Params(params)
     r = params.rMolecule
@@ -119,11 +119,11 @@ def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
          ztop + buf]
     # relative meshwidths, radii
     hz = np.array([1., 1., .5, 1., 1.])
-    rpore = [params.l0/2.,
+    rpore = [params.l0/2. - r,
              params.l3/2. - r,
              params.l2/2. - r,
              params.l1/2. - r,
-             params.l0/2.]
+             params.l0/2. - r]
     # to which of the two interval the shared endpoint belongs
     ep = [0, 1, 1, 1]
 
@@ -145,13 +145,14 @@ def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=8e-2, buf=10.,
         #plot_1Dgrid(z, grids)
         plot_2Dgrid(xy)
         plot_xz_grid(xyz)
+        plt.ylim(-params.H*0.5, params.H*0.5)
         ax = plt.gca()
         from nanopores.models.pughpore import polygon
         plot_polygon(ax, polygon())
     return xyz
 
 if __name__ == "__main__":
-    xyz = tensorgrid(nz=30, nr=5, eps2=3e-2, plot=True)
+    xyz = tensorgrid(nz=30, nr=4, eps2=5e-2, buf=7., plot=True)
     plt.show()
 #........................R.............................
 #                                                     .

@@ -15,10 +15,23 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "plot_cross", "plot_cross_vector", "load_dict", "save_stuff", "load_stuff",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
-           "user_params", "user_param", "dict_union", "union", "plot_sliced_mesh"]
+           "user_params", "user_param", "dict_union", "union", "plot_sliced_mesh",
+           "smooth", "collect", "collect_dict"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
+
+def smooth(a, k=3):
+    a = np.array(a)
+    b = a.copy()
+    # range of kernel
+    start = -(k // 2)
+    end = (k // 2) + (k % 2)
+    N = a.shape[0]
+    for i in range(N):
+        aa = a[max(0, i + start) : min(N, i + end)]
+        b[i] = np.mean(aa)
+    return b
 
 def import_vars(mod):
     d = vars(import_module(mod))
@@ -439,3 +452,25 @@ def convert2D(mesh2D, *forces):
         return F2
     return tuple(map(to2D, forces))
 
+class Collector(list):
+    new = None
+
+def collect(iterator):
+    lst = Collector([])
+    for i in iterator:
+        yield i, lst
+        lst.append(lst.new)
+
+class CollectorDict(dict):
+    new = None
+
+def collect_dict(iterator):
+    result = CollectorDict({})
+    for i, obj in enumerate(iterator):
+        yield obj, result
+        if i==0:
+            for key in result.new:
+                result[key] = [result.new[key]]
+        else:
+            for key in result:
+                result[key].append(result.new[key])
