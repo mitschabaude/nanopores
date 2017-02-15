@@ -5,6 +5,7 @@ from dolfin.fem.solving import _extract_u
 import ufl
 from warnings import warn
 
+
 __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
     "replace_function_in_form", "AdaptableLinearProblem",
     "IllposedNonlinearSolver",  "AdaptableNonlinearProblem",
@@ -93,7 +94,7 @@ class IllposedLinearSolver(object):
 #            else:
             ks = (self.method["ks"] if ("ks" in self.method) else "default")
             kp = (self.method["kp"] if ("kp" in self.method) else "default")
-            self.S = PETScKrylovSolver(ks, kp)
+            self.S = KrylovSolver(ks, kp)
             try:
                 self.S.parameters.update(self.method["kparams"])
             except KeyError:
@@ -124,7 +125,7 @@ class IllposedLinearSolver(object):
 #            print "Solving system iteratively with PETSc fieldsplit ..."
 #            self.S.solve(l, x)
 #            u.vector().set_local(x.array.astype("float_"))
-        if isinstance(self.S, PETScKrylovSolver):
+        if isinstance(self.S, KrylovSolver):
             i = self.S.solve(u.vector(),b)
             # print DEBUG
             if not "kparams" in self.method or i < self.method["kparams"]["maximum_iterations"]:

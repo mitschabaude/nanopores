@@ -1,4 +1,4 @@
-from dolfin import has_lu_solver_method
+from dolfin import has_lu_solver_method, has_krylov_solver_preconditioner
 
 lusolver = "superlu_dist" if has_lu_solver_method("superlu_dist") else "default"
 
@@ -26,7 +26,7 @@ bicgstab = dict(
         same_nonzero_pattern = True,
         reuse_factorization = False,),
     ks = "bicgstab",
-    kp = "hypre_euclid",
+    kp = "hypre_euclid" if has_krylov_solver_preconditioner("hypre_euclid") else "ilu",
     kparams = dict(
         maximum_iterations = 600,
         monitor_convergence = False,
@@ -47,7 +47,7 @@ poisson = dict(
         same_nonzero_pattern = True,
         reuse_factorization = True,),
     ks = "cg",
-    kp = "hypre_euclid",
+    kp = "hypre_euclid" if has_krylov_solver_preconditioner("hypre_euclid") else "ilu",
     kparams = dict(
         maximum_iterations = 500,
         monitor_convergence = False,
@@ -60,13 +60,13 @@ stokes = dict(
     #reuse = False, # DEBUG
     reuse = True,
     iterative = False,
-    lusolver = ("superlu" if has_lu_solver_method("superlu") else "default"),
+    lusolver = "sparselu", #("superlu" if has_lu_solver_method("superlu") else "default"),
     luparams = dict(
         symmetric = True,
         same_nonzero_pattern = True,
         reuse_factorization = True,),
-    ks = "tfqmr",
-    kp = "hypre_euclid",
+    ks = "minres",
+    kp = "hypre_euclid" if has_krylov_solver_preconditioner("hypre_euclid") else "ilu",
     fieldsplit = False, #True,
     kparams = dict(
         maximum_iterations = 1000,

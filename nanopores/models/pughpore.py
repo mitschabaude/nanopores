@@ -301,8 +301,9 @@ def polygon(rmem = 20., **params):
 #......................................................
 
 if __name__ == "__main__":
-    setup = Setup(h=1., Nmax=2e6, dim=3) #, x0=None)
-    _, pnps = solve(setup, True)
+    up = nano.user_params(h=1., Nmax=2e6, dim=3, x0=[0.,0.,0.], stokesiter=False)
+    setup = Setup(**up)
+    _, pnps = solve(setup, False)
     print get_forces(setup, pnps)
 
     plotter = Plotter(setup)
