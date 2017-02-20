@@ -3,7 +3,7 @@ from math import pi, sqrt
 
 charge = -2 # charge per base pair
 distbp = 0.34 # distance between two base pairs for dsDNA
-diam = 2.5 # DNA diameter
+diam = 2. # DNA diameter
 
 Abox = diam * 4 * distbp # surface area of DNA box
 Acyl = diam * pi * distbp # surface area of DNA cylinder
