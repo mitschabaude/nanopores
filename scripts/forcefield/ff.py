@@ -15,7 +15,7 @@ physp = dict(
 default = {
 
     2: dict(physp, dim=2, h=.75, Nmax=1e5, diffusivity_data=ddata[2]),
-    3: dict(physp, dim=3, h=1.25, Nmax=7e5, diffusivity_data=ddata[3],
+    3: dict(physp, dim=3, h=1.25, Nmax=5e5, diffusivity_data=ddata[3],
                   stokesiter=True)}
 
 dim = 3

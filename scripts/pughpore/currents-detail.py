@@ -74,8 +74,8 @@ for dim in 2, 3:
 
     plt.figure("type_%dD" % dim)
     plt.plot(rho, Jmig, "s-", label=r"migrative", color="red")
-    plt.plot(rho, Jconv, "s-", label=r"convective", color="blue")
-    plt.plot(rho, Jdif, "s-", label=r"diffusive", color="green")
+    plt.plot(rho, Jconv, "o-", label=r"convective", color="blue")
+    plt.plot(rho, Jdif, "v-", label=r"diffusive", color="green", zorder=-10)
     #plt.plot(rho, Jdm, "s-", label=r"diff. + mig.", color="cyan")
     #plt.plot(rho, J, "s-", label=r"total")
     plt.xlabel("DNA surface charge [q/nm^2]")
