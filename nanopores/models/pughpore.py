@@ -253,7 +253,7 @@ def F_explicit(X, **params):
 #    F, Fel, Fdrag = phys.Forces(v, u)
 #    return F, Fel, Fdrag
 
-def tensorgrid(nz=30, nr=4, plot=False, eps=1e-2, eps2=5e-2, buf=7., **params):
+def tensorgrid(nz=30, nr=4, plot=False, eps=5e-2, eps2=1e-1, buf=7., **params):
     setup = SetupNoGeo(**params)
     return tensorgrid_(nz, nr, plot, eps, eps2, buf, **setup.geop)
 

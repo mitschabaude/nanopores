@@ -100,7 +100,7 @@ def plot_polygon(ax, polygon):
     ax.add_patch(patchm)
 
 # will result in roughly nz * nr*(nr+1)/2 points
-def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=5e-2, buf=7.,
+def tensorgrid(nz=30, nr=5, plot=False, eps=5e-2, eps2=1e-1, buf=7.,
                **params):
     params = Params(pugh_params) | Params(params)
     r = params.rMolecule
@@ -124,15 +124,15 @@ def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=5e-2, buf=7.,
              params.l2/2. - r,
              params.l1/2. - r,
              params.l0/2. - r]
-    # to which of the two interval the shared endpoint belongs
+    # to which of the two intervals the shared endpoint belongs
     ep = [0, 1, 1, 1]
 
     grids = grid_piecewise1D(z, hz, N=nz, ep=ep)
 
     # ---- create xy (triangle) part of tensor grid -----
     # points in the unit triangle
-    x = np.linspace(2*eps2, 1-eps, nr)
-    y = np.linspace(eps2, 1-eps2, nr)
+    x = np.linspace(eps2, 1-eps, nr)
+    y = np.linspace(eps, 1-eps2, nr)
     xy = [(xi, yi) for xi in x for yi in y if xi > yi]
 
     # ---- tensor product
@@ -152,7 +152,8 @@ def tensorgrid(nz=30, nr=5, plot=False, eps=1e-2, eps2=5e-2, buf=7.,
     return xyz
 
 if __name__ == "__main__":
-    xyz = tensorgrid(nz=30, nr=4, eps2=5e-2, buf=7., plot=True)
+    from nanopores.models.pughpore import tensorgrid as tg
+    xyz = tg(nz=30, nr=4, plot=True)
     plt.show()
 #........................R.............................
 #                                                     .
