@@ -474,3 +474,16 @@ def collect_dict(iterator):
         else:
             for key in result:
                 result[key].append(result.new[key])
+
+def printnow(s):
+    print s,
+    sys.stdout.flush()
+
+class Log(object):
+    def __init__(self, msg):
+        self.msg = msg
+    def __enter__(self):
+        printnow(self.msg)
+        dolfin.tic()
+    def __exit__(self, *args):
+        print "%.2g s" %(dolfin.toc(),)
