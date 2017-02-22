@@ -1,8 +1,8 @@
 # (c) 2017 Gregor Mitscha-Baude
 import nanopores.py4gmsh as gmsh
-from alphahempoly import poly
+from nanopores.tools.utilities import Params
 
-params = dict(
+default = dict(
     dim = 2,
     R = 15.,
     H = 30.,
@@ -10,31 +10,34 @@ params = dict(
     rMolecule = 0.5,
     lcMolecule = 0.25,
     lcCenter = 0.5,
+    hmem = 2.2,
+    zmem = 0.,
+    crosssections = (), # list of z coordinates
+    poreregion = False, # whether to include fluid above pore as subdomain
 )
 
-synonymes = {
-    "pore": {"poretop", "porecenter", "porebottom"},
-    "bulkfluid": {"fluid_bulk_top", "fluid_bulk_bottom"},
-    "fluid": {"pore", "bulkfluid"},
-    "solid": {"membrane", "ahem", "molecule"},
-    "protein": "ahem",
-    "proteinb": "ahemb",
-    "noslip": {"ahemb", "membraneb", "moleculeb"},
-    "bulk": {"upperb", "lowerb"},
-    "nopressure": "bulk",
-    "ground": "upperb",
-    "bV": "lowerb",
-    "ions": "fluid",
-    "lipid": "membrane",
-    "exittime": "fluid",
-    "exit": "poreexit",
-    "sideb": {"uppersideb", "lowersideb"},
-    "upperbulkb": {"upperb", "uppersideb"},
-    "lowerbulkb": {"lowerb", "lowersideb"},
-}
 
-def get_geo(h=1., **newparams):
-    _params = dict(params, **newparams)
+
+def get_geo(poly, h=1., **params):
+    # get params
+    params = Params(default, **params)
+    dim = params.dim
+    R = params.R
+    H = params.H
+    x0 = params.x0
+    rMolecule = params.rMolecule
+    lcMolecule = params.lcMolecule
+    lcCenter = params.lcCenter
+    hmem = params.hmem
+    zmem = params.zmem
+    crosssections = sorted(params.crosssections)
+
+    # compute pore maximum and minimum z, length
+    Z = [x[1] for x in poly]
+    ztop = max(Z)
+    zbot = min(Z)
+    hpore = ztop - zbot
+    assert all(zbot < z < ztop for z in crosssections)
 
     #Anchor Points on aHem for membran (index)
     ap1 = 18
@@ -46,7 +49,6 @@ def get_geo(h=1., **newparams):
     ac2 = 68
     ac3 = 82
     ac4 = 0
-
     zcross = sorted([X_aHem[i][2] for i in [ac1, ac2, ac3, ac4]])
     params["lbtm"] = -zcross[0] + zcross[1]
     params["lctr"] = -zcross[1] + zcross[2]
@@ -127,3 +129,8 @@ def get_geo(h=1., **newparams):
         edges_to_rot.append(e_CrossS)
         top_acdiff = len(X_aHem)-ap1
         bottom_end = ac1
+
+if __name__ == "__main__":
+    from alphahempoly import poly
+    cross = [-0.5]
+    get_geo(poly, h=1., crosssections=cross)

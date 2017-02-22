@@ -146,7 +146,7 @@ def get_domain(lc=1., **newparams):
         molecule = Ball(x0, r=rMolecule, lc=lcMolecule)
         domain.addball(molecule, "molecule", "moleculeb")
         # if molecule intersects pore boundary, change pore domain
-        epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
+        epsi = min(lcMolecule, 1.) # buffer width of mesh around molecule
 
         if abs(x0[2] - hporetop) <= rMolecule + epsi:
             bulkentry = poreenter & Box(a=[-l1/2,-l1/2, x0[2]-rMolecule-epsi],
@@ -327,7 +327,7 @@ def get_domain_cyl(lc=1., **newparams):
     if x0 is not None:
         # molecule will be added later with hack
         # if molecule intersects pore boundary, change pore domain
-        epsi = min(lcMolecule, .5) # buffer width of mesh around molecule
+        epsi = min(lcMolecule, 1.) # buffer width of mesh around molecule
 
         if abs(x0[2] - hporetop) <= rMolecule + epsi:
             bulkentry = poreenter & Box(a=[0., x0[2]-rMolecule-epsi],
