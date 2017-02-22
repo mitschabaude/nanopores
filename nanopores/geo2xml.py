@@ -5,6 +5,56 @@ import nanopores
 #FIXME: deprecated because of license conflict -> import from dolfin
 #from nanopores.meshconvert import convert2xml
 
+def geofile2geo(code, meta, gid, xml=True, pid="", dim=3, optimize=True, **params):
+    pid = str(os.getpid())
+    inputfile = "input%s.geo" %pid
+    outfile = "out%s.msh" %pid
+    meshfile = "mesh%s.xml" %pid
+
+    py4geo = "nanopores.geometries.%s.py4geo" %gid
+    #exec('from %s import get_geo' %py4geo)
+    mod = import_module(py4geo)
+    get_geo = mod.get_geo
+
+    # create path/to/nanoporesdata/gid/mesh if not already there
+    meshdir = os.path.join(nanopores.DATADIR, gid, "mesh")
+    if not os.path.exists(meshdir):
+        os.makedirs(meshdir)
+
+    fid_dict = {"fid_geo": os.path.join(meshdir, inputfile),
+                "fid_msh": os.path.join(meshdir, outfile),
+    }
+
+    # save code to .geo file
+    geo_dict = get_geo(**params)
+    fobj = open(fid_dict["fid_geo"], "w")
+    fobj.write(geo_dict["geo_code"])
+    fobj.close()
+    del geo_dict["geo_code"]
+
+    # after writing the geo file, call gmsh
+    callstr = ["gmsh", "-%s" %dim, "-v", "1","-clscale", "%f" %clscale,
+                     fid_dict["fid_geo"], "-o", fid_dict["fid_msh"]]
+    if optimize:
+        callstr.append("-optimize")
+    gmsh_out = subprocess.call(callstr)
+
+    if gmsh_out != 0:
+        raise RuntimeError('Gmsh failed in generating this geometry')
+    if xml:
+        fid_dict["fid_xml"] = os.path.join(meshdir, meshfile)
+        subprocess.check_output(["dolfin-convert", fid_dict["fid_msh"], fid_dict["fid_xml"]])
+        # for debugging:
+        #convert2xml(fid_dict["fid_msh"], fid_dict["fid_xml"])
+
+
+    # optionally, write metadata to file ("meta" should be dict)
+    if "meta" in geo_dict:
+        save(geo_dict["meta"], meshdir, "meta%s" %pid)
+
+    geo_dict.update(fid_dict)
+    return geo_dict
+
 def generate_mesh(clscale, gid, xml=True, pid="", dim=3, optimize=True, **params):
     """
     python function that writes geo for given geometry and xml for fenics
