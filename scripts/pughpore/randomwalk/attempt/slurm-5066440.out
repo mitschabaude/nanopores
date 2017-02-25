@@ -1,0 +1,203 @@
+0.005
+0.001
+0.0005
+0.0001
+0.00005
+0.00001
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 25, in <module>
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 25, in <module>
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 25, in <module>
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 25, in <module>
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 25, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 25, in <module>
+0:     y_new = y_old + coeff*xi
+2:     y_new = y_old + coeff*xi
+0: NameError: 
+1:     y_new = y_old + coeff*xi
+2: NameError: name 'y_old' is not defined
+4:     y_new = y_old + coeff*xi
+5:     y_new = y_old + coeff*xi
+5: NameError: name 'y_old' is not defined
+0: name 'y_old' is not defined
+1: NameError: name 'y_old' is not defined
+3:     y_new = y_old + coeff*xi
+4: NameError: name 'y_old' is not defined
+3: NameError: name 'y_old' is not defined
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
+srun: Job step creation temporarily disabled, retrying
+srun: Job step creation temporarily disabled, retrying
+srun: Job step creation temporarily disabled, retrying
+srun: Job step creation temporarily disabled, retrying
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 25, in <module>
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 25, in <module>
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 25, in <module>
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 25, in <module>
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 25, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 25, in <module>
+1:     y_new = y_old + coeff*xi
+0:     y_new = y_old + coeff*xi
+4:     y_new = y_old + coeff*xi
+0: NameError: name 'y_old' is not defined
+1: NameError: name 'y_old' is not defined
+3:     y_new = y_old + coeff*xi
+4: NameError: name 'y_old' is not defined
+2:     y_new = y_old + coeff*xi
+3: NameError: name 'y_old' is not defined
+2: NameError: name 'y_old' is not defined
+5:     y_new = y_old + coeff*xi
+2: 
+5: NameError: name 'y_old' is not defined
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
+srun: Job step created
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 14, in <module>
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 14, in <module>
+3:     data = np.load('data'+str(tau)+'.npy')
+2:     data = np.load('data'+str(tau)+'.npy')
+3:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+2:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+2:     fid = open(file, "rb")
+3:     fid = open(file, "rb")
+2: IOError
+3: IOError: 
+2: : 
+3: [Errno 2] No such file or directory: 'data5e-05.npy'
+2: [Errno 2] No such file or directory: 'data5e-05.npy'
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 14, in <module>
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 14, in <module>
+0:     data = np.load('data'+str(tau)+'.npy')
+4:     data = np.load('data'+str(tau)+'.npy')
+0:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+4:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+4:     fid = open(file, "rb")
+0:     fid = open(file, "rb")
+0: IOError: 
+4: IOError: 
+0: [Errno 2] No such file or directory: 'data5e-05.npy'
+4: [Errno 2] No such file or directory: 'data5e-05.npy'
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 14, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 14, in <module>
+1:     data = np.load('data'+str(tau)+'.npy')
+5:     data = np.load('data'+str(tau)+'.npy')
+1:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+5:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+5:     fid = open(file, "rb")
+1:     fid = open(file, "rb")
+1: IOError
+5: IOError
+1: : [Errno 2] No such file or directory: 'data5e-05.npy'
+5: : [Errno 2] No such file or directory: 'data5e-05.npy'
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
+srun: Job step created
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 25, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 25, in <module>
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 25, in <module>
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 25, in <module>
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 25, in <module>
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 25, in <module>
+3:     y_new = y_old + coeff*xi
+4:     y_new = y_old + coeff*xi
+4: NameError
+5:     y_new = y_old + coeff*xi
+5: NameError: name 'y_old' is not defined
+0:     y_new = y_old + coeff*xi
+0: NameError: name 'y_old' is not defined
+2:     y_new = y_old + coeff*xi
+3: NameError: name 'y_old' is not defined
+4: : name 'y_old' is not defined
+5: 
+1:     y_new = y_old + coeff*xi
+2: NameError: name 'y_old' is not defined
+1: NameError: name 'y_old' is not defined
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
+srun: Job step created
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 14, in <module>
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 14, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 14, in <module>
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 14, in <module>
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 14, in <module>
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 14, in <module>
+1:     data = np.load('data'+str(tau)+'.npy')
+5:     data = np.load('data'+str(tau)+'.npy')
+5:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+1:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+0:     data = np.load('data'+str(tau)+'.npy')
+3:     data = np.load('data'+str(tau)+'.npy')
+3:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+0:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+4:     data = np.load('data'+str(tau)+'.npy')
+2:     data = np.load('data'+str(tau)+'.npy')
+2:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+4:   File "/opt/sw/x86_64/glibc-2.17/ivybridge-ep/numpy/1.9.1/intel/16/intel-mkl/11/python/2.7/lib/python2.7/site-packages/numpy/lib/npyio.py", line 369, in load
+1:     fid = open(file, "rb")
+5:     fid = open(file, "rb")
+1: IOError
+3:     fid = open(file, "rb")
+5: IOError: [Errno 2] No such file or directory: 'data1e-05.npy'
+1: : [Errno 2] No such file or directory: 'data1e-05.npy'
+3: IOError: [Errno 2] No such file or directory: 'data1e-05.npy'
+4:     fid = open(file, "rb")
+0:     fid = open(file, "rb")
+2:     fid = open(file, "rb")
+4: IOError: [Errno 2] No such file or directory: 'data1e-05.npy'
+2: IOError: [Errno 2] No such file or directory: 'data1e-05.npy'
+0: IOError: [Errno 2] No such file or directory: 'data1e-05.npy'
+0: 
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
+srun: Job step created
+3: Traceback (most recent call last):
+3:   File "attemptrate.py", line 25, in <module>
+4: Traceback (most recent call last):
+4:   File "attemptrate.py", line 25, in <module>
+5: Traceback (most recent call last):
+5:   File "attemptrate.py", line 25, in <module>
+0: Traceback (most recent call last):
+0:   File "attemptrate.py", line 25, in <module>
+1: Traceback (most recent call last):
+1:   File "attemptrate.py", line 25, in <module>
+2: Traceback (most recent call last):
+2:   File "attemptrate.py", line 25, in <module>
+3:     y_new = y_old + coeff*xi
+4:     y_new = y_old + coeff*xi
+5:     y_new = y_old + coeff*xi
+0:     y_new = y_old + coeff*xi
+1:     y_new = y_old + coeff*xi
+1: NameError: 
+3: NameError: name 'y_old' is not defined
+4: NameError: name 'y_old' is not defined
+5: NameError: name 'y_old' is not defined
+0: NameError: name 'y_old' is not defined
+1: name 'y_old' is not defined
+2:     y_new = y_old + coeff*xi
+2: NameError: 
+2: name 'y_old' is not defined
+srun: error: n09-091: tasks 0-5: Exited with exit code 1
