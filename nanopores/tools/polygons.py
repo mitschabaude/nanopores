@@ -1,8 +1,11 @@
 # (c) 2017 Gregor Mitscha-Baude
 """this was intended to perform boolean operations on polygons,
-but this seems to be too hard without relying on external software"""
+but this seems to be too hard without relying on external software.
+now it is simply for preparing the polygons involved in a pore geometry where
+only the pore protein crosssection and parameters have to be plugged in."""
+from bisect import bisect
 from matplotlib import pyplot as plt
-#from nanopores.tools.utilities import union, collect
+from nanopores.tools.utilities import Params
 
 class Polygon(object):
     TOL = 0.1
@@ -34,6 +37,12 @@ class Polygon(object):
         self.add(x, I[x])
         return x
 
+    def all_intersections(self, z):
+        I = self.intersections(z)
+        for x in I:
+            self.add(x, I[x])
+        return I.keys()
+
     def intersect_edge(self, edge, z):
         # return intersection points with line z=z
         # and vertices to provide context for insertion
@@ -63,19 +72,25 @@ class Polygon(object):
 
     def add(self, v, context):
         if len(context) == 0:
-            # v is already node, we have to do nothing!"o-k"
+            # v is already node, we have to do nothing!
             return
         elif len(context) == 1:
             # replace a node with v
             x, = context
             i = self.nodes.index(x)
             self.nodes[i] = v
+            # replace two adjacent edges
+            self.edges[i-1] = (self.edges[i-1][0], v)
+            self.edges[i] = (v, self.edges[i][1])
         elif len(context) == 2:
             # insert between two nodes
             x, y = context
             i = self.nodes.index(y)
             self.nodes.insert(i, v)
-        self.init_edges()
+            # replace edge x-y with x-v and insert v-y
+            self.edges[i-1] = (x, v)
+            self.edges.insert(i, (v, y))
+        #self.init_edges()
 
     def close(self, x, y):
         return sum((t - s)**2 for t, s in zip(x, y)) < self.TOL**2
@@ -93,7 +108,13 @@ class Polygon(object):
         c = (c0, b1)
         d = (c0, a1)
         nodes = self.nrange(a, b, -1) + [c, d]
-        return Polygon(nodes)
+        pol = Polygon(nodes)
+        # useful meta-info about polygon
+        pol.a = a
+        pol.b = b
+        pol.c = c
+        pol.d = d
+        return pol
 
     def clip_from_left(self, d1, c1, a0):
         # return polygon a-b-c-d which is bounded at the right c-d side by self
@@ -103,7 +124,13 @@ class Polygon(object):
         a = (a0, d1)
         b = (a0, c1)
         nodes = [a, b] + self.nrange(c, d, -1)
-        return Polygon(nodes)
+        pol = Polygon(nodes)
+        # useful meta-info about polygon
+        pol.a = a
+        pol.b = b
+        pol.c = c
+        pol.d = d
+        return pol
 
     def nrange(self, a, b, sign=1):
         # return nodes that range from a to b (including b)
@@ -125,37 +152,191 @@ class Polygon(object):
             raise NotImplementedError
         return [self.nodes[i % n] for i in ran]
 
+    def edgerange(self, a, b):
+        # return set of edges from a to b
+        nodes = self.nrange(a, b)
+        return set(nodes2edges(nodes))
+
     def index(self, x):
         return self.nodes.index(x)
 
     def len(self):
         return len(self.nodes)
 
-class PorePolygon(Polygon):
-    def get_membrane(self, hmem, zmem, R):
+def nodes2edges(nodes, closed=False):
+    if closed:
+        return zip(nodes, nodes[1:] + nodes[0:1])
+    else:
+        return zip(nodes[:-1], nodes[1:])
+
+class PolygonPore(object):
+    def __init__(self, poly, name="protein", **params):
+        self.name = name
+        self.protein = Polygon(poly)
+        self.polygons = {name: self.protein}
+        self.params = Params(params)
+        self.boundaries = {}
+
+        # cs ... protein crosssections for partition of boundary
+        self.add_proteinpartition()
+
+    def build_polygons(self):
+        hmem = self.params.hmem
+        zmem = self.params.zmem
+        R = self.params.R
+        H = self.params.H
+        self.add_membrane(hmem, zmem, R)
+
+        cs = self.params.cs if "cs" in self.params else []
+        sections = self.add_poresections(cs=cs)
+        self.add_bulkfluids(R, H, sections)
+        return self.polygons
+
+    def build_boundaries(self):
+        boundaries = self.boundaries
+
+        # membrane boundary
+        mem = self.polygons["membrane"]
+        memb = mem.edgerange(mem.b, mem.c) | mem.edgerange(mem.d, mem.a)
+
+        # upper, lower, side
+        btop = self.polygons["bulkfluid_top"]
+        bbot = self.polygons["bulkfluid_bottom"]
+        upperb = btop.edgerange(btop.b, btop.c)
+        lowerb = bbot.edgerange(bbot.d, bbot.a)
+        sideb = btop.edgerange(btop.c, btop.d) | bbot.edgerange(bbot.c, bbot.d)
+
+        boundaries.update(memb=memb, upperb=upperb, lowerb=lowerb, sideb=sideb)
+        boundaries.update(self.compute_proteinboundary())
+        return boundaries
+
+    def molecule_intersects(self, z):
+        x0 = self.params.x0 if "x0" in self.params else None
+        if x0 is None:
+            return False
+        z0 = x0[-1]
+        r = self.params.rMolecule
+        return z0 - r <= z <= z0 + r
+
+    def where_is_molecule(self, sections):
+        x0 = self.params.x0 if "x0" in self.params else None
+        if x0 is None:
+            return None
+        H = self.params.H
+        z0 = x0[-1]
+        cs = [-H] + self.cs + [H]
+        domains = [s for s in self.polygons if s.startswith("pore")]
+        domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
+
+    def add_membrane(self, hmem, zmem, R):
         zbot = zmem - 0.5*hmem
         ztop = zmem + 0.5*hmem
-        return self.clip_from_right(zbot, ztop, R)
+        self.membrane = self.protein.clip_from_right(zbot, ztop, R)
+        self.polygons["membrane"] = self.membrane
+        return self.membrane
 
-    def get_poresections(self, cs=None):
+    def add_poresections(self, cs=None, remove_intersections=True):
         # cs ... crosssections
-        ztop = max(x[1] for x in self.nodes)
-        zbot = min(x[1] for x in self.nodes)
+        ztop = max(x[1] for x in self.protein.nodes)
+        zbot = min(x[1] for x in self.protein.nodes)
         cs = [] if cs is None else list(cs)
         assert all(zbot < z < ztop for z in cs)
         cs = [zbot] + sorted(cs) + [ztop]
+        # do not add crosssections that intersect with molecule
+        if remove_intersections:
+            for z in list(cs):
+                if self.molecule_intersects(z):
+                    cs.remove(z)
+
         pairs = zip(cs[:-1], cs[1:])
-        return tuple([self.clip_from_left(a, b, 0) for a, b in pairs])
+        sections = tuple([self.protein.clip_from_left(a, b, 0) for a, b in pairs])
+#        if len(sections) == 3:
+#            names = ["porebot", "porectr", "poretop"]
+#        elif len(sections) == 2:
+#            names = ["porebot", "poretop"]
+#        elif len(sections) == 1:
+#            names = ["pore"]
+#        else:
+        names = ["pore%d" % i for i in range(len(sections))]
+        self.nsections = len(sections)
+        self.cs = cs
+        self.polygons.update({name: s for name, s in zip(names, sections)})
+        return sections
 
-    def get_bulkfluids(self, R, H, *polygons):
+    def add_bulkfluids(self, R, H, polygons):
+        # polygons ... pore sections that remain after adding moleculetop
+        polygons = list(polygons) + [self.protein, self.membrane]
+
         upper = compute_upper_boundary(*polygons)
-        lower = compute_lower_boundary(*polygons)
-        nodes = [(0, H/2.), (R, H/2.)] + upper
-        bulkfluid_top = Polygon(nodes)
-        nodes = lower + [(R, -H/2.), (0, -H/2.)]
-        bulkfluid_bottom = Polygon(nodes)
-        return bulkfluid_top, bulkfluid_bottom
+        b, c = (0, H/2.), (R, H/2.)
+        nodes = [b, c] + upper
+        btop = Polygon(nodes)
+        btop.a = upper[-1]
+        btop.b = b
+        btop.c = c
+        btop.d = upper[0]
 
+        lower = compute_lower_boundary(*polygons)
+        d, a = (R, -H/2.), (0, -H/2.)
+        nodes = lower + [d, a]
+        bbot = Polygon(nodes)
+        bbot.a = a
+        bbot.b = lower[0]
+        bbot.c = lower[-1]
+        bbot.d = d
+
+        self.polygons["bulkfluid_top"] = btop
+        self.polygons["bulkfluid_bottom"] = bbot
+        return btop, bbot
+
+    def add_proteinpartition(self):
+        # do at the beginning
+        # insert intersection points with cs in polygon
+        cs = self.params.proteincs if "proteincs" in self.params else None
+        if cs is None:
+            self.proteinpartition = False
+            return
+        protein = self.protein
+        ztop = max(x[1] for x in protein.nodes)
+        zbot = min(x[1] for x in protein.nodes)
+        assert all(zbot < z < ztop for z in cs)
+        for z in cs:
+            protein.all_intersections(z)
+        self.proteincs = cs
+        self.proteinpartition = True
+
+    def compute_proteinboundary(self):
+        # do after modifying edges!!
+        protein = self.protein
+        dic = {"%sb" % self.name: set(self.protein.edges)}
+
+        if self.proteinpartition:
+            cs = self.proteincs
+            ztop = max(x[1] for x in protein.nodes)
+            zbot = min(x[1] for x in protein.nodes)
+            cs = [zbot] + sorted(cs) + [ztop]
+            npart = len(cs) - 1
+            sets = [set() for i in range(npart)]
+
+            # partition edges
+            for edge in protein.edges:
+                x, y = edge
+                x, y = min(x, y, key=lambda t: t[1]), max(x, y, key=lambda t: t[1])
+                ix = bisect(cs, x[1])
+                #iy = bisect(cs, y[1])
+                #print ix, iy
+                #assert ix == iy
+                sets[ix - 1].add(edge)
+
+            dic.update({"%sb%d" % (self.name, i): sets[i] for i in range(npart)})
+
+        # subtract edges on protein-membrane interface
+        mem = self.polygons["membrane"]
+        pmemb = protein.edgerange(mem.b, mem.a)
+        for s in dic.values():
+            s -= pmemb
+
+        return dic
 
 def join_nodes(polygons):
     return list(set([x for p in polygons for x in p.nodes]))
@@ -199,22 +380,37 @@ def compute_lower_boundary(*polygons):
         X.append(x0)
     return X
 
+def plot_edges(edges, *args, **kwargs):
+    for x, y in edges:
+        plt.plot([x[0], y[0]], [x[1], y[1]], *args, **kwargs)
+
 if __name__ == "__main__":
     from nanopores.geometries.alphahempoly import poly
-    R = 10
-    H = 30
-    hmem = 2
-    zmem = -6
-    cs = [-2, -4]
+    params = dict(
+        R = 10,
+        H = 30,
+        hmem = 2,
+        zmem = -6,
+        cs = [-2, -4],
+        proteincs=[-6.8],
+        x0 = [0.,0.,-10],
+        rMolecule = 2.,
+    )
 
-    p = PorePolygon(poly)
-    pmem = p.get_membrane(hmem, zmem, R)
-    pbot, pctr, ptop = p.get_poresections(cs)
+    p = PolygonPore(poly, "ahem", **params)
+    p.build_polygons()
+    p.build_boundaries()
+    print p.polygons.keys()
+    print p.boundaries.keys()
 
-    p.plot()
-    pmem.plot()
-    top, bottom = p.get_bulkfluids(R, H, p, pmem, pctr, pbot)
-    top.plot()
-    bottom.plot()
+    p.protein.plot(".k", zorder=100)
+    #p.polygons["bulkfluid_top"].plot()
+    p.polygons["pore0"].plot()
+
+    plot_edges(p.boundaries["memb"], color="blue")
+    plot_edges(p.boundaries["lowerb"])
+    plot_edges(p.boundaries["upperb"])
+    plot_edges(p.boundaries["sideb"], color="yellow")
+    plot_edges(p.boundaries["ahemb"], color="red")
     plt.show()
 
