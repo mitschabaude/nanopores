@@ -190,6 +190,8 @@ class PolygonPore(object):
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
         self.add_bulkfluids(R, H, sections)
+        self.add_molecule_nodes()
+
         return self.polygons
 
     def build_boundaries(self):
@@ -211,22 +213,39 @@ class PolygonPore(object):
         return boundaries
 
     def molecule_intersects(self, z):
+        eps = 0.5
         x0 = self.params.x0 if "x0" in self.params else None
         if x0 is None:
             return False
         z0 = x0[-1]
         r = self.params.rMolecule
-        return z0 - r <= z <= z0 + r
+        return z0 - r - eps <= z <= z0 + r + eps
 
-    def where_is_molecule(self, sections):
+    def where_is_molecule(self):
+        # TODO: currently this is only based on z position!!
         x0 = self.params.x0 if "x0" in self.params else None
         if x0 is None:
             return None
-        H = self.params.H
-        z0 = x0[-1]
-        cs = [-H] + self.cs + [H]
-        domains = [s for s in self.polygons if s.startswith("pore")]
+
+        domains = ["pore%d" % i for i in range(self.nsections)]
         domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
+        i0 = bisect(self.cs, x0[-1])
+        return domains[i0]
+
+    def add_molecule_nodes(self):
+        domstr = self.where_is_molecule()
+        if domstr is None:
+            return
+        domain = self.polygons[domstr]
+        z = self.params.x0[-1]
+        r = self.params.rMolecule
+        a = domain.a
+        b = domain.b
+
+        x1, x2, x3 = (0., z-r), (0., z), (0., z+r)
+        domain.add(x1, (a, b))
+        domain.add(x2, (x1, b))
+        domain.add(x3, (x2, b))
 
     def add_membrane(self, hmem, zmem, R):
         zbot = zmem - 0.5*hmem
@@ -391,10 +410,10 @@ if __name__ == "__main__":
         H = 30,
         hmem = 2,
         zmem = -6,
-        cs = [-2, -4],
+        cs = [-3.3, -6.6],
         proteincs=[-6.8],
-        x0 = [0.,0.,-10],
-        rMolecule = 2.,
+        x0 = [0.,0.,-5],
+        rMolecule = .5,
     )
 
     p = PolygonPore(poly, "ahem", **params)
@@ -403,9 +422,10 @@ if __name__ == "__main__":
     print p.polygons.keys()
     print p.boundaries.keys()
 
+    print "mol in", p.where_is_molecule()
     p.protein.plot(".k", zorder=100)
     #p.polygons["bulkfluid_top"].plot()
-    p.polygons["pore0"].plot()
+    p.polygons["pore1"].plot(".-b")
 
     plot_edges(p.boundaries["memb"], color="blue")
     plot_edges(p.boundaries["lowerb"])
