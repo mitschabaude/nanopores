@@ -4,6 +4,7 @@ but this seems to be too hard without relying on external software.
 now it is simply for preparing the polygons involved in a pore geometry where
 only the pore protein crosssection and parameters have to be plugged in."""
 from bisect import bisect
+from collections import OrderedDict
 from matplotlib import pyplot as plt
 from nanopores.tools.utilities import Params
 
@@ -163,6 +164,29 @@ class Polygon(object):
     def len(self):
         return len(self.nodes)
 
+class HalfCircle(object):
+    # could also be implemented with two circular arcs
+    def __init__(self, z, r):
+        nodes = [(0, z-r), (0, z), (0, z+r)]
+        self.nodes = nodes
+        x1, x2, x3 = tuple(nodes)
+        self.edges = [(x3, x2), (x2, x1), (x1, x2, x3)]
+
+    def boundary(self):
+        return {self.edges[2]}
+
+    # TODO: def plot(self):
+
+class EmptySet(object):
+    def __init__(self):
+         self.nodes = []
+         self.edges = []
+    def boundary(self):
+        return set()
+
+def isempty(poly):
+    return isinstance(poly, EmptySet)
+
 def nodes2edges(nodes, closed=False):
     if closed:
         return zip(nodes, nodes[1:] + nodes[0:1])
@@ -173,12 +197,17 @@ class PolygonPore(object):
     def __init__(self, poly, name="protein", **params):
         self.name = name
         self.protein = Polygon(poly)
-        self.polygons = {name: self.protein}
+        self.polygons = OrderedDict(name=self.protein)
         self.params = Params(params)
-        self.boundaries = {}
+        self.boundaries = OrderedDict()
 
         # cs ... protein crosssections for partition of boundary
         self.add_proteinpartition()
+
+        if "x0" in self.params and self.params.x0 is not None:
+            self.molecule = True
+        else:
+            self.molecule = False
 
     def build_polygons(self):
         hmem = self.params.hmem
@@ -190,7 +219,7 @@ class PolygonPore(object):
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
         self.add_bulkfluids(R, H, sections)
-        self.add_molecule_nodes()
+        self.add_molecule()
 
         return self.polygons
 
@@ -210,6 +239,11 @@ class PolygonPore(object):
 
         boundaries.update(memb=memb, upperb=upperb, lowerb=lowerb, sideb=sideb)
         boundaries.update(self.compute_proteinboundary())
+
+        # molecule
+        moleculeb = self.polygons["molecule"].boundary()
+        boundaries.update(moleculeb=moleculeb)
+
         return boundaries
 
     def molecule_intersects(self, z):
@@ -223,29 +257,35 @@ class PolygonPore(object):
 
     def where_is_molecule(self):
         # TODO: currently this is only based on z position!!
-        x0 = self.params.x0 if "x0" in self.params else None
-        if x0 is None:
+        if not self.molecule:
             return None
 
         domains = ["pore%d" % i for i in range(self.nsections)]
         domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
-        i0 = bisect(self.cs, x0[-1])
+        i0 = bisect(self.cs, self.params.x0[-1])
         return domains[i0]
 
-    def add_molecule_nodes(self):
-        domstr = self.where_is_molecule()
-        if domstr is None:
+    def add_molecule(self):
+        if not self.molecule:
+            self.polygons["molecule"] = EmptySet()
             return
-        domain = self.polygons[domstr]
+
+        # add molecule to polygons
         z = self.params.x0[-1]
         r = self.params.rMolecule
+        molecule = HalfCircle(z, r)
+        self.polygons["molecule"] = molecule
+
+        # modify domain in which molecule is contained
+        domstr = self.where_is_molecule()
+        domain = self.polygons[domstr]
         a = domain.a
         b = domain.b
-
-        x1, x2, x3 = (0., z-r), (0., z), (0., z+r)
+        x1, x2, x3 = tuple(molecule.nodes)
         domain.add(x1, (a, b))
-        domain.add(x2, (x1, b))
-        domain.add(x3, (x2, b))
+        domain.add(x3, (x1, b))
+        i = domain.edges.index((x1, x3))
+        domain.edges[i] = (x1, x2, x3)
 
     def add_membrane(self, hmem, zmem, R):
         zbot = zmem - 0.5*hmem
@@ -327,9 +367,10 @@ class PolygonPore(object):
     def compute_proteinboundary(self):
         # do after modifying edges!!
         protein = self.protein
-        dic = {"%sb" % self.name: set(self.protein.edges)}
+        if not self.proteinpartition:
+            dic = {"%sb" % self.name: set(self.protein.edges)}
 
-        if self.proteinpartition:
+        else:
             cs = self.proteincs
             ztop = max(x[1] for x in protein.nodes)
             zbot = min(x[1] for x in protein.nodes)
@@ -347,7 +388,7 @@ class PolygonPore(object):
                 #assert ix == iy
                 sets[ix - 1].add(edge)
 
-            dic.update({"%sb%d" % (self.name, i): sets[i] for i in range(npart)})
+            dic = {"%sb%d" % (self.name, i): sets[i] for i in range(npart)}
 
         # subtract edges on protein-membrane interface
         mem = self.polygons["membrane"]
@@ -412,7 +453,7 @@ if __name__ == "__main__":
         zmem = -6,
         cs = [-3.3, -6.6],
         proteincs=[-6.8],
-        x0 = [0.,0.,-5],
+        x0 = [0.,0.,-6],
         rMolecule = .5,
     )
 
@@ -425,12 +466,12 @@ if __name__ == "__main__":
     print "mol in", p.where_is_molecule()
     p.protein.plot(".k", zorder=100)
     #p.polygons["bulkfluid_top"].plot()
-    p.polygons["pore1"].plot(".-b")
+    p.polygons["pore0"].plot(".-b")
 
     plot_edges(p.boundaries["memb"], color="blue")
     plot_edges(p.boundaries["lowerb"])
     plot_edges(p.boundaries["upperb"])
     plot_edges(p.boundaries["sideb"], color="yellow")
     plot_edges(p.boundaries["ahemb"], color="red")
-    plt.show()
+    #plt.show()
 

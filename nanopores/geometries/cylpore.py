@@ -1,9 +1,12 @@
 # (c) 2017 Gregor Mitscha-Baude
 import nanopores.py4gmsh as gmsh
-from nanopores.tools.polygons import PolygonPore, plot_edges
-from nanopores.tools.utilities import Params
+from nanopores.geo2xml import geofile2geo
+from nanopores.tools.polygons import PolygonPore, plot_edges, isempty
+from nanopores.tools.utilities import Log
 
 default = dict(
+    geoname = "cylpore",
+    porename = "protein",
     dim = 2,
     R = 15.,
     H = 30.,
@@ -19,26 +22,74 @@ default = dict(
 
 class Pore(PolygonPore):
     "PolygonPore with additional gmsh creation functions"
-    def compute_entities(self):
-        # after build_...
+    def __init__(self, poly, **params):
+        params = dict(default, **params)
+        self.dim = params["dim"]
+        self.geoname = params["geoname"] # name of folder where mesh is created
+        name = params["porename"] # name of pore wall subdomain, i.e. "dna"
+        PolygonPore.__init__(self, poly, name, **params)
+
+    def build(self, h=1.):
+        with Log("computing polygons..."):
+            self.build_polygons()
+            self.build_boundaries()
+        geo = self.build_geometry(h)
+        return geo
+
+    def build_geometry(self, h=1.):
+        with Log("writing gmsh code..."):
+            code, meta = self.to_gmsh(h)
+        geo = geofile2geo(code, meta, name=self.geoname)
+        return geo
+
+    def to_gmsh(self, h=1.):
         # create lists with common nodes, edges
-        self.nodes = set([x for p in self.polygons.values() for x in p.nodes])
-        self.edges = set([e for p in self.polygons.values() for e in p.edges])
+        # TODO: maybe we should move away from indices and implement map
+        # {entity: gmsh_entity} ???
+        # set lookup is probably faster than list lookup !!!
+        self.nodes = list(set([x for p in self.polygons.values() for x in p.nodes]))
+        self.edges = list(set([e for p in self.polygons.values() for e in p.edges]))
         self.gmsh_nodes = [None for x in self.nodes]
         self.gmsh_edges = [None for x in self.edges]
-        self.lineloops = {}
 
-    def entities_to_gmsh(self, dim=2):
-        # create line loops for every polygon
-        lineloops = {}
+        # in 2D, create plane surfaces for every polygon
+        # TODO: 3D
+        dim = self.dim
+        lcs = self.set_length_scales(h)
+
         for pname, p in self.polygons.items():
-            ll = self.LineLoop(p.edges)
-            lineloops[pname] = ll
+            gmsh.Comment("Creating %s subdomain." %pname)
+            if isempty(p):
+                gmsh.NoPhysicalVolume(pname)
+                continue
+            if dim == 2:
+                lc = lcs[pname]
+                print pname, lc
+                ll = self.LineLoop(p.edges, lc)
+                vol = gmsh.PlaneSurface(ll)
+                gmsh.PhysicalVolume(vol, pname, dim)
+            else:
+                raise NotImplementedError
 
-        # if molecule, create circle
-        protein = self.protein
-        ll_protein = self.LineLoop(protein.edges)
-        gmsh.PlaneSurface(ll_protein)
+        # add physical surfaces
+        for bname, bset in self.boundaries.items():
+            self.PhysicalBoundary(bset, bname)
+
+        gmsh.raw_code(["General.ExpertMode = 1;"])
+        #gmsh.raw_code(["Mesh.Algorithm3D = 2;"])
+        code = gmsh.get_code()
+        meta = gmsh.get_meta()
+        self.gmshcode = code, meta
+        return code, meta
+
+    def set_length_scales(self, h):
+        lc = {p: h for p in self.polygons}
+        lc["molecule"] = h*self.params.lcMolecule
+        for i in range(self.nsections):
+            lc["pore%d" % i] = h*self.params.lcCenter
+        else:
+            lc["%s" % (self.name,)] = h*self.params.lcCenter
+        return lc
 
     def Point(self, x, lc):
         i = self.nodes.index(x)
@@ -46,55 +97,83 @@ class Pore(PolygonPore):
         if gmsh_x is not None:
             return gmsh_x
 
+        #print x, lc
         x = x + tuple(0. for i in range(3 - self.dim))
         gmsh_x = gmsh.Point(x, lc)
         self.gmsh_nodes[i] = gmsh_x
         return gmsh_x
 
-    def Line(self, e, lc=1.):
-        # if exists, return edge
+    def Edge(self, e, lc=1.):
+        # generalizes Line and Circle
+        # if exists, return gmsh edge
         i = self.edges.index(e)
         gmsh_e = self.gmsh_edges[i]
         if gmsh_e is not None:
             return gmsh_e
+        # otherwise, discriminate between Line and Circle
+        points = [self.Point(v, lc) for v in e]
 
-        x, y = e
-        gmsh_x = self.Point(x, lc)
-        gmsh_y = self.Point(y, lc)
-        gmsh_e = gmsh.Line(gmsh_x, gmsh_y)
+        if len(e) == 2:
+            gmsh_e = gmsh.Line(*points)
+        elif len(e) == 3:
+            gmsh_e = gmsh.Circle(points)
+
         self.gmsh_edges[i] = gmsh_e
-
-        # also save flipped edge
-        i1 = self.gmsh_edges.index((y, x))
-        self.gmsh_edges[i1] = "-" + gmsh_e
+        # also save flipped edge (if exists)
+        try:
+            i1 = self.edges.index(e[::-1])
+            self.gmsh_edges[i1] = "-" + gmsh_e
+        except ValueError:
+            pass
         return gmsh_e
 
-    def LineLoop(self, ll, name, lc=1.):
-        lines = [self.Line(edge, lc) for edge in ll]
+    def LineLoop(self, ll, lc=1.):
+        lines = [self.Edge(edge, lc) for edge in ll]
         ll = gmsh.LineLoop(lines)
-        self.lineloops[name] = ll
+        return ll
 
-    def add_molecule_2D(self, lineloops, lc=1.):
-        mpos = self.where_is_molecule()
-        if mpos is None:
-            return
-        z0 = self.params.x0[-1]
-        r = self.params.rMolecule
-        points = [self.Point([0, z, 0], lc) for z in [z0-r, z0, z0+r]]
+    def PhysicalBoundary(self, bset, bname):
+        gmsh.Comment("Creating %s boundary." %bname)
+        dim = self.dim
+        if not bset:
+            gmsh.NoPhysicalSurface(bname)
+        if dim == 2:
+            boundary = [self.Edge(e) for e in bset]
+            gmsh.PhysicalSurface(boundary, bname, dim)
+        else:
+            raise NotImplementedError
 
-        halfcircle = gmsh.Circle(points)
-        edge = self.Line((points[2], points[0]), lc)
-        ll = gmsh.LineLoop([halfcircle, edge])
-        self.lineloops["molecule"] = ll
 
 def get_geo(poly, h=1., **params):
     # get params
-    params = Params(default, **params)
-    p = Pore(poly, name="ahem", **params)
-    p.build_polygons()
-    p.build_boundaries()
+    p = Pore(poly, **params)
+    geo = p.build(h=h)
+    return geo
+
+if __name__ == "__main__":
+    from alphahempoly import poly
+    from matplotlib import pyplot as plt
+    from dolfin import plot, interactive
+    from nanopores import user_params
+    params = user_params(
+        h = 1.,
+        porename="ahem",
+        cs=[-3, -6],
+        zmem=-5.,
+        proteincs=[-5.],
+        x0 = [0., 0., 0.],
+    )
+
+    geo = get_geo(poly, **params)
+    plot(geo.subdomains)
+    plot(geo.boundaries)
+    print geo
+    interactive()
 
     # --- TEST
+    p = Pore(poly, **params)
+    p.build_polygons()
+    p.build_boundaries()
     print p.polygons.keys()
     print p.boundaries.keys()
 
@@ -106,17 +185,6 @@ def get_geo(poly, h=1., **params):
     plot_edges(p.boundaries["lowerb"])
     plot_edges(p.boundaries["upperb"])
     plot_edges(p.boundaries["sideb"], color="yellow")
-    plot_edges(p.boundaries["ahemb"], color="red")
+    plot_edges(p.boundaries["ahemb0"], color="red")
+    #plt.show()
     # ---
-
-
-
-
-
-
-if __name__ == "__main__":
-    from alphahempoly import poly
-    from matplotlib import pyplot as plt
-    cs = [-3, -6]
-    geo = get_geo(poly, h=1., zmem=-5., cs=cs, proteincs=[-5.])
-    plt.show()
