@@ -11,8 +11,8 @@ import numpy as np
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 #from get_D import f, fp
-from get_D_new import Dx, Dy, Dz, dDx, dDy, dDz
-from get_J import Jf as J
+#from get_D_new import Dx, Dy, Dz, dDx, dDy, dDz
+#from get_J import Jf as J
 import os
 from time import time as timer
 
@@ -21,7 +21,7 @@ HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 
-DATADIR = os.path.join(HOME, "fields")
+DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
 
 import nanopores.tools.fields as fields
 fields.set_dir(DATADIR)
