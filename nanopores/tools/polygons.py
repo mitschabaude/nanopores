@@ -197,7 +197,7 @@ class PolygonPore(object):
     def __init__(self, poly, name="protein", **params):
         self.name = name
         self.protein = Polygon(poly)
-        self.polygons = OrderedDict(name=self.protein)
+        self.polygons = OrderedDict({name: self.protein})
         self.params = Params(params)
         self.boundaries = OrderedDict()
 
@@ -220,6 +220,14 @@ class PolygonPore(object):
         sections = self.add_poresections(cs=cs)
         self.add_bulkfluids(R, H, sections)
         self.add_molecule()
+
+        # TODO: maybe this could be done prettier
+        # rebuild polygon dict with new order (molecule first)
+        # order matters because some first length scale overrides later ones
+        poly = self.polygons
+        mol = poly.pop("molecule")
+        self.polygons = OrderedDict(molecule=mol)
+        self.polygons.update(poly)
 
         return self.polygons
 

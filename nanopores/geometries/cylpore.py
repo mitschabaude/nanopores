@@ -64,7 +64,7 @@ class Pore(PolygonPore):
                 continue
             if dim == 2:
                 lc = lcs[pname]
-                print pname, lc
+                #print pname, lc
                 ll = self.LineLoop(p.edges, lc)
                 vol = gmsh.PlaneSurface(ll)
                 gmsh.PhysicalVolume(vol, pname, dim)
@@ -145,7 +145,6 @@ class Pore(PolygonPore):
 
 
 def get_geo(poly, h=1., **params):
-    # get params
     p = Pore(poly, **params)
     geo = p.build(h=h)
     return geo
@@ -161,7 +160,7 @@ if __name__ == "__main__":
         cs=[-3, -6],
         zmem=-5.,
         proteincs=[-5.],
-        x0 = [0., 0., 0.],
+        #x0 = [0., 0., 0.],
     )
 
     geo = get_geo(poly, **params)
