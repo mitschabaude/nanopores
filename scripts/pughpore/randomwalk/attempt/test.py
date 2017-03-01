@@ -1,5 +1,5 @@
 import sys
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from random import gauss
 from math import sqrt, ceil, floor, pi
 import numpy as np
@@ -22,8 +22,9 @@ fac = sqrt(2*D) # correction factor
 L = l3-rMolecule
 eps = L*1e-1
 
-tau = eps**2/(2*D)*5e-2
-iter = 1000000
+taufacinv = int(sys.argv[1])
+tau = eps**2/(2*D)*5e-2*(1./taufacinv)
+iter = 50000000
 len=tau*iter
 sqrttau = sqrt(tau)
 
@@ -32,6 +33,7 @@ sqrttau = sqrt(tau)
 attempt = 0
 
 try:
+    np.load('does_not_exist.npy')
     X = np.load('X.npy')
     Y = np.load('Y.npy')
 except:
@@ -52,6 +54,7 @@ L_ = np.concatenate((-np.arange(L,abs(minL)+L,L)[::-1],np.arange(0.,maxL+L,L)))
 sig = 0.
 ffa = False
 try:
+    np.load('does_not_exist.npy')
     Exp=np.load('Exp.npy')
     XA = np.load('XA.npy')
     YA = np.load('YA.npy')
@@ -93,13 +96,13 @@ print 'analytic attempt rate = %.2e'%theo
 print 'numeric attemptrate   = %.3e'%attemptrate
 
 # plot stuff
-for i in L_:
-    plt.plot([0.,iter*tau],[i,i],'r--')
-    plt.fill_between([0.,iter*tau],[float(i)+eps,float(i)+eps],[float(i)-eps,float(i)-eps],color='#ff0000',alpha=.2)
-plt.plot(X,Y,color='#000000')
-plt.tight_layout()
-plt.plot(XA,YA,'ro')
-plt.show()
-plt.plot(np.linspace(1,len,100),Exp,color='#0000ff')
-plt.plot([0.,len],[attemptrate,attemptrate],color='#0000ff')
-plt.show()
+#for i in L_:
+#    plt.plot([0.,iter*tau],[i,i],'r--')
+#    plt.fill_between([0.,iter*tau],[float(i)+eps,float(i)+eps],[float(i)-eps,float(i)-eps],color='#ff0000',alpha=.2)
+#plt.plot(X,Y,color='#000000')
+#plt.tight_layout()
+#plt.plot(XA,YA,'ro')
+#plt.show()
+#plt.plot(np.linspace(1,len,100),Exp,color='#0000ff')
+#plt.plot([0.,len],[attemptrate,attemptrate],color='#0000ff')
+#plt.show()
