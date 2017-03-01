@@ -92,7 +92,7 @@ def R_(z):
 #        return -sqrt(r**2-x**2)+l3/2.
 #    else: return R/2.
 
-params=dict(avgbind=1e7,P_bind=3.e-3,z0=hpore/2.+5.)
+params=dict(avgbind1=7e6,avgbind2=1e2,P_bind1=5.e-3,P_bind2=1e-1,z0=hpore/2.+5.)
 
 Dmol = kT/(6.*math.pi*eta*rMolecule*1e-9) # [m^2/s]
 gamma = (6.*math.pi*eta*rMolecule) #friction [microgramm/s]
@@ -133,16 +133,19 @@ def run(params=params):
     Z = np.array([params["z0"]])
     J1 = np.array([])
     T = np.array([])
-    avgbind=params["avgbind"]
-    P_bind=params["P_bind"]
+    avgbind1=params["avgbind1"]
+    P_bind1=params["P_bind1"]
+    avgbind2=params["avgbind2"]
+    P_bind2=params["P_bind2"]
     ffa = True
     i=0
     while i<maxiter and Z[-1]>=-hpore/2.-2.:
+        add=tau
         xi_x=gauss(0.,1.)
         xi_y=gauss(0.,1.)
         xi_z=gauss(0.,1.)
         Force = F
-	[[Dxfac, Dyfac, Dzfac],[DDx,DDy,DDz]]=D(X[-1],Y[-1],Z[-1])
+#	[[Dxfac, Dyfac, Dzfac],[DDx,DDy,DDz]]=D(X[-1],Y[-1],Z[-1])
 #        x_new = X[-1] + coeff*xi_x*math.sqrt(abs(Dxfac)) + C*Force[0]*Dxfac + DDx*tau*Dmol
 #        y_new = Y[-1] + coeff*xi_y*math.sqrt(abs(Dyfac)) + C*Force[1]*Dyfac + DDy*tau*Dmol
 #        z_new = Z[-1] + coeff*xi_z*math.sqrt(abs(Dzfac)) + C*Force[2]*Dzfac + DDz*tau*Dmol
@@ -153,21 +156,24 @@ def run(params=params):
             x_new = X[-1]
             y_new = Y[-1]
             z_new = Z[-1]
-            if ffa and np.random.binomial(1,P_bind)==1 and Z[-1]<=hpore/2.-h2 and Z[-1]>=-hpore/2.+1.:
-                add=expovariate(lambd=1./avgbind)
+            if ffa and np.random.binomial(1,P_bind1)==1 and Z[-1]<=hpore/2.-h2 and Z[-1]>=-hpore/2.+h4:
+                add=expovariate(lambd=1./avgbind1)
+            if ffa and np.random.binomial(1,P_bind2)==1 and Z[-1]<=hpore/2.+h4 and Z[-1]>=-hpore/2.+0.:
+                add=expovariate(lambd=1./avgbind2)
             else:
                 add=0.
             ffa = False
         elif dis(argument(x_new,y_new,z_new)) < rMolecule + beps:
             pass
         else:
-            ffa = True
-            add=tau
+            ffa1 = True
+            ffa2 = True
         X = np.append(X,x_new)
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
         if abs(Z[-1])>30.:
             print 'Traceback fehler????????????'
+            exit()
         J1=np.append(J1,J(Z[-1]))
         T =np.append(T,add)
         i+=1
@@ -181,4 +187,4 @@ def run(params=params):
     T=[list(T)]
     J1=[list(J1)]
     print 'savefield'
-    fields.save_fields("randomwalk7",params,T=T,J=J1)
+    fields.save_fields("randomwalk_new",params,T=T,J=J1)
