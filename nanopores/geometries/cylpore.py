@@ -16,12 +16,32 @@ default = dict(
     lcCenter = 0.5,
     hmem = 2.2,
     zmem = 0.,
+    # TODO: better default behaviour of crosssections
     cs = (), # crosssections; list of z coordinates
+    # maybe TODO: add poreregion (and solve stokes only there?)
     poreregion = False, # whether to include fluid above pore as subdomain
+
+)
+
+default_synonymes = dict(
+    #subdomains
+    bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
+    fluid = {"bulkfluid", "pore"},
+    solid = {"membrane", "poresolid", "molecule"},
+    ions = "fluid",
+
+    #boundaries
+    noslip = {"poresolidb", "memb", "moleculeb"},
+    bV = "lowerb",
+    ground = "upperb",
+    bulk = {"lowerb", "upperb"},
+    nopressure = "upperb",
 )
 
 class Pore(PolygonPore):
     "PolygonPore with additional gmsh creation functions"
+    synonymes = default_synonymes
+
     def __init__(self, poly, **params):
         params = dict(default, **params)
         self.dim = params["dim"]
@@ -39,8 +59,20 @@ class Pore(PolygonPore):
     def build_geometry(self, h=1.):
         with Log("writing gmsh code..."):
             code, meta = self.to_gmsh(h)
-        geo = geofile2geo(code, meta, name=self.geoname)
-        return geo
+        self.geo = geofile2geo(code, meta, name=self.geoname)
+        self.geo.params = self.params
+        self.add_synonymes(self.geo)
+        return self.geo
+
+    def add_synonymes(self, geo):
+        # define porecurrent depending on molecule position
+        porecurrent = "pore0"
+        if porecurrent == self.where_is_molecule():
+            porecurrent = "pore%d" % (self.nsections - 1,)
+        poresolid = self.name
+        #poresolidb = self
+
+        self.geo.import_synonymes(self.synonymes)
 
     def to_gmsh(self, h=1.):
         # create lists with common nodes, edges
@@ -151,7 +183,7 @@ def get_geo(poly, h=1., **params):
 
 if __name__ == "__main__":
     from alphahempoly import poly
-    from matplotlib import pyplot as plt
+    #from matplotlib import pyplot as plt
     from dolfin import plot, interactive
     from nanopores import user_params
     params = user_params(
@@ -160,7 +192,7 @@ if __name__ == "__main__":
         cs=[-3, -6],
         zmem=-5.,
         proteincs=[-5.],
-        #x0 = [0., 0., 0.],
+        x0 = None,
     )
 
     geo = get_geo(poly, **params)
