@@ -185,7 +185,7 @@ def cache_pugh_diffusivity_alt(**params):
 def get_pugh_diffusivity_alt(**params):
     cache_pugh_diffusivity_alt(**params)
     functions, mesh = fields.get_functions("Dpugh_alt", **params)
-    return functions
+    return functions, mesh
 
 if __name__ == "__main__":
     params = nanopores.user_params(dim=2, r=0.11, h=1., Nmax=1e5)

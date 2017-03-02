@@ -10,11 +10,11 @@ from math import atan, pi, atan2, sqrt
 import numpy as np
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
-#from get_D import f, fp
-#from get_D_new import Dx, Dy, Dz, dDx, dDy, dDz
-from get_J import Jf as J
+from get_F import Force, Current
+from get_D import Dx, Dy, Dz, dxDx, dyDy, dzDz, dis
 import os
 from time import time as timer
+sys.exit()
 
 
 HOME = os.path.expanduser("~")
@@ -26,8 +26,6 @@ DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
 import nanopores.tools.fields as fields
 fields.set_dir(DATADIR)
 
-functions, mesh = fields.get_functions("pugh_distance", h=.5)
-dis = functions["y"]
 def argument(x,y,z):
     return np.array([float(x),float(y),float(z)])
 

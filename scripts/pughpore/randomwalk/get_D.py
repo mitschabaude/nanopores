@@ -1,60 +1,33 @@
-import nanopores.geometries.pughpore as pughpore
-import nanopores as nano
-#fields.set_dir("/home/benjamin/Dropbox/Paper Howorka/data/fields")
-
+# (c) 2017 Gregor Mitscha-Baude
+from nanopores.models.pughpore import Plotter
+from nanopores.models.diffusion_interpolation import get_pugh_diffusivity_alt
+import dolfin
 import os
 
+import nanopores.tools.fields as fields
 HOME = os.path.expanduser("~")
-PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
-FIGDIR = os.path.join(PAPERDIR, "figures", "")
+DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+fields.set_dir(DATADIR)
+#fields.show()
 
-DATADIR = os.path.join(HOME, "fields")
+#params = dict(Nmax=2e5, dim=3, r=2.0779, h=2.0)
+# also available (larger mesh):
+params = dict(Nmax=5e5, dim=3, r=2.0779, h=1.0)
 
-import nanopores.tools.fields as f
-f.set_dir(DATADIR)
+functions, mesh = get_pugh_diffusivity_alt(**params)
+Dfunc = functions["D"]
+dis = functions["dist"]
+#print "available functions:", functions.keys()
+V = dolfin.FunctionSpace(mesh, "CG", 1)
 
-def zsorted(data, field):
-    z = [x[2] for x in data["x"]]
-    J = data[field]
-    I = sorted(range(len(z)), key=lambda k: z[k])
-    z1 = [z[i] for i in I]
-    J1 = [J[i] for i in I]
-    return z1, J1
+Dx = Dfunc[0]
+Dy = Dfunc[1]
+Dz = Dfunc[2]
+dxDx = dolfin.project(dolfin.grad(Dfunc[0])[0], V)
+dyDy = dolfin.project(dolfin.grad(Dfunc[1])[1], V)
+dzDz = dolfin.project(dolfin.grad(Dfunc[2])[2], V)
 
-geop = nano.Params(pughpore.params)
-rMolecule = geop.rMolecule
-N = 2e4
-
-data = f.get_fields("pugh_diffusivity2D", rMolecule=rMolecule)#, h=4., Nmax=N)
-Z, D = zsorted(data, "D")
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-import numpy as np
-#D=np.load('D.npy')
-#Z=np.load('D_Z.npy')
-D = np.array(D)
-Z = np.array(Z)
-
-a, b = -7.3, 7.3
-D_N = np.zeros(Z.shape[0])
-for i in range(Z.shape[0]):
-    if Z[i] >a and Z[i]<b:
-        D_N[i]=np.mean(np.array([D[j] for j in np.arange(i-3,i+4)]))
-    else:
-        D_N[i]=D[i]
-
-DD = np.array([(D_N[i+1]-D_N[i-1])/(Z[i+1]-Z[i-1]) for i in np.arange(1,Z.shape[0]-1)])
-DD = np.concatenate((np.array([0.]),DD))
-DD = np.concatenate((DD,np.array([0.])))
-f = interp1d(Z,D_N)
-fp = interp1d(Z,DD)
-if __name__ == "__main__":
-    plt.plot(Z,D_N,color='r')
-    plt.plot(Z,D,color='b')
-    plt.scatter(Z,D)
-    plt.scatter(Z,D_N)
-    plt.plot(Z,DD,color='green')
-    plt.scatter(Z,DD,color='green')
-    plt.plot(Z,f(Z),color='k')
-    plt.plot(Z,fp(Z),color='k')
-    plt.show()
+#plotter = Plotter()
+#plotter.plot(Dx, title="Dx")
+#plotter.plot(dxDx, title="dxDx")
+#dolfin.interactive()
