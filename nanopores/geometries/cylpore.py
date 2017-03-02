@@ -1,6 +1,6 @@
 # (c) 2017 Gregor Mitscha-Baude
 import nanopores.py4gmsh as gmsh
-from nanopores.geo2xml import geofile2geo
+from nanopores.geo2xml import geofile2geo, reconstructgeo
 from nanopores.tools.polygons import PolygonPore, plot_edges, isempty
 from nanopores.tools.utilities import Log
 
@@ -29,7 +29,6 @@ default_synonymes = dict(
     fluid = {"bulkfluid", "pore"},
     solid = {"membrane", "poresolid", "molecule"},
     ions = "fluid",
-
     #boundaries
     noslip = {"poresolidb", "memb", "moleculeb"},
     bV = "lowerb",
@@ -40,7 +39,6 @@ default_synonymes = dict(
 
 class Pore(PolygonPore):
     "PolygonPore with additional gmsh creation functions"
-    synonymes = default_synonymes
 
     def __init__(self, poly, **params):
         params = dict(default, **params)
@@ -59,6 +57,7 @@ class Pore(PolygonPore):
     def build_geometry(self, h=1.):
         with Log("writing gmsh code..."):
             code, meta = self.to_gmsh(h)
+        meta["params"] = dict(self.params)
         self.geo = geofile2geo(code, meta, name=self.geoname)
         self.geo.params = self.params
         self.add_synonymes(self.geo)
@@ -70,9 +69,16 @@ class Pore(PolygonPore):
         if porecurrent == self.where_is_molecule():
             porecurrent = "pore%d" % (self.nsections - 1,)
         poresolid = self.name
-        #poresolidb = self
-
-        self.geo.import_synonymes(self.synonymes)
+        poresolidb = set([b for b in self.boundaries if b.startswith(self.name)])
+        pore = set([p for p in self.polygons if p.startswith("pore")])
+        self.synonymes = dict(default_synonymes)
+        self.synonymes.update(
+            porecurrent = porecurrent,
+            poresolid = poresolid,
+            pore = pore,
+            poresolidb = poresolidb,
+        )
+        geo.import_synonymes(self.synonymes)
 
     def to_gmsh(self, h=1.):
         # create lists with common nodes, edges
@@ -111,7 +117,8 @@ class Pore(PolygonPore):
         #gmsh.raw_code(["Mesh.Algorithm3D = 2;"])
         code = gmsh.get_code()
         meta = gmsh.get_meta()
-        self.gmshcode = code, meta
+        self.code = code
+        self.meta = meta
         return code, meta
 
     def set_length_scales(self, h):
@@ -175,11 +182,27 @@ class Pore(PolygonPore):
         else:
             raise NotImplementedError
 
-
-def get_geo(poly, h=1., **params):
+def get_geo(poly, h=1., recreate=False, **params):
     p = Pore(poly, **params)
+
+    if recreate:
+        geo = maybe_recreate_geo(params=p.params)
+        if geo is not None:
+            return geo
+
     geo = p.build(h=h)
     return geo
+
+def maybe_recreate_geo(params=None):
+    # return None if it does not work
+    name = params["geoname"] if params is not None else "cylpore"
+    try:
+        geo = reconstructgeo(name=name, params=dict(params))
+    except EnvironmentError as e:
+        print e.message
+        geo = None
+    return geo
+
 
 if __name__ == "__main__":
     from alphahempoly import poly
@@ -195,11 +218,12 @@ if __name__ == "__main__":
         x0 = None,
     )
 
-    geo = get_geo(poly, **params)
+    geo = get_geo(poly, recreate=True, **params)
     plot(geo.subdomains)
     plot(geo.boundaries)
     print geo
-    interactive()
+    print "params", geo.params
+    #interactive()
 
     # --- TEST
     p = Pore(poly, **params)
