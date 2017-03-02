@@ -1,5 +1,6 @@
 # (c) 2017 Gregor Mitscha-Baude
 import nanopores.py4gmsh as gmsh
+import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
 from nanopores.tools.polygons import PolygonPore, plot_edges, isempty
 from nanopores.tools.utilities import Log
@@ -9,7 +10,7 @@ default = dict(
     porename = "protein",
     dim = 2,
     R = 15.,
-    H = 30.,
+    H = 15.,
     x0 = None,
     rMolecule = 0.5,
     lcMolecule = 0.25,
@@ -59,15 +60,23 @@ class Pore(PolygonPore):
             code, meta = self.to_gmsh(h)
         meta["params"] = dict(self.params)
         self.geo = geofile2geo(code, meta, name=self.geoname)
-        self.geo.params = self.params
-        self.add_synonymes(self.geo)
+        self.finalize_geo(self.geo)
         return self.geo
+
+    def finalize_geo(self, geo):
+        geo.params = self.params
+        geo.params["lscale"] = 1e9
+        self.add_synonymes(geo)
+        self.add_curved_boundaries(geo)
 
     def add_synonymes(self, geo):
         # define porecurrent depending on molecule position
         porecurrent = "pore0"
         if porecurrent == self.where_is_molecule():
             porecurrent = "pore%d" % (self.nsections - 1,)
+        dom = self.polygons[porecurrent]
+        geo.params["lporecurrent"] = dom.b[1] - dom.a[1]
+
         poresolid = self.name
         poresolidb = set([b for b in self.boundaries if b.startswith(self.name)])
         pore = set([p for p in self.polygons if p.startswith("pore")])
@@ -79,6 +88,15 @@ class Pore(PolygonPore):
             poresolidb = poresolidb,
         )
         geo.import_synonymes(self.synonymes)
+
+    def add_curved_boundaries(self, geo):
+        if self.dim == 2:
+            if self.molecule:
+                molec = curved.Circle(self.params.rMolecule,
+                                      self.params.x0[::2])
+                geo.curved = dict(moleculeb = molec.snap)
+        elif self.dim == 3:
+            raise NotImplementedError
 
     def to_gmsh(self, h=1.):
         # create lists with common nodes, edges
@@ -188,6 +206,9 @@ def get_geo(poly, h=1., recreate=False, **params):
     if recreate:
         geo = maybe_recreate_geo(params=p.params)
         if geo is not None:
+            p.build_polygons()
+            p.build_boundaries()
+            p.finalize_geo(geo)
             return geo
 
     geo = p.build(h=h)
@@ -203,34 +224,32 @@ def maybe_recreate_geo(params=None):
         geo = None
     return geo
 
-
 if __name__ == "__main__":
-    from alphahempoly import poly
-    #from matplotlib import pyplot as plt
-    from dolfin import plot, interactive
-    from nanopores import user_params
+    from nanopores import user_params, showplots
     params = user_params(
         h = 1.,
-        porename="ahem",
-        cs=[-3, -6],
-        zmem=-5.,
-        proteincs=[-5.],
+        porename = "dna",
+        H = 20.,
+        R = 10.,
+        cs = [1.7, -1.7],
         x0 = None,
     )
 
-    geo = get_geo(poly, recreate=True, **params)
-    plot(geo.subdomains)
-    plot(geo.boundaries)
+    dnapolygon = [[1, -5], [1, 5], [3, 5], [3, -5]]
+
+    geo = get_geo(dnapolygon, **params)
     print geo
     print "params", geo.params
-    #interactive()
+
+    geo.plot_subdomains()
+    geo.plot_boundaries(interactive=True)
 
     # --- TEST
-    p = Pore(poly, **params)
+    p = Pore(dnapolygon, **params)
     p.build_polygons()
     p.build_boundaries()
-    print p.polygons.keys()
-    print p.boundaries.keys()
+    #print p.polygons.keys()
+    #print p.boundaries.keys()
 
     p.protein.plot(".k", zorder=100)
     #p.polygons["bulkfluid_top"].plot()
@@ -240,6 +259,6 @@ if __name__ == "__main__":
     plot_edges(p.boundaries["lowerb"])
     plot_edges(p.boundaries["upperb"])
     plot_edges(p.boundaries["sideb"], color="yellow")
-    plot_edges(p.boundaries["ahemb0"], color="red")
-    #plt.show()
+    plot_edges(p.boundaries["dnab"], color="red")
+    showplots()
     # ---

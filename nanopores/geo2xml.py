@@ -56,6 +56,8 @@ def reconstructgeo(name=None, pid=None, params=None):
     # if params is not None, check if they agree with meta["params"]
     # throw error if no matching mesh is available
     meshdir = (MESHDIR + "/" + name) if name is not None else MESHDIR
+    if not os.path.exists(meshdir):
+        raise EnvironmentError("Geometry folder does not exist yet.")
     if pid is None:
         # get pid of latest mesh
         files = os.listdir(meshdir)

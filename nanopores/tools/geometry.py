@@ -735,7 +735,7 @@ def geo_from_name(name, mesh=None, check_midpoint=False, **params):
 
     if not mesh:
         pid = str(os.getpid())
-        print pid
+        #print pid
         mesh = Mesh("%s/%s/mesh/mesh%s.xml" %(nanopores.DATADIR, name, pid))
 
     module = "nanopores.geometries.%s.subdomains" %name

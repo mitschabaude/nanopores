@@ -32,7 +32,7 @@ def friction(setup, visualize=False):
            geo.BC(W.sub(0), U0, "sideb"),
            geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
-    if setup.physp.bulkbc:
+    if setup.phys.bulkbc:
         bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
@@ -85,7 +85,7 @@ def friction_tensor(setup):
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
-    if setup.physp.bulkbc:
+    if setup.phys.bulkbc:
         bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     gamma = np.zeros((dim, dim))
@@ -124,5 +124,6 @@ if __name__ == "__main__":
     from nanopores.models.Howorka import Setup
     #setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
     setup = Setup(dim=3, Nmax=1.7e5, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
+    #print setup.phys.bulkbc
     diffusivity_tensor(setup)
     dolfin.interactive()

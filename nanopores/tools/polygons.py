@@ -60,7 +60,7 @@ class Polygon(object):
             # x1 + (y1 - x1)*t == z
             # at this point uniquely solvable in (0,1)
             t = (z - x1)/(y1 - x1)
-            v = (x0 + (y0 - x0)*t, x1 + (y1 - x1)*t)
+            v = (x0 + (y0 - x0)*t, z)
             if self.close(x, v):
                 vnodes = () if x == v else (x,)
             elif self.close(y, v):
@@ -213,12 +213,18 @@ class PolygonPore(object):
         hmem = self.params.hmem
         zmem = self.params.zmem
         R = self.params.R
-        H = self.params.H
+        if "Hbot" in self.params:
+            Hbot = self.params.Hbot
+            Htop = self.params.Htop
+        else:
+            H = self.params.H
+            Htop = Hbot = H/2.
+
         self.add_membrane(hmem, zmem, R)
 
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
-        self.add_bulkfluids(R, H, sections)
+        self.add_bulkfluids(R, Htop, Hbot, sections)
         self.add_molecule()
 
         # TODO: maybe this could be done prettier
@@ -326,16 +332,17 @@ class PolygonPore(object):
 #        else:
         names = ["pore%d" % i for i in range(len(sections))]
         self.nsections = len(sections)
+        self.params["lpore"] = ztop - zbot
         self.cs = cs
         self.polygons.update({name: s for name, s in zip(names, sections)})
         return sections
 
-    def add_bulkfluids(self, R, H, polygons):
+    def add_bulkfluids(self, R, Htop, Hbot, polygons):
         # polygons ... pore sections that remain after adding moleculetop
         polygons = list(polygons) + [self.protein, self.membrane]
 
         upper = compute_upper_boundary(*polygons)
-        b, c = (0, H/2.), (R, H/2.)
+        b, c = (0, Htop), (R, Htop)
         nodes = [b, c] + upper
         btop = Polygon(nodes)
         btop.a = upper[-1]
@@ -344,7 +351,7 @@ class PolygonPore(object):
         btop.d = upper[0]
 
         lower = compute_lower_boundary(*polygons)
-        d, a = (R, -H/2.), (0, -H/2.)
+        d, a = (R, -Hbot), (0, -Hbot)
         nodes = lower + [d, a]
         bbot = Polygon(nodes)
         bbot.a = a
@@ -360,7 +367,7 @@ class PolygonPore(object):
         # do at the beginning
         # insert intersection points with cs in polygon
         cs = self.params.proteincs if "proteincs" in self.params else None
-        if cs is None:
+        if cs is None or len(cs)==0:
             self.proteinpartition = False
             return
         protein = self.protein
@@ -388,13 +395,11 @@ class PolygonPore(object):
 
             # partition edges
             for edge in protein.edges:
-                x, y = edge
-                x, y = min(x, y, key=lambda t: t[1]), max(x, y, key=lambda t: t[1])
-                ix = bisect(cs, x[1])
-                #iy = bisect(cs, y[1])
-                #print ix, iy
-                #assert ix == iy
-                sets[ix - 1].add(edge)
+                x = min(edge, key=lambda t: t[1])
+                ix = bisect(cs, x[1]) - 1
+                if ix == npart:
+                    ix -= 1
+                sets[ix].add(edge)
 
             dic = {"%sb%d" % (self.name, i): sets[i] for i in range(npart)}
 

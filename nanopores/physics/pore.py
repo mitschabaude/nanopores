@@ -22,6 +22,9 @@ permPore = lambda eperm, rPermPore: eperm*rpermPore
 permProtein = lambda eperm, rpermProtein: eperm*rpermProtein
 DPore = lambda D, rDPore: D*rDPore
 
+# default bc for diffusivity
+bulkbc = True
+
 # piece-wise boundary conditions
 v0 = dict(
     upperb = 0.,
@@ -39,6 +42,7 @@ permittivity.update(
     nearpore = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein", # for protein pores
+    alphahem = "permProtein",
     membrane = eperm*rpermLipid,
 )
 
@@ -48,6 +52,7 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     chargedsinb = "SiNqs",
     chargedsamb = "SAMqs",
     ahemb = "ahemqs",
+    alphahemb = "ahemqs",
 )
 
 Dpdict = dict(
@@ -85,7 +90,7 @@ def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
         J = dolfin.assemble(J)
         return dict(J=J)
     return _current
-    
+
 def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
     def _current(U):
         v, cp, cm, u, p = U
