@@ -12,7 +12,6 @@ from get_D import Dx, Dy, Dz, dxDx, dyDy, dzDz, dis
 import os
 from time import time as timer
 print 'passt'
-sys.exit()
 
 
 HOME = os.path.expanduser("~")
@@ -99,7 +98,7 @@ coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 #avgbinding = 10000000.
 #P_bind = 3.e-4
 
-F=[0.,0.,-1e-11]
+#F=[0.,0.,-1e-11]
 #F=[0.,0.,0.]
 
 def hatfct(ang):
@@ -123,7 +122,7 @@ def D(x,y,z):
             vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
             return [list(vec1),list(vec2)]
 
-def run(params):
+def run(params,fieldsname):
     z0 = params["z0"]
     X = np.array([0.])
     Y = np.array([0.])
@@ -155,14 +154,19 @@ def run(params):
         xi_x=gauss(0.,1.)
         xi_y=gauss(0.,1.)
         xi_z=gauss(0.,1.)
-        Force = F
-#	[[Dxfac, Dyfac, Dzfac],[DDx,DDy,DDz]]=D(X[-1],Y[-1],Z[-1])
+        arg = argument(X[-1],Y[-1],Z[-1])
+        F = Force(X[-1],Y[-1],Z[-1])
+        D = [Dx(arg)*1e9,Dy(arg)*1e9,Dz(arg)*1e9]
+        dD = [dxDx(arg)*1e9,dyDy(arg)*1e9,dzDz(arg)*1e9]
 #        x_new = X[-1] + coeff*xi_x*math.sqrt(abs(Dxfac)) + C*Force[0]*Dxfac + DDx*tau*Dmol
 #        y_new = Y[-1] + coeff*xi_y*math.sqrt(abs(Dyfac)) + C*Force[1]*Dyfac + DDy*tau*Dmol
 #        z_new = Z[-1] + coeff*xi_z*math.sqrt(abs(Dzfac)) + C*Force[2]*Dzfac + DDz*tau*Dmol
-        x_new = X[-1] + coeff*xi_x + C*Force[0]
-        y_new = Y[-1] + coeff*xi_y + C*Force[1]
-        z_new = Z[-1] + coeff*xi_z + C*Force[2]
+#        x_new = X[-1] + coeff*xi_x + C*Force[0]
+#        y_new = Y[-1] + coeff*xi_y + C*Force[1]
+#        z_new = Z[-1] + coeff*xi_z + C*Force[2]
+        x_new = X[-1] + sqrt(2*D[0]*tau)*xi_x + F[0]*D[0]*1e-9*tau/kT+dD[0]*tau
+        y_new = Y[-1] + sqrt(2*D[1]*tau)*xi_y + F[1]*D[1]*1e-9*tau/kT+dD[1]*tau
+        z_new = Z[-1] + sqrt(2*D[2]*tau)*xi_z + F[2]*D[2]*1e-9*tau/kT+dD[2]*tau
         if dis(argument(x_new,y_new,z_new)) < rMolecule:
             x_new = X[-1]
             y_new = Y[-1]
@@ -188,7 +192,7 @@ def run(params):
             print 'Out of domain!'
             ood = True
             Z[-1]=0.
-        J1=np.append(J1,J(Z[-1]))
+        J1=np.append(J1,Current(X[-1],Y[-1],Z[-1]))
         T =np.append(T,add)
         i+=1
         if not (Z[i]<=H/2. and Z[i]>=-H/2 and X[i] <=R/2 and X[i] >=-R/2 and Y[i] <=R/2 and Y[i] >=-R/2):
@@ -201,7 +205,8 @@ def run(params):
 #    T=[list(T)]
 #    J1=[list(J1)]
     tau_off = np.sum(T)*1e-6
-    amp = (2060.-np.inner(T*1e-6,J1)/tau_off)/2060.*100.
+    curr = 7.523849e-10
+    amp = (curr-np.inner(T*1e-6,J1)/tau_off)/curr*100.
     if tau_off<1.:
         t1 = [tau_off]
         a1 = [amp]
@@ -216,4 +221,4 @@ def run(params):
 #    print 'bind1 = %i'%bind1
 #    print 'bind2 = %i'%bind2
 #    print '_'
-    fields.save_fields("rw_2_bind",params,t1=t1,a1=a1,t2=t2,a2=a2)
+    fields.save_fields(fieldsname,params,t1=t1,a1=a1,t2=t2,a2=a2)

@@ -91,7 +91,7 @@ def Force(x,y,z):
     return [Fxi.__call__(np.array([x,y,z]))[0],Fyi.__call__(np.array([x,y,z]))[0],Fzi.__call__(np.array([x,y,z]))[0]]
 J = LinearNDInterpolator(xf,Ja)
 def Current(x,y,z):
-    return J.__call__(np.array(x,y,z))
+    return -J.__call__(np.array([x,y,z]))[0]
 
 
 #fig = plt.figure()

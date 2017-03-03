@@ -18,9 +18,9 @@ number=False
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
 #params=dict(avgbind=8.7e6,P_bind=5.e-3,z0=hpore/2.+5.)
-def save_fig(params):
-	figname = 'type_'+'%.1e_%.1e_%.1e_%.1e_'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"],)+str(params["z0"])+'.eps'
-	data=f.get_fields("rw_2_bind",**params)
+def save_fig(params,fieldsname):
+	figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e_'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"],)+str(params["z0"])+'.eps'
+	data=f.get_fields(fieldsname,**params)
 	t1 = data["t1"]
 	a1 = data["a1"]
 	t2 = data["t2"]
@@ -60,8 +60,8 @@ def save_fig(params):
 	ax=plt.gca()
 	plt.scatter(t1,a1,color='lightgreen')
 	plt.scatter(t2,a2,color='green')
-	ax.set_xlim([1e-4,500.])
-	ax.set_ylim([-0.40,4.0])
+#	ax.set_xlim([1e-4,500.])
+#	ax.set_ylim([-0.40,4.0])
 	ax.set_xscale('log')
 	ax.invert_yaxis()
 	ax.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15)
