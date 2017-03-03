@@ -188,9 +188,11 @@ def run(params,fieldsname):
         X = np.append(X,x_new)
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
-        if abs(Z[-1])>30.:
+        if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
             print 'Out of domain!'
             ood = True
+            X[-1]=0.
+            Y[-1]=0.
             Z[-1]=0.
         J1=np.append(J1,Current(X[-1],Y[-1],Z[-1]))
         T =np.append(T,add)

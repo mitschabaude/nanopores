@@ -1,3 +1,4 @@
+from math import isnan
 import numpy as np
 try:
     xf = np.load('xf.npy')
@@ -88,7 +89,10 @@ Fxi = LinearNDInterpolator(xf,Fx)
 Fyi = LinearNDInterpolator(xf,Fy)
 Fzi = LinearNDInterpolator(xf,Fz)
 def Force(x,y,z):
-    return [Fxi.__call__(np.array([x,y,z]))[0],Fyi.__call__(np.array([x,y,z]))[0],Fzi.__call__(np.array([x,y,z]))[0]]
+    ret = [Fxi.__call__(np.array([x,y,z]))[0],Fyi.__call__(np.array([x,y,z]))[0],Fzi.__call__(np.array([x,y,z]))[0]]
+    if isnan(ret[0]) or isnan(ret[1]) or isnan(ret[2]):
+        return [0.,0.,0.]
+    else: return ret
 J = LinearNDInterpolator(xf,Ja)
 def Current(x,y,z):
     return -J.__call__(np.array([x,y,z]))[0]
