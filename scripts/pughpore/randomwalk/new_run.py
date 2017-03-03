@@ -1,8 +1,5 @@
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+print 'start'
 from dolfin import *
-from nanopores.tools import fields
 import sys
 from random import gauss, expovariate
 import math
@@ -14,6 +11,7 @@ from get_F import Force, Current
 from get_D import Dx, Dy, Dz, dxDx, dyDy, dzDz, dis
 import os
 from time import time as timer
+print 'passt'
 sys.exit()
 
 
