@@ -40,9 +40,15 @@ class Polygon(object):
 
     def all_intersections(self, z):
         I = self.intersections(z)
-        print I
-        for x in I:
-            self.add(x, I[x])
+        i = 0
+        todo = {k: v for k, v in I.items() if len(v)>0}
+        while todo and i < 100:
+            x = todo.keys()[0]
+            self.add(x, todo[x])
+            #print "PROCESSING", x, todo[x]
+            I = self.intersections(z)
+            todo = {k: v for k, v in I.items() if len(v)>0}
+            i += 1
         return I.keys()
 
     def intersect_edge(self, edge, z):
@@ -79,7 +85,6 @@ class Polygon(object):
         elif len(context) == 1:
             # replace a node with v
             x, = context
-            print x
             i = self.nodes.index(x)
             self.nodes[i] = v
             # replace two adjacent edges
@@ -464,10 +469,10 @@ if __name__ == "__main__":
     params = dict(
         R = 10,
         H = 30,
-        hmem = 2,
+        hmem = 2.2,
         zmem = -6,
         cs = [-3.3, -6.6],
-        proteincs=[-6.8],
+        proteincs=[-2.5, -4.9, -7.51],
         x0 = [0.,0.,-6],
         rMolecule = .5,
     )
@@ -486,7 +491,10 @@ if __name__ == "__main__":
     plot_edges(p.boundaries["memb"], color="blue")
     plot_edges(p.boundaries["lowerb"])
     plot_edges(p.boundaries["upperb"])
-    plot_edges(p.boundaries["sideb"], color="yellow")
-    plot_edges(p.boundaries["ahemb"], color="red")
-    #plt.show()
+
+    plot_edges(p.boundaries["ahemb0"], color="red")
+    plot_edges(p.boundaries["ahemb1"], color="yellow")
+    plot_edges(p.boundaries["ahemb2"], color="green")
+    #plot_edges(p.boundaries["ahemb3"], color="red")
+    plt.show()
 

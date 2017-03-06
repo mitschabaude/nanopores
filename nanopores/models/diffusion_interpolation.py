@@ -146,6 +146,38 @@ def diffusivity_field_alt(setup, r, ddata_pore, ddata_bulk):
 
     return dict(dist=dist, D=D)
 
+def diffusivity_field_simple(setup, r, ddata_bulk, boundary="poresolidb"):
+    "interpolates diffusivity field defined on the geometry given by setup"
+
+    # build 1D interpolations from data
+    fn, ft = preprocess_Dr(ddata_bulk, r)
+
+    setup.prerefine(visualize=True)
+    dist = distance_boundary_from_geo(setup.geo, boundary)
+    VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
+    normal = dolfin.project(dolfin.grad(dist), VV)
+
+    D0 = setup.phys.D
+
+    def DBulk(x, i):
+        r = dist(x)
+        n = normal(x)
+        Dn = D0*float(fn(r))
+        Dt = D0*float(ft(r))
+        D = transformation(n, Dn, Dt)
+        return D[i][i]
+
+    D = lambda i: dict(
+        fluid = lambda x: DBulk(x, i),
+    )
+
+    dim = setup.geop.dim
+    DD = [harmonic_interpolation(setup, subdomains=D(i)) for i in range(dim)]
+    D = dolfin.Function(VV)
+    dolfin.assign(D, DD)
+
+    return dict(dist=dist, D=D)
+
 from nanopores.models import pughpore as pugh
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper

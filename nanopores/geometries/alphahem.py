@@ -11,7 +11,7 @@ default = dict(
     R = 10.,
     cs=[-3, -6],
     zmem=-5.,
-    proteincs=[-2.5, -5.,  -7.5],
+    proteincs=[-2.3, -4.6, -7.2],
 )
 
 def get_geo(h=1., recreate=False, **params):
@@ -22,6 +22,6 @@ def get_geo(h=1., recreate=False, **params):
 if __name__ == "__main__":
     from nanopores import user_params
     params = user_params(default, x0=None, h=1.)
-    geo = get_geo(recreate=True, **params)
+    geo = get_geo(reconstruct=True, **params)
     geo.plot_subdomains()
     geo.plot_boundaries(interactive=True)

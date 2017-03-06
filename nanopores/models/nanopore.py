@@ -17,7 +17,7 @@ geop = nano.Params(
     H = 15.,
     x0 = None,
     rMolecule = 0.5,
-    reconstruct = True,
+    reconstruct = False,
 ),
 physp = nano.Params(
     Qmol = -1.,
@@ -27,6 +27,7 @@ physp = nano.Params(
     rDPore = .9,
     Membraneqs = -0.0,
     ahemqs = -0.1,
+    ahemuniformqs = False,
 ),
 solverp = nano.Params(
     # TODO: add possibility of hybrid solve and PNP-only solve
@@ -56,6 +57,7 @@ class Setup(solvers.Setup):
 
     def init_geo(self, create_geo=True):
         h = self.solverp.h
+        print "h", h
         self.geo = self.get_geo(h=h, **self.geop) if create_geo else None
 
     def init_phys(self):
@@ -163,6 +165,7 @@ def set_D_from_data(phys, data):
     if data is not None:
         func, mesh = fields.get_functions(**data)
         D = func["D"]
+        dolfin.plot(D[0], title="Dx", interactive=True)
         D = dolfin.as_matrix(np.diag([D[i] for i in range(phys.dim)]))
         phys.update(Dp=D, Dm=D)
 
@@ -216,9 +219,36 @@ def F_explicit(X, **params):
         values.append(get_forces(setup, pnps))
     return join_dicts(values)
 
+@solvers.cache_forcefield("IV", defaultp)
+def IV(V, **params):
+    params["x0"] = None
+    for bV, result in nano.collect_dict(V):
+        params["bV"] = bV
+        setup = Setup(**params)
+        pb, pnps = solve(setup, visualize=True)
+        result.new = pnps.evaluate(setup.phys.CurrentPNPSDetail)
+    return result
+
+# I for different surface charges
+@solvers.cache_forcefield("Irho", defaultp)
+def Irho(Rho, **params):
+    params["x0"] = None
+    for rho, result in nano.collect_dict(Rho):
+        params["dnaqsdamp"] = rho
+        setup = Setup(**params)
+        pb, pnps = solve(setup, visualize=True)
+        result.new = pnps.evaluate(setup.phys.CurrentPNPSDetail)
+    return result
+
 if __name__ == "__main__":
-    params = nano.user_params(h=1., Nmax=1e4, dim=2, x0=[0,0,-8.5])
+    params = nano.user_params(h=1., Nmax=1e4, dim=2, x0=[0,0,-8.5], ahemuniformqs=True)
+    ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
     setup = Setup(**params)
+    print setup.geo.params
+    print setup.physp
+    print setup.solverp
+    setup.geo.plot_boundaries(interactive=True)
+    exit()
     _, pnps = solve(setup, True)
     print get_forces(setup, pnps)
 

@@ -31,15 +31,13 @@ class Setup(object):
     def init_phys(self):
         self.phys = None
 
-def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1):
+def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1,
+                         overwrite=False):
     "assuming function calculate([x0], **params)"
-    #fields.update()
-    #if "x0" in default: default.pop("x0")
     save_params = dict(default, **params)
     run_params = save_params
-    # TODO calculate in parallel
     N = len(X)
-    if fields.exists(name, **save_params):
+    if fields.exists(name, **save_params) and not overwrite:
         Xdone = fields.get_field(name, "x", **save_params)
         X = [x0 for x0 in X if x0 not in Xdone]
         if len(X) > 0:
@@ -74,14 +72,14 @@ class cache_forcefield(fields.CacheBase):
         self.nproc = nproc
 
     def __call__(self, f):
-        def wrapper(X, cache=True, calc=True, nproc=self.nproc,
-                    name=self.name, **params):
+        def wrapper(X, cache=True, calc=True, overwrite=False,
+                    nproc=self.nproc, name=self.name, **params):
             if not cache:
                 return f(X, **params)
             if calc:
                 # calculate remaining points (in parallel)
-                calculate_forcefield(name, X, f, params,
-                                     self.default, nproc)
+                calculate_forcefield(name, X, f, params, self.default, nproc,
+                                     overwrite=overwrite)
             # load requested data points
             load_params = dict(self.default, **params)
             try:

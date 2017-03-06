@@ -10,7 +10,6 @@ dnaqsdamp = 1. # DNA charge damping
 SiNqs = -0.022
 SAMqs = -0.078
 ahemqs = 0.
-ahemqsmulti = [-0.1, 0.1, 0., -0.1]
 
 rpermPore = rpermw
 rpermProtein = 2. # TODO ?????
@@ -55,7 +54,6 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     ahemb = "ahemqs",
     alphahemb = "ahemqs",
 )
-surfcharge.update({"alphahemb%d" % i: ahemqsmulti[i] for i in range(4)})
 
 Dpdict = dict(
     nearpore = "D",
@@ -119,3 +117,23 @@ def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
         Jdict["J"] = Jdict["Jm"] + Jdict["Jp"]
         return Jdict
     return _current
+
+# surface charges of alphahemolysin
+ahemqstotal = [-3.815, 3.1, 16.6, -8.885][::-1]
+ahemuniformqs = False
+ahemqs0 = lambda ahemqsmulti: ahemqsmulti[0]
+ahemqs1 = lambda ahemqsmulti: ahemqsmulti[1]
+ahemqs2 = lambda ahemqsmulti: ahemqsmulti[2]
+ahemqs3 = lambda ahemqsmulti: ahemqsmulti[3]
+surfcharge.update({"alphahemb%d" % i: "ahemqs%d" % i for i in range(4)})
+
+def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs):
+    def area(i):
+        return dolfin.assemble(r2pi*invscale(2)*geo.dS("alphahemb%d" % i))
+    if not ahemuniformqs:
+        qs = [ahemqstotal[i]*qq/area(i) for i in range(4)]
+    else:
+        qs0 = qq*sum(ahemqstotal)/sum(area(i) for i in range(4))
+        qs = [qs0]*4
+    print "Calculated alphahem surface charges:", qs
+    return qs
