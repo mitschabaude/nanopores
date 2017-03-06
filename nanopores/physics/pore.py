@@ -10,6 +10,7 @@ dnaqsdamp = 1. # DNA charge damping
 SiNqs = -0.022
 SAMqs = -0.078
 ahemqs = 0.
+ahemqsmulti = [-0.1, 0.1, 0., -0.1]
 
 rpermPore = rpermw
 rpermProtein = 2. # TODO ?????
@@ -54,6 +55,7 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     ahemb = "ahemqs",
     alphahemb = "ahemqs",
 )
+surfcharge.update({"alphahemb%d" % i: ahemqsmulti[i] for i in range(4)})
 
 Dpdict = dict(
     nearpore = "D",

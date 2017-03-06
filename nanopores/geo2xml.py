@@ -78,8 +78,11 @@ def reconstructgeo(name=None, pid=None, params=None):
 
     if params is not None:
         if not params == meta["params"]:
+            #mparams = meta["params"]
+            #print {k: v for k, v in params.items() if k not in mparams or mparams[k] != v}
+            #print {k: v for k, v in mparams.items() if k not in params or params[k] != v}
             raise EnvironmentError(
-                      "Mesh file does not have compatible parameters.")
+                "Mesh file does not have compatible parameters.")
         print "Mesh file has compatible parameters."
 
     print "Reconstructing geometry from %s." % meshfile

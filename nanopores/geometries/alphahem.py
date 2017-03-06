@@ -11,7 +11,7 @@ default = dict(
     R = 10.,
     cs=[-3, -6],
     zmem=-5.,
-    #proteincs=[-5.],
+    proteincs=[-2.5, -5.,  -7.5],
 )
 
 def get_geo(h=1., recreate=False, **params):

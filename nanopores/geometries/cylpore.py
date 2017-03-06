@@ -66,6 +66,7 @@ class Pore(PolygonPore):
     def finalize_geo(self, geo):
         geo.params = self.params
         geo.params["lscale"] = 1e9
+        geo.params["lpore"] = self.lpore
         self.add_synonymes(geo)
         self.add_curved_boundaries(geo)
 
@@ -200,11 +201,11 @@ class Pore(PolygonPore):
         else:
             raise NotImplementedError
 
-def get_geo(poly, h=1., recreate=False, **params):
+def get_geo(poly, h=1., reconstruct=False, **params):
     p = Pore(poly, **params)
 
-    if recreate:
-        geo = maybe_recreate_geo(params=p.params)
+    if reconstruct:
+        geo = maybe_reconstruct_geo(params=p.params)
         if geo is not None:
             p.build_polygons()
             p.build_boundaries()
@@ -214,7 +215,7 @@ def get_geo(poly, h=1., recreate=False, **params):
     geo = p.build(h=h)
     return geo
 
-def maybe_recreate_geo(params=None):
+def maybe_reconstruct_geo(params=None):
     # return None if it does not work
     name = params["geoname"] if params is not None else "cylpore"
     try:

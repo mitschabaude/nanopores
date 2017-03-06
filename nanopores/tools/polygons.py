@@ -40,6 +40,7 @@ class Polygon(object):
 
     def all_intersections(self, z):
         I = self.intersections(z)
+        print I
         for x in I:
             self.add(x, I[x])
         return I.keys()
@@ -78,6 +79,7 @@ class Polygon(object):
         elif len(context) == 1:
             # replace a node with v
             x, = context
+            print x
             i = self.nodes.index(x)
             self.nodes[i] = v
             # replace two adjacent edges
@@ -332,7 +334,7 @@ class PolygonPore(object):
 #        else:
         names = ["pore%d" % i for i in range(len(sections))]
         self.nsections = len(sections)
-        self.params["lpore"] = ztop - zbot
+        self.lpore = ztop - zbot
         self.cs = cs
         self.polygons.update({name: s for name, s in zip(names, sections)})
         return sections

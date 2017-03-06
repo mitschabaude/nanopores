@@ -17,6 +17,7 @@ geop = nano.Params(
     H = 15.,
     x0 = None,
     rMolecule = 0.5,
+    reconstruct = True,
 ),
 physp = nano.Params(
     Qmol = -1.,
@@ -224,7 +225,7 @@ if __name__ == "__main__":
     plotter = Plotter(setup)
     v, cp, cm, u, p = pnps.solutions()
     plotter.plot_vector(u, "velocity")
-    plotter.plot(cm, "cm")
-    plotter.plot(cp, "cp")
-    plotter.plot(p, "p")
+    #plotter.plot(cm, "cm")
+    #plotter.plot(cp, "cp")
+    #plotter.plot(p, "p")
     dolfin.interactive()
