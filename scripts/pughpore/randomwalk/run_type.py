@@ -194,7 +194,19 @@ def run(params,fieldsname):
             X[-1]=0.
             Y[-1]=0.
             Z[-1]=0.
-        J1=np.append(J1,Current(X[-1],Y[-1],Z[-1]))
+        Jx=Current(X[-1],Y[-1],Z[-1])
+        if math.isnan(Jx):
+            if add<=tau:
+                Jx = J1[-1]
+            else:
+                print 'current at binding position is NaN!!!'
+                print 'current = %.1e A'%Jx
+                print 'X = %.8f'%X[-1]
+                print 'Y = %.8f'%Y[-1]
+                print 'Z = %.8f'%Z[-1]
+                print 'add = %.2f nanoseconds'%add
+                exit()
+        J1=np.append(J1,Jx)
         T =np.append(T,add)
         i+=1
         if not (Z[i]<=H/2. and Z[i]>=-H/2 and X[i] <=R/2 and X[i] >=-R/2 and Y[i] <=R/2 and Y[i] >=-R/2):
@@ -209,6 +221,14 @@ def run(params,fieldsname):
     tau_off = np.sum(T)*1e-6
     curr = 7.523849e-10
     amp = (curr-np.inner(T*1e-6,J1)/tau_off)/curr*100.
+    if math.isnan(amp):
+        np.save('T',T)
+        np.save('J1',J1)
+        file=open('nanerror.txt','w')
+        file.write('tau_off = %.10f\n'% tau_off)
+        file.write('amp = %.10f\n'% amp)
+        file.close()
+        exit()
     if tau_off<1.:
         t1 = [tau_off]
         a1 = [amp]

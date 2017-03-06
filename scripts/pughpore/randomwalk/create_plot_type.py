@@ -1,3 +1,4 @@
+import math
 import matplotlib
 matplotlib.use("Agg")
 import nanopores as nano
@@ -27,6 +28,8 @@ def save_fig(params,fieldsname):
 	a2 = data["a2"]
 	print len(t1)
 	print len(t2)
+	for i in range(len(t1)):
+		if math.isnan(a1[i]): print 'a1: NaN %i'%i
 #	print 't1'
 #	print t1
 #	print 'a1'
@@ -55,13 +58,18 @@ def save_fig(params,fieldsname):
 
 
 
-	plt.plot([5e-4,.7],[0.,0.],linewidth=2,color='lightgreen')
+	plt.plot([5e-5,.7],[0.,0.],linewidth=2,color='lightgreen')
 	plt.plot([1.,1e2],[0.,0.],linewidth=2,color='green')
 	ax=plt.gca()
 	plt.scatter(t1,a1,color='lightgreen')
 	plt.scatter(t2,a2,color='green')
-#	ax.set_xlim([1e-4,500.])
-#	ax.set_ylim([-0.40,4.0])
+	if number:
+		for k in range(len(t1)):
+			ax.text(t1[k],a1[k],'%i'%k,fontsize=9)
+		for k in range(len(t1),len(t1)+len(t2)):
+			ax.text(t2[k-len(t1)],a2[k-len(t1)],'%i'%k,fontsize=9)
+	ax.set_xlim([1e-5,500.])
+	ax.set_ylim([-2.,25.0])
 	ax.set_xscale('log')
 	ax.invert_yaxis()
 	ax.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15)
