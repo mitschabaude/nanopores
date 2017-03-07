@@ -128,6 +128,8 @@ ahemqs3 = lambda ahemqsmulti: ahemqsmulti[3]
 surfcharge.update({"alphahemb%d" % i: "ahemqs%d" % i for i in range(4)})
 
 def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs):
+    if not "alphahemb0" in geo._physical_boundary:
+        return [0.]*4
     def area(i):
         return dolfin.assemble(r2pi*invscale(2)*geo.dS("alphahemb%d" % i))
     if not ahemuniformqs:

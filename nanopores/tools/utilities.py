@@ -265,6 +265,12 @@ def showplots():
 
 def savefigs(name="fig", DIR="/tmp/", size=None):
     if not DIR.endswith("/"): DIR = DIR + "/"
+    if len(plt.get_fignums()) == 1:
+        fig = plt.figure(plt.get_fignums()[0])
+        if size is not None:
+            fig.set_size_inches(size)
+        fig.savefig(DIR + name + ".eps", bbox_inches="tight")
+        return
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
@@ -474,6 +480,10 @@ def collect_dict(iterator):
         else:
             for key in result:
                 result[key].append(result.new[key])
+
+def print_dict_difference(first, second):
+    print "First w/o second:", {k: first[k] for k in first if not k in second or first[k]!=second[k]}
+    print "Second w/o first:", {k: second[k] for k in second if not k in first or first[k]!=second[k]}
 
 def printnow(s):
     print s,

@@ -20,14 +20,12 @@ achievements of this module:
 -) reading AND saving fields can be done in parallel, only update() step not
 
 TODO: if demanded, overwrite already calculated values
+      (non-trivial because it contradicts the asynchronous design)
 TODO: in remove/save_functions, also remove obsolete dolfin and .txt files
-TODO: fields.list_all (with indices)
-TODO: fields.list[i]
 """
 import os, json
-from nanopores.dirnames import DATADIR, INSTALLDIR, HOME
+from nanopores.dirnames import DATADIR, HOME
 DIR = os.path.join(DATADIR, "fields")
-#DIR = os.path.join(os.path.dirname(INSTALLDIR), "data", "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
 
@@ -40,15 +38,23 @@ def set_dir(NEWDIR):
     if not HEADER in os.listdir(DIR):
         _save(dict(_flist=[]), HEADER)
 
+def set_dir_default():
+    set_dir(DATADIR)
+
+# for cloud storage (with a fixed known path)
+DROPBOX = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+def set_dir_dropbox():
+    set_dir(DROPBOX)
+
 # user interface that wraps Header object
 def update():
     Header().update()
 
-def load_file(name, **params):
-    return Header().load_file(name, params)
+def load_file(name, index=None, **params):
+    return Header().load_file(name, params, index)
 
-def get_fields(name, **params):
-    return Header().get_fields(name, **params)
+def get_fields(name, index=None, **params):
+    return Header().get_fields(name, index, **params)
 
 def _sorted(data, key):
     I = sorted(range(len(key)), key=lambda k: key[k])
@@ -59,17 +65,32 @@ def get_field(name, field, **params):
 
 def save_fields(name, params, **fields):
     # fields has to be a dictionary of lists, x a list
-    data = dict(name = name, params = params, fields = fields)
+    data = dict(name=name, params=params, fields=fields)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
 def save_entries(name, params, **entries):
-    data = dict(name = name, params = params, **entries)
+    data = dict(name=name, params=params, **entries)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
 def remove(name, index=None, **params):
     Header().remove(name, params, index)
+
+def rename(name, index, newname):
+    # do NOT create new file, because this would break function data
+    h = Header()
+    FILE, params = h.get_file_params(name, {}, index)
+
+    # modify file
+    f = _load(FILE)
+    f["name"] = newname
+    _save(f, FILE)
+
+    # modify header
+    h._delete_entry(name, params)
+    h._add_entry(newname, params)
+    h._write()
 
 def purge(name, **params):
     while exists(name, **params):
@@ -91,6 +112,10 @@ def set_param(name, index, pname, pvalue):
     f = _load(FILE)
     f["params"][pname] = pvalue
     _save(f, FILE)
+
+def set_params(name, index, **params):
+    for k in params:
+        set_param(name, index, k, params[k])
 
 def exists(name, **params):
     try:
@@ -136,21 +161,21 @@ class Header(object):
                 raise KeyError("Header: No matching parameter set.")
         return FILE, params0
 
-    def get_file(self, name, params):
+    def get_file(self, name, params, index=None):
         "take first file compatible with params"
-        FILE, _ = self.get_file_params(name, params)
+        FILE, _ = self.get_file_params(name, params, index)
         return FILE
 
-    def load_file(self, name, params):
-        FILE = self.get_file(name, params)
+    def load_file(self, name, params, index=None):
+        FILE = self.get_file(name, params, index)
         return _load(FILE)
 
-    def get_fields(self, name, **params):
-        fdict = self.load_file(name, params)
+    def get_fields(self, name, index=None, **params):
+        fdict = self.load_file(name, params, index)
         return fdict["fields"]
 
-    def get_field(self, name, field, **params):
-        fdict = self.load_file(name, params)
+    def get_field(self, name, field, index=None, **params):
+        fdict = self.load_file(name, params, index)
         return fdict["fields"][field]
 
     # TODO: this would be slightly more elegant and much more
@@ -203,9 +228,7 @@ class Header(object):
     def remove(self, name, params, index=None):
         FILE, params = self.get_file_params(name, params, index)
         self._delete_file(FILE)
-        self.header[name].remove(params)
-        if len(self.header[name]) == 0:
-            self.header.pop(name)
+        self._delete_entry(name, params)
         self._write()
 
     def _update_list(self):
@@ -222,6 +245,11 @@ class Header(object):
         path = os.path.join(DIR, FILE)
         print "Removing %s" %path
         os.remove(path)
+
+    def _delete_entry(self, name, params):
+        self.header[name].remove(params)
+        if len(self.header[name]) == 0:
+            self.header.pop(name)
 
     def _add_entry(self, name, params):
         if not name in self.header:
@@ -430,10 +458,12 @@ def remove_functions(name, **params):
         os.remove(path)
 
 # print information
-def show():
+def show(string=None):
     h = Header().header
     h.pop("_flist")
     for key in h:
+        if string is not None and key != string:
+            continue
         print "\n%s" %key
         lst = h[key]
         for i, dic in enumerate(lst):
@@ -441,10 +471,12 @@ def show():
             print "%d)" %(i+1,),
             print ", ".join(["%s=%s" %x for x in dic.items()])
 
-def showfields():
+def showfields(string=None):
     h = Header().header
     h.pop("_flist")
     for key in h:
+        if string is not None and key != string:
+            continue
         print "\n%s" %key
         lst = h[key]
         for i, dic in enumerate(lst):
@@ -455,3 +487,9 @@ def showfields():
             n = len(content["fields"].values()[0])
             print "-) %d field values, params:" %(n,),
             print ", ".join(["%s=%s" %x for x in dic.items()])
+
+def shownames():
+    h = Header().header
+    h.pop("_flist")
+    for key in h:
+        print key

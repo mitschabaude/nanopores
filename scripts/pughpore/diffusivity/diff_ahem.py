@@ -1,72 +1,89 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
-from math import sinh, acosh
-from nanopores.models.diffusion_interpolation import diffusivity_field_simple
-from nanopores.tools import fields
-
-def Cp(h, r):
-    x = r/h
-    return 1. - 9./16.*x + 1./8.*x**3 - 45./256.*x**4 - 1/16.*x**5
-
-def Cn(l, r):
-    alpha = acosh(l/r)
-    s = 0.
-    for n in range(1, 100):
-        n = float(n)
-        K = n*(n+1)/(2*n-1)/(2*n+3)
-        s += K*((2*sinh((2*n+1)*alpha)+(2*n+1)*sinh(2*alpha))/(4*(sinh((n+.5)*alpha))**2-(2*n+1)**2*(sinh(alpha))**2) - 1)
-    return 1./((4./3.)*sinh(alpha)*s)
-
-def matrix(d):
-    return [[d[0], 0., 0.], [0., d[1], 0.], [0., 0., d[2]]]
-
-def diff_profile_bulk(setup):
-    geop = setup.geop
-
-    r = geop.rMolecule
-    eps = 1e-8
-    x = np.linspace(r+eps, r*16., 100)
-
-    Dn = np.array([Cn(xx, r) for xx in x])
-    Dt = Cp(x, r)
-
-    data = dict(x=list(x), D=map(matrix, zip(Dn, Dt, Dt)))
-    return data
+from nanopores.models.diffusion import diffusivity
+from nanopores.models.diffusion_interpolation import (diffusivity_field,
+    diff_profile_plane, diff_profile_trivial)
+from nanopores.tools import fields, collect_dict
+from nanopores.tools.solvers import cache_forcefield
 
 def simple_D(setup):
     r = setup.geop.rMolecule
-    data = diff_profile_bulk(setup)
-    functions = diffusivity_field_simple(setup, r, data)
+    functions = diffusivity_field(setup, r, boundary="poresolidb")
     return functions["D"]
 
-def cache_diffusivity(geoname="alphahem", **params):
+def cache_diffusivity_simple(geoname="alphahem", **params):
     name = "D%s" % (geoname,)
 
     if not fields.exists(name, **params):
         setup = nanopore.Setup(**params)
         r = setup.geop.rMolecule
-        data = diff_profile_bulk(setup)
-        functions = diffusivity_field_simple(setup, r, data)
+        functions = diffusivity_field(setup, r, boundary="poresolidb")
         fields.save_functions(name, params, **functions)
         fields.update()
-        print
 
-def get_diffusivity(geoname="alphahem", **params):
-    cache_diffusivity(geoname, **params)
+def get_diffusivity_simple(geoname="alphahem", **params):
+    cache_diffusivity_simple(geoname, **params)
     name = "D%s" % (geoname,)
     functions, mesh = fields.get_functions(name=name, **params)
     D = functions["D"]
     return D
 
+def cache_diffusivity(geoname="alphahem", mode="coupled", **params):
+    name = "D%s-%s" % (geoname, mode)
+
+    if not fields.exists(name, **params):
+        setup = nanopore.Setup(**params)
+        r = setup.geop.rMolecule
+
+        if mode == "coupled":
+            data_z = diff_profile_z_ahem(**params)
+            data_r = diff_profile_plane(r)
+        elif mode == "simple":
+            data_z = None
+            data_r = diff_profile_plane(r)
+        elif mode == "profile":
+            data_z = diff_profile_z_ahem(**params)
+            data_r = diff_profile_trivial(r)
+        else:
+            raise NotImplementedError
+
+        functions = diffusivity_field(setup, r, ddata_z=data_z, ddata_r=data_r,
+                                      boundary="poresolidb", poreregion="pore")
+        fields.save_functions(name, params, **functions)
+        fields.update()
+
+    return name
+
+def get_diffusivity(geoname="alphahem", mode="coupled", **params):
+    name = cache_diffusivity(geoname, mode, **params)
+    functions, mesh = fields.get_functions(name=name, **params)
+    D = functions["D"]
+    return D
+
+@cache_forcefield("diffz")
+def diff2D(X, **params):
+    for x, result in collect_dict(X):
+        params["x0"] = x
+        setup = nanopore.Setup(**params)
+        D = diffusivity(setup)
+        result.new = dict(D=D)
+    return result
+
+def diff_profile_z_ahem(a=-10.3, b=0.05, N=20, **params):
+    X = [[0., 0., z] for z in np.linspace(a, b, N)]
+    return diff2D(X, name="diffz-ahem", nproc=5, **params)
+
+
 if __name__ == "__main__":
     import nanopores.models.nanopore as nanopore
     from matplotlib import pyplot as plt
-    import dolfin, os
-    fields.set_dir(os.path.expanduser("~") + "/Dropbox/nanopores/fields")
+    import dolfin
+    fields.set_dir_dropbox()
 
-    params = dict(dim=2, Nmax=.1e5, h=1., ahemqsuniform=True, rMolecule=0.11)
+    #params = dict(dim=2, Nmax=.1e5, h=1., ahemqsuniform=True, rMolecule=0.11)
+    params = dict(dim=2, Nmax=1e5, h=.5, ahemqsuniform=True, rMolecule=0.11)
     setup = nanopore.Setup(**params)
-    data = diff_profile_bulk(setup)
+    data = diff_profile_plane(r=setup.geop.rMolecule)
     x = data["x"]
     Dt = [D[2][2] for D in data["D"]]
     Dn = [D[0][0] for D in data["D"]]
@@ -76,11 +93,23 @@ if __name__ == "__main__":
     plt.legend(loc="lower right")
 #    plt.show()
 #
-#    D = get_diffusivity(**params)
-#    dolfin.plot(D[0], title="Dx")
-#    dolfin.plot(D[1], title="Dz")
-#    dolfin.interactive()
-    ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
-    setup = nanopore.Setup(diffusivity_data=ddata, **params)
-    _, pnps = nanopore.solve(setup, True)
-    print nanopore.get_forces(setup, pnps)
+    data = diff_profile_z_ahem(**params)
+    z = [x0[2] for x0 in data["x"]]
+    Dz = data["D"]
+    plt.figure()
+    plt.plot(z, Dz, ".-")
+    #plt.show()
+
+    #D = simple_D(setup)
+    D = get_diffusivity(mode="profile", **params)
+    dolfin.plot(D[0], title="Dx")
+    dolfin.plot(D[1], title="Dz")
+    dolfin.interactive()
+
+    solve = True
+    if solve:
+        print "TRYING TO SOLVE"
+        ddata = dict(params, name="Dalphahem")
+        setup = nanopore.Setup(diffusivity_data=ddata, **params)
+        _, pnps = nanopore.solve(setup, True)
+        print nanopore.get_forces(setup, pnps)

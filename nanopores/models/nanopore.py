@@ -165,7 +165,7 @@ def set_D_from_data(phys, data):
     if data is not None:
         func, mesh = fields.get_functions(**data)
         D = func["D"]
-        dolfin.plot(D[0], title="Dx", interactive=True)
+        #dolfin.plot(D[0], title="Dx", interactive=True)
         D = dolfin.as_matrix(np.diag([D[i] for i in range(phys.dim)]))
         phys.update(Dp=D, Dm=D)
 
