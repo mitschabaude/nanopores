@@ -25,8 +25,7 @@ def get_IV(calc=True, **params):
     results = IV(V, nproc=5, name="IV-ahem", calc=calc, ahemuniformqs=False, **params)
     results_uniform = IV(V, nproc=5, name="IV-ahem", calc=calc, ahemuniformqs=True, **params)
 
-    plt.axvline(x=0, color="#999999", linestyle="--")
-    plt.axhline(y=0, color="#999999", linestyle="--")
+    plot_grid()
 
     V = 1e3*np.array(results["x"])
     I = 1e12*np.array(results["J"])
@@ -45,8 +44,8 @@ def get_IV(calc=True, **params):
     plt.legend(loc="best", frameon=False)
 
 def plot_grid():
-    plt.axvline(x=0, color="#999999", linestyle="--")
-    plt.axhline(y=0, color="#999999", linestyle="--")
+    plt.axvline(x=0, color="#999999", linestyle="-")
+    plt.axhline(y=0, color="#999999", linestyle="-")
 
 def plot_experiment():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
@@ -75,9 +74,9 @@ def compare_D_models(calc=True, **params):
     V = [i/100. for i in range(-10, 11)]
     Vplot = 1e3*np.array(V)
     DD = OrderedDict([
-        ("r-dependent", ddsimplefine),
-        ("z-dependent", ddprofile),
-        ("coupled", ddcoupled),
+        ("r-dependent D", ddsimplefine),
+        ("z-dependent D", ddprofile),
+        ("r- and z-dep. D", ddcoupled),
         #"constant (rel. D = 0.3)": None,
     ])
     colors = ["b", "g", "c"]
@@ -86,7 +85,7 @@ def compare_D_models(calc=True, **params):
         params["diffusivity_data"] = DD[model]
         results = IV(V, nproc=5, name="IV-ahem", calc=calc, **params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, ".-", color=colors[i], label=model)
+        plt.plot(Vplot, I, "-", color=colors[i], label=model)
 
     plt.xlabel("Voltage Bias [mV]")
     plt.ylabel("Current [pA]")
