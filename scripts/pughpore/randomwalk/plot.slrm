@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J plot_type_300
+#SBATCH -J plot_type
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --ntasks-per-core=1
@@ -14,4 +14,4 @@ module load intel/16 intel-mpi/5 eigen/3.2.4 intel-mkl/11 cmake/3.6.2 parmetis/4
 module load matplotlib/1.5.3
 module load scipy/0.18.0
 
-srun -q -l python plot_type.py 300
+srun -q -l python plot.py type 400 delete_rw_1

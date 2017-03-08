@@ -120,7 +120,7 @@ def D(x,y,z):
             vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
             return [list(vec1),list(vec2)]
 
-def run(params,fieldsname,outcome):
+def run(params,fieldsname,outcome,outside):
     z0 = params["z0"]
     X = np.array([0.])
     Y = np.array([0.])
@@ -128,7 +128,6 @@ def run(params,fieldsname,outcome):
     J1 = np.array([])
     T = np.array([])
     bind1 = 0
-    bind2 = 0
     avgbind1=params["avgbind1"]
     P_bind1=params["P_bind1"]
     avgbind2=params["avgbind2"]
@@ -139,7 +138,6 @@ def run(params,fieldsname,outcome):
     while i<maxiter and Z[-1]>=-hpore/2.-2.:
         if ood:
 	    bind1 = 0
-	    bind2 = 0
             i=0
             ood = False
             ffa = True
@@ -175,7 +173,6 @@ def run(params,fieldsname,outcome):
                 bind1+=1
             elif ffa and np.random.binomial(1,P_bind2)==1 and ((Z[-1]<=-hpore/2.+h4 and Z[-1]>=-hpore/2.+0.) or (Z[-1]<=hpore/2.-h2 and Z[-1]>=hpore/2.-h2-5.)):
                 add+=expovariate(lambd=1./avgbind2)
-                bind2+=1
             else:
                 add+=0.
             ffa = False
@@ -187,11 +184,16 @@ def run(params,fieldsname,outcome):
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
         if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
-            print 'Out of domain!'
             ood = True
-            X[-1]=0.
-            Y[-1]=0.
-            Z[-1]=0.
+            if not outside:
+                print 'Out of domain!'
+                i=0
+                X[-1]=0.
+                Y[-1]=0.
+                Z[-1]=0.
+            else:
+                print 'Out of domain!'
+                break
         Jx=Current(X[-1],Y[-1],Z[-1])
         if math.isnan(Jx):
             if add<=tau:
@@ -207,11 +209,10 @@ def run(params,fieldsname,outcome):
         J1=np.append(J1,Jx)
         T =np.append(T,add)
         i+=1
-        if not (Z[i]<=H/2. and Z[i]>=-H/2 and X[i] <=R/2 and X[i] >=-R/2 and Y[i] <=R/2 and Y[i] >=-R/2):
-            break
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
-    if outcome=='type':
+    print 'binding1  =====  %i'%bind1
+    if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10
         amp = (curr-np.inner(T*1e-6,J1)/tau_off)/curr*100.
@@ -233,9 +234,15 @@ def run(params,fieldsname,outcome):
             a2 = [amp]
             t1 = []
             a1 = []
+        if ood:
+            t0 = [tau_off]
+            a0 = [amp]
+        else:
+            t0 = []
+            a0 = []
             
-        fields.save_fields(fieldsname,params,t1=t1,a1=a1,t2=t2,a2=a2)
-    elif outcome=='traj':
+        fields.save_fields(fieldsname,params,t1=t1,a1=a1,t2=t2,a2=a2,t0=t0,a0=a0)
+    if outcome=='traj' or outcome=='both':
         X=[list(X)]
         Y=[list(Y)]
         Z=[list(Z)]
