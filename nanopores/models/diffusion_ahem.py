@@ -1,10 +1,15 @@
 # (c) 2017 Gregor Mitscha-Baude
+"""
+this module actually provides very general tools for diffusivity
+interpolation as soon as models.nanopore.Setup can handle general geometries.
+"""
 import numpy as np
 from nanopores.models.diffusion import diffusivity
 from nanopores.models.diffusion_interpolation import (diffusivity_field,
     diff_profile_plane, diff_profile_trivial)
 from nanopores.tools import fields, collect_dict
 from nanopores.tools.solvers import cache_forcefield
+from nanopores.models import nanopore
 
 def simple_D(setup):
     r = setup.geop.rMolecule
@@ -74,7 +79,6 @@ def diff_profile_z_ahem(a=-10.3, b=0.05, N=20, **params):
     return diff2D(X, name="diffz-ahem", nproc=5, **params)
 
 if __name__ == "__main__":
-    import nanopores.models.nanopore as nanopore
     from matplotlib import pyplot as plt
     import dolfin
     fields.set_dir_dropbox()

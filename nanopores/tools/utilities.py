@@ -263,8 +263,13 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
 def showplots():
     plt.show()
 
+def assertdir(DIR):
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
+
 def savefigs(name="fig", DIR="/tmp/", size=None):
     if not DIR.endswith("/"): DIR = DIR + "/"
+    assertdir(DIR)
     if len(plt.get_fignums()) == 1:
         fig = plt.figure(plt.get_fignums()[0])
         if size is not None:

@@ -56,6 +56,7 @@ class Setup(solvers.Setup):
         self.init_phys()
 
     def init_geo(self, create_geo=True):
+        print self.geop
         h = self.solverp.h
         print "h", h
         self.geo = self.get_geo(h=h, **self.geop) if create_geo else None

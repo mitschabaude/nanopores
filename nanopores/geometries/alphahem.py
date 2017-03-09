@@ -9,9 +9,9 @@ default = dict(
     Htop = 7.,
     Hbot = 15.,
     R = 10.,
-    cs=[-3, -6],
-    zmem=-5.,
-    proteincs=[-2.3, -4.6, -7.2],
+    cs = [-3, -6],
+    zmem = -7.625,
+    proteincs = [-2.3, -4.6, -7.2],
 )
 
 def get_geo(h=1., recreate=False, **params):
