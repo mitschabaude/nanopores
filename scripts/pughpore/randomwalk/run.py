@@ -99,26 +99,34 @@ coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 #F=[0.,0.,-1e-11]
 #F=[0.,0.,0.]
 
-def hatfct(ang):
-    x=(ang+2*pi)%(pi/2.)
-    if x<=pi/4.:
-        return x
-    else:
-        return pi/2.-x
-def D(x,y,z):
-    if z>hpore/2. or z<-hpore/2.:
-        return [[1.,1.,1.],[0.,0.,0.]]
-    else:
-        if x==0 and y==0:
-            return [[Dx(0.),Dy(0.),Dz(0.)],[dDx(0.),dDy(0.),dDz(0.)]]
-        else:
-            ang=atan2(y,x)
-            ang2=hatfct(ang)
-            A=np.array([[cos(ang),-sin(ang),0.],[sin(ang),cos(ang),0.],[0.,0.,1.]])
-            dist=sqrt(x**2+y**2)*cos(ang2)/(R_(z))
-            vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
-            vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
-            return [list(vec1),list(vec2)]
+#def hatfct(ang):
+#    x=(ang+2*pi)%(pi/2.)
+#    if x<=pi/4.:
+#        return x
+#    else:
+#        return pi/2.-x
+#def D(x,y,z):
+#    if z>hpore/2. or z<-hpore/2.:
+#        return [[1.,1.,1.],[0.,0.,0.]]
+#    else:
+#        if x==0 and y==0:
+#            return [[Dx(0.),Dy(0.),Dz(0.)],[dDx(0.),dDy(0.),dDz(0.)]]
+#        else:
+#            ang=atan2(y,x)
+#            ang2=hatfct(ang)
+#            A=np.array([[cos(ang),-sin(ang),0.],[sin(ang),cos(ang),0.],[0.,0.,1.]])
+#            dist=sqrt(x**2+y**2)*cos(ang2)/(R_(z))
+#            vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
+#            vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
+#            return [list(vec1),list(vec2)]
+def area1(x,y,z):
+    return (z<=19. and z>=17.)
+def area2(x,y,z):
+    return (z>=-3. and z<=11.)
+def area3(x,y,z):
+    return (z>=-23. and z<=-3.)
+def area4(x,y,z):
+    return (z<=14. and z>=-hpore/2.)
 
 def run(params,fieldsname,outcome,outside):
     z0 = params["z0"]
@@ -132,6 +140,8 @@ def run(params,fieldsname,outcome,outside):
     P_bind1=params["P_bind1"]
     avgbind2=params["avgbind2"]
     P_bind2=params["P_bind2"]
+    avgbind3=params["avgbind3"]
+    P_bind3=params["P_bind3"]
     ffa = True
     i=0
     ood = False
@@ -167,11 +177,10 @@ def run(params,fieldsname,outcome,outside):
             x_new = X[-1]
             y_new = Y[-1]
             z_new = Z[-1]
-            if ffa and np.random.binomial(1,P_bind1)==1 and Z[-1]<=hpore/2.-h2-5 and Z[-1]>=-hpore/2.+h4:
+            if ffa and np.random.binomial(1,P_bind1)==1 and area2(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind1)
-#                print add
                 bind1+=1
-            elif ffa and np.random.binomial(1,P_bind2)==1 and ((Z[-1]<=-hpore/2.+h4 and Z[-1]>=-hpore/2.+0.) or (Z[-1]<=hpore/2.-h2 and Z[-1]>=hpore/2.-h2-5.)):
+            elif ffa and np.random.binomial(1,P_bind2)==1 and (area4(0.,0.,Z[-1]) or area1(0.,0.,Z[-1])):
                 add+=expovariate(lambd=1./avgbind2)
             else:
                 add+=0.
@@ -186,7 +195,7 @@ def run(params,fieldsname,outcome,outside):
         if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
             ood = True
             if not outside:
-                print 'Out of domain!'
+#                print 'Out of domain!'
                 i=0
                 X[-1]=0.
                 Y[-1]=0.
@@ -211,7 +220,6 @@ def run(params,fieldsname,outcome,outside):
         i+=1
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
-    print 'binding1  =====  %i'%bind1
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10

@@ -33,7 +33,7 @@ else:
 #params=dict(avgbind1=7e5,avgbind2=1e3,P_bind1=1.e-2,P_bind2=1e-1,z0=hpore/2.+5.)
 #params=dict(avgbind1=1e7,avgbind2=3e4,P_bind1=5.e-3,P_bind2=8e-2,z0=hpore/2.+0.)
 #params=dict(avgbind1=1e7,avgbind2=1e5,P_bind1=2.e-2,P_bind2=8e-2,z0=hpore/2.+0.) # good if only real translocations count - no type 0 "ood"
-params=dict(avgbind1=3e6,avgbind2=5e4,P_bind1=8.e-2,P_bind2=3e-1,z0=hpore/2.+0.)
+params=dict(avgbind1=2e7,avgbind2=3e4,avgbind3=2e5,P_bind1=8.e-2,P_bind2=3e-1,P_bind3=5e-2,z0=hpore/2.+0.)
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside=True)
