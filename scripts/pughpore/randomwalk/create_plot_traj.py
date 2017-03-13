@@ -1,5 +1,4 @@
 from matplotlib.ticker import FormatStrFormatter
-from matplotlib import gridspec
 #from matplotlib import rc
 #rc('text', usetex=True)
 import nanopores as nano
@@ -45,66 +44,56 @@ def save_fig(params,fieldsname,i):
     for i in range(1,T.shape[0]):
         T[i]=T[i]+T[i-1]
     tau_off=T[-1]
-    figname = fieldsname+'_traj_'+'%.3f'%(tau_off*1e-6)+'_%i'%i+'_%.1e_%.1e_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["avgbind3"],params["P_bind1"],params["P_bind2"],params["P_bind3"])+str(params["z0"])
-    #print 'tau_off = %.3f ms'% (tau_off*1e-6)
-    #print 'amplitude = %.0f pA'% amplitude
-    #J=np.append(np.array([curr,curr]),J)
-    #J=np.append(J,np.array([curr,curr]))
+    figname = fieldsname+'_traj_'+'%f'%(tau_off*1e-6)+'_%i'%i+'_%.1e_%.1e_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["avgbind3"],params["P_bind1"],params["P_bind2"],params["P_bind3"])+str(params["z0"])
     J=J*1e12
-    #T=np.append(np.array([-1e6,0.]),T)
-    #T=np.append(T,np.array([tau_off,1e6+tau_off]))
-    #T=T*1e-6
 
-    fig=plt.figure(figsize=(10,5),dpi=80)
-    gs=gridspec.GridSpec(1, 2, width_ratios=[1,1])
+    fig=plt.figure(figsize=(8,5),dpi=80)
 
-    ax0=plt.subplot(gs[0])
     plt.title('Trajectory')
-    ax0.plot(X,Z,linewidth=1.,c='#0000ff')
-    ax0.plot([l3/2.-.5,l3/2.-.5],[-3.,11.],color='#ff0000',linewidth=2.)
-    ax0.plot([-l3/2.+.5,-l3/2.+.5],[-3.,11.],color='#ff0000',linewidth=2.)
-#    ax0.plot([l1/2.,l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
-#    ax0.plot([-l1/2.,-l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
-#    ax0.plot([l3/2.,l3/2.,l2/2.,l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
-#    ax0.plot([-l3/2.,-l3/2.,-l2/2.,-l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
-    longer = ax0.scatter(X[bind1],Z[bind1],s=200,marker='h',c='#ff0000',linewidth=0.)
-    shorter = ax0.scatter(X[bind2],Z[bind2],s=100,marker='h',c='#ffa500',linewidth=0.)
-    start = ax0.scatter([X[0]],[Z[0]],s=200,marker='x',c='#00cc00',linewidth=2.)
-#    ax0.legend([start,longer,shorter],['Start','Long binding','Short binding'],scatterpoints=1,loc=(.03,.3))
-    ax0.legend([start,longer],['Start','Long binding'],scatterpoints=1,loc=(.03,.3))
+    plt.plot(X,Z,linewidth=1.,c='#0000ff')
+    plt.plot([l3/2.-.5,l3/2.-.5],[-3.,11.],color='#ff0000',linewidth=2.)
+    plt.plot([-l3/2.+.5,-l3/2.+.5],[-3.,11.],color='#ff0000',linewidth=2.)
+    plt.plot([l1/2.,l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
+    plt.plot([-l1/2.,-l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
+    plt.plot([l3/2.,l3/2.,l2/2.,l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
+    plt.plot([-l3/2.,-l3/2.,-l2/2.,-l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
+    longer = plt.scatter(X[bind1],Z[bind1],s=200,marker='h',c='#ff0000',linewidth=0.)
+    shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c='#ffa500',linewidth=0.)
+    start = plt.scatter([X[0]],[Z[0]],s=200,marker='x',c='#00cc00',linewidth=2.)
+    plt.legend([start,longer,shorter],['Start','Long binding','Short binding'],scatterpoints=1,loc=(.42,.15))
     ax=plt.gca()
     ax.set_aspect('equal')
-    ax.set_xlim([-50.,20.])
-    ax.set_ylim([-30.,40.])
+    ax.set_xlim([20.,-55.])
+    ax.set_ylim([-25.,40.])
     ax.set_xticks([])
     ax.set_yticks([])
     plot_polygon(ax,polygon(rmem=60.))
 
 
-    ax1=plt.subplot(gs[1])
+    plt.axes([.55,.5,.2,.3])
     plt.title('Current signal')
     ax=plt.gca()
     if tau_off<1e3:
-        t = np.linspace(0.,tau_off,5)
+        t = np.linspace(0.,tau_off,3)
         fac=1.
-        ax.set_xlabel('Time [$ns$]')
+        ax.set_xlabel('time [$ns$]')
     elif tau_off<1e6 and tau_off>=1e3:
-        t = np.linspace(0.,tau_off*1e-3,5)
+        t = np.linspace(0.,tau_off*1e-3,3)
         fac = 1e-3
-        ax.set_xlabel(r'Time [$\mu s$]')
+        ax.set_xlabel(r'time [$\mu s$]')
     else:
-        t = np.linspace(0.,tau_off*1e-6,5)
+        t = np.linspace(0.,tau_off*1e-6,3)
         fac = 1e-6
-        ax.set_xlabel('Time [$ms$]')
+        ax.set_xlabel('time [$ms$]')
     T=T*fac
-    ax1.plot(T,J,linewidth=2.,color='#0000ff')
-    yt = np.linspace(580.,760,7)
-    ax.set_ylabel(r'Current [$pA$]')
+    plt.plot(T,J,color='#000000')
+    yt = np.linspace(580.,760,4)
+    ax.set_ylabel(r'A [$pA$]')
     ax.set_yticks(yt)
     ax.set_xticks(t)
     xfmt=FormatStrFormatter('%.1f')
     ax.xaxis.set_major_formatter(xfmt)
-    ax.set_xlim([-1e-2*tau_off*fac,(1.+1e-2)*tau_off*fac])
+    ax.set_xlim([-4e-2*tau_off*fac,(1.+4e-2)*tau_off*fac])
 
 
     plt.tight_layout()
