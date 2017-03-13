@@ -180,8 +180,8 @@ def run(params,fieldsname,outcome,outside):
             if ffa and np.random.binomial(1,P_bind1)==1 and area2(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind1)
                 bind1+=1
-            elif ffa and np.random.binomial(1,P_bind2)==1 and (area4(0.,0.,Z[-1]) or area1(0.,0.,Z[-1])):
-                add+=expovariate(lambd=1./avgbind2)
+#            elif ffa and np.random.binomial(1,P_bind2)==1 and (area4(0.,0.,Z[-1]) or area1(0.,0.,Z[-1])):
+#                add+=expovariate(lambd=1./avgbind2)
             else:
                 add+=0.
             ffa = False

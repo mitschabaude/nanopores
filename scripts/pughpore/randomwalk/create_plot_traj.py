@@ -20,6 +20,16 @@ f.set_dir(DATADIR)
 
 up = nano.Params(pughpore.params, k=3)
 hpore=up.hpore
+l0 =        up.l0
+l1 =        up.l1
+l2 =        up.l2
+l3 =        up.l3
+l4 =        up.l4
+hpore =     up.hpore
+hmem =      up.hmem
+h2 =        up.h2
+h1 =        up.h1
+h4 =        up.h4
 
 def save_fig(params,fieldsname,i):
     data=f.get_fields(fieldsname,**params)
@@ -46,22 +56,29 @@ def save_fig(params,fieldsname,i):
     #T=T*1e-6
 
     fig=plt.figure(figsize=(10,5),dpi=80)
-    gs=gridspec.GridSpec(1, 2, width_ratios=[6e-1,1])
+    gs=gridspec.GridSpec(1, 2, width_ratios=[1,1])
 
     ax0=plt.subplot(gs[0])
     plt.title('Trajectory')
     ax0.plot(X,Z,linewidth=1.,c='#0000ff')
+    ax0.plot([l3/2.-.5,l3/2.-.5],[-3.,11.],color='#ff0000',linewidth=2.)
+    ax0.plot([-l3/2.+.5,-l3/2.+.5],[-3.,11.],color='#ff0000',linewidth=2.)
+#    ax0.plot([l1/2.,l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
+#    ax0.plot([-l1/2.,-l1/2.],[17.,19.],color='#ffa500',linewidth=2.)
+#    ax0.plot([l3/2.,l3/2.,l2/2.,l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
+#    ax0.plot([-l3/2.,-l3/2.,-l2/2.,-l2/2.],[-hpore/2.,hpore/2.-h2,hpore/2.-h2,14.],color='#ffa500',linewidth=2.)
     longer = ax0.scatter(X[bind1],Z[bind1],s=200,marker='h',c='#ff0000',linewidth=0.)
     shorter = ax0.scatter(X[bind2],Z[bind2],s=100,marker='h',c='#ffa500',linewidth=0.)
     start = ax0.scatter([X[0]],[Z[0]],s=200,marker='x',c='#00cc00',linewidth=2.)
-    ax0.legend([start,longer,shorter],['Start','Long binding','Short binding'],scatterpoints=1,loc=(-.17,.3))
+#    ax0.legend([start,longer,shorter],['Start','Long binding','Short binding'],scatterpoints=1,loc=(.03,.3))
+    ax0.legend([start,longer],['Start','Long binding'],scatterpoints=1,loc=(.03,.3))
     ax=plt.gca()
     ax.set_aspect('equal')
-    ax.set_xlim([-35.,15.])
+    ax.set_xlim([-50.,20.])
     ax.set_ylim([-30.,40.])
     ax.set_xticks([])
     ax.set_yticks([])
-    plot_polygon(ax,polygon(rmem=40.))
+    plot_polygon(ax,polygon(rmem=60.))
 
 
     ax1=plt.subplot(gs[1])
