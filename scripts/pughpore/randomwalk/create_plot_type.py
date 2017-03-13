@@ -4,6 +4,7 @@ matplotlib.use("Agg")
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import os
 import sys
@@ -61,26 +62,29 @@ def save_fig(params,fieldsname):
 
 
 
-	plt.plot([5e-5,.7],[0.,0.],linewidth=2,color='lightgreen')
+	plt.figure(figsize=(6,4),dpi=80)
+	plt.plot([3e-6,.7],[0.,0.],linewidth=2,color='lightgreen')
 	plt.plot([1.,1e2],[0.,0.],linewidth=2,color='green')
 	ax=plt.gca()
-	plt.scatter(t1,a1,color='lightgreen')
-	plt.scatter(t2,a2,color='green')
-	plt.scatter(t0,a0,marker='o',s=100,facecolors='none',edgecolors='#ff0000')
+	plt.scatter(t1,a1,color='lightgreen',s=8)
+	plt.scatter(t2,a2,color='green',s=8)
+	plt.scatter(t0,a0,marker='o',s=50,facecolors='none',edgecolors='#ff0000')
 	if number:
 		for k in range(len(t1)):
 			ax.text(t1[k],a1[k],'%i'%k,fontsize=9)
 		for k in range(len(t1),len(t1)+len(t2)):
 			ax.text(t2[k-len(t1)],a2[k-len(t1)],'%i'%k,fontsize=9)
+	xfmt=FormatStrFormatter('%g')
 	ax.set_xlim([1e-6,500.])
 	ax.set_ylim([-2.,25.0])
 	ax.set_xscale('log')
+	ax.xaxis.set_major_formatter(xfmt)
 	ax.invert_yaxis()
 	ax.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15)
 	ax.set_ylabel(r'A/I$_0$ [%]',fontsize=15)
-	ax.text(.011,-0.03,'I',fontsize=15)
+	ax.text(.001,-0.03,'I',fontsize=15)
 	ax.text(5.,-0.03,'II',fontsize=15)
-	ax.text(1.,5.,lendata,fontsize=25)
+#	ax.text(1.,5.,lendata,fontsize=25)
 	plt.tight_layout()
 	nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
 	print 'savefig:'
