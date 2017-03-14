@@ -66,7 +66,7 @@ def diff_profile_fit(a=-10.3, b=0.05, N=20):
 z, D = diff_profile_fit(a=-12, b=2, N=100)
 plt.plot(z, D, label="tabulated (infinite cylinder)")
 
-data = diff_profile_z_ahem(**params)
+data = diff_profile_z_ahem(a=-12, b=2, N=100, **params)
 z = [x0[2] for x0 in data["x"]]
 Dz = data["D"]
 
@@ -74,4 +74,5 @@ plt.plot(z, Dz, "o-", label="computed with hydrodynamic model")
 plt.ylabel("rel. diffusivity")
 plt.xlabel("z [nm]")
 plt.legend(loc="best")
+plt.show()
 #print results
