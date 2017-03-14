@@ -1,6 +1,7 @@
 # (c) 2017 Gregor Mitscha-Baude
 from alphahempoly import poly
 from cylpore import get_geo as get_geo_generic
+from cylpore import Pore
 
 default = dict(
     dim = 2,
@@ -13,6 +14,13 @@ default = dict(
     zmem = -7.625,
     proteincs = [-2.3, -4.6, -7.2],
 )
+
+def get_pore(**params):
+    params = dict(default, **params)
+    pore = Pore(poly, **params)
+    pore.build_polygons()
+    pore.build_boundaries()
+    return pore
 
 def get_geo(h=1., recreate=False, **params):
     params = dict(default, **params)
