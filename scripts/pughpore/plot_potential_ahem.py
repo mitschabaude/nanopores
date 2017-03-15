@@ -36,10 +36,16 @@ def mesh2triang(mesh):
 
     return tri.Triangulation(xx, yy, tt), vertex_values
 
+minus = lambda l: [[-x[0], x[1]] for x in l]
+
+def plot_polygon(p):
+    p.plot("-k")
+    Polygon(minus(p.nodes)).plot("-k")
+
 params = dict(
     h = 0.5,
     Nmax = 3e4,
-    bV = 0.,
+    bV = 0.0,
 )
 name = "pot-ahem"
 if not fields.exists(name, **params):
@@ -62,24 +68,26 @@ R, Htop, Hbot = 7, 2, 12
 fig, ax = plt.subplots(figsize=(8, 6), num="pot")
 
 tr, vertex_values = mesh2triang(mesh)
-zz = vertex_values(f)
+zz = 1000*vertex_values(f)
 
 minmax = max(abs(zz))
-pc = plt.tripcolor(tr, zz, cmap=cm.coolwarm, vmin=-minmax, vmax=minmax)
+#plt.triplot(tr)
+#pc = plt.tripcolor(tr, zz, cmap=cm.bwr)
+pc = plt.tripcolor(tr, zz, cmap=cm.bwr, vmin=-minmax, vmax=minmax)
 #pc = plt.pcolor(X, Y, U, cmap=cm.coolwarm_r) #, vmin=0, vmax=1)
-plt.colorbar(pc)
+cb = plt.colorbar(pc)
+cb.ax.set_ylabel("Electric potential [mV]")
 #plot_polygon(ax, pugh.polygon(diamPore=6., rmem=13))
 plt.xlim(-R, R)
 plt.ylim(-Hbot, Htop)
-minus = lambda l: [[-x[0], x[1]] for x in l]
 
 p = get_pore()
-p.protein.plot("-k")
-Polygon(minus(p.protein.nodes)).plot("-k")
+plot_polygon(p.protein)
+plot_polygon(p.membrane)
 
 from folders import FIGDIR
 from nanopores import savefigs
-#savefigs("potential", DIR=FIGDIR + "/ahem")
+savefigs("potential", FIGDIR + "/ahem", (6, 4.5))
 
 #dolfin.plot(v, backend="matplotlib", cmap=cm.viridis)
 plt.show()

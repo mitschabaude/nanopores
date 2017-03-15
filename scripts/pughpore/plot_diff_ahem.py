@@ -73,7 +73,11 @@ Dz = data["D"]
 plt.plot(z, Dz, "o-", label="full hydrodynamic model")
 plt.ylabel("rel. diffusivity")
 plt.xlabel("z [nm]")
-plt.legend(loc="best")
+plt.xlim(-10, 0)
+ax = plt.gca()
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+plt.legend(loc="upper left", frameon=False)
 
 from nanopores import savefigs
 from folders import FIGDIR
