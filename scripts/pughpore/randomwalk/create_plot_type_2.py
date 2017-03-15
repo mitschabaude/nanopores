@@ -40,7 +40,7 @@ def save_fig(params,fieldsname):
 
 
     cmap = matplotlib.cm.get_cmap('viridis')
-    color2=cmap(0.4)
+    color2=cmap(0.6)
     color1=cmap(0.8)
     color3=cmap(0.3)
 
