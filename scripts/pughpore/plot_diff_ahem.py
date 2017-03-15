@@ -70,8 +70,12 @@ data = diff_profile_z_ahem(a=-12, b=2, N=100, **params)
 z = [x0[2] for x0 in data["x"]]
 Dz = data["D"]
 
-plt.plot(z, Dz, "o-", label="computed with hydrodynamic model")
+plt.plot(z, Dz, "o-", label="full hydrodynamic model")
 plt.ylabel("rel. diffusivity")
 plt.xlabel("z [nm]")
 plt.legend(loc="best")
+
+from nanopores import savefigs
+from folders import FIGDIR
+savefigs("Dz", FIGDIR + "/ahem", (6, 4.5))
 #print results
