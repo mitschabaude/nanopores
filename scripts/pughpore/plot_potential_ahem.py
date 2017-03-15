@@ -47,6 +47,7 @@ if not fields.exists(name, **params):
     pb, pnps = model.solve(setup)
     v = pnps.solutions()[0]
     fields.save_functions(name, params, v=v)
+    fields.update()
 
 fun, mesh = fields.get_functions(name, **params)
 f = fun["v"]
@@ -58,21 +59,11 @@ def F(x, z):
         return f([-x, z])
 
 R, Htop, Hbot = 7, 2, 12
-N = 50
-Nx, Ny = N+1, 2*N + 1
-
-Y, X = np.mgrid[-Hbot:Htop:Ny*1j, -R:R:Nx*1j]
-U = np.zeros((Ny,Nx))
-
-for y in range(Ny):
-    for x in range(Nx):
-        U[y][x] = F(X[y][x], Y[y][x])
-
 fig, ax = plt.subplots(figsize=(8, 6), num="pot")
 
 tr, vertex_values = mesh2triang(mesh)
 zz = vertex_values(f)
-pc = ax.tripcolor(tr, zz, cmap=cm.coolwarm_r)
+pc = ax.tripcolor(tr, zz, cmap=cm.coolwarm)
 #pc = plt.pcolor(X, Y, U, cmap=cm.coolwarm_r) #, vmin=0, vmax=1)
 plt.colorbar(pc)
 #plot_polygon(ax, pugh.polygon(diamPore=6., rmem=13))
