@@ -41,7 +41,7 @@ for i in range(samples):
 
 print 'field updates'
 if outcome=='type' or outcome=='both':
-    from create_plot_type import *
+    from create_plot_type_2 import *
     f.update()
     save_fig(params,fieldsname)
 if outcome=='traj' or outcome=='both':
