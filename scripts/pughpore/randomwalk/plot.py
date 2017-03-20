@@ -33,7 +33,7 @@ else:
 #params=dict(avgbind1=7e5,avgbind2=1e3,P_bind1=1.e-2,P_bind2=1e-1,z0=hpore/2.+5.)
 #params=dict(avgbind1=1e7,avgbind2=3e4,P_bind1=5.e-3,P_bind2=8e-2,z0=hpore/2.+0.)
 #params=dict(avgbind1=1e7,avgbind2=1e5,P_bind1=2.e-2,P_bind2=8e-2,z0=hpore/2.+0.) # good if only real translocations count - no type 0 "ood"
-params=dict(avgbind1=2e7,avgbind2=3e4,avgbind3=2e5,P_bind1=8.e-2,P_bind2=3e-1,P_bind3=5e-2,z0=hpore/2.+0.)
+params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0*8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside=True)
@@ -41,11 +41,15 @@ for i in range(samples):
 
 print 'field updates'
 if outcome=='type' or outcome=='both':
-    from create_plot_type_2 import *
+    from create_plot_type import *
     f.update()
-    save_fig(params,fieldsname)
-if outcome=='traj' or outcome=='both':
+    save_fig_type(params,fieldsname)
     from create_plot_traj import *
-    f.update()
+    save_fig_traj(params,fieldsname,0,False)
+
+if outcome=='traj' or outcome=='both':
+    if outcome!='both':
+        from create_plot_traj import *
+        f.update()
     for i in range(len(fields.get_fields(fieldsname,**params)["X"])):
-        save_fig(params,fieldsname,i)
+        save_fig_traj(params,fieldsname,i,True)
