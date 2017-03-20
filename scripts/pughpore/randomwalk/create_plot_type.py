@@ -22,7 +22,7 @@ hpore=geop.hpore
 #fieldsname='events_onlyone_1'
 #params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 
-def save_fig_type(fieldsname,params):
+def save_fig_type(params,fieldsname):
     data=f.get_fields(fieldsname,**params)
     figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     t = data["t"]

@@ -50,10 +50,10 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         for k in range(1,T.shape[0]):
             T[k]=T[k]+T[k-1]
         tau_off=T[-1]
+        J=J*1e12
         figname = fieldsname+'_traj_'+'%.8f'%(tau_off*1e-6)+'_%04d'%i+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     else:
         figname = fieldsname+'_bindzones'+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
-    J=J*1e12
 
     if showtraj:
         fig=plt.figure(figsize=(8,5),dpi=80)
@@ -84,10 +84,10 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         start = plt.scatter([X[0]],[Z[0]],s=200,marker='x',c=color3,linewidth=2.)
         patches=[start]
         labels=['Start']
-    if len(bind1[0])>0:
+    if showtraj and len(bind1[0])>0:
         patches=patches+[longer]
         labels+=['Longer bindings']
-    if len(bind2)>0:
+    if showtraj and len(bind2)>0:
         patches=patches+[shorter]
         labels+=['Shorter bindings']
     if showtraj:
@@ -133,7 +133,6 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         ax.set_xlim([-4e-2*tau_off*fac,(1.+4e-2)*tau_off*fac])
 
 
-    print figname
     plt.tight_layout()
     nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
     print 'savefig: %s'%figname
