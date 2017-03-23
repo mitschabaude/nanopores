@@ -55,14 +55,14 @@ p2=p0-h2
 p3=-hpore/2.
 
 
-def R_(z):
-    if z>=p3 and z<=p2:
-        return l3/2.
-    elif z>=p2 and z<=p1:
-        return l2/2.
-    elif z>=p1 and z<=p0:
-        return l0/2.
-    else: return R/2.
+#def R_(z):
+#    if z>=p3 and z<=p2:
+#        return l3/2.
+#    elif z>=p2 and z<=p1:
+#        return l2/2.
+#    elif z>=p1 and z<=p0:
+#        return l0/2.
+#    else: return R/2.
 
 #def fac(z):
 #    if z>=p3 and z<=p2:
@@ -85,7 +85,6 @@ def R_(z):
 #        return -sqrt(r**2-x**2)+l3/2.
 #    else: return R/2.
 
-#params=dict(avgbind1=7e6,avgbind2=1e2,P_bind1=5.e-3,P_bind2=1e-1,z0=hpore/2.+5.)
 
 Dmol = kT/(6.*math.pi*eta*rMolecule*1e-9) # [m^2/s]
 gamma = (6.*math.pi*eta*rMolecule) #friction [microgramm/s]
@@ -93,40 +92,23 @@ maxiter = 1e6 # [ns]
 tau = .05 # [ns]
 C = tau/gamma*1e9 # [s^2/kg * 1e9 nm/m]
 coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
-#avgbinding = 10000000.
-#P_bind = 3.e-4
 
-#F=[0.,0.,-1e-11]
-#F=[0.,0.,0.]
 
-#def hatfct(ang):
-#    x=(ang+2*pi)%(pi/2.)
-#    if x<=pi/4.:
-#        return x
-#    else:
-#        return pi/2.-x
-#def D(x,y,z):
-#    if z>hpore/2. or z<-hpore/2.:
-#        return [[1.,1.,1.],[0.,0.,0.]]
-#    else:
-#        if x==0 and y==0:
-#            return [[Dx(0.),Dy(0.),Dz(0.)],[dDx(0.),dDy(0.),dDz(0.)]]
-#        else:
-#            ang=atan2(y,x)
-#            ang2=hatfct(ang)
-#            A=np.array([[cos(ang),-sin(ang),0.],[sin(ang),cos(ang),0.],[0.,0.,1.]])
-#            dist=sqrt(x**2+y**2)*cos(ang2)/(R_(z))
-#            vec1=A.dot(np.array([Dx(dist),Dy(dist),Dz(dist)]))
-#            vec2=A.dot(np.array([dDx(dist),dDy(dist),dDz(dist)]))
-#            return [list(vec1),list(vec2)]
+b1 = []
+b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
+
 def area1(x,y,z):
-    return (z<=19. and z>=17.)
+    for seg in b1:
+        h=np.array([p[1] for p in seg])
+        if np.min(h)<=z and z<=np.max(h):
+            return True
+    return False
 def area2(x,y,z):
-    return (z>=-3. and z<=11.)
-def area3(x,y,z):
-    return (z>=-23. and z<=-3.)
-def area4(x,y,z):
-    return (z<=14. and z>=-hpore/2.)
+    for seg in b2:
+        h=np.array([p[1] for p in seg])
+        if np.min(h)<=z and z<=np.max(h):
+            return True
+    return False
 
 def run(params,fieldsname,outcome,outside):
     z0 = params["z0"]
@@ -140,8 +122,6 @@ def run(params,fieldsname,outcome,outside):
     P_bind1=params["P_bind1"]
     avgbind2=params["avgbind2"]
     P_bind2=params["P_bind2"]
-    avgbind3=params["avgbind3"]
-    P_bind3=params["P_bind3"]
     ffa = True
     i=0
     ood = False
@@ -180,8 +160,8 @@ def run(params,fieldsname,outcome,outside):
             if ffa and np.random.binomial(1,P_bind1)==1 and area2(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind1)
                 bind1+=1
-#            elif ffa and np.random.binomial(1,P_bind2)==1 and (area4(0.,0.,Z[-1]) or area1(0.,0.,Z[-1])):
-#                add+=expovariate(lambd=1./avgbind2)
+            elif ffa and np.random.binomial(1,P_bind2)==1 and area1(0.,0.,Z[-1]:
+                add+=expovariate(lambd=1./avgbind2)
             else:
                 add+=0.
             ffa = False
@@ -232,24 +212,14 @@ def run(params,fieldsname,outcome,outside):
             file.write('amp = %.10f\n'% amp)
             file.close()
             exit()
-        if tau_off<1.:
-            t1 = [tau_off]
-            a1 = [amp]
-            t2 = []
-            a2 = []
-        else:
-            t2 = [tau_off]
-            a2 = [amp]
-            t1 = []
-            a1 = []
+        t=[tau_off]
+        a=[amp]
         if ood:
-            t0 = [tau_off]
-            a0 = [amp]
+            ood=[1]
         else:
-            t0 = []
-            a0 = []
+            ood=[0]
             
-        fields.save_fields(fieldsname,params,t1=t1,a1=a1,t2=t2,a2=a2,t0=t0,a0=a0)
+        fields.save_fields(fieldsname,params,t=t,a=a,ood=ood)
     if outcome=='traj' or outcome=='both':
         X=[list(X)]
         Y=[list(Y)]
