@@ -93,24 +93,19 @@ tau = .05 # [ns]
 C = tau/gamma*1e9 # [s^2/kg * 1e9 nm/m]
 coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 
-
-b1 = []
-b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
-
-def area1(x,y,z):
-    for seg in b1:
-        h=np.array([p[1] for p in seg])
-        if np.min(h)<=z and z<=np.max(h):
-            return True
-    return False
-def area2(x,y,z):
-    for seg in b2:
-        h=np.array([p[1] for p in seg])
-        if np.min(h)<=z and z<=np.max(h):
-            return True
-    return False
-
-def run(params,fieldsname,outcome,outside):
+def run(params,fieldsname,outcome,outside,b1,b2):
+    def area1(x,y,z):
+        for seg in b1:
+            h=np.array([p[1] for p in seg])
+            if np.min(h)<=z and z<=np.max(h):
+                return True
+        return False
+    def area2(x,y,z):
+        for seg in b2:
+            h=np.array([p[1] for p in seg])
+            if np.min(h)<=z and z<=np.max(h):
+                return True
+        return False
     z0 = params["z0"]
     X = np.array([0.])
     Y = np.array([0.])
@@ -160,7 +155,7 @@ def run(params,fieldsname,outcome,outside):
             if ffa and np.random.binomial(1,P_bind1)==1 and area2(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind1)
                 bind1+=1
-            elif ffa and np.random.binomial(1,P_bind2)==1 and area1(0.,0.,Z[-1]:
+            elif ffa and np.random.binomial(1,P_bind2)==1 and area1(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind2)
             else:
                 add+=0.
@@ -200,6 +195,7 @@ def run(params,fieldsname,outcome,outside):
         i+=1
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
+    fields.save_fields(fieldsname,params,b2=b2,b1=b1)
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10

@@ -61,16 +61,15 @@ def save_fig_type(params,fieldsname):
     plt1.set_xscale('log')
     plt1.xaxis.set_major_formatter(xfmt)
     plt1.invert_yaxis()
-    if fac is not None:
-        plt1.set_xlabel(r'$\tau_{off}$ [ns]',fontsize=15,x=.76)
-    else:
-        plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
     plt1.set_ylabel(r'A/I$_0$ [%]',fontsize=15)
     if fac==1.:
+        plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
         plt1.plot([3e-6,.7],[0.,0.],linewidth=3,color=color1)
         plt1.plot([1.,1e2],[0.,0.],linewidth=3,color=color2)
         plt1.text(.001,-0.03,'I',fontsize=15)
         plt1.text(5.,-0.03,'II',fontsize=15)
+    else:
+        plt1.set_xlabel(r'$\tau_{off}$ [ns]',fontsize=15,x=.76)
     plt2=plt.subplot(gs[1,1])
     for k in range(lendata):
         if t[k]<1.*fac:
