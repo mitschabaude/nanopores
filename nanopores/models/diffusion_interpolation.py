@@ -20,7 +20,7 @@ def transformation(n, Dn, Dt):
     D = np.dot(V, np.dot(D, V.T))
     return np.diag(np.diag(D))
 
-def preprocess_Dr(data, r):
+def preprocess_Dr(data, r, normalize=True):
     x = data["x"] #[xx[0] for xx in data["x"]]
     data, x = fields._sorted(data, x)
     Dt = [d[2][2] for d in data["D"]]
@@ -28,8 +28,10 @@ def preprocess_Dr(data, r):
 
     eps = 1e-2
     x = [-eps, r] + x + [100.]
-    Dn = [d/Dn[-1] for d in Dn]
-    Dt = [d/Dt[-1] for d in Dt]
+    if normalize:
+        Dn = [d/Dn[-1] for d in Dn]
+        Dt = [d/Dt[-1] for d in Dt]
+
     Dn = [0., eps] + Dn + [1.]
     Dt = [0., eps] + Dt + [1.]
 
@@ -132,14 +134,15 @@ def diffusivity_field_alt(setup, r, ddata_pore, ddata_bulk):
 
     # build 1D interpolations from data
     fn, ft = preprocess_Dr(ddata_bulk, r)
-    fn_pore, ft_pore = preprocess_Dr(ddata_pore, r)
+    fn_pore, ft_pore = preprocess_Dr(ddata_pore, r, normalize=False)
 
     setup.prerefine(visualize=True)
     dist = distance_boundary_from_geo(setup.geo)
     VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
     normal = dolfin.project(dolfin.grad(dist), VV)
 
-    D0 = setup.phys.D
+    phys = setup.phys
+    D0 = phys.kT / (6.*np.pi*phys.eta*r*1e-9)
 
     def DPore(x, i):
         r = dist(x)
