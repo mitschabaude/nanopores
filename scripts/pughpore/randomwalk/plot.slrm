@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -J events_onlyone_5
+#SBATCH -J events3
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --ntasks-per-core=1
@@ -14,4 +14,9 @@ module load intel/16 intel-mpi/5 eigen/3.2.4 intel-mkl/11 cmake/3.6.2 parmetis/4
 module load matplotlib/1.5.3
 module load scipy/0.18.0
 
-srun -q -l python plot.py both 490 events_onlyone_5
+srun -q -l python plot_0.py both 500 events3_nobind
+srun -q -l python plot_1.py both 500 events3_onlyone_1
+srun -q -l python plot_2.py both 500 events3_onlyone_2
+srun -q -l python plot_3.py both 500 events3_onlyone_3
+srun -q -l python plot_4.py both 500 events3_onlyone_4
+srun -q -l python plot_5.py both 500 events3_onlyone_5

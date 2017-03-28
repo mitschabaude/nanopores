@@ -89,7 +89,7 @@ p3=-hpore/2.
 Dmol = kT/(6.*math.pi*eta*rMolecule*1e-9) # [m^2/s]
 gamma = (6.*math.pi*eta*rMolecule) #friction [microgramm/s]
 maxiter = 1e6 # [ns]
-tau = .05 # [ns]
+tau = 1. # [ns]
 C = tau/gamma*1e9 # [s^2/kg * 1e9 nm/m]
 coeff = math.sqrt(2*Dmol*1e9*tau) # [nm]
 
@@ -112,6 +112,8 @@ def run(params,fieldsname,outcome,outside,b1,b2):
     Z = np.array([z0])
     J1 = np.array([])
     T = np.array([])
+    Dz_ = np.array([])
+    Fz_ = np.array([])
     bind1 = 0
     avgbind1=params["avgbind1"]
     P_bind1=params["P_bind1"]
@@ -164,6 +166,8 @@ def run(params,fieldsname,outcome,outside,b1,b2):
             pass
         else:
             ffa = True
+            Dz_ = np.append(Dz_,D[2])
+            Fz_ = np.append(Fz_,F[2])
         X = np.append(X,x_new)
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
@@ -195,7 +199,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
         i+=1
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
-    fields.save_fields(fieldsname,params,b2=b2,b1=b1)
+    fields.save_fields(fieldsname,params,b2=b2,b1=b1,Dzavg=[np.mean(Dz_)],Fzavg=[np.mean(Fz_)])
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10
