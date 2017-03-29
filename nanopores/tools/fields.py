@@ -24,10 +24,16 @@ TODO: if demanded, overwrite already calculated values
 TODO: in remove/save_functions, also remove obsolete dolfin and .txt files
 """
 import os, json
+import numpy as np
 from nanopores.dirnames import DATADIR, HOME
 DIR = os.path.join(DATADIR, "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
+ARRAY_DIR = "arrays"
+ARRAY_PREFIX = "array"
+
+def array_dir():
+    return os.path.join(DIR, ARRAY_DIR)
 
 def set_dir(NEWDIR):
     global DIR
@@ -35,6 +41,8 @@ def set_dir(NEWDIR):
     # assert directory and header exists
     if not os.path.exists(DIR):
         os.makedirs(DIR)
+    if not os.path.exists(array_dir()):
+        os.makedirs(array_dir())
     if not HEADER in os.listdir(DIR):
         _save(dict(_flist=[]), HEADER)
 
@@ -69,16 +77,32 @@ def _subset(data, key, condition=None):
 def get_field(name, field, **params):
     return Header().get_field(name, field, **params)
 
-def save_fields(name, params, **fields):
+def save_fields(name, params=None, **fields):
     # fields has to be a dictionary of lists, x a list
+    if params is None:
+        params = {}
     data = dict(name=name, params=params, fields=fields)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
-def save_entries(name, params, **entries):
+def save_entries(name, params=None, **entries):
+    if params is None:
+        params = {}
     data = dict(name=name, params=params, **entries)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
+
+def get(name, entry=None, **params):
+    data = load_file(name, **params)
+    if entry is None:
+        return data
+    else:
+        if entry in data:
+            return data[entry]
+        elif "fields" in data and entry in data["fields"]:
+            return data["fields"][entry]
+        else:
+            KeyError("No entry of this name.")
 
 def remove(name, index=None, **params):
     Header().remove(name, params, index)
@@ -233,6 +257,7 @@ class Header(object):
 
     def remove(self, name, params, index=None):
         FILE, params = self.get_file_params(name, params, index)
+        _delete_arrays(FILE)
         self._delete_file(FILE)
         self._delete_entry(name, params)
         self._write()
@@ -302,18 +327,88 @@ def _unique_id():
     from time import time
     return str(np.int64(time()*1e6))
 
+def _find_arrays(FILE):
+    path = os.path.join(DIR, FILE)
+    with open(path, "r") as f:
+        string = f.read()
+    ex = ARRAY_PREFIX
+    return [ex + a[:16] for i, a in enumerate(string.split(ex)) if i>0]
+
+def _delete_arrays(FILE):
+    for a in _find_arrays(FILE):
+        fname = array_dir() + "/" + a + ".npy"
+        print "Removing %s." % fname
+        os.remove(fname)
+
+# json extension to save large arrays efficiently
+# attention: large arrays are NOT immediately decoded, but returned as NpyFiles
+
+class NpyFile(object):
+
+    def __init__(self, name, array=None):
+        if array is not None:
+            np.save(name, array)
+        self.name = name
+        #self.shape = array.shape
+
+    def load(self):
+        return np.load(array_dir() + "/" + self.name + ".npy")
+
+    def __repr__(self):
+        return "<Stored %s, load with .load()>" % (self.name)
+
+MAX_BYTES = 50
+
+class ArrayEncoder(json.JSONEncoder):
+    def default(self, obj):
+
+        if isinstance(obj, np.ndarray):
+            if obj.nbytes > MAX_BYTES:
+                name = ARRAY_PREFIX + _unique_id()
+                np.save(array_dir() + "/" + name, obj)
+                return dict(_type="bigarray", name=name)
+            else:
+                return dict(_type="smallarray", a=obj.tolist())
+
+        if isinstance(obj, NpyFile):
+            return dict(_type="bigarray", name=obj.name)
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+class ArrayDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        if "_type" not in obj:
+            return obj
+
+        typ = obj["_type"]
+        if typ == "bigarray":
+            #return np.load(str(DIR + "/" + obj["name"]) + ".npy")
+            return NpyFile(str(obj["name"]))
+        elif typ == "smallarray":
+            return np.asarray(obj["a"])
+
+        return obj
+
 # basic file IO with json
 # saving twice in the same file means overwriting
 def _save_global(data, FILE):
-    with open(FILE, "w") as f:
-        json.dump(data, f)
+    try:
+        with open(FILE, "w") as f:
+            json.dump(data, f, cls=ArrayEncoder)
+    except TypeError as error: # object not json serializable
+        os.remove(FILE)
+        raise error
 
 def _save(data, FILE):
     _save_global(data, os.path.join(DIR, FILE))
 
 def _load_global(FILE):
     with open(FILE, "r") as f:
-        data = json.load(f)
+        data = json.load(f, cls=ArrayDecoder)
     return data
 
 def _load(FILE):
@@ -323,6 +418,8 @@ def _load(FILE):
 # assert directory and header exists
 if not os.path.exists(DIR):
     os.makedirs(DIR)
+if not os.path.exists(array_dir()):
+    os.makedirs(array_dir())
 if not HEADER in os.listdir(DIR):
     _save(dict(_flist=[]), HEADER)
 
