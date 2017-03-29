@@ -221,9 +221,9 @@ def run(params,fieldsname,outcome,outside,b1,b2):
             
         fields.save_fields(fieldsname,params,t=t,a=a,ood=ood)
     if outcome=='traj' or outcome=='both':
-        X=[list(X)]
-        Y=[list(Y)]
-        Z=[list(Z)]
-        T=[list(T)]
-        J1=[list(J1)]
+        X=[X]
+        Y=[Y]
+        Z=[Z]
+        T=[T]
+        J1=[J1]
         fields.save_fields(fieldsname,params,X=X, Y=Y, Z=Z, T=T, J=J1)

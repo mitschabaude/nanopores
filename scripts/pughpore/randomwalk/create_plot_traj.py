@@ -38,11 +38,11 @@ def save_fig_traj(params,fieldsname,i,showtraj):
     b1 =data["b1"]
     b2 =data["b2"]
     if showtraj:
-        X = np.array(data["X"][i])
-        Y = np.array(data["Y"][i])
-        Z = np.array(data["Z"][i])
-        T = np.array(data["T"][i])
-        J = np.array(data["J"][i])
+        X = data["X"][i]
+        Y = data["Y"][i]
+        Z = data["Z"][i]
+        T = data["T"][i]
+        J = data["J"][i]
         curr = 7.523849e-10
         bind1 = np.where(T>1e6)
         bind2 = np.intersect1d(np.where(T<=1e6),np.where(T>100.))
