@@ -263,8 +263,19 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
 def showplots():
     plt.show()
 
+def assertdir(DIR):
+    if not os.path.exists(DIR):
+        os.makedirs(DIR)
+
 def savefigs(name="fig", DIR="/tmp/", size=None):
     if not DIR.endswith("/"): DIR = DIR + "/"
+    assertdir(DIR)
+    if len(plt.get_fignums()) == 1:
+        fig = plt.figure(plt.get_fignums()[0])
+        if size is not None:
+            fig.set_size_inches(size)
+        fig.savefig(DIR + name + ".eps", bbox_inches="tight")
+        return
     for num in plt.get_fignums():
         fig = plt.figure(num)
         label = fig.get_label()
@@ -474,3 +485,20 @@ def collect_dict(iterator):
         else:
             for key in result:
                 result[key].append(result.new[key])
+
+def print_dict_difference(first, second):
+    print "First w/o second:", {k: first[k] for k in first if not k in second or first[k]!=second[k]}
+    print "Second w/o first:", {k: second[k] for k in second if not k in first or first[k]!=second[k]}
+
+def printnow(s):
+    print s,
+    sys.stdout.flush()
+
+class Log(object):
+    def __init__(self, msg):
+        self.msg = msg
+    def __enter__(self):
+        printnow(self.msg)
+        dolfin.tic()
+    def __exit__(self, *args):
+        print "%.2g s" %(dolfin.toc(),)

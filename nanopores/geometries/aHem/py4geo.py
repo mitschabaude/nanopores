@@ -135,7 +135,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     params["lbtm"] = -zcross[0] + zcross[1]
     params["lctr"] = -zcross[1] + zcross[2]
     params["ltop"] = -zcross[2] + zcross[3]
-    
+
     params["zporetop"] = zcross[3]
     params["zporebtm"] = zcross[0]
     params["ztop"] = params["zporetop"] + l3
@@ -234,13 +234,13 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
                 surfs_i.append(name + '[1]')
                 previous[k] = name + '[0]'
         surfs.append(surfs_i)
-        
+
     # surfs:
     # [0] --> outer cylinder <=> e_Fluid
     # [1] --> ahem           <=> e_aHem
     # [2] --> membrane-fluid <=> e_Membrane
     # [3] --> crosssections
-    
+
     # TODO: make this all less confusing
 
     surfs_Fluid = surfs[0][:]  # [:] is important for a shallow copy (-> del nextline)
@@ -250,14 +250,14 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     for index in range(3):
         del surfs_Fluid_bulk_top[2::n_e_i[0]-index] # delete equivalent of 2,3,4
         del surfs_Fluid_bulk_bottom[0::n_e_i[0]-index]  # delete equivalent of 0,1,2
-    
+
     #PhysicalSurface(surfs_Fluid,'fluidb') #Physical Surface Fluid
 
     surfs_boundary_top = [surfs[0][s*5] for s in range(4)]
     surfs_boundary_side_top = [surfs[0][1+s*5] for s in range(4)]
     surfs_boundary_side_bottom = [surfs[0][3+s*5] for s in range(4)]
     surfs_boundary_bottom = [surfs[0][4+s*5] for s in range(4)]
-    
+
     surfs_Fluid_aHem = surfs[1][:]
     surfs_Fluid_aHem_add_top = surfs[1][:] # additional aHem surfs for surfs_Fluid_bulk
     surfs_Fluid_aHem_add_bottom = surfs[1][:]
@@ -273,10 +273,10 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
         del surfs_Fluid_aHem_add_bottom[0::n_e_i[1]-index]
     for index in range(len(X_aHem)-bottom_end):
         del surfs_Fluid_aHem_add_bottom[ac1-ap2::n_e_i[1]-ap2-index]
-    [surfs_Fluid_bulk_top.append(s) for s in surfs_Fluid_aHem_add_top]    
+    [surfs_Fluid_bulk_top.append(s) for s in surfs_Fluid_aHem_add_top]
     [surfs_Fluid_bulk_bottom.append(s) for s in surfs_Fluid_aHem_add_bottom]
 
-    if cs_pop_i is not None: 
+    if cs_pop_i is not None:
         if cs_pop_i == 0:
             surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
             surfs_CrossS_bulk_bottom = [surfs[3][1+4*s] for s in range (4)]
@@ -292,7 +292,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     else:                   # no intersect with any crossS -> remove 2nd and 3rd crossS
         surfs_CrossS_bulk_top = [surfs[3][3+4*s] for s in range (4)]
         surfs_CrossS_bulk_bottom = [surfs[3][4*s] for s in range (4)]
-        
+
     # exit surface for exit time problem
     # exit_i = 0,...,3, None <--> exit surface = pore btm,...,pore top, lowerb
     if exit_i is not None and (cs_pop_i is None or cs_pop_i %4 != exit_i):
@@ -305,7 +305,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
         params["synonymes"]["exittime"] = exittimeDomain
     else:
         params["synonymes"]["poreexit"] = {"lowerbulkb"}
-        
+
     [surfs_Fluid_bulk_top.append(s) for s in surfs_CrossS_bulk_top]
     [surfs_Fluid_bulk_bottom.append(s) for s in surfs_CrossS_bulk_bottom]
     sl_Fluid = SurfaceLoop(surfs_Fluid)
@@ -358,7 +358,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     [surfs_Membrane.append(s) for s in surfs[2]]
     sl_Membrane = SurfaceLoop(surfs_Membrane)
     vol_Membrane = Volume(sl_Membrane)
-    
+
     surfs_Membrane_ps = surfs[2]
 
     x0_in_pore = None
@@ -382,7 +382,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
         vol_Fluid_bottom = Volume(sl_Fluid_bottom)
         NoPhysicalVolume("molecule")
         NoPhysicalSurface("moleculeb")
-    else: 
+    else:
         Comment('Add molecule ball')
         Molecule = add_ball(numpy.asarray(x0), rMolecule, lcMolecule,
                             with_volume=True, holes=None, label=None
@@ -393,7 +393,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
         vol_Molecule = Molecule[0]
         PhysicalVolume(vol_Molecule, "molecule")
         PhysicalSurface(Molecule[2], "moleculeb")
-        
+
         if x0_in_pore is not None: # NO CrossS and Molecule is in fluid_top/center/bottom
             vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
             vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom)
@@ -425,7 +425,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
                 vol_Fluid_top = Volume(sl_Fluid_top)
                 vol_Fluid_center = Volume(sl_Fluid_center)
                 vol_Fluid_bottom = Volume(sl_Fluid_bottom)
-            else: # Molecule is in CrossS -> one or two of fluid_top/center/bottom are not going to be defined 
+            else: # Molecule is in CrossS -> one or two of fluid_top/center/bottom are not going to be defined
                 if cs_pop_i == -1:
                     pv_fluid_top = False # fluid_top isn't defined
                     vol_Fluid_center = Volume(sl_Fluid_center)
@@ -452,18 +452,18 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
                     sl_Fluid_bulk_bottom_Molecule = Array([sl_Fluid_bulk_bottom] + [Molecule[1]])
                     vol_Fluid_bulk_bottom = Volume(sl_Fluid_bulk_bottom_Molecule)
                     vol_Fluid_bulk_top = Volume(sl_Fluid_bulk_top)
-                    
-            
+
+
     PhysicalVolume(vol_Fluid_bulk_top, 'fluid_bulk_top')
-    PhysicalVolume(vol_Fluid_bulk_bottom, 'fluid_bulk_bottom')    
+    PhysicalVolume(vol_Fluid_bulk_bottom, 'fluid_bulk_bottom')
 
     if pv_fluid_top:
         PhysicalVolume(vol_Fluid_top, 'poretop')
     if pv_fluid_center:
         PhysicalVolume(vol_Fluid_center, 'porecenter')
     if pv_fluid_bottom:
-        PhysicalVolume(vol_Fluid_bottom, 'porebottom') 
-            
+        PhysicalVolume(vol_Fluid_bottom, 'porebottom')
+
     #PhysicalVolume(vol_Fluid, 'fluid')
 
     PhysicalVolume(vol_Membrane, 'membrane')
@@ -503,7 +503,7 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
 
     # Meshing Algorithm: 2= ?, 5 = frontal (netgen)
     #raw_code(['Mesh.Algorithm3D = 5;'])
-    
+
     meta = get_meta()
     meta.update(params)
     meta["x0"] = x0
@@ -525,5 +525,9 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
-    print('\n - This is the sample code for the geo file')
+    from nanopores.geo2xml import geofile2geo
+    from dolfin import plot
+
+    gdict = get_geo()
+    geo = geofile2geo(gdict["geo_code"], gdict["meta"], name="alphahem", clscale=8.)
+    plot(geo.boundaries, interactive=True)

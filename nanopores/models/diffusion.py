@@ -7,6 +7,8 @@ import nanopores.physics.simplepnps as pnps
 from diffusion_interpolation import (diffusivity_field, cache_pugh_diffusivity,
     get_pugh_diffusivity)
 
+# TODO: dnab vs. poresolidb
+
 def friction(setup, visualize=False):
     v0 = .001
     geo, phys = setup.geo, setup.phys
@@ -30,9 +32,10 @@ def friction(setup, visualize=False):
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U0, "poresolidb"),
            geo.BC(W.sub(0), U1, "moleculeb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
-    if setup.physp.bulkbc:
+    if setup.phys.bulkbc:
         bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
@@ -84,8 +87,9 @@ def friction_tensor(setup):
     bcs = [geo.BC(W.sub(0), U0, "dnab"),
            geo.BC(W.sub(0), U0, "memb"),
            geo.BC(W.sub(0), U0, "sideb"),
+           geo.BC(W.sub(0), U0, "poresolidb"),
            geo.BC(W.sub(1), dolfin.Constant(0.0), "upperb")]
-    if setup.physp.bulkbc:
+    if setup.phys.bulkbc:
         bcs.append(geo.BC(W.sub(0), U0, "bulk"))
 
     gamma = np.zeros((dim, dim))
@@ -120,9 +124,12 @@ def diffusivity_tensor(setup):
     return D/D0
 
 if __name__ == "__main__":
+    from nanopores.models.nanopore import Setup
     #from nanopores.models.pughpore import Setup
-    from nanopores.models.Howorka import Setup
-    #setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
-    setup = Setup(dim=3, Nmax=1.7e5, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
-    diffusivity_tensor(setup)
+    #from nanopores.models.Howorka import Setup
+    setup = Setup(dim=2, Nmax=1e4, h=1., x0=[0.,0.,0.], dnaqsdamp=0.1)
+    #setup = Setup(dim=3, Nmax=1.7e5, h=1., x0=[0.,0.,4.6], dnaqsdamp=0.1)
+
+    #diffusivity_tensor(setup)
+    diffusivity(setup, True)
     dolfin.interactive()

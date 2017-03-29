@@ -20,16 +20,20 @@ achievements of this module:
 -) reading AND saving fields can be done in parallel, only update() step not
 
 TODO: if demanded, overwrite already calculated values
+      (non-trivial because it contradicts the asynchronous design)
 TODO: in remove/save_functions, also remove obsolete dolfin and .txt files
-TODO: fields.list_all (with indices)
-TODO: fields.list[i]
 """
 import os, json
-from nanopores.dirnames import DATADIR, INSTALLDIR, HOME
+import numpy as np
+from nanopores.dirnames import DATADIR, HOME
 DIR = os.path.join(DATADIR, "fields")
-#DIR = os.path.join(os.path.dirname(INSTALLDIR), "data", "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
+ARRAY_DIR = "arrays"
+ARRAY_PREFIX = "array"
+
+def array_dir():
+    return os.path.join(DIR, ARRAY_DIR)
 
 def set_dir(NEWDIR):
     global DIR
@@ -37,39 +41,90 @@ def set_dir(NEWDIR):
     # assert directory and header exists
     if not os.path.exists(DIR):
         os.makedirs(DIR)
+    if not os.path.exists(array_dir()):
+        os.makedirs(array_dir())
     if not HEADER in os.listdir(DIR):
         _save(dict(_flist=[]), HEADER)
+
+def set_dir_default():
+    set_dir(DATADIR)
+
+# for cloud storage (with a fixed known path)
+DROPBOX = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+def set_dir_dropbox():
+    set_dir(DROPBOX)
 
 # user interface that wraps Header object
 def update():
     Header().update()
 
-def load_file(name, **params):
-    return Header().load_file(name, params)
+def load_file(name, index=None, **params):
+    return Header().load_file(name, params, index)
 
-def get_fields(name, **params):
-    return Header().get_fields(name, **params)
+def get_fields(name, index=None, **params):
+    return Header().get_fields(name, index, **params)
 
 def _sorted(data, key):
     I = sorted(range(len(key)), key=lambda k: key[k])
     return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
 
+def _subset(data, key, condition=None):
+    if condition is None:
+        condition = lambda x: x
+    I = [i for i in range(len(key)) if condition(key[i])]
+    return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
+
 def get_field(name, field, **params):
     return Header().get_field(name, field, **params)
 
-def save_fields(name, params, **fields):
+def save_fields(name, params=None, **fields):
     # fields has to be a dictionary of lists, x a list
-    data = dict(name = name, params = params, fields = fields)
+    if params is None:
+        params = {}
+    data = dict(name=name, params=params, fields=fields)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
-def save_entries(name, params, **entries):
-    data = dict(name = name, params = params, **entries)
+def save_entries(name, params=None, **entries):
+    if params is None:
+        params = {}
+    data = dict(name=name, params=params, **entries)
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
+
+def get(name, *args, **params):
+    data = load_file(name, **params)
+    if not args:
+        return data
+    values = []
+    for entry in args:
+        if entry in data:
+            values.append(data[entry])
+        elif "fields" in data and entry in data["fields"]:
+            values.append(data["fields"][entry])
+        else:
+            KeyError("No entry of this name.")
+    if len(values) == 1:
+        return values[0]
+    return tuple(values)
 
 def remove(name, index=None, **params):
     Header().remove(name, params, index)
+
+def rename(name, index, newname):
+    # do NOT create new file, because this would break function data
+    h = Header()
+    FILE, params = h.get_file_params(name, {}, index)
+
+    # modify file
+    f = _load(FILE)
+    f["name"] = newname
+    _save(f, FILE)
+
+    # modify header
+    h._delete_entry(name, params)
+    h._add_entry(newname, params)
+    h._write()
 
 def purge(name, **params):
     while exists(name, **params):
@@ -91,6 +146,10 @@ def set_param(name, index, pname, pvalue):
     f = _load(FILE)
     f["params"][pname] = pvalue
     _save(f, FILE)
+
+def set_params(name, index, **params):
+    for k in params:
+        set_param(name, index, k, params[k])
 
 def exists(name, **params):
     try:
@@ -136,21 +195,21 @@ class Header(object):
                 raise KeyError("Header: No matching parameter set.")
         return FILE, params0
 
-    def get_file(self, name, params):
+    def get_file(self, name, params, index=None):
         "take first file compatible with params"
-        FILE, _ = self.get_file_params(name, params)
+        FILE, _ = self.get_file_params(name, params, index)
         return FILE
 
-    def load_file(self, name, params):
-        FILE = self.get_file(name, params)
+    def load_file(self, name, params, index=None):
+        FILE = self.get_file(name, params, index)
         return _load(FILE)
 
-    def get_fields(self, name, **params):
-        fdict = self.load_file(name, params)
+    def get_fields(self, name, index=None, **params):
+        fdict = self.load_file(name, params, index)
         return fdict["fields"]
 
-    def get_field(self, name, field, **params):
-        fdict = self.load_file(name, params)
+    def get_field(self, name, field, index=None, **params):
+        fdict = self.load_file(name, params, index)
         return fdict["fields"][field]
 
     # TODO: this would be slightly more elegant and much more
@@ -202,10 +261,9 @@ class Header(object):
 
     def remove(self, name, params, index=None):
         FILE, params = self.get_file_params(name, params, index)
+        _delete_arrays(FILE)
         self._delete_file(FILE)
-        self.header[name].remove(params)
-        if len(self.header[name]) == 0:
-            self.header.pop(name)
+        self._delete_entry(name, params)
         self._write()
 
     def _update_list(self):
@@ -222,6 +280,11 @@ class Header(object):
         path = os.path.join(DIR, FILE)
         print "Removing %s" %path
         os.remove(path)
+
+    def _delete_entry(self, name, params):
+        self.header[name].remove(params)
+        if len(self.header[name]) == 0:
+            self.header.pop(name)
 
     def _add_entry(self, name, params):
         if not name in self.header:
@@ -268,18 +331,100 @@ def _unique_id():
     from time import time
     return str(np.int64(time()*1e6))
 
+def _find_arrays(FILE):
+    path = os.path.join(DIR, FILE)
+    with open(path, "r") as f:
+        string = f.read()
+    ex = ARRAY_PREFIX
+    return [ex + a[:16] for i, a in enumerate(string.split(ex)) if i>0]
+
+def _delete_arrays(FILE):
+    for a in _find_arrays(FILE):
+        fname = array_dir() + "/" + a + ".npy"
+        print "Removing %s." % fname
+        os.remove(fname)
+
+# json extension to save large arrays efficiently
+# attention: large arrays are NOT immediately decoded, but returned as NpyFiles
+
+class NpyFile(object):
+
+    def __init__(self, name, array=None):
+        if array is not None:
+            np.save(name, array)
+        self.name = name
+        self.array = None
+        #self.shape = array.shape
+
+    def load(self):
+        if self.array is None:
+            self.array = np.load(array_dir() + "/" + self.name + ".npy")
+        return self.array
+
+    def __repr__(self):
+        return "<Stored %s, load with .load()>" % (self.name)
+
+    def __iter__(self):
+        return iter(self.load())
+
+    def __getitem__(self, key):
+        return self.load()[key]
+
+    def __getattr__(self, attr):
+        return getattr(self.load(), attr)
+
+MAX_BYTES = 50
+
+class ArrayEncoder(json.JSONEncoder):
+    def default(self, obj):
+
+        if isinstance(obj, np.ndarray):
+            if obj.nbytes > MAX_BYTES:
+                name = ARRAY_PREFIX + _unique_id()
+                np.save(array_dir() + "/" + name, obj)
+                return dict(_type="bigarray", name=name)
+            else:
+                return dict(_type="smallarray", a=obj.tolist())
+
+        if isinstance(obj, NpyFile):
+            return dict(_type="bigarray", name=obj.name)
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+class ArrayDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        if "_type" not in obj:
+            return obj
+
+        typ = obj["_type"]
+        if typ == "bigarray":
+            #return np.load(str(DIR + "/" + obj["name"]) + ".npy")
+            return NpyFile(str(obj["name"]))
+        elif typ == "smallarray":
+            return np.asarray(obj["a"])
+
+        return obj
+
 # basic file IO with json
 # saving twice in the same file means overwriting
 def _save_global(data, FILE):
-    with open(FILE, "w") as f:
-        json.dump(data, f)
+    try:
+        with open(FILE, "w") as f:
+            json.dump(data, f, cls=ArrayEncoder)
+    except TypeError as error: # object not json serializable
+        os.remove(FILE)
+        raise error
 
 def _save(data, FILE):
     _save_global(data, os.path.join(DIR, FILE))
 
 def _load_global(FILE):
     with open(FILE, "r") as f:
-        data = json.load(f)
+        data = json.load(f, cls=ArrayDecoder)
     return data
 
 def _load(FILE):
@@ -289,6 +434,8 @@ def _load(FILE):
 # assert directory and header exists
 if not os.path.exists(DIR):
     os.makedirs(DIR)
+if not os.path.exists(array_dir()):
+    os.makedirs(array_dir())
 if not HEADER in os.listdir(DIR):
     _save(dict(_flist=[]), HEADER)
 
@@ -430,10 +577,12 @@ def remove_functions(name, **params):
         os.remove(path)
 
 # print information
-def show():
+def show(string=None):
     h = Header().header
     h.pop("_flist")
     for key in h:
+        if string is not None and key != string:
+            continue
         print "\n%s" %key
         lst = h[key]
         for i, dic in enumerate(lst):
@@ -441,10 +590,12 @@ def show():
             print "%d)" %(i+1,),
             print ", ".join(["%s=%s" %x for x in dic.items()])
 
-def showfields():
+def showfields(string=None):
     h = Header().header
     h.pop("_flist")
     for key in h:
+        if string is not None and key != string:
+            continue
         print "\n%s" %key
         lst = h[key]
         for i, dic in enumerate(lst):
@@ -455,3 +606,9 @@ def showfields():
             n = len(content["fields"].values()[0])
             print "-) %d field values, params:" %(n,),
             print ", ".join(["%s=%s" %x for x in dic.items()])
+
+def shownames():
+    h = Header().header
+    h.pop("_flist")
+    for key in h:
+        print key

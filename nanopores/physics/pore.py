@@ -22,6 +22,9 @@ permPore = lambda eperm, rPermPore: eperm*rpermPore
 permProtein = lambda eperm, rpermProtein: eperm*rpermProtein
 DPore = lambda D, rDPore: D*rDPore
 
+# default bc for diffusivity
+bulkbc = True
+
 # piece-wise boundary conditions
 v0 = dict(
     upperb = 0.,
@@ -39,6 +42,7 @@ permittivity.update(
     nearpore = eperm*rpermw,
     pore = "permPore",
     protein = "permProtein", # for protein pores
+    alphahem = "permProtein",
     membrane = eperm*rpermLipid,
 )
 
@@ -48,6 +52,7 @@ surfcharge = dict( # surface charge densities for Neumann RHS
     chargedsinb = "SiNqs",
     chargedsamb = "SAMqs",
     ahemb = "ahemqs",
+    alphahemb = "ahemqs",
 )
 
 Dpdict = dict(
@@ -85,7 +90,7 @@ def CurrentPNPS(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
         J = dolfin.assemble(J)
         return dict(J=J)
     return _current
-    
+
 def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
     def _current(U):
         v, cp, cm, u, p = U
@@ -112,3 +117,25 @@ def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
         Jdict["J"] = Jdict["Jm"] + Jdict["Jp"]
         return Jdict
     return _current
+
+# surface charges of alphahemolysin
+ahemqstotal = [-3.815, 3.1, 16.6, -8.885][::-1]
+ahemuniformqs = False
+ahemqs0 = lambda ahemqsmulti: ahemqsmulti[0]
+ahemqs1 = lambda ahemqsmulti: ahemqsmulti[1]
+ahemqs2 = lambda ahemqsmulti: ahemqsmulti[2]
+ahemqs3 = lambda ahemqsmulti: ahemqsmulti[3]
+surfcharge.update({"alphahemb%d" % i: "ahemqs%d" % i for i in range(4)})
+
+def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs):
+    if not "alphahemb0" in geo._physical_boundary:
+        return [0.]*4
+    def area(i):
+        return dolfin.assemble(r2pi*invscale(2)*geo.dS("alphahemb%d" % i))
+    if not ahemuniformqs:
+        qs = [ahemqstotal[i]*qq/area(i) for i in range(4)]
+    else:
+        qs0 = qq*sum(ahemqstotal)/sum(area(i) for i in range(4))
+        qs = [qs0]*4
+    print "Calculated alphahem surface charges:", qs
+    return qs

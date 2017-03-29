@@ -1,7 +1,7 @@
 "solve eikonal equation to get distance to boundary"
 from dolfin import *
 
-def distance_boundary_from_geo(geo):
+def distance_boundary_from_geo(geo, boundary="dnab"):
     mesh = geo.mesh
     V = FunctionSpace(mesh, "CG", 1)
     v = TestFunction(V)
@@ -9,7 +9,7 @@ def distance_boundary_from_geo(geo):
     f = Constant(1.0)
     y = Function(V)
 
-    bc = geo.BC(V, Constant(0.), "dnab").bcs# + \
+    bc = geo.BC(V, Constant(0.), boundary).bcs# + \
          #geo.BC(V, Constant(0.), "memb").bcs
 
     # Initialization problem to get good initial guess for nonlinear problem:
