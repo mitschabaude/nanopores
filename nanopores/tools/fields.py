@@ -92,17 +92,21 @@ def save_entries(name, params=None, **entries):
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
-def get(name, entry=None, **params):
+def get(name, *args, **params):
     data = load_file(name, **params)
-    if entry is None:
+    if not args:
         return data
-    else:
+    values = []
+    for entry in args:
         if entry in data:
-            return data[entry]
+            values.append(data[entry])
         elif "fields" in data and entry in data["fields"]:
-            return data["fields"][entry]
+            values.append(data["fields"][entry])
         else:
             KeyError("No entry of this name.")
+    if len(values) == 1:
+        return values[0]
+    return tuple(values)
 
 def remove(name, index=None, **params):
     Header().remove(name, params, index)
@@ -349,13 +353,25 @@ class NpyFile(object):
         if array is not None:
             np.save(name, array)
         self.name = name
+        self.array = None
         #self.shape = array.shape
 
     def load(self):
-        return np.load(array_dir() + "/" + self.name + ".npy")
+        if self.array is None:
+            self.array = np.load(array_dir() + "/" + self.name + ".npy")
+        return self.array
 
     def __repr__(self):
         return "<Stored %s, load with .load()>" % (self.name)
+
+    def __iter__(self):
+        return iter(self.load())
+
+    def __getitem__(self, key):
+        return self.load()[key]
+
+    def __getattr__(self, attr):
+        return getattr(self.load(), attr)
 
 MAX_BYTES = 50
 
