@@ -60,6 +60,12 @@ def _sorted(data, key):
     I = sorted(range(len(key)), key=lambda k: key[k])
     return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
 
+def _subset(data, key, condition=None):
+    if condition is None:
+        condition = lambda x: x
+    I = [i for i in range(len(key)) if condition(key[i])]
+    return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
+
 def get_field(name, field, **params):
     return Header().get_field(name, field, **params)
 
