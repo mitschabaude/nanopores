@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from matplotlib import gridspec
 import math
 import matplotlib
@@ -31,8 +32,8 @@ def save_fig_type(params,fieldsname):
     lendata=len(t)
     fac=1.
     if max(t)<1e-2:
-        fac=1e6
-        t = [x*1e6 for x in t]
+        fac=1e3
+        t = [x*1e3 for x in t]
 
 
     color2='green'
@@ -47,14 +48,14 @@ def save_fig_type(params,fieldsname):
 
     plt1=plt.subplot(gs[1,0])
     for k in range(lendata):
-        if t[k]<1.*fac:
+        if t[k]<1.*fac and ood[k]==0:
             type1 = plt1.scatter([t[k]],[a[k]],color=color1,s=8)
-        elif t[k]>=1.*fac:
+        elif t[k]>=1.*fac and ood[k]==0:
             type2 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
         if ood[k]==1:
-            type0 = plt1.scatter([t[k]],[a[k]],marker='o',s=50,facecolors='none',edgecolors=color3)
+            type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
     try: plt.legend([type1,type2,type0],[r'$\tau_{off}$ shorter than 1ms',r'$\tau_{off}$ longer than 1ms','did not translocate'],scatterpoints=4,loc=(.4,1.02))
-    except: plt.legend([type1,type0],[r'$\tau_{off}$ shorter than 1ms','did not translocate'],scatterpoints=4,loc=(.4,1.02))
+    except: plt.legend([type1,type0],['successfull','did not translocate'],scatterpoints=4,loc=(.4,1.02))
     xfmt=FormatStrFormatter('%g')
     plt1.set_xlim([.2*min(t),max(t)*5.])
     plt1.set_ylim([-2.,25.0])
@@ -69,13 +70,15 @@ def save_fig_type(params,fieldsname):
         plt1.text(.001,-0.03,'I',fontsize=15)
         plt1.text(5.,-0.03,'II',fontsize=15)
     else:
-        plt1.set_xlabel(r'$\tau_{off}$ [ns]',fontsize=15,x=.76)
+        plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15,x=.76)
     plt2=plt.subplot(gs[1,1])
     for k in range(lendata):
-        if t[k]<1.*fac:
+        if t[k]<1.*fac and ood[k]==0:
             plt2.scatter([t[k]],[a[k]],color=color1,s=8)
-        elif t[k]>=1.*fac:
+        elif t[k]>=1.*fac and ood[k]==0:
             plt2.scatter([t[k]],[a[k]],color=color2,s=8)
+        if ood[k]==1:
+            plt2.scatter([t[k]],[a[k]],color=color3,s=8)
     plt2.invert_yaxis()
     plt2.set_ylim([25.0,-2.])
     plt2.set_xlim([-2e-2*max(t),max(t)*(1.+2e-2)])
