@@ -21,7 +21,6 @@ achievements of this module:
 
 TODO: if demanded, overwrite already calculated values
       (non-trivial because it contradicts the asynchronous design)
-TODO: in remove/save_functions, also remove obsolete dolfin and .txt files
 """
 import os, json
 import numpy as np
@@ -30,7 +29,7 @@ DIR = os.path.join(DATADIR, "fields")
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
 ARRAY_DIR = "arrays"
-ARRAY_PREFIX = "array"
+ARRAY_PREFIX = "_npa"
 
 def array_dir():
     return os.path.join(DIR, ARRAY_DIR)
@@ -85,7 +84,7 @@ def save_fields(name, params=None, **fields):
     FILE = name + _unique_id() + SUFFIX
     _save(data, FILE)
 
-def save_entries(name, params=None, **entries):
+def save(name, params=None, **entries):
     if params is None:
         params = {}
     data = dict(name=name, params=params, **entries)
@@ -351,7 +350,7 @@ class NpyFile(object):
 
     def __init__(self, name, array=None):
         if array is not None:
-            np.save(name, array)
+            np.save(array_dir() + "/" + name, array)
         self.name = name
         self.array = None
         #self.shape = array.shape
