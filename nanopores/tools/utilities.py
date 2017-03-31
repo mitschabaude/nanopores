@@ -267,7 +267,7 @@ def assertdir(DIR):
     if not os.path.exists(DIR):
         os.makedirs(DIR)
 
-def savefigs(name="fig", DIR="/tmp/", size=None):
+def savefigs(name="fig", DIR="/tmp/", size=None, pdf=False):
     if not DIR.endswith("/"): DIR = DIR + "/"
     assertdir(DIR)
     if len(plt.get_fignums()) == 1:
@@ -282,7 +282,9 @@ def savefigs(name="fig", DIR="/tmp/", size=None):
         label = str(num) if label=="" else label
         if size is not None:
             fig.set_size_inches(size)
-        fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches="tight")
+        if not pdf: suffix='.eps'
+        else: suffix='.pdf'
+        fig.savefig(DIR + name + "_" + label + suffix, bbox_inches="tight")
 
 def saveplots(name="plot", meta=None, uid=False):
     # collect data from every open figure
