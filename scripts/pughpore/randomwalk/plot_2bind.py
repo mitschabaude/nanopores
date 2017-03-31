@@ -52,6 +52,10 @@ outside=True
 for i in range(samples):
 	run(params,fieldsname,outcome,outside,b1,b2)
 	print '%i out of '%i+num 
+try: fields.get_fields(fieldsname,**params)["b1"]
+except: fields.save_fields(fieldsname,params,b1=b1)
+try: fields.get_fields(fieldsname,**params)["b2"]
+except: fields.save_fields(fieldsname,params,b2=b2)
 
 print 'field updates'
 if outcome=='type' or outcome=='both':

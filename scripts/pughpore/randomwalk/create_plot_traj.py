@@ -43,12 +43,12 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         Z = data["Z"][i]
         T = data["T"][i]
         J = data["J"][i]
+        J=J.load()
+        T=T.load()
         curr = 7.523849e-10
         bind1 = np.where(T>1e6)
         bind2 = np.intersect1d(np.where(T<=1e6),np.where(T>100.))
         amplitude = curr-np.inner(J,T)/np.sum(T)
-        J=J.load()
-        T=T.load()
         for k in range(1,T.shape[0]):
             T[k]=T[k]+T[k-1]
         tau_off=T[-1]

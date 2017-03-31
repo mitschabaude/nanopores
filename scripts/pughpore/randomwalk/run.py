@@ -199,7 +199,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
         i+=1
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
-    fields.save_fields(fieldsname,params,b2=b2,b1=b1,Dzavg=[np.mean(Dz_)],Fzavg=[np.mean(Fz_)])
+    fields.save_fields(fieldsname,params,Dzavg=[np.mean(Dz_)],Fzavg=[np.mean(Fz_)])
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10
