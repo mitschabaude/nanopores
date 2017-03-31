@@ -2,7 +2,7 @@
 from matplotlib import gridspec
 import math
 import matplotlib
-import matplotlib.patches as patches
+matplotlib.use("Agg")
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 import matplotlib.pyplot as plt
@@ -73,11 +73,11 @@ def save_fig_type(params,fieldsname):
         if P_bind1!=0.:
             plt1.text(avgbind1*.5,27.,'Long binding',fontsize=9,horizontalalignment='center')
             k=1.0
-            plt1.add_patch(patches.Rectangle((avgbind1*10**(-k*2),0.),avgbind1*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.7),alpha=.15))
-        if True:#P_bind2!=0.:
+            plt1.add_patch(matplotlib.patches.Rectangle((avgbind1*10**(-k*2),0.),avgbind1*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.7),alpha=.15))
+        if P_bind2!=0.:
             plt1.text(avgbind2*.5,27.,'Short binding',fontsize=9,horizontalalignment='center')
             k=1.0
-            plt1.add_patch(patches.Rectangle((avgbind2*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
+            plt1.add_patch(matplotlib.patches.Rectangle((avgbind2*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
         plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
     else:
         plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15,x=.76)
@@ -111,6 +111,6 @@ def save_fig_type(params,fieldsname):
 
 
     plt.tight_layout()
-    nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
+    nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/',pdf=True)
     print 'savefig:'
     print figname

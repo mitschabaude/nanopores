@@ -274,7 +274,9 @@ def savefigs(name="fig", DIR="/tmp/", size=None, pdf=False):
         fig = plt.figure(plt.get_fignums()[0])
         if size is not None:
             fig.set_size_inches(size)
-        fig.savefig(DIR + name + ".eps", bbox_inches="tight")
+        if not pdf: suffix='.eps'
+        else: suffix='.pdf'
+        fig.savefig(DIR + name + suffix, bbox_inches="tight")
         return
     for num in plt.get_fignums():
         fig = plt.figure(num)
