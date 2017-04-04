@@ -44,9 +44,9 @@ rMolecule = geop.rMolecule
 #params=dict(avgbind1=7e5,avgbind2=1e3,P_bind1=1.e-2,P_bind2=1e-1,z0=hpore/2.+5.)
 #params=dict(avgbind1=1e7,avgbind2=3e4,P_bind1=5.e-3,P_bind2=8e-2,z0=hpore/2.+0.)
 #params=dict(avgbind1=1e7,avgbind2=1e5,P_bind1=2.e-2,P_bind2=8e-2,z0=hpore/2.+0.) # good if only real translocations count - no type 0 "ood"
-params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=3e-1,z0=hpore/2.+0.)
+params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0*8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 b1 = []
-b2 = []
+b2 = [[[l3/2.,11.],[l3/2.,-3.]]]
 outside=True
 
 for i in range(samples):

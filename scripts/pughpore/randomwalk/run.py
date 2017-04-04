@@ -114,17 +114,16 @@ def run(params,fieldsname,outcome,outside,b1,b2):
     T = np.array([])
     Dz_ = np.array([])
     Fz_ = np.array([])
-    bind1 = 0
     avgbind1=params["avgbind1"]
     P_bind1=params["P_bind1"]
     avgbind2=params["avgbind2"]
     P_bind2=params["P_bind2"]
+    Nc = 0
     ffa = True
     i=0
     ood = False
     while i<maxiter and Z[-1]>=-hpore/2.-2.:
         if ood:
-	    bind1 = 0
             i=0
             ood = False
             ffa = True
@@ -154,9 +153,9 @@ def run(params,fieldsname,outcome,outside,b1,b2):
             x_new = X[-1]
             y_new = Y[-1]
             z_new = Z[-1]
+            if ffa and area2(0.,0.,Z[-1]): Nc+=1
             if ffa and np.random.binomial(1,P_bind1)==1 and area2(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind1)
-                bind1+=1
             elif ffa and np.random.binomial(1,P_bind2)==1 and area1(0.,0.,Z[-1]):
                 add+=expovariate(lambd=1./avgbind2)
             else:
@@ -199,7 +198,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
         i+=1
     if i>=maxiter:
         print 'randomwalk: more than 1e6 steps!'
-    fields.save_fields(fieldsname,params,Dzavg=[np.mean(Dz_)],Fzavg=[np.mean(Fz_)])
+    fields.save_fields(fieldsname,params,Dzavg=[np.mean(Dz_)],Fzavg=[np.mean(Fz_)],Nc=[Nc])
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6
         curr = 7.523849e-10
