@@ -15,7 +15,7 @@ rD = 0.2
 #D = rD* kT/(6.*pi*eta*r) # diffusion constant (Stokes)
 
 # load translocation events without binding
-name = "events3_nobind"
+name = "events3_nobind_new"
 fields.set_dir_dropbox()
 data = fields.get_fields(name)
 
@@ -44,7 +44,7 @@ def maximum_likelihood(times, n=10):
     times = 1e-3 * array(times)
 
     T = mean(times)
-    Tinv = mean([1/t for t in times])
+    Tinv = mean([1./t for t in times])
 
     def amean(v):
         return mean([1./(1. + L/(v*t)) for t in times])
@@ -52,12 +52,17 @@ def maximum_likelihood(times, n=10):
     def fix(v):
         a = amean(v)
         factor = (sqrt((a-.5)**2  + T*Tinv*a*(1-a)) - (a-.5))/(1-a)
+        print a
+        #print factor
         return L/T * factor
 
-    v = .5
+    v = L*sqrt(Tinv/T) # this initial guess is accurate to 1e-7!!
     for i in range(n):
+        v0 = v
+        #print "i = %d: v = %s" % (i, v)
         v = fix(v)
-        print "i = %d: v = %s" % (i, v)
+        print "i = %d: dv = %s" % (i, abs(v-v0))
+
 
     D = v**2/2.*T - v*L + L**2/2.*Tinv
     return v, D
