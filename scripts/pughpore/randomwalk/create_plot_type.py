@@ -61,7 +61,7 @@ def save_fig_type(params,fieldsname):
             type1 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
         else:
             type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
-    plt.legend([type1,type0],['successfull translocation','did not translocate'],scatterpoints=4,loc=(.4,1.02))
+    plt.legend([type1,type0],['successful translocation','did not translocate'],scatterpoints=4,loc=(.4,1.02))
     xfmt=FormatStrFormatter('%g')
     plt1.set_xlim([.2*min(t),max(t)*5.])
     plt1.set_ylim([minperc,maxperc])

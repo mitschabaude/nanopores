@@ -123,6 +123,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
                 ood = True
                 if not outside:
                     should_restart = True
+                    print 'restart!'
                 break
             Jx=Current(X[-1],Y[-1],Z[-1])
             if math.isnan(Jx):

@@ -47,7 +47,7 @@ rMolecule = geop.rMolecule
 params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0*8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 b1 = []
 b2 = [[[l3/2.,11.],[l3/2.,-3.]]]
-outside=True
+outside=False
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside,b1,b2)

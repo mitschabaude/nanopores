@@ -13,3 +13,5 @@ params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0.,P_bind2=0.,z0=23.)
 data=f.get_fields(fieldsname,**params)
 Nc=np.array(data["Nc"])
 print Nc
+print 'len = '+str(Nc.shape[0])
+print np.mean(Nc)
