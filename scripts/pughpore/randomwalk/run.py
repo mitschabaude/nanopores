@@ -81,7 +81,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
         ffa = True
         i=0
         ood = False
-        while i<maxiter and Z[-1]>=-hpore/2.-2.:
+        while i<maxiter and Z[-1]>=-hpore/2.-4.:
             add=tau
             xi_x=gauss(0.,1.)
             xi_y=gauss(0.,1.)

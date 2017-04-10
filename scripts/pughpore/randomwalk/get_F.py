@@ -95,7 +95,14 @@ def Force(x,y,z):
     else: return ret
 J = LinearNDInterpolator(xf,Ja)
 def Current(x,y,z):
-    return -J.__call__(np.array([x,y,z]))[0]
+    if z>21. or z<-23-1.6*2.0779:
+        return 7.523849e-10
+    elif z<-23.:
+        k = (6.186351-7.523849)*1e-10/(1.6*2.0779)
+        d = 6.186351*1e-10-k*(-23.)
+        return k*z+d
+    else:
+        return -J.__call__(np.array([x,y,z]))[0]
 
 
 #fig = plt.figure()
