@@ -121,7 +121,7 @@ def run(params,fieldsname,outcome,outside,b1,b2):
             if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
                 print 'Out of domain!'
                 ood = True
-                if not outside:
+                if not outside or np.unique(J1).shape[0]==1:
                     should_restart = True
                     print 'restart!'
                 break

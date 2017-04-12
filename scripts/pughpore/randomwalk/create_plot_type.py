@@ -29,6 +29,7 @@ def save_fig_type(params,fieldsname):
     data=f.get_fields(fieldsname,**params)
     figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     t = data["t"]
+    tdata=np.array(t)
     a = data["a"]
     ood = data["ood"]
     lendata=len(t)
@@ -69,6 +70,7 @@ def save_fig_type(params,fieldsname):
     plt1.xaxis.set_major_formatter(xfmt)
     plt1.invert_yaxis()
     plt1.set_ylabel(r'A/I$_0$ [%]',fontsize=15)
+    plt1.text(.2,23.,str(float(np.where(tdata>0.2)[0].shape[0])/float(tdata.shape[0]))+'='+str(np.where(tdata>0.2)[0].shape[0])+'/'+str(tdata.shape[0]),fontsize=9)
     if fac==1.:
         if P_bind1!=0.:
             plt1.text(avgbind1*.5,27.,'Long binding',fontsize=9,horizontalalignment='center')
