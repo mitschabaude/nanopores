@@ -66,5 +66,5 @@ plt2.set_ylabel('mean binding attempts')
 
 
 plt.tight_layout()
-plt.savefig('attempts.pdf')
-
+#plt.savefig('attempts.pdf')
+plt.show()
