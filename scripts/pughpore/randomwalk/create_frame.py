@@ -1,5 +1,6 @@
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib
+from matplotlib.lines import Line2D
 import nanopores as nano
 import nanopores.geometries.pughpore as pughpore
 from nanopores.models.pughpore import polygon
@@ -32,7 +33,7 @@ fieldsname='eventsnew_onlyone_4_'
 params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
 i=311
 fs=30
-label_size = 30
+label_size = 20
 matplotlib.rcParams['xtick.labelsize'] = label_size
 matplotlib.rcParams['ytick.labelsize'] = label_size
 data=f.get_fields(fieldsname,**params)
@@ -59,7 +60,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
     figname = 'frames/'+'%08d'%r
     suffix='.png'
     figname+=suffix
-    fig=plt.figure(figsize=(32,18),dpi=80)
+    fig=plt.figure(figsize=(32,18),dpi=120)
     color2='#ff0000'
     color1='#ff9900'
     color3='#00ff00'
@@ -69,35 +70,37 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        plt.plot(x,y,color=color1,linewidth=2.)
-        plt.plot(xm,y,color=color1,linewidth=2.)
+        plt.plot(x,y,color=color1,linewidth=3.)
+        plt.plot(xm,y,color=color1,linewidth=3.)
     #b2 = [[[l3/2.-.5,-3.],[l3/2.-.5,11.]]]
     for seq in b2:
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        plt.plot(x,y,color=color2,linewidth=2.)
-        plt.plot(xm,y,color=color2,linewidth=2.)
-    plt.plot(X[:r],Z[:r],linewidth=1.,c='#0000ff')
-    molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color='#33ff99')
+        plt.plot(x,y,color=color2,linewidth=3.)
+        plt.plot(xm,y,color=color2,linewidth=3.)
+    plt.plot(X[:r],Z[:r],linewidth=2.,c='#0000ff')
+    molecolor='#33ff99'
+    molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color=molecolor)
+    mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
     longer = plt.scatter(X[bind1],Z[bind1],s=200,marker='h',c=color2,linewidth=0.)
     shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c=color1,linewidth=0.)
     start = plt.scatter([X[0]],[Z[0]],s=400,marker='x',c=color3,linewidth=2.)
-    patches=[start]
-    labels=['Start']
-    plt.legend(patches,labels,scatterpoints=1,loc=(.42,.15),fontsize=fs)
+    patches=[start,mole2]
+    labels=['Start','Molecule']
+    plt.legend(patches,labels,scatterpoints=1,loc=(.47,.15),fontsize=fs,numpoints=1)
     ax=plt.gca()
     ax.add_artist(molecule)
     ax.set_aspect('equal')
-    ax.set_xlim([20.,-55.])
+    ax.set_xlim([47.,-82.])
     ax.set_ylim([-25.,40.])
     ax.set_xticks([])
     ax.set_yticks([])
     plt.axis('off')
-    plot_polygon(ax,polygon(rmem=60.))
+    plot_polygon(ax,polygon(rmem=100.))
 
 
-    plt.axes([.55,.5,.2,.3])
+    plt.axes([.55,.5,.3,.4])
     plt.title('Current signal',fontsize=fs)
     ax=plt.gca()
     if tau_off<1e3:
@@ -113,7 +116,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         fac = 1e-6
         ax.set_xlabel('time [$ms$]',fontsize=fs)
     T=T*fac
-    plt.plot(T[:r],J[:r],color='#000000')
+    plt.plot(T[:r],J[:r],color='#000000',linewidth=2.)
     yt = np.linspace(580.,760,4)
     ax.set_ylabel(r'A [$pA$]',fontsize=fs)
     ax.set_yticks(yt)
@@ -124,7 +127,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
 
 
     plt.tight_layout()
-    #plt.show()
+#    plt.show()
     plt.savefig(figname)
     print 'save: '+figname+' from %08d'%len
     plt.close('all')
