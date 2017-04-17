@@ -35,26 +35,27 @@ fs=30
 label_size = 30
 matplotlib.rcParams['xtick.labelsize'] = label_size
 matplotlib.rcParams['ytick.labelsize'] = label_size
+data=f.get_fields(fieldsname,**params)
+b1 =data["b1"]
+b2 =data["b2"]
+X = data["X"][i]
+Y = data["Y"][i]
+Z = data["Z"][i]
+T = data["T"][i]
+J = data["J"][i]
+J=J.load()
+T=T.load()
+curr = 7.523849e-10
+bind1 = np.where(T>1e6)
+bind2 = np.intersect1d(np.where(T<=1e6),np.where(T>100.))
+amplitude = curr-np.inner(J,T)/np.sum(T)
+for k in range(1,T.shape[0]):
+    T[k]=T[k]+T[k-1]
+tau_off=T[-1]
+J=J*1e12
+len=X.shape[0]
 
-def save_frame(r):
-    data=f.get_fields(fieldsname,**params)
-    b1 =data["b1"]
-    b2 =data["b2"]
-    X = data["X"][i]
-    Y = data["Y"][i]
-    Z = data["Z"][i]
-    T = data["T"][i]
-    J = data["J"][i]
-    J=J.load()
-    T=T.load()
-    curr = 7.523849e-10
-    bind1 = np.where(T>1e6)
-    bind2 = np.intersect1d(np.where(T<=1e6),np.where(T>100.))
-    amplitude = curr-np.inner(J,T)/np.sum(T)
-    for k in range(1,T.shape[0]):
-        T[k]=T[k]+T[k-1]
-    tau_off=T[-1]
-    J=J*1e12
+def save_frame(r,X=X,Z=Z,T=T,J=J):
     figname = 'frames/'+'%08d'%r
     suffix='.png'
     figname+=suffix
@@ -125,8 +126,8 @@ def save_frame(r):
     plt.tight_layout()
     #plt.show()
     plt.savefig(figname)
-    print 'save: '+figname
+    print 'save: '+figname+' from %08d'%len
     plt.close('all')
 
-for r in range(1,400):
+for r in range(1,len):
     save_frame(r)
