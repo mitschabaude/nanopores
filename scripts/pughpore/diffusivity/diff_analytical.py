@@ -72,21 +72,7 @@ def D_sphere(R, r): # Happel, Brenner 1965 (book), valid for r/R small
 r = 1.
 eps = 1e-10
 Rmax = 100.
-#x = np.linspace(1. + eps, Rmax, 600)
 x = np.logspace(eps, np.log10(Rmax), 100)
-
-N = 10
-Dn = Dn_plane(x, r, N=N)
-Dt = Dt_plane(x, r)
-
-print Dn[0], Dt[0]
-print Dn[-1], Dt[-1]
-
-#for N in 2, 10, 100:
-#    plt.plot(x, Dn_plane(x, r, N=N), label="Dn plane, N=%d" %N)
-#plt.plot(x, Dn, label="Dn plane, N=%d" %N)
-#plt.plot(x, Dt_cyl(x, r, 0.), label="Dt cyl")
-#plt.plot(x, Dt_cyl_alt(x, r, 0.), label="Dt cyl alt")
 
 def plot_dashed(x, y, thresh=2., **kwargs):
     label = kwargs.pop("label", None)
@@ -98,8 +84,9 @@ def plot_dashed(x, y, thresh=2., **kwargs):
     plt.plot(x0, y0, "-", label=label, **kwargs)
 
 blue = ["#000099", "#0000ff", "#9999ff"][::-1]
-plt.plot(x, Dt, color=blue[0], label="D one plane parallel")
-#plt.plot(x, Dn, label="D plane normal")
+plt.plot(x, Dt_plane(x, r), color=blue[0], label="D one plane parallel")
+N = 10
+#plt.plot(x, Dn_plane(x, r, N=N), label="D plane normal")
 plot_dashed(x, Dt_equal_planes(x, r), color=blue[1], label="D two planes")
 plot_dashed(x, Dt_3R_planes(x, r), color=blue[2], label="D two planes ecc=0.50")
 
