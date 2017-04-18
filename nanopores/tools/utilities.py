@@ -16,7 +16,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
            "user_params", "user_param", "dict_union", "union", "plot_sliced_mesh",
-           "smooth", "collect", "collect_dict"]
+           "smooth", "collect", "collect_dict", "assertdir"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]

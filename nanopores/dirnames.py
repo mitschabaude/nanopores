@@ -9,6 +9,7 @@ INSTALLDIR = os.path.dirname(os.path.realpath(__file__))
 HOME = os.path.expanduser("~")
 NAME = "nanopores"
 DATADIR = os.path.join(HOME,".%s" %NAME)
+DROPBOX = os.path.join(HOME, "Dropbox", "nanopores")
 
 # this should be done by every IO function separately
 #if not os.path.exists(DATADIR):
