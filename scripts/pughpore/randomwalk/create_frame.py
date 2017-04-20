@@ -77,18 +77,19 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        plt.plot(x,y,color=color2,linewidth=5.)
+        bs = plt.plot(x,y,color=color2,linewidth=5.)
         plt.plot(xm,y,color=color2,linewidth=5.)
     plt.plot(X[:r],Z[:r],linewidth=3.,c='#0000ff')
     molecolor='#33ff99'
     molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color=molecolor)
     mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
-    longer = plt.scatter(X[bind1],Z[bind1],s=200,marker='h',c=color2,linewidth=0.)
-    shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c=color1,linewidth=0.)
+#    longer = plt.scatter(X[bind1],Z[bind1],s=2000,marker='h',c=color2,linewidth=0.)
+#    shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c=color1,linewidth=0.)
     start = plt.scatter([X[0]],[Z[0]],s=400,marker='x',c=color3,linewidth=2.)
-    patches=[start,mole2]
-    labels=['Start','Molecule']
-    plt.legend(patches,labels,scatterpoints=1,loc=(.47,.15),fontsize=fs,numpoints=1)
+    patches=[start,mole2,bs]
+    labels=['Start','Molecule','Binding site']
+    lgnd = plt.legend(patches,labels,scatterpoints=1,loc=(.47,.15),fontsize=fs,numpoints=1)
+    lgnd.legendHandles[1]._sizes = [60]
     ax=plt.gca()
     ax.add_artist(molecule)
     ax.set_aspect('equal')
@@ -127,8 +128,8 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
 
 
     plt.tight_layout()
-    plt.show()
-#    plt.savefig(figname)
+#    plt.show()
+    plt.savefig(figname)
     print 'save: '+figname+' from %08d'%len
     plt.close('all')
 
