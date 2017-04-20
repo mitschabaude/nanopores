@@ -33,7 +33,7 @@ fieldsname='eventsnew_onlyone_4_'
 params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
 i=311
 fs=30
-label_size = 20
+label_size = 30
 matplotlib.rcParams['xtick.labelsize'] = label_size
 matplotlib.rcParams['ytick.labelsize'] = label_size
 data=f.get_fields(fieldsname,**params)
@@ -70,16 +70,16 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        plt.plot(x,y,color=color1,linewidth=3.)
-        plt.plot(xm,y,color=color1,linewidth=3.)
+        plt.plot(x,y,color=color1,linewidth=5.)
+        plt.plot(xm,y,color=color1,linewidth=5.)
     #b2 = [[[l3/2.-.5,-3.],[l3/2.-.5,11.]]]
     for seq in b2:
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        plt.plot(x,y,color=color2,linewidth=3.)
-        plt.plot(xm,y,color=color2,linewidth=3.)
-    plt.plot(X[:r],Z[:r],linewidth=2.,c='#0000ff')
+        plt.plot(x,y,color=color2,linewidth=5.)
+        plt.plot(xm,y,color=color2,linewidth=5.)
+    plt.plot(X[:r],Z[:r],linewidth=3.,c='#0000ff')
     molecolor='#33ff99'
     molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color=molecolor)
     mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
@@ -116,7 +116,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         fac = 1e-6
         ax.set_xlabel('time [$ms$]',fontsize=fs)
     T=T*fac
-    plt.plot(T[:r],J[:r],color='#000000',linewidth=2.)
+    plt.plot(T[:r],J[:r],color='#000000',linewidth=3.)
     yt = np.linspace(580.,760,4)
     ax.set_ylabel(r'A [$pA$]',fontsize=fs)
     ax.set_yticks(yt)
