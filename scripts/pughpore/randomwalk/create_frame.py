@@ -31,7 +31,7 @@ h1 =        up.h1
 h4 =        up.h4
 fieldsname='eventsnew_onlyone_4_'
 params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
-i=311
+i=200
 fs=30
 label_size = 30
 matplotlib.rcParams['xtick.labelsize'] = label_size
@@ -93,7 +93,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
     ax.add_artist(molecule)
     ax.set_aspect('equal')
     ax.set_xlim([47.,-82.])
-    ax.set_ylim([-25.,40.])
+    ax.set_ylim([-30.,40.])
     ax.set_xticks([])
     ax.set_yticks([])
     plt.axis('off')
@@ -127,10 +127,10 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
 
 
     plt.tight_layout()
-#    plt.show()
-    plt.savefig(figname)
+    plt.show()
+#    plt.savefig(figname)
     print 'save: '+figname+' from %08d'%len
     plt.close('all')
 
-for r in range(1,len):
+for r in [len]:
     save_frame(r)
