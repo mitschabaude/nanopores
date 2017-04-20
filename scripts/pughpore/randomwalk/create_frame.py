@@ -31,7 +31,7 @@ h1 =        up.h1
 h4 =        up.h4
 fieldsname='eventsnew_onlyone_4_'
 params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
-i=200
+i=248
 fs=30
 label_size = 30
 matplotlib.rcParams['xtick.labelsize'] = label_size
@@ -77,12 +77,12 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
         x= [p[0] for p in seq]
         xm=[-p[0] for p in seq]
         y= [p[1] for p in seq]
-        bs = plt.plot(x,y,color=color2,linewidth=5.)
+        bs, = plt.plot(x,y,color=color2,linewidth=5.)
         plt.plot(xm,y,color=color2,linewidth=5.)
     plt.plot(X[:r],Z[:r],linewidth=3.,c='#0000ff')
     molecolor='#33ff99'
     molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color=molecolor)
-    mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
+    mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=40)
 #    longer = plt.scatter(X[bind1],Z[bind1],s=2000,marker='h',c=color2,linewidth=0.)
 #    shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c=color1,linewidth=0.)
     start = plt.scatter([X[0]],[Z[0]],s=400,marker='x',c=color3,linewidth=2.)
