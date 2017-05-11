@@ -133,5 +133,5 @@ def save_frame(r,X=X,Z=Z,T=T,J=J):
     print 'save: '+figname+' from %08d'%len
     plt.close('all')
 
-for r in [len]:
+for r in range(1,len):
     save_frame(r)

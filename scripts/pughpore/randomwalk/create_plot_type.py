@@ -70,16 +70,17 @@ def save_fig_type(params,fieldsname):
     plt1.xaxis.set_major_formatter(xfmt)
     plt1.invert_yaxis()
     plt1.set_ylabel(r'A/I$_0$ [%]',fontsize=15)
-    plt1.text(.2,23.,str(float(np.where(tdata>0.2)[0].shape[0])/float(tdata.shape[0]))+'='+str(np.where(tdata>0.2)[0].shape[0])+'/'+str(tdata.shape[0]),fontsize=9)
+#    plt1.text(.2,23.,str(float(np.where(tdata>0.2)[0].shape[0])/float(tdata.shape[0]))+'='+str(np.where(tdata>0.2)[0].shape[0])+'/'+str(tdata.shape[0]),fontsize=9)
     if fac==1.:
         if P_bind1!=0.:
             plt1.text(avgbind1*.5,27.,'Long binding',fontsize=9,horizontalalignment='center')
-            k=1.0
+            k=0.5
             plt1.add_patch(matplotlib.patches.Rectangle((avgbind1*10**(-k*2),0.),avgbind1*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.7),alpha=.15))
         if P_bind2!=0.:
-            plt1.text(avgbind2*.5,27.,'Short binding',fontsize=9,horizontalalignment='center')
+            plt1.text(0.1,27.,'Short binding',fontsize=9,horizontalalignment='center')
             k=1.0
-            plt1.add_patch(matplotlib.patches.Rectangle((avgbind2*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
+#            plt1.add_patch(matplotlib.patches.Rectangle((avgbind2*100*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
+            plt1.add_patch(matplotlib.patches.Rectangle((0.01,0.),0.99,maxperc,facecolor=cmap(.4),alpha=.15))
         plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
     else:
         plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15,x=.76)
