@@ -36,7 +36,7 @@ P3=np.array([P3(x) for x in k])
 color1 = 'blue'
 color2 = 'green'
 color3 = 'red'
-alpha=.1
+alpha=.2
 
 plt.figure(figsize=(10,4),dpi=80)
 gs = gridspec.GridSpec(1,2,width_ratios=[1,1])
