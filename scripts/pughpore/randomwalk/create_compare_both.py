@@ -29,8 +29,11 @@ th = [1e0*time for time in th]
 cmap=matplotlib.cm.get_cmap('viridis')
 data=f.get_fields(fieldsname,**params)
 figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
-t = data["t"]
-a = data["a"]
+#t = data["tf3"]
+t = data["tf"]
+t = [1e-6*x for x in t]
+#a = data["af3"]
+a = data["af"]
 ood = data["ood"]
 lendata=len(t)
 fac=1.
@@ -44,7 +47,8 @@ avgbind1=params["avgbind1"]*1e-6
 avgbind2=params["avgbind2"]*1e-6
 
 
-color2='green'
+#color2='green'
+color2='#00ff00'
 color1='lightgreen'
 color3='red'
 
@@ -58,15 +62,12 @@ minperc=0.
 maxperc=40.
 #plt1=plt.subplot(gs[1,0])
 plt1=plt.subplot()
-for k in range(lendata):
-    if ood[k]==0:
-        type1 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
-    else:
-        type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
+type1 = plt1.scatter(t,a,color=color2,s=8)
 experiment = plt1.scatter(th,drop,color='#888888',s=8)
-plt.legend([experiment,type0,type1],['experimental data','did not translocate','successful translocation'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
+plt.legend([experiment,type1],['experimental data','simulations with filter'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
 xfmt=FormatStrFormatter('%g')
-plt1.set_xlim([.2*min(t),max(max(t),max(th))*2.])
+#plt1.set_xlim([.2*min(t),max(max(t),max(th))*2.])
+plt1.set_xlim([3e-5,200.])
 plt1.set_ylim([minperc,maxperc])
 plt1.set_xscale('log')
 plt1.xaxis.set_major_formatter(xfmt)
@@ -115,4 +116,4 @@ else:
 
 plt.tight_layout()
 #plt.show()
-plt.savefig('events_both_compare.pdf')
+plt.savefig('events_both_compare_filter_old.pdf')

@@ -58,7 +58,7 @@ def save_fig_filter(params,fieldsname,i):
     zero=J[0]
     J-=zero
     from scipy import signal
-    b, a = signal.bessel(2, 2873./(5e8), analog=False)
+    b, a = signal.bessel(2, 1./15.*1e-3, analog=False)
     sig_ff = signal.lfilter(b, a, J)
     amp=data["a"][i]
     ftime=np.min(np.where(sig_ff>1e-10))-1
@@ -69,9 +69,10 @@ def save_fig_filter(params,fieldsname,i):
     figname = fieldsname+'_filter_'+'%.8f'%(tau_off*1e-6)+'_%04d'%i+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     af=[ampf]
     tf=[tau_off]
-    fields.save_fields(fieldsname,params,tf=tf,af=af)
+    f.save_fields(fieldsname,params,tf3=tf,af3=af)
 
 
+    plt.figure(figsize=(6,4),dpi=80)
     plt.title('Current signal')
     ax=plt.gca()
     if tau_off<1e3:
@@ -87,8 +88,9 @@ def save_fig_filter(params,fieldsname,i):
         fac = 1e-6
         ax.set_xlabel('time [$ms$]')
     T=T*fac
-    plt.plot(T,J+zero,color='#000000')
-    plt.plot(T,sig_ff+zero,linewidth=2.,color='#ff6600')
+    plt.plot(T,J+zero,color='#000000',label='Original')
+    plt.plot(T,sig_ff+zero,linewidth=2.,color='#ff6600',label='Filtered')
+    plt.legend(loc='best')
     yt = np.linspace(580.,760,4)
     ax.set_ylabel(r'A [$pA$]')
     ax.set_yticks(yt)
