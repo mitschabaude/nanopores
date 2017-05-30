@@ -41,13 +41,14 @@ h2 =        geop.h2
 h1 =        geop.h1
 h4 =        geop.h4
 rMolecule = geop.rMolecule
-#params=dict(avgbind1=7e5,avgbind2=1e3,P_bind1=1.e-2,P_bind2=1e-1,z0=hpore/2.+5.)
-#params=dict(avgbind1=1e7,avgbind2=3e4,P_bind1=5.e-3,P_bind2=8e-2,z0=hpore/2.+0.)
-#params=dict(avgbind1=1e7,avgbind2=1e5,P_bind1=2.e-2,P_bind2=8e-2,z0=hpore/2.+0.) # good if only real translocations count - no type 0 "ood"
-params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=3e-1,z0=hpore/2.+0.)
-b1 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
-b2 = [[[2.5, 3.0], [2.5, -5.0]]]
-outside=True
+#params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=3e-1,z0=hpore/2.+0.)
+params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0*0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
+#b1 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
+#b2 = [[[2.5, 3.0], [2.5, -5.0]]]
+b1 = []
+b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
+#outside=True
+outside=False
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside,b1,b2)
@@ -72,3 +73,6 @@ if outcome=='traj' or outcome=='both':
         f.update()
     for i in range(len(fields.get_fields(fieldsname,**params)["X"])):
         save_fig_traj(params,fieldsname,i,True)
+
+if outcome='None':
+    f.update()
