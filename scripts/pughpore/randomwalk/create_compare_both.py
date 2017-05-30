@@ -29,11 +29,9 @@ th = [1e0*time for time in th]
 cmap=matplotlib.cm.get_cmap('viridis')
 data=f.get_fields(fieldsname,**params)
 figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
-#t = data["tf3"]
-t = data["tf"]
+t = data["tf5"]
 t = [1e-6*x for x in t]
-#a = data["af3"]
-a = data["af"]
+a = data["af5"]
 ood = data["ood"]
 lendata=len(t)
 fac=1.
@@ -116,4 +114,4 @@ else:
 
 plt.tight_layout()
 #plt.show()
-plt.savefig('events_both_compare_filter_old.pdf')
+plt.savefig('events_both_compare_filter.pdf')

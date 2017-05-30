@@ -58,7 +58,7 @@ def save_fig_filter(params,fieldsname,i):
     zero=J[0]
     J-=zero
     from scipy import signal
-    b, a = signal.bessel(2, 1./15.*1e-3, analog=False)
+    b, a = signal.bessel(2, 1./5.*1e-3, analog=False)
     sig_ff = signal.lfilter(b, a, J)
     amp=data["a"][i]
     ftime=np.min(np.where(sig_ff>1e-10))-1
@@ -69,7 +69,7 @@ def save_fig_filter(params,fieldsname,i):
     figname = fieldsname+'_filter_'+'%.8f'%(tau_off*1e-6)+'_%04d'%i+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     af=[ampf]
     tf=[tau_off]
-    f.save_fields(fieldsname,params,tf3=tf,af3=af)
+    f.save_fields(fieldsname,params,tf5=tf,af5=af)
 
 
     plt.figure(figsize=(6,4),dpi=80)
