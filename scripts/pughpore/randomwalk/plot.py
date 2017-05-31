@@ -2,7 +2,7 @@ import sys
 if len(sys.argv)!=4:
     print '[type,traj,both], samples (int), fieldsname'
     exit()
-if not (sys.argv[1]=='type' or sys.argv[1]=='traj' or sys.argv[1]=='both'):
+if not (sys.argv[1]=='type' or sys.argv[1]=='traj' or sys.argv[1]=='both' or sys.argv[1]=='None'):
     print '[type,traj,both], samples (int), fieldsname'
     exit()
 else:
@@ -73,6 +73,3 @@ if outcome=='traj' or outcome=='both':
         f.update()
     for i in range(len(fields.get_fields(fieldsname,**params)["X"])):
         save_fig_traj(params,fieldsname,i,True)
-
-if outcome='None':
-    f.update()

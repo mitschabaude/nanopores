@@ -1,4 +1,6 @@
 from math import exp, factorial, pow
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,13 +12,17 @@ FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
 f.set_dir(DATADIR)
 
-fieldsname='number_of_collisions'
-params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0.,P_bind2=0.,z0=23.)
+hpore=46.
+fieldsname='number_of_collisions_all'
+#params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0.,P_bind2=0.,z0=23.) # old one interval lengths(4,8,13)
+params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0*0.035,P_bind2=0*3e-1,z0=hpore/2.+0.) # for binding everywhere
 
 data=f.get_fields(fieldsname,**params)
-data2=f.get_fields(fieldsname+'2',**params)
-data3=f.get_fields(fieldsname+'3',**params)
+#data2=f.get_fields(fieldsname+'2',**params)
+#data3=f.get_fields(fieldsname+'3',**params)
 Nc=np.array(data["Nc"])
+print np.mean(Nc)
+exit()
 Nc2=np.array(data2["Nc"])
 Nc3=np.array(data3["Nc"])
 lam=np.mean(Nc)
