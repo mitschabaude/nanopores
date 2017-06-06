@@ -4,7 +4,7 @@ involves solving the eikonal equation to obtain the distance to boundary."""
 
 import numpy as np
 from scipy.interpolate import interp1d
-from math import sinh, acosh
+from numpy import sinh, acosh
 import dolfin
 
 import nanopores
@@ -18,7 +18,7 @@ def transformation(n, Dn, Dt):
     # U, S = 1., |n|
     # V = orthogonal coordinate basis with n/|n| as first vector
     D = np.dot(V, np.dot(D, V.T))
-    return np.diag(np.diag(D))
+    return D #np.diag(np.diag(D))
 
 def preprocess_Dr(data, r, normalize=True):
     x = data["x"] #[xx[0] for xx in data["x"]]
