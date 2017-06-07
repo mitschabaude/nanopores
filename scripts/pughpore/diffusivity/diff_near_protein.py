@@ -50,9 +50,26 @@ Da[:, i3, i3] = D0p
 
 R = x - x0
 r = np.sqrt(np.sum(R**2, 1))
-h = r - r0
-near = h < distp
-#D[~near] =
+overlap = r < rion + r0
+near = ~overlap & (r - r0 < distp)
+h = r[near] - r0 - rion + 1e-30
+eps = 1e-2
+D00 = setup.phys.D
+
+Dt = np.zeros_like(r)
+Dn = np.zeros_like(r)
+
+Dt[overlap] = eps
+Dn[overlap] = eps
+Dt[near] = diff.Dt_plane(h, rion)
+Dn[near] = diff.Dn_plane(h, rion)
+
+
+#    D = np.diag([Dn, Dt, Dt]) if len(n)==3 else np.diag([Dn, Dt])
+#    U, S, V = np.linalg.svd(np.matrix(n))
+#    # U, S = 1., |n|
+#    # V = orthogonal coordinate basis with n/|n| as first vector
+#    D = np.dot(V, np.dot(D, V.T))
 
 
 """
@@ -91,9 +108,5 @@ def D(x):
         return D0(x)
     else:
         # treat protein as a plane
-        h = dist_protein - r + 1e-100
-        Dt = Dt_plane(h, rion)
-        Dn = Dn_plane(h, rion)
-        Dx = transformation(R, Dn, Dt)
-        return Dx
+
 """

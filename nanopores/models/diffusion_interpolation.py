@@ -4,7 +4,6 @@ involves solving the eikonal equation to obtain the distance to boundary."""
 
 import numpy as np
 from scipy.interpolate import interp1d
-from numpy import sinh, acosh
 import dolfin
 
 import nanopores
@@ -43,6 +42,8 @@ def Dt_plane(h, r):
     x = r/h
     return 1. - 9./16.*x + 1./8.*x**3 - 45./256.*x**4 - 1/16.*x**5
 
+sinh = np.sinh
+acosh = np.arccosh
 def Dn_plane(l, r):
     alpha = acosh(l/r)
     s = 0.
