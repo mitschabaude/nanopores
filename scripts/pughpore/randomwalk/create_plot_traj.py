@@ -46,8 +46,8 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         J=J.load()
         T=T.load()
         curr = 7.523849e-10
-        bind1 = np.where(T>1e6)
-        bind2 = np.intersect1d(np.where(T<=1e6),np.where(T>100.))
+        bind1 = np.where(T>1e6)[0]
+        bind2 = np.intersect1d(np.where(T<=1e6)[0],np.where(T>100.)[0])
         amplitude = curr-np.inner(J,T)/np.sum(T)
         for k in range(1,T.shape[0]):
             T[k]=T[k]+T[k-1]
@@ -86,7 +86,7 @@ def save_fig_traj(params,fieldsname,i,showtraj):
         start = plt.scatter([X[0]],[Z[0]],s=200,marker='x',c=color3,linewidth=2.)
         patches=[start]
         labels=['Start']
-    if showtraj and len(bind1[0])>0:
+    if showtraj and len(bind1)>0:
         patches=patches+[longer]
         labels+=['Longer bindings']
     if showtraj and len(bind2)>0:
@@ -136,6 +136,6 @@ def save_fig_traj(params,fieldsname,i,showtraj):
 
 
     plt.tight_layout()
-    nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
+    nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/')
     print 'savefig: %s'%figname
     plt.close("all")

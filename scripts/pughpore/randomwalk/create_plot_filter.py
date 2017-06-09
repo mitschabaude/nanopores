@@ -100,7 +100,7 @@ def save_fig_filter(params,fieldsname,i):
     ax.set_xlim([-4e-2*tau_off*fac,(1.+4e-2)*tau_off*fac])
 
     plt.tight_layout()
-    nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
+    nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/')
     print 'savefig: %s'%figname
     plt.close("all")
 #    plt.show()

@@ -25,7 +25,7 @@ hpore=geop.hpore
 #params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 
 def save_fig_type(params,fieldsname):
-    cmap=matplotlib.cm.get_cmap('viridis')
+#    cmap=matplotlib.cm.get_cmap('plasma')
     data=f.get_fields(fieldsname,**params)
     figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     t = data["t"]
@@ -75,12 +75,12 @@ def save_fig_type(params,fieldsname):
         if P_bind1!=0.:
             plt1.text(avgbind1*.5,27.,'Long binding',fontsize=9,horizontalalignment='center')
             k=0.5
-            plt1.add_patch(matplotlib.patches.Rectangle((avgbind1*10**(-k*2),0.),avgbind1*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.7),alpha=.15))
+#            plt1.add_patch(matplotlib.patches.Rectangle((avgbind1*10**(-k*2),0.),avgbind1*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.7),alpha=.15))
         if P_bind2!=0.:
             plt1.text(0.1,27.,'Short binding',fontsize=9,horizontalalignment='center')
             k=1.0
 #            plt1.add_patch(matplotlib.patches.Rectangle((avgbind2*100*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
-            plt1.add_patch(matplotlib.patches.Rectangle((0.01,0.),0.99,maxperc,facecolor=cmap(.4),alpha=.15))
+#            plt1.add_patch(matplotlib.patches.Rectangle((0.01,0.),0.99,maxperc,facecolor=cmap(.4),alpha=.15))
         plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
     else:
         plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15,x=.76)
@@ -114,6 +114,6 @@ def save_fig_type(params,fieldsname):
 
 
     plt.tight_layout()
-    nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/',pdf=True)
+    nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/',pdf=True)
     print 'savefig:'
     print figname

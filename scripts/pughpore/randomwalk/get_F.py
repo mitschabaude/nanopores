@@ -89,12 +89,19 @@ Fxi = LinearNDInterpolator(xf,Fx)
 Fyi = LinearNDInterpolator(xf,Fy)
 Fzi = LinearNDInterpolator(xf,Fz)
 def Force(x,y,z):
-    ret = [Fxi.__call__(np.array([x,y,z]))[0],Fyi.__call__(np.array([x,y,z]))[0],Fzi.__call__(np.array([x,y,z]))[0]]
+    x=float(x)
+    y=float(y)
+    z=float(z)
+#    ret = [Fxi.__call__(np.array([x,y,z]))[0],Fyi.__call__(np.array([x,y,z]))[0],Fzi.__call__(np.array([x,y,z]))[0]]
+    ret = [Fxi.__call__(x,y,z),Fyi.__call__(x,y,z),Fzi.__call__(x,y,z)]
     if isnan(ret[0]) or isnan(ret[1]) or isnan(ret[2]):
         return [0.,0.,0.]
     else: return ret
 J = LinearNDInterpolator(xf,Ja)
 def Current(x,y,z):
+    x=float(x)
+    y=float(y)
+    z=float(z)
     if z>21. or z<-23-1.6*2.0779:
         return 7.523849e-10
     elif z<-23.:
@@ -102,7 +109,7 @@ def Current(x,y,z):
         d = 6.186351*1e-10-k*(-23.)
         return k*z+d
     else:
-        return -J.__call__(np.array([x,y,z]))[0]
+        return -J.__call__(x,y,z)
 
 
 #fig = plt.figure()
