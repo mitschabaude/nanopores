@@ -1,16 +1,23 @@
 # (c) 2017 Gregor Mitscha-Baude
-import numpy as np
-#import os, sys
 from itertools import product
-from nanopores import fields
-from nanopores.models import diffusion_interpolation as diff
-from nanopores.models import pughpore as pugh
+import numpy as np
 import dolfin
-fields.set_dir_dropbox()
+from nanopores.tools import fields
 
-#HOME = os.path.expanduser("~")
-#sys.path.append(HOME + "/Dropbox/nanopores/fenicstools")
-#from fenicstools import Probes
+def Dt_plane(h, r):
+    x = r/h
+    return 1. - 9./16.*x + 1./8.*x**3 - 45./256.*x**4 - 1/16.*x**5
+
+sinh = np.sinh
+acosh = np.arccosh
+def Dn_plane(l, r, N=100):
+    alpha = acosh(l/r)
+    s = 0.
+    for n in range(1, N):
+        n = float(n)
+        K = n*(n+1)/(2*n-1)/(2*n+3)
+        s += K*((2*sinh((2*n+1)*alpha)+(2*n+1)*sinh(2*alpha))/(4*(sinh((n+.5)*alpha))**2-(2*n+1)**2*(sinh(alpha))**2) - 1)
+    return 1./((4./3.)*sinh(alpha)*s)
 
 def set_D_with_protein(setup):
     meshp = setup.geo.mesh # mesh WITH protein
@@ -37,13 +44,6 @@ def set_D_with_protein(setup):
     D0p = np.column_stack([D0p[i::dim] for i in range(dim)])
 
     x = meshp.coordinates()
-    #    probes = Probes(x.flatten(), V)
-    #    probes(dist)
-    #    distp = probes.array(0)
-    #
-    #    probes_ = Probes(x.flatten(), VV)
-    #    probes_(D0)
-    #    D0p = probes_.array(0)
 
     # first create (N,3,3) array from D0 (N,3)
     N = len(D0p)
@@ -66,8 +66,8 @@ def set_D_with_protein(setup):
 
     Dt[overlap] = eps
     Dn[overlap] = eps
-    Dt[near] = diff.Dt_plane(h, rion)
-    Dn[near] = diff.Dn_plane(h, rion, N=20)
+    Dt[near] = Dt_plane(h, rion)
+    Dn[near] = Dn_plane(h, rion, N=20)
 
     # D(R) = Dn(h) RR^T + Dt(h) (I - RR^T) where R is normalized
     R0 = R/(r[:, None] + 1e-100)
@@ -86,20 +86,4 @@ def set_D_with_protein(setup):
         Dv[np.ascontiguousarray(v2d[k::dim**2])] = np.ascontiguousarray(Da[:, i, j])
 
     setup.phys.update(Dp=D, Dm=D)
-    #embed()
     return D
-
-
-# set up domain with protein
-ddata = dict(name="Dpugh", r=0.11, dim=2)
-setup = pugh.Setup(x0=[0., 0., 10.], dim=2, h=1., Nmax=1e5,
-                   diamPore=6.*np.sqrt(np.pi)/2.,
-                   cheapest=True, diffusivity_data=ddata)
-plotter = pugh.Plotter(setup)
-pugh.prerefine(setup, True)
-
-print "getting D"
-D = set_D_with_protein(setup)
-print "plotting"
-plotter.plot(D[0, 0], title="Dxx")
-dolfin.interactive()

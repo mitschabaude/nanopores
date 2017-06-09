@@ -44,10 +44,10 @@ def Dt_plane(h, r):
 
 sinh = np.sinh
 acosh = np.arccosh
-def Dn_plane(l, r):
+def Dn_plane(l, r, N=100):
     alpha = acosh(l/r)
     s = 0.
-    for n in range(1, 100):
+    for n in range(1, N):
         n = float(n)
         K = n*(n+1)/(2*n-1)/(2*n+3)
         s += K*((2*sinh((2*n+1)*alpha)+(2*n+1)*sinh(2*alpha))/(4*(sinh((n+.5)*alpha))**2-(2*n+1)**2*(sinh(alpha))**2) - 1)
@@ -209,9 +209,52 @@ def diffusivity_field_simple(setup, r, ddata_bulk, boundary="poresolidb"):
     return dict(dist=dist, D=D)
 
 from nanopores.models import pughpore as pugh
+from nanopores.tools.solvers import cache_forcefield
+from nanopores.tools.utilities import collect_dict
+from nanopores.models.diffusion import diffusivity
+
+@cache_forcefield("diffz_pugh")
+def diff2D(X, **params):
+    for x, result in collect_dict(X):
+        params["x0"] = x
+        setup = pugh.Setup(**params)
+        D = diffusivity(setup)
+        result.new = dict(D=D)
+    return result
+
+def diff_profile_z_pugh(a=-25., b=25., N=20, **params):
+    X = [[0., 0., z] for z in np.linspace(a, b, N)]
+    return diff2D(X, nproc=1, **params)
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
-def cache_pugh_diffusivity(**params):
+def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):
+    #name = "D%s-%s" % (geoname, mode)
+    name = "D%s" %(geoname,)
+
+    if not fields.exists(name, **params):
+        setup = pugh.Setup(x0=None, **params)
+        r = setup.geop.rMolecule
+
+        if mode == "coupled":
+            data_z = diff_profile_z_pugh(**params)
+            data_r = diff_profile_plane(r)
+        elif mode == "simple":
+            data_z = None
+            data_r = diff_profile_plane(r)
+        elif mode == "profile":
+            data_z = diff_profile_z_pugh(**params)
+            data_r = diff_profile_trivial(r)
+        else:
+            raise NotImplementedError
+
+        functions = diffusivity_field(setup, r, ddata_z=data_z, ddata_r=data_r,
+                                      boundary="dnab", poreregion="pore")
+        fields.save_functions(name, params, **functions)
+        fields.update()
+
+    return name
+
+def cache_pugh_diffusivity_old(**params):
     "the function above applied to the pugh pore"
     if not fields.exists("Dpugh", **params):
         setup_params = dict(params)

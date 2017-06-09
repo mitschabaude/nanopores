@@ -9,6 +9,7 @@ import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
 import nanopores.tools.fields as fields
 from nanopores.models.pughpoints import tensorgrid as tensorgrid_
+from nanopores.models.diffusion_helpers import set_D_with_protein
 
 default = nano.Params(
 geop = nano.Params(
@@ -133,7 +134,12 @@ def solve(setup, visualize=False):
     set_sideBCs(phys, setup.geop, setup.physp)
 
     # if given, use precomputed ion diffusivity
-    set_D_from_data(phys, solverp.diffusivity_data)
+    if solverp.diffusivity_data is not None:
+        if setup.geop.x0 is None:
+            set_D_from_data(phys, solverp.diffusivity_data)
+        else:
+            #set_D_from_data(phys, solverp.diffusivity_data)
+            set_D_with_protein(setup)
 
     pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
                verbose=True, tolnewton=solverp.tol, #taylorhood=True,
