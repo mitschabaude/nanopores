@@ -49,7 +49,7 @@ calc = nanopores.user_param(calc=False)
 if calc:
     for dim in 2, 3:
         for d in diam[dim]:
-            diff_profile_z_pugh(nproc=4, diamPore=d)
+            diff_profile_z_pugh(nproc=1, diamPore=d)
 #diam = {2: [3.7, 3.8, 3.9, 4.0, 4.141, 4.4, 4.6,
 #            4.8, 5., 5.5, 6., 6.65],# 7.], # 7.5, 8.],
 #        3: [4.18, 4.23, 4.3, 4.4,
