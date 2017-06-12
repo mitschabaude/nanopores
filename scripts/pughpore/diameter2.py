@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import nanopores
 import nanopores.models.pughpore as pugh
-from nanopores.models.diffusion_interpolation import cache_pugh_diffusivity
+from nanopores.models.diffusion_interpolation import (cache_pugh_diffusivity,
+                                                      diff_profile_z_pugh)
 from math import sqrt, pi
 
 dparams = {2: dict(Nmax=1e5, dim=2, rMolecule=0.11, h=1.0),
@@ -40,8 +41,15 @@ params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08),
           3: dict(dim=3, h=2., Nmax=6e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08,
                   stokesiter=True, cheapest=False)}
 
-diam = {2: [3.7, 4.0], #, 4.4, 4.8, 5.2, 6., 7.],
+diam = {2: [3.7, 4.0, 4.2, 4.4, 4.6, 4.8, 5.2, 6., 7.],
         3: []}
+
+calc = nanopores.user_param(calc=False)
+
+if calc:
+    for dim in 2, 3:
+        for d in diam[dim]:
+            diff_profile_z_pugh(nproc=4, diamPore=d)
 #diam = {2: [3.7, 3.8, 3.9, 4.0, 4.141, 4.4, 4.6,
 #            4.8, 5., 5.5, 6., 6.65],# 7.], # 7.5, 8.],
 #        3: [4.18, 4.23, 4.3, 4.4,
@@ -53,7 +61,7 @@ diam = {2: [3.7, 4.0], #, 4.4, 4.8, 5.2, 6., 7.],
 # for old setup:
 #        3: [4.16, 4.17, 4.18, 4.19, 4.2, 4.21, 4.22, 4.23, 4.25, 4.275, 4.3, 4.4,
 #            4.45, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
-calc = nanopores.user_param(calc=False)
+
 
 for dim in 2,:
     plt.figure("abs_%dD" % dim)

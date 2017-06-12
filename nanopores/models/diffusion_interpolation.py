@@ -213,7 +213,7 @@ from nanopores.tools.solvers import cache_forcefield
 from nanopores.tools.utilities import collect_dict
 from nanopores.models.diffusion import diffusivity
 
-@cache_forcefield("diffz_pugh")
+@cache_forcefield("diffz_pugh", default=dict(dim=2, h=1., Nmax=1e5, diamPore=6.))
 def diff2D(X, **params):
     for x, result in collect_dict(X):
         params["x0"] = x
@@ -222,9 +222,9 @@ def diff2D(X, **params):
         result.new = dict(D=D)
     return result
 
-def diff_profile_z_pugh(a=-25., b=25., N=20, **params):
+def diff_profile_z_pugh(a=-25., b=25., N=20, nproc=1, **params):
     X = [[0., 0., z] for z in np.linspace(a, b, N)]
-    return diff2D(X, nproc=4, **params)
+    return diff2D(X, nproc=nproc, **params)
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
 def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):
@@ -234,15 +234,16 @@ def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):
     if not fields.exists(name, **params):
         setup = pugh.Setup(x0=None, **params)
         r = setup.geop.rMolecule
+        diamPore = setup.geop.diamPore
 
         if mode == "coupled":
-            data_z = diff_profile_z_pugh(**params)
+            data_z = diff_profile_z_pugh(diamPore=diamPore)
             data_r = diff_profile_plane(r)
         elif mode == "simple":
             data_z = None
             data_r = diff_profile_plane(r)
         elif mode == "profile":
-            data_z = diff_profile_z_pugh(**params)
+            data_z = diff_profile_z_pugh(diamPore=diamPore)
             data_r = diff_profile_trivial(r)
         else:
             raise NotImplementedError
