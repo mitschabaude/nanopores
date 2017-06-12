@@ -41,7 +41,7 @@ params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08),
           3: dict(dim=3, h=2., Nmax=6e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08,
                   stokesiter=True, cheapest=False)}
 
-diam = {2: [3.7, 4.0, 4.2, 4.4, 4.6, 4.8, 5.2, 6., 7.],
+diam = {2: [3.7, 4.0, 4.2, 4.4, 4.6, 4.8, 5.2, 5.6, 6., 6.65],
         3: []}
 
 calc = nanopores.user_param(calc=False)
