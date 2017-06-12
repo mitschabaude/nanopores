@@ -17,7 +17,7 @@ def transformation(n, Dn, Dt):
     # U, S = 1., |n|
     # V = orthogonal coordinate basis with n/|n| as first vector
     D = np.dot(V, np.dot(D, V.T))
-    return D #np.diag(np.diag(D))
+    return np.diag(np.diag(D))
 
 def preprocess_Dr(data, r, normalize=True):
     x = data["x"] #[xx[0] for xx in data["x"]]
@@ -224,7 +224,7 @@ def diff2D(X, **params):
 
 def diff_profile_z_pugh(a=-25., b=25., N=20, **params):
     X = [[0., 0., z] for z in np.linspace(a, b, N)]
-    return diff2D(X, nproc=1, **params)
+    return diff2D(X, nproc=4, **params)
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
 def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):

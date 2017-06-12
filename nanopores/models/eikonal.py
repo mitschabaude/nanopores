@@ -1,7 +1,7 @@
 "solve eikonal equation to get distance to boundary"
 from dolfin import *
 
-def distance_boundary_from_geo(geo, boundary="dnab"):
+def distance_boundary_from_geo_OLD(geo, boundary="dnab"):
     mesh = geo.mesh
     V = FunctionSpace(mesh, "CG", 1)
     v = TestFunction(V)
@@ -37,32 +37,42 @@ def distance_boundary_from_geo(geo, boundary="dnab"):
     #solve(F==0, y, bc, solver_parameters=params)
     return y
 
-def dist2(geo, boundary="dnab"):
+def distance_boundary_from_geo(geo, boundary="dnab",
+                               stab=2., eps0=1., epsfact=0.5):
     mesh = geo.mesh
     V = FunctionSpace(mesh, "CG", 1)
     v = TestFunction(V)
     du = TrialFunction(V)
     f = Constant(1.0)
 
-    bc = geo.BC(V, Constant(0.), boundary).bcs
-    epsi = Constant(1.)
+    bc = geo.BC(V, Constant(0.), boundary).bcs + \
+         geo.BC(V, Constant(0.), "memb").bcs
+    eps = eps0
+    epsi = Constant(eps)
+    h = CellSize(mesh)
     u = Function(V)
 
-    a = epsi*inner(grad(du), grad(v))*dx + 2.*inner(grad(u), grad(du))*v*dx
-    L = f*v*dx - epsi*inner(grad(u), grad(v))*dx - inner(grad(u), grad(u))*v*dx
+    a = epsi*h*inner(grad(du), grad(v))*dx + 2.*inner(grad(u), grad(du))*v*dx
+    L = -epsi*h*inner(grad(u), grad(v))*dx + (f - inner(grad(u), grad(u)))*v*dx
+
+    # add SUPG stabilization terms
+    tau = Constant(stab)
+    a = a + tau*h*inner(grad(u), grad(du))*inner(grad(u), grad(v))*dx
+    L = L + tau*0.5*h*(f - inner(grad(u), grad(u)))*inner(grad(u), grad(v))*dx
 
     du = Function(V)
     problem = LinearVariationalProblem(a, L, du, bc)
     solver = LinearVariationalSolver(problem)
-    params = solver.parameters
+    #params = solver.parameters
     #params["linear_solver"] = "bicgstab"
     #params["preconditioner"] = "hypre_euclid"
 
-    for i in range(14):
+    while eps > 1e-4:
+        print "eps", eps, " ",
         solver.solve()
         u.assign(u + du)
-        epsi.assign(epsi.values()[0]*0.8)
-        plot(u, key="u", interactive=False)
+        eps *= epsfact
+        epsi.assign(eps)
 
     return u
 
@@ -70,9 +80,15 @@ def dist2(geo, boundary="dnab"):
 if __name__ == "__main__":
     import nanopores.geometries.pughpore as pughpore
     import nanopores.models.pughpore as pugh
-    setup = pugh.Setup(dim=2, h=1., x0=None, Nmax=2e4)
-    setup.prerefine(True)
+    from nanopores import user_param
+    setup = pugh.Setup(dim=2, h=.5, x0=None, Nmax=2e4)
+    setup.prerefine(False)
     geo = setup.geo
     #geo = pughpore.get_geo_cyl(lc=1., x0=None)
-    y = dist2(geo) #distance_boundary_from_geo(geo)
+    y = distance_boundary_from_geo(geo)
     plot(y, title="distance", interactive=True)
+    from numpy import linspace
+    from matplotlib.pyplot import plot, show
+    t = linspace(0., 20., 100)
+    plot(t, [y([t0, 0.]) for t0 in t], ".-")
+    show()

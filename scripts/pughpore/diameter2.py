@@ -40,7 +40,7 @@ params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08),
           3: dict(dim=3, h=2., Nmax=6e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08,
                   stokesiter=True, cheapest=False)}
 
-diam = {2: [3.7], #, 4.0, 4.4, 4.8, 5.2, 6., 7.],
+diam = {2: [3.7, 4.0], #, 4.4, 4.8, 5.2, 6., 7.],
         3: []}
 #diam = {2: [3.7, 3.8, 3.9, 4.0, 4.141, 4.4, 4.6,
 #            4.8, 5., 5.5, 6., 6.65],# 7.], # 7.5, 8.],
@@ -120,5 +120,5 @@ for dim in 2,:
 
 
 import folders
-pugh.nano.savefigs("pugh_Idiam2_", folders.FIGDIR, (6, 4.5))
+pugh.nano.savefigs("", folders.FIGDIR + "/Idiam2", (6, 4.5))
 #plt.show()
