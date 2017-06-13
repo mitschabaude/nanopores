@@ -12,7 +12,7 @@ dparams = {2: dict(Nmax=1e5, dim=2, rMolecule=0.11, h=1.0),
            3: dict(Nmax=2e6, dim=3, rMolecule=0.11, h=2.0)}
 
 # I for different pore diameters
-@pugh.solvers.cache_forcefield("pugh_Idiam2_", pugh.defaultp)
+@pugh.solvers.cache_forcefield("pugh_Idiam3_", pugh.defaultp)
 def Idiam(diam, **params):
     dim = params["dim"]
     x0 = params.pop("x0")
@@ -91,7 +91,7 @@ for dim in 2,:
                  xytext=(2*2.0779 + 0.2, 900-20), color="#666666",
                  arrowprops=dict(arrowstyle="->", color="#666666"))
     #plt.title("influence of pore diameter on current (%dD)" %dim)
-    plt.legend(loc="lower right")
+    #plt.legend(loc="lower right")
 
     plt.figure("drop_%dD" % dim)
     drop = (1. - Joff/Jon)*100

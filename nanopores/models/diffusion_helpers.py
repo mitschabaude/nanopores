@@ -29,17 +29,17 @@ def set_D_with_protein(setup):
 
     # load diffusivity on mesh without protein
     functions, mesh = fields.get_functions(**setup.solverp.diffusivity_data)
-    dist = functions["dist"]
+    #dist = functions["dist"]
     D0 = functions["D"]
 
     # evaluate dist, D on meshp nodes
-    Vp = dolfin.FunctionSpace(meshp, "CG", 1)
+    #Vp = dolfin.FunctionSpace(meshp, "CG", 1)
     VVp = dolfin.VectorFunctionSpace(meshp, "CG", 1)
 
-    distp_ = dolfin.interpolate(dist, Vp)
+    #distp_ = dolfin.interpolate(dist, Vp)
     D0p_ = dolfin.interpolate(D0, VVp)
 
-    distp = distp_.vector()[dolfin.vertex_to_dof_map(Vp)]
+    #distp = distp_.vector()[dolfin.vertex_to_dof_map(Vp)]
     D0p = D0p_.vector()[dolfin.vertex_to_dof_map(VVp)]
     D0p = np.column_stack([D0p[i::dim] for i in range(dim)])
 
@@ -56,8 +56,8 @@ def set_D_with_protein(setup):
     R = x - x0
     r = np.sqrt(np.sum(R**2, 1))
     overlap = r < rion + r0
-    near = ~overlap & (r - r0 < distp)
-    h = np.maximum(r[near] - r0, rion)
+    #near = ~overlap & (r - r0 < distp)
+    h = np.maximum(r - r0, rion)
     eps = 1e-2
     D00 = setup.phys.D
 
@@ -66,16 +66,17 @@ def set_D_with_protein(setup):
 
     Dt[overlap] = eps
     Dn[overlap] = eps
-    Dt[near] = Dt_plane(h, rion)
-    Dn[near] = Dn_plane(h, rion, N=20)
+    Dt[~overlap] = Dt_plane(h[~overlap], rion)
+    Dn[~overlap] = Dn_plane(h[~overlap], rion, N=20)
 
     # D(R) = Dn(h) RR^T + Dt(h) (I - RR^T) where R is normalized
     R0 = R/(r[:, None] + 1e-100)
     RR = (R0[:, :, None] * R0[:, None, :])
     I = np.zeros((N, dim, dim))
     I[:, i3, i3] = 1.
-    Dpp = Dn[:, None, None] * RR + Dt[:, None, None] * (I - RR)
-    Da[overlap | near] = D00*Dpp[overlap | near]
+    Dpp = D00*(Dn[:, None, None] * RR + Dt[:, None, None] * (I - RR))
+    near = Dpp[:, dim-1, dim-1] < Da[:, dim-1, dim-1]
+    Da[near] = Dpp[near]
 
     # assign final result to dolfin P1 TensorFunction
     VVV = dolfin.TensorFunctionSpace(meshp, "CG", 1, shape=(dim, dim))

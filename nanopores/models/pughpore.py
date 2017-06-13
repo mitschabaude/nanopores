@@ -41,11 +41,12 @@ solverp = nano.Params(
     h = 1.5,
     frac = 0.2,
     Nmax = 6e5,
-    imax = 30,
+    imax = 40,
     tol = 1e-2,
     cheapest = False,
     stokesiter = False, #True
     diffusivity_data = None,
+    diffusivity = None,
 ))
 defaultp = default.geop | default.physp
 
@@ -134,12 +135,24 @@ def solve(setup, visualize=False):
     set_sideBCs(phys, setup.geop, setup.physp)
 
     # if given, use precomputed ion diffusivity
-    if solverp.diffusivity_data is not None:
+    print "Setting diffusivity data...",
+    if solverp.diffusivity_data is not None or solverp.diffusivity is not None:
+        if solverp.diffusivity_data is None:
+            solverp.diffusivity_data = dict(name=solverp.diffusivity)
+        # need to match data with setup params, otherwise bad things will happen
+        solverp.diffusivity_data.update(setup.geop, x0=None, rMolecule=0.11)
+        #print setup.solverp.diffusivity_data
         if setup.geop.x0 is None:
             set_D_from_data(phys, solverp.diffusivity_data)
+            print "without protein."
         else:
             #set_D_from_data(phys, solverp.diffusivity_data)
             set_D_with_protein(setup)
+            print "with protein."
+        if visualize:
+            dolfin.plot(setup.phys.Dp[setup.phys.dim-1, setup.phys.dim-1], interactive=True)
+    else:
+        print "None."
 
     pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
                verbose=True, tolnewton=solverp.tol, #taylorhood=True,
@@ -152,8 +165,8 @@ def solve(setup, visualize=False):
     for i in pnps.fixedpoint(ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
-            plotter.plot(v, "potential")
-            #plotter.plot_vector(u, "velocity")
+            #plotter.plot(v, "potential")
+            plotter.plot_vector(u, "velocity")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
     return pb, pnps
 
@@ -307,7 +320,10 @@ def polygon(rmem=20., **params):
 #......................................................
 
 if __name__ == "__main__":
-    setup = Setup(h=1., Nmax=2e6, dim=3) #, x0=None)
+    from nanopores import user_params
+    up = user_params(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], bV=-0.08,
+                     diffusivity="Dpugh", diamPore=6.)
+    setup = Setup(**up)
     _, pnps = solve(setup, True)
     print get_forces(setup, pnps)
 

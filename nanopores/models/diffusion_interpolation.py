@@ -12,6 +12,7 @@ from nanopores.models.eikonal import distance_boundary_from_geo
 from nanopores.tools import fields
 
 def transformation(n, Dn, Dt):
+    # TODO RR =
     D = np.diag([Dn, Dt, Dt]) if len(n)==3 else np.diag([Dn, Dt])
     U, S, V = np.linalg.svd(np.matrix(n))
     # U, S = 1., |n|
@@ -213,7 +214,8 @@ from nanopores.tools.solvers import cache_forcefield
 from nanopores.tools.utilities import collect_dict
 from nanopores.models.diffusion import diffusivity
 
-@cache_forcefield("diffz_pugh", default=dict(dim=2, h=1., Nmax=1e5, diamPore=6.))
+@cache_forcefield("diffz_pugh",
+    default=dict(dim=2, h=1., Nmax=1e5, diamPore=6., rMolecule=0.11, H=100.))
 def diff2D(X, **params):
     for x, result in collect_dict(X):
         params["x0"] = x
@@ -222,7 +224,7 @@ def diff2D(X, **params):
         result.new = dict(D=D)
     return result
 
-def diff_profile_z_pugh(a=-25., b=25., N=20, nproc=1, **params):
+def diff_profile_z_pugh(a=-36., b=36., N=40, nproc=1, **params):
     X = [[0., 0., z] for z in np.linspace(a, b, N)]
     return diff2D(X, nproc=nproc, **params)
 
@@ -249,7 +251,7 @@ def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):
             raise NotImplementedError
 
         functions = diffusivity_field(setup, r, ddata_z=data_z, ddata_r=data_r,
-                                      boundary="dnab", poreregion="pore")
+                                      boundary="dnab", poreregion="poreregion")
         fields.save_functions(name, params, **functions)
         fields.update()
 
