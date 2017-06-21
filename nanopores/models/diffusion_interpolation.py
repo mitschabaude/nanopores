@@ -27,13 +27,13 @@ def preprocess_Dr(data, r, normalize=True):
     Dn = [d[0][0] for d in data["D"]]
 
     eps = 1e-2
-    x = [-eps, r] + x + [100.]
+    x = [-1., -eps, r] + x + [100.]
     if normalize:
         Dn = [d/Dn[-1] for d in Dn]
         Dt = [d/Dt[-1] for d in Dt]
 
-    Dn = [0., eps] + Dn + [1.]
-    Dt = [0., eps] + Dt + [1.]
+    Dn = [0., 0., eps] + Dn + [1.]
+    Dt = [0., 0., eps] + Dt + [1.]
 
     fn = interp1d(x, Dn)
     ft = interp1d(x, Dt)
@@ -229,11 +229,13 @@ def diff_profile_z_pugh(a=-36., b=36., N=40, nproc=1, **params):
     return diff2D(X, nproc=nproc, **params)
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
-def cache_pugh_diffusivity(geoname="pugh", mode="coupled", **params):
+def cache_pugh_diffusivity(geoname="pugh2", mode="coupled", **params):
     #name = "D%s-%s" % (geoname, mode)
     name = "D%s" %(geoname,)
 
     if not fields.exists(name, **params):
+        if not "cheapest" in params:
+            params["cheapest"] = True
         setup = pugh.Setup(x0=None, **params)
         r = setup.geop.rMolecule
         diamPore = setup.geop.diamPore
@@ -273,8 +275,8 @@ def cache_pugh_diffusivity_old(**params):
 
 def get_pugh_diffusivity(**params):
     cache_pugh_diffusivity(**params)
-    functions, mesh = fields.get_functions("Dpugh", **params)
-    return functions
+    functions, mesh = fields.get_functions("Dpugh2", **params)
+    return functions, mesh
 
 def cache_pugh_diffusivity_alt(**params):
     "the function above applied to the pugh pore"

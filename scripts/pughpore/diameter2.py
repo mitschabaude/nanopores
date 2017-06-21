@@ -1,12 +1,11 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+#import matplotlib.ticker as ticker
 import nanopores
 import nanopores.models.pughpore as pugh
 from nanopores.models.diffusion_interpolation import (cache_pugh_diffusivity,
                                                       diff_profile_z_pugh)
-from math import sqrt, pi
 
 dparams = {2: dict(Nmax=1e5, dim=2, rMolecule=0.11, h=1.0),
            3: dict(Nmax=2e6, dim=3, rMolecule=0.11, h=2.0)}
@@ -22,34 +21,34 @@ def Idiam(diam, **params):
 
     for d in diam:
         # get diffusivity interpolation
-        cache_pugh_diffusivity(diamPore=d, **dparams[dim])
-        ddata = dict(dparams[dim], name="Dpugh", diamPore=d)
+        cache_pugh_diffusivity(geoname="pugh2", diamPore=d, **dparams[dim])
 
         # current WITHOUT molecule
-        setup = pugh.Setup(x0=None, diamPore=d, diffusivity_data=ddata, **params)
+        setup = pugh.Setup(x0=None, diamPore=d, **params)
         pb, pnps = pugh.solve(setup, visualize=True)
         Jon.append(pnps.evaluate(setup.phys.CurrentPNPS)["J"])
 
         # current WITH molecule
-        setup = pugh.Setup(x0=x0, diamPore=d, diffusivity_data=ddata, **params)
+        setup = pugh.Setup(x0=x0, diamPore=d, **params)
         pb, pnps = pugh.solve(setup, visualize=True)
         Joff.append(pnps.evaluate(setup.phys.CurrentPNPS)["J"])
 
     return dict(Jon=Jon, Joff=Joff)
 
-params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08),
+params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08,
+                  diffusivity="Dpugh2"),
           3: dict(dim=3, h=2., Nmax=6e5, x0=[0.,0.,0.], diamDNA=2.5, bV=-0.08,
-                  stokesiter=True, cheapest=False)}
+                  diffusivity="Dpugh2", stokesiter=True, cheapest=False)}
 
-diam = {2: [3.7, 4.0, 4.2, 4.4, 4.6, 4.8, 5.2, 5.6, 6., 6.65],
-        3: []}
+diam = {2: [4.18, 4.2, 4.25, 4.3, 4.4, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.],
+        3: [4.18, 4.25, 4.3, 4.3, 4.4, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
 
 calc = nanopores.user_param(calc=False)
 
 if calc:
     for dim in 2, 3:
         for d in diam[dim]:
-            diff_profile_z_pugh(nproc=1, diamPore=d)
+            diff_profile_z_pugh(nproc=6, diamPore=d)
 #diam = {2: [3.7, 3.8, 3.9, 4.0, 4.141, 4.4, 4.6,
 #            4.8, 5., 5.5, 6., 6.65],# 7.], # 7.5, 8.],
 #        3: [4.18, 4.23, 4.3, 4.4,
@@ -63,14 +62,13 @@ if calc:
 #            4.45, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
 
 
-for dim in 2,:
+for dim in 2, 3:
     plt.figure("abs_%dD" % dim)
-    result = Idiam(diam[dim], calc=calc, nproc=1, **params[dim])
+    result = Idiam(diam[dim], calc=calc, nproc=2, **params[dim])
     d = result["x"]
     print "diameters (%dD):" % dim, d
     print "missing:", set(diam[dim]) - set(d)
-    if dim==2:
-        d = [dd*2./sqrt(pi) for dd in d]
+
     n = len(d)
     Jon = 1e12*np.array(result["Jon"])
     Joff = 1e12*np.array(result["Joff"])

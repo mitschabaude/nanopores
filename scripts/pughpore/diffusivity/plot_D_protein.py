@@ -12,7 +12,7 @@ functions = get_pugh_diffusivity_alt(**params)
 D = functions["D"]
 
 print D([0.,0.,0.])
-exit()
+
 #D = dolfin.as_matrix(np.diag([D[i] for i in range(params.dim)]))
 plotter = Plotter()
 plotter.plot(functions["D"][0], title="Dx")

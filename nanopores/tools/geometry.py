@@ -108,6 +108,9 @@ class Geometry(object):
         "assure that assemble evaluates to 0. if subdomain is empty"
         return tup if len(tup)>0 else (9999,)
 
+    def dim(self):
+        return self.mesh.topology().dim()
+
     def interprete(self, string):
         if self.subdomains and self._physical_domain and self._physical_domain.has_key(string):
             return (self.subdomains,self._physical_domain[string])

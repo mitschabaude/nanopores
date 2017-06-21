@@ -63,9 +63,10 @@ def distance_boundary_from_geo(geo, boundary="dnab",
     du = Function(V)
     problem = LinearVariationalProblem(a, L, du, bc)
     solver = LinearVariationalSolver(problem)
-    #params = solver.parameters
-    #params["linear_solver"] = "bicgstab"
-    #params["preconditioner"] = "hypre_euclid"
+    if geo.dim() == 3:
+        params = solver.parameters
+        params["linear_solver"] = "bicgstab"
+        params["preconditioner"] = "hypre_euclid"
 
     while eps > 1e-4:
         print "eps", eps, " ",
@@ -81,14 +82,19 @@ if __name__ == "__main__":
     import nanopores.geometries.pughpore as pughpore
     import nanopores.models.pughpore as pugh
     from nanopores import user_param
-    setup = pugh.Setup(dim=2, h=.5, x0=None, Nmax=2e4)
-    setup.prerefine(False)
+    setup = pugh.Setup(dim=3, h=2., x0=None, Nmax=6e5, cheapest=True)
+    setup.prerefine()
     geo = setup.geo
     #geo = pughpore.get_geo_cyl(lc=1., x0=None)
     y = distance_boundary_from_geo(geo)
-    plot(y, title="distance", interactive=True)
+    setup.plot(y, title="distance", interactive=True)
     from numpy import linspace
     from matplotlib.pyplot import plot, show
     t = linspace(0., 20., 100)
-    plot(t, [y([t0, 0.]) for t0 in t], ".-")
+    def point(t):
+        x = [0.]*setup.geop.dim
+        x[0] = t
+        return x
+
+    plot(t, [y(point(t0)) for t0 in t], ".-")
     show()

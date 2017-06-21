@@ -259,13 +259,21 @@ def get_domain_cyl(lc=1., **newparams):
     _params = dict(params, **newparams)
     zero = [0., 0.]
 
-    R = square2circle(_params["R"])
+    # this was a stupid idea from the beginning
+#    R = square2circle(_params["R"])
+#    H = _params["H"]
+#    l0 = square2circle(_params["l0"])
+#    l1 = square2circle(_params["l1"])
+#    l2 = square2circle(_params["l2"])
+#    l3 = square2circle(_params["l3"])
+#    l4 = square2circle(_params["l4"])
+    R = _params["R"]
     H = _params["H"]
-    l0 = square2circle(_params["l0"])
-    l1 = square2circle(_params["l1"])
-    l2 = square2circle(_params["l2"])
-    l3 = square2circle(_params["l3"])
-    l4 = square2circle(_params["l4"])
+    l0 = _params["l0"]
+    l1 = _params["l1"]
+    l2 = _params["l2"]
+    l3 = _params["l3"]
+    l4 = _params["l4"]
     hpore = _params["hpore"]
     hmem = _params["hmem"]
     h2 = _params["h2"]
