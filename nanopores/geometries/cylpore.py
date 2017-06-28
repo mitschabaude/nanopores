@@ -145,8 +145,7 @@ class Pore(PolygonPore):
         lc["molecule"] = h*self.params.lcMolecule
         for i in range(self.nsections):
             lc["pore%d" % i] = h*self.params.lcCenter
-        else:
-            lc["%s" % (self.name,)] = h*self.params.lcCenter
+        lc["%s" % (self.name,)] = h*self.params.lcCenter
         return lc
 
     def Point(self, x, lc):
@@ -233,7 +232,7 @@ if __name__ == "__main__":
         H = 20.,
         R = 10.,
         cs = [1.7, -1.7],
-        x0 = None,
+        x0 = [0.,0.,0.],
     )
 
     dnapolygon = [[1, -5], [1, 5], [3, 5], [3, -5]]
@@ -242,8 +241,8 @@ if __name__ == "__main__":
     print geo
     print "params", geo.params
 
-    geo.plot_subdomains()
-    geo.plot_boundaries(interactive=True)
+    #geo.plot_subdomains()
+    #geo.plot_boundaries(interactive=True)
 
     # --- TEST
     p = Pore(dnapolygon, **params)

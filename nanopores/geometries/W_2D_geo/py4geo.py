@@ -203,15 +203,15 @@ def get_geo(**params):
             thickness=1, ratio=2)
         field_list.append(blayer_mol)
 
-    raw_code(['bfield = newf;'])
-    raw_code(['Field[bfield] = Min;'])
-    raw_code(['Field[bfield].FieldsList = {%s};' %(','.join(field_list))])
-    raw_code(['Background Field = bfield;'])
+    #raw_code(['bfield = newf;'])
+    #raw_code(['Field[bfield] = Min;'])
+    #raw_code(['Field[bfield].FieldsList = {%s};' %(','.join(field_list))])
+    #raw_code(['Background Field = bfield;'])
 
     # to disable question dialogs
     raw_code(['General.ExpertMode = 1;'])
     # Don't extend the elements sizes from the boundary inside the domain
-    raw_code(['Mesh.CharacteristicLengthExtendFromBoundary = 0;'])
+    #raw_code(['Mesh.CharacteristicLengthExtendFromBoundary = 0;'])
     # 2D algorithm (1=MeshAdapt, 2=Automatic, 5=Delaunay, 6=Frontal, 7=bamg, 8=delquad)
     # only delaunay is compatible with attractor fields
     raw_code(['Mesh.Algorithm = 5;'])

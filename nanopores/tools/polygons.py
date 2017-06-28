@@ -6,7 +6,7 @@ only the pore protein crosssection and parameters have to be plugged in."""
 from bisect import bisect
 from collections import OrderedDict
 from matplotlib import pyplot as plt
-from nanopores.tools.utilities import Params
+from nanopores.tools.utilities import Params, collect
 
 class Polygon(object):
     TOL = 0.1
@@ -14,6 +14,9 @@ class Polygon(object):
     def __init__(self, nodes):
         self.nodes = [(float(x[0]), float(x[1])) for x in nodes]
         self.init_edges()
+        
+    def __repr__(self):
+        return "Polygon(%s)" % (self.nodes,)
 
     def init_edges(self):
         nodes = self.nodes
@@ -170,10 +173,13 @@ class Polygon(object):
 
     def len(self):
         return len(self.nodes)
+    
 
 class HalfCircle(object):
     # could also be implemented with two circular arcs
     def __init__(self, z, r):
+        self.z = z
+        self.r = r
         nodes = [(0, z-r), (0, z), (0, z+r)]
         self.nodes = nodes
         x1, x2, x3 = tuple(nodes)
@@ -181,6 +187,9 @@ class HalfCircle(object):
 
     def boundary(self):
         return {self.edges[2]}
+    
+    def __repr__(self):
+        return "HalfCircle(%s, %s)" % (self.z, self.r)
 
     # TODO: def plot(self):
 
@@ -188,8 +197,12 @@ class EmptySet(object):
     def __init__(self):
          self.nodes = []
          self.edges = []
+         
     def boundary(self):
         return set()
+        
+    def __repr__(self):
+        return "EmptySet()"
 
 def isempty(poly):
     return isinstance(poly, EmptySet)
@@ -417,6 +430,62 @@ class PolygonPore(object):
             s -= pmemb
 
         return dic
+    
+class MultiPolygonPore(PolygonPore):
+    """For pores consisting of multiple subdomains, e.g. Wei-Rant pore,
+    but without further pore bisection (proteinpartition).
+    Assumes that polygons are disjoint and their union simply connected."""
+    def __init__(self, **params):
+        self.polygons = OrderedDict()
+        self.params = Params(params)
+        self.boundaries = OrderedDict()
+
+        if "x0" in self.params and self.params.x0 is not None:
+            self.molecule = True
+        else:
+            self.molecule = False
+            
+    def add_polygons(self, **polygons):
+        "enables adding polygons in defined order"
+        self.polygons.update(polygons)
+        
+    def build_polygons(self):
+        pass
+        # first build encompassing polygon out of existing
+        # boundary edges are those not unique to one polygon;
+        # boundary nodes are those on the boundary edges.
+        
+        
+        
+#        if self.params.add_membrane:
+#        hmem = self.params.hmem
+#        zmem = self.params.zmem
+#        R = self.params.R
+#        if "Hbot" in self.params:
+#            Hbot = self.params.Hbot
+#            Htop = self.params.Htop
+#        else:
+#            H = self.params.H
+#            Htop = Hbot = H/2.
+#
+#        self.add_membrane(hmem, zmem, R)
+#
+#        cs = self.params.cs if "cs" in self.params else []
+#        sections = self.add_poresections(cs=cs)
+#        self.add_bulkfluids(R, Htop, Hbot, sections)
+#        self.add_molecule()
+#
+#        # TODO: maybe this could be done prettier
+#        # rebuild polygon dict with new order (molecule first)
+#        # order matters because some first length scale overrides later ones
+#        poly = self.polygons
+#        mol = poly.pop("molecule")
+#        self.polygons = OrderedDict(molecule=mol)
+#        self.polygons.update(poly)
+#
+#        return self.polygons
+    
+    
 
 def join_nodes(polygons):
     return list(set([x for p in polygons for x in p.nodes]))
@@ -460,8 +529,66 @@ def compute_lower_boundary(*polygons):
         X.append(x0)
     return X
 
+def compute_disjoint_union(*polygons):
+    """compute boundary of disjoint union of polygons,
+    return union polygon(s) and list of boundary pieces in the same order as
+    corresponding input polygons"""
+    # TODO: the outputs that are holes are correctly returned in clockwise
+    # i.e. opposite direction. it would be nice if this can be identified and
+    # e.g. the polygon can be plotted with color fill correctly
+
+    # determine edges that do not feature twice
+    edges = {} # boundary edge: polygon index
+    boundaries = [set() for i in polygons]
+    for i, ply in enumerate(polygons):
+        for e in ply.edges:
+            e1 = e[::-1]
+            if e1 in edges:
+                i1 = edges[e1]
+                edges.pop(e1)
+                boundaries[i1].remove(e1)
+            else:
+                edges[e] = i
+                boundaries[i].add(e)
+                
+    polys = []
+    while edges:
+        e = next(iter(edges))
+        edges.pop(e)
+        v0 = e[0]
+        v = e[-1]
+        nodes = [v0]
+        while v != v0:
+            nodes.append(v)
+            e = next(e1 for e1 in edges if e1[0]==v)
+            edges.pop(e)
+            v = e[1]
+        polys.append(Polygon(nodes))
+        
+    return polys, boundaries
+
+def union_example():
+    A = Polygon([(0., 0.), (0., 3.), (1., 3.), (1., 2.), (1., 1.), (1., 0.)][::-1])
+    B = Polygon([(1., 2.), (1., 3.), (2., 3.), (2., 2.)][::-1])
+    C = Polygon([(1., 0.), (1., 1.), (2., 1.), (2., 0.)][::-1])
+    D = Polygon([(2., 0.), (2., 1.), (2., 2.), (2., 3.), (3., 3.), (3., 0.)][::-1])
+    unions, b = compute_disjoint_union(A, B, C, D)
+
+    for i, c in enumerate(["g", "b", "r", "y"]):
+        plot_edges(b[i], "-%s" % c)
+    unions[0].plot(".k")
+    unions[1].plot("og")
+    from matplotlib.pyplot import xlim, ylim
+    xlim(-1, 4)
+    ylim(-1, 4)
+    
+                
 def plot_edges(edges, *args, **kwargs):
-    for x, y in edges:
+    for t in edges:
+        if len(t) == 3:
+            x, _, y = t
+        else:
+            x, y = t
         plt.plot([x[0], y[0]], [x[1], y[1]], *args, **kwargs)
 
 if __name__ == "__main__":
