@@ -61,10 +61,30 @@ Dzz = [D[2][2] for D in DD if x0[DD.index(D)] in x]
 
 x = [t+r for t in x]
 
-plt.figure()
-plt.plot(x, Dxx, "o-b", label=r"$D_x$")
-plt.plot(x, Dyy, "s-g", label=r"$D_y$")
-plt.plot(x, Dzz, ".--r", label=r"$D_z$")
+from nanopores.models.diffusion_interpolation import Dn_plane, Dt_plane
+from numpy import linspace
+fields.set_dir_default()
+X, D = fields.get("diffz_pugh", "x", "D", diamPore=6.)
+zmin = min([x1[2] for x1 in X], key=lambda x: abs(x))
+i = X.index([0., 0., zmin])
+D0 = D[i]
+Dxx1 = Dxx[-1]
+Dzz1 = Dzz[-1]
+xlin = linspace(r+1e-3, 3., 100)
+dn = [Dn_plane(t, r, N=20) for t in xlin]
+dn = [d*D0/dn[-1] for d in dn]
+plt.plot(xlin, dn, "-b")
+dt = [Dt_plane(t, r) for t in xlin]
+dt = [d*D0/dt[-1] for d in dt]
+plt.plot(xlin, dt, "-g")
+plt.xlim(0., 2.5)
+
+plt.plot(x, Dxx, "ob", label=r"$D_{xx}$")
+plt.plot(x, Dyy, "sg", label=r"$D_{yy}$")
+plt.plot(x, Dzz, ".r", label=r"$D_{zz}$")
+
+
+
 
 #plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
 plt.xlabel("x distance from pore wall [nm]")
@@ -78,4 +98,4 @@ plt.yticks([i/10. for i in range(11)])
 plt.legend(loc="lower right") #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
 plt.gcf().set_size_inches(4.5, 4.5)
 nanopores.savefigs("pugh_Dions", FIGDIR)
-#plt.show()
+plt.show()

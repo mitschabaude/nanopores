@@ -135,4 +135,4 @@ for dim in 2, 3:
 import folders
 pugh.nano.savefigs("pugh_Idiam", folders.FIGDIR, (6, 4.5))
 
-#plt.show()
+plt.show()

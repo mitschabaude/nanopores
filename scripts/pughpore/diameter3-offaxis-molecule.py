@@ -11,10 +11,11 @@ dparams = {2: dict(Nmax=1e5, dim=2, rMolecule=0.11, h=1.0),
            3: dict(Nmax=2e6, dim=3, rMolecule=0.11, h=2.0)}
 
 # I for different pore diameters
-@pugh.solvers.cache_forcefield("pugh_Idiam4_", pugh.defaultp)
+@pugh.solvers.cache_forcefield("pugh_Idiam4_offaxis", pugh.defaultp)
 def Idiam(diam, **params):
     dim = params["dim"]
-    x0 = params.pop("x0")
+    R = params["rMolecule"]
+    params.pop("x0")
     params.pop("diamPore")
     Jon = []
     Joff = []
@@ -29,22 +30,21 @@ def Idiam(diam, **params):
         Jon.append(pnps.evaluate(setup.phys.CurrentPNPS)["J"])
 
         # current WITH molecule
+        x0 = [-0.5*d + R + 0.2, 0., 0.]
         setup = pugh.Setup(x0=x0, diamPore=d, **params)
         pb, pnps = pugh.solve(setup, visualize=True)
         Joff.append(pnps.evaluate(setup.phys.CurrentPNPS)["J"])
 
     return dict(Jon=Jon, Joff=Joff)
 
-params = {2: dict(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], bV=-0.08,
+params = {2: dict(dim=2, h=1., Nmax=1e5, diamDNA=2.5, bV=-0.08,
                   diffusivity="Dpugh2"),
-          3: dict(dim=3, h=2., Nmax=6e5, x0=[0.,0.,0.], bV=-0.08,
+          3: dict(dim=3, h=2., Nmax=6e5, diamDNA=2.5, bV=-0.08,
                   diffusivity="Dpugh2", stokesiter=True, cheapest=False)}
 
-diam = {2: [4.18, 4.25, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.93, 5.2, 5.5, 6., 6.5, 7., 7.5],
-        3: [4.22, 4.3, 4.4, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5]}
+diam = {2: [],
+        3: [4.4, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5]}
         #3: [4.18, 4.2, 4.25, 4.28, 4.3, 4.35, 4.4, 4.5, 4.555, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
-
-fit = {2: 4.93, 3: 4.4}
 
 calc = nanopores.user_param(calc=False)
 
@@ -65,9 +65,9 @@ if calc:
 #            4.45, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
 
 
-for dim in 2, 3:
+for dim in 3,:
     plt.figure("abs_%dD" % dim)
-    result = Idiam(diam[dim], calc=calc, nproc=2, **params[dim])
+    result = Idiam(diam[dim], calc=calc, nproc=3, **params[dim])
     d = result["x"]
     print "diameters (%dD):" % dim, d
     print "missing:", set(diam[dim]) - set(d)
@@ -91,7 +91,6 @@ for dim in 2, 3:
         plt.yticks(loc, [])
     plt.xlim(4., 7.6)
     plt.ylim(0., 1250.)
-    locx, _ = plt.xticks()
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
     if dim==3:
         plt.annotate("diameter of trypsin", (2*2.0779, 900),
@@ -108,26 +107,30 @@ for dim in 2, 3:
     plt.fill_between([0,10], [26.2 - 0.7]*2, [26.2 + 0.7]*2,
                      color="#ffcccc")
     plt.xlim(4., 7.6)
-    plt.ylim(ymin=0., ymax=105.)
+    plt.ylim(ymin=0., ymax=100.)
     #plt.xlabel("pore diameter [nm]")
     if dim==3:
         plt.ylabel("current blockade [%]")
     else:
         loc, _ = plt.yticks()
         plt.yticks(loc, [])
-    plt.ylim(ymin=0., ymax=105.)
 
-    #loc, _ = plt.xticks()
-    #plt.xticks(locx, [])
+    loc, _ = plt.xticks()
+    plt.xticks(loc, [])
     #plt.yscale("log")
     #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x*0.01))
     #plt.gca().yaxis.set_major_formatter(ticks)
-
-    plt.axvline(x=fit[dim], ymin=0., ymax=26.2/100., color="#ffaaaa", zorder=-90)
-    plt.scatter([fit[dim]], [26.2], s=400, c="#ffaaaa", linewidths=0)
-    plt.annotate("%.1f nm" % (fit[dim],), (fit[dim], 26.2),
-             xytext=(fit[dim] + 0.1, 26.2 + 2.), color="#ff6666")
+    if dim==2:
+        plt.axvline(x=4.96, ymin=0., ymax=26.2/100., color="#ffaaaa", zorder=-90)
+        plt.scatter([4.96], [26.2], s=400, c="#ffaaaa", linewidths=0)
+        plt.annotate("4.96 nm", (4.96, 26.2),
+                 xytext=(4.96 + 0.1, 26.2 + 2.), color="#ff6666")
                  #arrowprops=dict(arrowstyle="->", color="#666666"))
+    if dim==3:
+        plt.axvline(x=4.55, ymin=0., ymax=26.2/100., color="#ffaaaa", zorder=-90)
+        plt.scatter([4.55], [26.2], s=400, c="#ffaaaa", linewidths=0)
+        plt.annotate("4.55 nm", (4.55, 26.2),
+                 xytext=(4.55 + 0.1, 26.2 + 2.), color="#ff6666")
 
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
     htext = 80 # 2
@@ -146,5 +149,5 @@ for dim in 2, 3:
 
 
 import folders
-pugh.nano.savefigs("new", folders.FIGDIR + "/Idiam2", (6*0.9, 4.5*0.9))
-#plt.show()
+pugh.nano.savefigs("offaxis", folders.FIGDIR + "/Idiam2", (6*0.9, 4.5*0.9))
+plt.show()

@@ -46,7 +46,7 @@ def set_dir(NEWDIR):
         _save(dict(_flist=[]), HEADER)
 
 def set_dir_default():
-    os.path.join(DATADIR, "fields")
+    set_dir(os.path.join(DATADIR, "fields"))
 
 # for cloud storage (with a fixed known path)
 DROPBOX = os.path.join(HOME, "Dropbox", "nanopores", "fields")

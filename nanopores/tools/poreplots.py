@@ -81,19 +81,23 @@ def exp_format(x, pos):
 if __name__ == "__main__":
     import nanopores.models.pughpore as pugh
     from nanopores.models.pughpoints import plot_polygon
-    from nanopores.models.diffusion import get_pugh_diffusivity
+    #from nanopores.models.diffusion import get_pugh_diffusivity
 
     from nanopores.tools.utilities import uCross, RectangleMesh
     from math import pi, sqrt
 
-    dparams = {2: dict(diamPore=6.*sqrt(pi)/2., diamDNA=2.5*sqrt(pi)/2.,
-                       Nmax=1.2e5, dim=2, r=0.11, h=.75,
+    dparams = {2: dict(diamPore=6., diamDNA=2.5, Nmax=1.2e5, dim=2, r=0.11, h=.75,
                        cheapest=False, Membraneqs=-.5),
                3: dict(diamPore=6., Nmax=1e6, dim=3, r=0.11, h=2.0, cheapest=False)}
 
     # obtain diffusivity field and project to x-z plane
-    functions = get_pugh_diffusivity(**dparams[2])
-    D3D = functions["D"][0]
+    #functions = get_pugh_diffusivity(**dparams[2])
+    setup = pugh.Setup(dim=2, h=1., Nmax=1e5, x0=[0.,0.,0.], diffusivity="Dpugh2")
+    setup.prerefine()
+    pugh.set_D(setup)
+    D3D = setup.phys.Dp[1, 1]
+    print D3D([0.,0.])
+    #D3D = functions["D"][2]
 
     D0 = nanopores.D
     def F(x, z):
@@ -124,9 +128,9 @@ if __name__ == "__main__":
     plt.ylim(-25, 28)
     #plt.xlabel("x [nm]")
     #plt.ylabel("z [nm]")
-    fig.axes[1].set_ylabel(r"$D_x / D_0$")
+    fig.axes[1].set_ylabel(r"$D_{zz} / D_0$")
     #cb = fig.colorbar(CS, cax=cax, extend="both", orientation="vertical", format=formt)
     import folders
-    nanopores.savefigs("pugh_Dfield", folders.FIGDIR)
-    #plt.show()
+    nanopores.savefigs("pugh_Dfield_protein", folders.FIGDIR)
+    plt.show()
 
