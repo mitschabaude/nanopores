@@ -12,6 +12,7 @@ from nanopores.tools.utilities import Params, collect
 # convention:
 # a - b - c - d numbering of polygon corners
 # start from lower left in clockwise direction
+# in general, polygon nodes are ordered in CLOCKWISE direction (cccw means hole)
 
 class Polygon(object):
     TOL = 0.1
@@ -19,7 +20,7 @@ class Polygon(object):
     def __init__(self, nodes):
         self.nodes = [(float(x[0]), float(x[1])) for x in nodes]
         self.init_edges()
-        
+
     def __repr__(self):
         return "Polygon(%s)" % (self.nodes,)
 
@@ -178,92 +179,77 @@ class Polygon(object):
 
     def len(self):
         return len(self.nodes)
-    
-class MultiPolygon(object):
+
+class MultiPolygon(Polygon):
     "collection of polygons that can be modified together"
     # polygons are list and corresponding outer boundaries are
     # kept in list with same order
+    # the Polygon itself is the disjoint union
     def __init__(self, *polygons):
         self.polygons = polygons
         unions, boundaries = compute_disjoint_union(*polygons)
         # at the moment, only support simply connected polygons
         assert len(unions) == 1
-        self.union = unions[0]
         self.boundaries = boundaries
         self.n = len(polygons)
-        
-    def plot(self):
+        Polygon.__init__(self, unions[0].nodes)
+
+    def plot(self, *args, **kwargs):
         colors = ["b", "g", "r", "y"]
         colors = [colors[i % 4] for i in range(self.n)]
         for i in range(self.n):
             plot_edges(self.boundaries[i], "-%s" % (colors[i],))
-        self.union.plot(".k")
+        Polygon.plot(self, *args, **kwargs)
 
     def add(self, v, context):
-        # add node to union
-        # (assume union topology does not change)
-        u = self.union
-        # determine indexset of polygons containing v
-        J = set([j for j, p in enumerate(self.polygons) if v in p.nodes])
-        # TODO: continue here
+        # add node to union and parts; assume union topology does not change
+        u = self
+
         if len(context) == 0:
             # v is already node, we have to do nothing!
             return
         elif len(context) == 1:
             # replace a node with v
             x, = context
-            i = p.nodes.index(x)
-            p.nodes[i] = v
-            # replace two adjacent edges
-            e0 = p.edges[i-1]
-            e1 = p.edges[i]
-            p.edges[i-1] = (p.edges[i-1][0], v)
-            p.edges[i] = (v, p.edges[i][1])
-            # replace edges also in jth boundary
-            if e0 in b:
-                b.remove(e0)
-                b.add(p.edges[i-1])
-            if e1 in b:
-                b.remove(e1)
-                b.add(p.edges[i])
-                
+            # replace node in polygons containing it
+            for p in self.polygons:
+                if x in p.nodes:
+                    p.add(v, context)
+            # replace node in union
+            i = u.nodes.index(x)
+            e0 = u.edges[i-1]
+            e1 = u.edges[i]
+            u.nodes[i] = v
+            # replace two adjacent boundary edges
+            u.edges[i-1] = (u.edges[i-1][0], v)
+            u.edges[i] = (v, u.edges[i][1])
+            # replace the same edges also in boundaries
+            for b in self.boundaries:
+                if e0 in b:
+                    b.remove(e0)
+                    b.add(u.edges[i-1])
+                if e1 in b:
+                    b.remove(e1)
+                    b.add(u.edges[i])
         elif len(context) == 2:
             # insert between two nodes
+            # this means new node is on boundary edge, which belongs
+            # to exactly one polygon # but let's not use this
             x, y = context
-            i = self.nodes.index(y)
-            self.nodes.insert(i, v)
+            for p in self.polygons:
+                if x in p.nodes and y in p.nodes:
+                    p.add(v, context)
+            i = u.nodes.index(y)
+            u.nodes.insert(i, v)
             # replace edge x-y with x-v and insert v-y
-            self.edges[i-1] = (x, v)
-            self.edges.insert(i, (v, y))
-        
-    def intersections(self, z):
-        return [p.intersections(z) for p in self.polygons]
-    
-    def right_intersection(self, z):
-        Ilst = self.intersections(z)
-        if not any(Ilst): return
-        nodes = [(v, i) for i, I in enumerate(Ilst) for v in I]
-        x, i = max(nodes, key=lambda t: t[0][0])
-        self.polygons[i].add(x, Ilst[i][x])
-        self.union.add(x, Ilst[i][x])
-        return x
-        
-    def clip_from_right(self, a1, b1, c0):
-        # return polygon a-b-c-d which is bounded at the left a-b side by self
-        # and add intersection nodes to self
-        a = self.right_intersection(a1)
-        b = self.right_intersection(b1)
-        c = (c0, b1)
-        d = (c0, a1)
-        nodes = self.nrange(a, b, -1) + [c, d]
-        pol = Polygon(nodes)
-        # useful meta-info about polygon
-        pol.a = a
-        pol.b = b
-        pol.c = c
-        pol.d = d
-        return pol
-        
+            e0 = u.edges[i-1]
+            u.edges[i-1] = (x, v)
+            u.edges.insert(i, (v, y))
+            for b in self.boundaries:
+                if e0 in b:
+                    b.remove(e0)
+                    b |= {u.edges[i-1], u.edges[i]}
+
 
 class HalfCircle(object):
     # could also be implemented with two circular arcs
@@ -277,7 +263,7 @@ class HalfCircle(object):
 
     def boundary(self):
         return {self.edges[2]}
-    
+
     def __repr__(self):
         return "HalfCircle(%s, %s)" % (self.z, self.r)
 
@@ -287,10 +273,10 @@ class EmptySet(object):
     def __init__(self):
          self.nodes = []
          self.edges = []
-         
+
     def boundary(self):
         return set()
-        
+
     def __repr__(self):
         return "EmptySet()"
 
@@ -385,7 +371,7 @@ class PolygonPore(object):
         # do nothing in 3D or if no molecule
         if "dim" in self.params and self.params.dim == 3:
             return
-            
+
         if not self.molecule:
             self.polygons["molecule"] = EmptySet()
             return
@@ -406,7 +392,7 @@ class PolygonPore(object):
         domain.add(x3, (x1, b))
         i = domain.edges.index((x1, x3))
         domain.edges[i] = (x1, x2, x3)
-        
+
         # rebuild polygon dict with new order (molecule first)
         # order matters because first length scale overrides later ones
         poly = self.polygons
@@ -523,7 +509,7 @@ class PolygonPore(object):
             s -= pmemb
 
         return dic
-    
+
 class MultiPolygonPore(PolygonPore):
     """For pores consisting of multiple subdomains, e.g. Wei-Rant pore,
     but without further pore bisection (proteinpartition).
@@ -537,11 +523,14 @@ class MultiPolygonPore(PolygonPore):
             self.molecule = True
         else:
             self.molecule = False
-            
+
     def add_polygons(self, **polygons):
         "enables adding polygons in defined order"
+        for pname, p in polygons.items():
+            if not isinstance(p, Polygon):
+                polygons[pname] = Polygon(p)
         self.polygons.update(polygons)
-        
+
     def add_membrane(self):
         if not ("no_membrane" in self.params and self.params.no_membrane):
             R = self.params.R
@@ -553,21 +542,19 @@ class MultiPolygonPore(PolygonPore):
         else:
             self.membrane = EmptySet()
         self.polygons["membrane"] = self.membrane
-        
+
         return self.membrane
-        
+
     def build_polygons(self):
         # first build encompassing polygon out of existing.
-        polys, boundaries = compute_disjoint_union(self.polygons.values())
-        # at the moment, only support simply connected polygons
-        assert len(polys) == 1
+        self.protein = MultiPolygon(*self.polygons.values())
         # TODO: cut polygon if too large
 #        nodes = self.protein.nodes
 #        rmax = max([x[0] for x in nodes])
-        self.protein = polys[0]
+
         bnames = ["%sb" % name for name in self.polygons]
-        self.proteinb = OrderedDict(zip(bnames, boundaries))
-        
+        self.proteinb = OrderedDict(zip(bnames, self.protein.boundaries))
+
         # read global height, width params
         R = self.params.R
         if "Hbot" in self.params:
@@ -576,7 +563,7 @@ class MultiPolygonPore(PolygonPore):
         else:
             H = self.params.H
             Htop = Hbot = H/2.
-            
+
         self.add_membrane()
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
@@ -584,11 +571,11 @@ class MultiPolygonPore(PolygonPore):
         self.add_molecule()
 
         return self.polygons
-    
+
     def build_boundaries(self):
         boundaries = self.boundaries
         proteinb = self.proteinb
-        
+
         # upper, lower, side
         btop = self.polygons["bulkfluid_top"]
         bbot = self.polygons["bulkfluid_bottom"]
@@ -596,7 +583,7 @@ class MultiPolygonPore(PolygonPore):
         lowerb = bbot.edgerange(bbot.d, bbot.a)
         sideb = btop.edgerange(btop.c, btop.d) | bbot.edgerange(bbot.c, bbot.d)
         boundaries.update(upperb=upperb, lowerb=lowerb, sideb=sideb)
-        
+
         fluid_polys = [btop, bbot] + [self.polygons[
                         "pore%d" % i] for i in range(self.nsections)]
         fluid_edges = set([e[::-1] for p in fluid_polys for e in p.edges])
@@ -620,8 +607,8 @@ class MultiPolygonPore(PolygonPore):
         boundaries.update(moleculeb=moleculeb)
 
         return boundaries
-    
-    
+
+
 def join_nodes(polygons):
     return list(set([x for p in polygons for x in p.nodes]))
 
@@ -688,7 +675,7 @@ def compute_disjoint_union(*polygons):
             else:
                 edges[e] = i
                 boundaries[i].add(e)
-                
+
     polys = []
     while edges:
         e = next(iter(edges))
@@ -702,21 +689,21 @@ def compute_disjoint_union(*polygons):
             edges.pop(e)
             v = e[1]
         polys.append(Polygon(nodes))
-        
+
     return polys, boundaries
 
 def is_a_hole(poly):
-    """determine whether polygon is a hole (edges run clockwise) or not by
-    using the showlace formula"""
+    """determine whether polygon is a hole (edges run counter-clockwise) or not
+    by using the showlace formula"""
     # s = twice the signed area
     s = sum((e[-1][0] - e[0][0])*(e[-1][1] + e[0][1]) for e in poly.edges)
-    return s > 0.
+    return s < 0.
 
 def union_example():
-    A = Polygon([(0., 0.), (0., 3.), (1., 3.), (1., 2.), (1., 1.), (1., 0.)][::-1])
-    B = Polygon([(1., 2.), (1., 3.), (2., 3.), (2., 2.)][::-1])
-    C = Polygon([(1., 0.), (1., 1.), (2., 1.), (2., 0.)][::-1])
-    D = Polygon([(2., 0.), (2., 1.), (2., 2.), (2., 3.), (3., 3.), (3., 0.)][::-1])
+    A = Polygon([(0., 0.), (0., 3.), (1., 3.), (1., 2.), (1., 1.), (1., 0.)])
+    B = Polygon([(1., 2.), (1., 3.), (2., 3.), (2., 2.)])
+    C = Polygon([(1., 0.), (1., 1.), (2., 1.), (2., 0.)])
+    D = Polygon([(2., 0.), (2., 1.), (2., 2.), (2., 3.), (3., 3.), (3., 0.)])
 #    unions, b = compute_disjoint_union(A, B, C, D)
 #
 #    for i, c in enumerate(["g", "b", "r", "y"]):
@@ -727,8 +714,8 @@ def union_example():
 #    xlim(-1, 4)
 #    ylim(-1, 4)
     return A, B, C, D
-    
-                
+
+
 def plot_edges(edges, *args, **kwargs):
     for t in edges:
         if len(t) == 3:
@@ -740,7 +727,7 @@ def plot_edges(edges, *args, **kwargs):
 if __name__ == "__main__":
     from nanopores.geometries.alphahempoly import poly
     params = dict(
-        R = 10,
+        R = 4,
         H = 30,
         hmem = 2.2,
         zmem = -6,
@@ -748,9 +735,12 @@ if __name__ == "__main__":
         proteincs=[-2.5, -4.9, -7.51],
         x0 = [0.,0.,-6],
         rMolecule = .5,
+        no_membrane = True
     )
 
-    p = PolygonPore(poly, "ahem", **params)
+    #p = PolygonPore(poly, "ahem", **params)
+    p = MultiPolygonPore(**params)
+    p.add_polygons(ahem=poly)
     p.build_polygons()
     p.build_boundaries()
     print p.polygons.keys()
@@ -758,16 +748,18 @@ if __name__ == "__main__":
 
     print "mol in", p.where_is_molecule()
     p.protein.plot(".k", zorder=100)
-    #p.polygons["bulkfluid_top"].plot()
+    p.polygons["bulkfluid_top"].plot()
     p.polygons["pore0"].plot(".-b")
 
-    plot_edges(p.boundaries["memb"], color="blue")
+    #plot_edges(p.boundaries["memb"], color="blue")
     plot_edges(p.boundaries["lowerb"])
     plot_edges(p.boundaries["upperb"])
+    plt.xlim(-1, 11)
+    plt.ylim(-16, 16)
 
-    plot_edges(p.boundaries["ahemb0"], color="red")
-    plot_edges(p.boundaries["ahemb1"], color="yellow")
-    plot_edges(p.boundaries["ahemb2"], color="green")
+    #plot_edges(p.boundaries["ahemb0"], color="red")
+    #plot_edges(p.boundaries["ahemb1"], color="yellow")
+    #plot_edges(p.boundaries["ahemb2"], color="green")
     #plot_edges(p.boundaries["ahemb3"], color="red")
     plt.show()
 
