@@ -8,9 +8,14 @@ default_dict = dict(geo_dict = geo_dict, physical_dict = physical_dict)
 
 nm = geo_dict["nm"]
 lsam = geo_dict["lsam"]
-params = {"x0": [0,0,0],
-              "outerfrac":0.2,
-              "lsam":lsam, "r0":13*nm-lsam, "angle":40}
+params = dict(
+    x0 = [0, 0, 0],
+    outerfrac = 0.2,
+    lsam = lsam,
+    r0 = 13*nm-lsam,
+    angle = 40,
+    sam = None,
+)
 
 generate_mesh(1., geo_name, **params)
 geo = geo_from_name(geo_name, **params)

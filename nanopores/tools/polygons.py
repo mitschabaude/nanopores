@@ -13,6 +13,14 @@ from nanopores.tools.utilities import Params, collect
 # a - b - c - d numbering of polygon corners
 # start from lower left in clockwise direction
 # in general, polygon nodes are ordered in CLOCKWISE direction (cccw means hole)
+def irange(i0, i1, n, sign=1):
+    # index range modulo n
+    l = [i0]
+    i = i0
+    while i != i1:
+        i = (i + sign) % n
+        l.append(i)
+    return l
 
 class Polygon(object):
     TOL = 0.1
@@ -28,11 +36,11 @@ class Polygon(object):
         nodes = self.nodes
         self.edges = zip(nodes, nodes[1:] + nodes[0:1])
 
-    def intersections(self, z):
+    def intersections(self, z, axis=1):
         z = float(z)
         return {v: vnodes for edge in self.edges \
-                          for v, vnodes in self.intersect_edge(edge, z)}
-
+                          for v, vnodes in self.intersect_edge(edge, z, axis)}
+        
     def left_intersection(self, z):
         I = self.intersections(z)
         if not I: return
@@ -47,20 +55,21 @@ class Polygon(object):
         self.add(x, I[x])
         return x
 
-    def all_intersections(self, z):
-        I = self.intersections(z)
-        i = 0
+    def all_intersections(self, z, axis=1):
+        I = self.intersections(z, axis)
         todo = {k: v for k, v in I.items() if len(v)>0}
-        while todo and i < 100:
+        while todo:
             x = todo.keys()[0]
             self.add(x, todo[x])
             #print "PROCESSING", x, todo[x]
-            I = self.intersections(z)
+            I = self.intersections(z, axis)
             todo = {k: v for k, v in I.items() if len(v)>0}
-            i += 1
+            
         return I.keys()
 
-    def intersect_edge(self, edge, z):
+    def intersect_edge(self, edge, z, axis=1):
+        if axis == 0:
+            return self.intersect_edge_vertical(edge, z)
         # return intersection points with line z=z
         # and vertices to provide context for insertion
         x, y = edge
@@ -71,12 +80,39 @@ class Polygon(object):
             return {(x, ()), (y, ())}
         elif x1 <= z < y1 or y1 < z <= x1:
             # special case
-            if abs(y1 - x1) < 1e-3*self.TOL:
+            if abs(y1 - x1) < 1e-5*self.TOL:
                 return {(x, ()), (y, ())}
             # x1 + (y1 - x1)*t == z
             # at this point uniquely solvable in (0,1)
             t = (z - x1)/(y1 - x1)
             v = (x0 + (y0 - x0)*t, z)
+            if self.close(x, v):
+                vnodes = () if x == v else (x,)
+            elif self.close(y, v):
+                vnodes = () if y == v else (y,)
+            else:
+                vnodes = (x, y)
+            return {(v, vnodes)}
+        else:
+            return set()
+        
+    def intersect_edge_vertical(self, edge, r):
+        # return intersection points with line r=r
+        # and vertices to provide context for insertion
+        x, y = edge
+        x0, x1 = x
+        y0, y1 = y
+        # special case
+        if x0 == y0 == r:
+            return {(x, ()), (y, ())}
+        elif x0 <= r < y0 or y0 < r <= x0:
+            # special case
+            if abs(y0 - x0) < 1e-5*self.TOL:
+                return {(x, ()), (y, ())}
+            # x0 + (y0 - x0)*t == r
+            # at this point uniquely solvable in (0,1)
+            t = (r - x0)/(y0 - x0)
+            v = (r, x1 + (y1 - x1)*t)
             if self.close(x, v):
                 vnodes = () if x == v else (x,)
             elif self.close(y, v):
@@ -148,26 +184,50 @@ class Polygon(object):
         pol.c = c
         pol.d = d
         return pol
-
-    def nrange(self, a, b, sign=1):
-        # return nodes that range from a to b (including b)
-        # sign = 1 for counter-clockwise, -1 for clockwise
+    
+    def cut_path(self, a, b):
         n = self.len()
         ia = self.index(a)
         ib = self.index(b)
-        if sign == -1:
-            ib = (ib - 1) % n
-            if ib > ia:
-                ia += n
-            ran = range(ia, ib, -1)
-        elif sign == 1:
-            ib = (ib + 1) % n
-            if ia > ib:
-                ib += n
-            ran = range(ia, ib)
-        else:
-            raise NotImplementedError
-        return [self.nodes[i % n] for i in ran]
+        self.edges[ia] = (a, b)
+        nodes = list(self.nodes)
+        edges = list(self.edges)
+        for i in irange(ia, ib, n, 1)[1:-1]:
+            #print i
+            self.nodes.remove(nodes[i])
+            self.edges.remove(edges[i])
+    
+    def cut_from_right(self, r):
+        # TODO: fails if cut polygon is not connected any more
+        nodes = self.all_intersections(r, 0)
+        nodes = sorted(nodes, key=lambda x: x[1])[::-1]
+        n = self.len()
+        for i, node in enumerate(nodes):
+            # check whether nodes in between are left or right of line
+            j = self.nodes.index(node)
+            nextnode = self.nodes[(j+1) % n]
+            if nextnode[0] > node[0]:
+                self.cut_path(node, nodes[i+1])
+                
+    def rmin(self):
+        return min(self.nodes, key=lambda v: v[0])
+    
+    def rmax(self):
+        return max(self.nodes, key=lambda v: v[0])
+                
+    def zmin(self):
+        return min(self.nodes, key=lambda v: v[1])
+    
+    def zmax(self):
+        return max(self.nodes, key=lambda v: v[1])
+
+    def nrange(self, a, b, sign=1):
+        # return nodes that range from a to b (including b)
+        # sign = 1 for clockwise, -1 for counter-clockwise
+        n = self.len()
+        ia = self.index(a)
+        ib = self.index(b)
+        return [self.nodes[i] for i in irange(ia, ib, n, sign)]
 
     def edgerange(self, a, b):
         # return set of edges from a to b
@@ -249,6 +309,19 @@ class MultiPolygon(Polygon):
                 if e0 in b:
                     b.remove(e0)
                     b |= {u.edges[i-1], u.edges[i]}
+                    
+    def all_intersections(self, z, axis=1):
+        X = Polygon.all_intersections(self, z, axis)
+        for p in self.polygons:
+            X1 = p.all_intersections(z, axis)
+            X.extend(X1)
+        return X
+    
+    def cut_from_right(self, r):
+        if r <= self.rmax()[0]:
+            for p in self.polygons:
+                p.cut_from_right(r)
+            self.__init__(*self.polygons)
 
 
 class HalfCircle(object):
@@ -279,7 +352,7 @@ class EmptySet(object):
 
     def __repr__(self):
         return "EmptySet()"
-
+    
 def isempty(poly):
     return isinstance(poly, EmptySet)
 
@@ -306,8 +379,6 @@ class PolygonPore(object):
             self.molecule = False
 
     def build_polygons(self):
-        hmem = self.params.hmem
-        zmem = self.params.zmem
         R = self.params.R
         if "Hbot" in self.params:
             Hbot = self.params.Hbot
@@ -316,7 +387,7 @@ class PolygonPore(object):
             H = self.params.H
             Htop = Hbot = H/2.
 
-        self.add_membrane(hmem, zmem, R)
+        self.add_membrane()
 
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
@@ -330,7 +401,9 @@ class PolygonPore(object):
 
         # membrane boundary
         mem = self.polygons["membrane"]
-        memb = mem.edgerange(mem.b, mem.c) | mem.edgerange(mem.d, mem.a)
+        if not isempty(mem):
+            memb = mem.edgerange(mem.b, mem.c) | mem.edgerange(mem.d, mem.a)
+            boundaries.update(memb=memb)
 
         # upper, lower, side
         btop = self.polygons["bulkfluid_top"]
@@ -339,7 +412,7 @@ class PolygonPore(object):
         lowerb = bbot.edgerange(bbot.d, bbot.a)
         sideb = btop.edgerange(btop.c, btop.d) | bbot.edgerange(bbot.c, bbot.d)
 
-        boundaries.update(memb=memb, upperb=upperb, lowerb=lowerb, sideb=sideb)
+        boundaries.update(upperb=upperb, lowerb=lowerb, sideb=sideb)
         boundaries.update(self.compute_proteinboundary())
 
         # molecule
@@ -370,6 +443,7 @@ class PolygonPore(object):
     def add_molecule(self):
         # do nothing in 3D or if no molecule
         if "dim" in self.params and self.params.dim == 3:
+            self.polygons["molecule"] = EmptySet()
             return
 
         if not self.molecule:
@@ -400,10 +474,17 @@ class PolygonPore(object):
         self.polygons = OrderedDict(molecule=mol)
         self.polygons.update(poly)
 
-    def add_membrane(self, hmem, zmem, R):
-        zbot = zmem - 0.5*hmem
-        ztop = zmem + 0.5*hmem
-        self.membrane = self.protein.clip_from_right(zbot, ztop, R)
+    def add_membrane(self):
+        R = self.params.R
+        if not ("no_membrane" in self.params and self.params.no_membrane) and (
+                self.protein.rmax()[0] < R):
+            hmem = self.params.hmem
+            zmem = self.params.zmem
+            zbot = zmem - 0.5*hmem
+            ztop = zmem + 0.5*hmem
+            self.membrane = self.protein.clip_from_right(zbot, ztop, R)
+        else:
+            self.membrane = EmptySet()
         self.polygons["membrane"] = self.membrane
         return self.membrane
 
@@ -504,9 +585,10 @@ class PolygonPore(object):
 
         # subtract edges on protein-membrane interface
         mem = self.polygons["membrane"]
-        pmemb = protein.edgerange(mem.b, mem.a)
-        for s in dic.values():
-            s -= pmemb
+        if not isempty(mem):
+            pmemb = protein.edgerange(mem.b, mem.a)
+            for s in dic.values():
+                s -= pmemb
 
         return dic
 
@@ -531,30 +613,7 @@ class MultiPolygonPore(PolygonPore):
                 polygons[pname] = Polygon(p)
         self.polygons.update(polygons)
 
-    def add_membrane(self):
-        if not ("no_membrane" in self.params and self.params.no_membrane):
-            R = self.params.R
-            hmem = self.params.hmem
-            zmem = self.params.zmem
-            zbot = zmem - 0.5*hmem
-            ztop = zmem + 0.5*hmem
-            self.membrane = self.protein.clip_from_right(zbot, ztop, R)
-        else:
-            self.membrane = EmptySet()
-        self.polygons["membrane"] = self.membrane
-
-        return self.membrane
-
     def build_polygons(self):
-        # first build encompassing polygon out of existing.
-        self.protein = MultiPolygon(*self.polygons.values())
-        # TODO: cut polygon if too large
-#        nodes = self.protein.nodes
-#        rmax = max([x[0] for x in nodes])
-
-        bnames = ["%sb" % name for name in self.polygons]
-        self.proteinb = OrderedDict(zip(bnames, self.protein.boundaries))
-
         # read global height, width params
         R = self.params.R
         if "Hbot" in self.params:
@@ -563,6 +622,13 @@ class MultiPolygonPore(PolygonPore):
         else:
             H = self.params.H
             Htop = Hbot = H/2.
+
+        # first build encompassing polygon out of existing.
+        self.protein = MultiPolygon(*self.polygons.values())
+        self.protein.cut_from_right(R)
+
+        bnames = ["%sb" % name for name in self.polygons]
+        self.proteinb = OrderedDict(zip(bnames, self.protein.boundaries))
 
         self.add_membrane()
         cs = self.params.cs if "cs" in self.params else []
@@ -591,15 +657,13 @@ class MultiPolygonPore(PolygonPore):
         # membrane-fluid boundary
         mem = self.polygons["membrane"]
         if not isempty(mem):
-#            memtopb = btop.edgerange(btop.a, btop.d) & mem.edgerange(mem.b, mem.c)
-#            membotb = bbot.edgerange(btop.c, btop.b) & mem.edgerange(mem.d, mem.a)
-#            memb = memtopb | membotb
             memb = fluid_edges & (mem.edgerange(mem.b, mem.c) | mem.edgerange(mem.d, mem.a))
             boundaries.update(memb=memb)
-
+        else:
+            boundaries.update(memb=set())
         # protein-fluid boundary, divided between protein parts
         for bname in proteinb:
-            self.proteinb[bname] &= fluid_edges
+            proteinb[bname] &= fluid_edges
         boundaries.update(proteinb)
 
         # molecule
@@ -727,7 +791,7 @@ def plot_edges(edges, *args, **kwargs):
 if __name__ == "__main__":
     from nanopores.geometries.alphahempoly import poly
     params = dict(
-        R = 4,
+        R = 4.1,
         H = 30,
         hmem = 2.2,
         zmem = -6,
@@ -735,7 +799,8 @@ if __name__ == "__main__":
         proteincs=[-2.5, -4.9, -7.51],
         x0 = [0.,0.,-6],
         rMolecule = .5,
-        no_membrane = True
+        dim = 3,
+        #no_membrane = True
     )
 
     #p = PolygonPore(poly, "ahem", **params)
@@ -748,18 +813,33 @@ if __name__ == "__main__":
 
     print "mol in", p.where_is_molecule()
     p.protein.plot(".k", zorder=100)
-    p.polygons["bulkfluid_top"].plot()
+    p.polygons["bulkfluid_top"].plot("--r")
+    p.polygons["bulkfluid_bottom"].plot("--g")
     p.polygons["pore0"].plot(".-b")
-
-    #plot_edges(p.boundaries["memb"], color="blue")
-    plot_edges(p.boundaries["lowerb"])
-    plot_edges(p.boundaries["upperb"])
-    plt.xlim(-1, 11)
-    plt.ylim(-16, 16)
+    
+    plot_edges(p.boundaries["memb"], color="b")
+    plot_edges(p.boundaries["lowerb"], color="r")
+    plot_edges(p.boundaries["upperb"], color="g")
+    plot_edges(p.boundaries["sideb"], color="y")
+    plt.xlim(-0.2, params["R"] + 0.2)
+    plt.ylim(-11, 1)
 
     #plot_edges(p.boundaries["ahemb0"], color="red")
     #plot_edges(p.boundaries["ahemb1"], color="yellow")
     #plot_edges(p.boundaries["ahemb2"], color="green")
     #plot_edges(p.boundaries["ahemb3"], color="red")
     plt.show()
-
+#    r = 6.
+#    P = p.protein
+#    P.plot(".--k")
+#    plt.axvline(x=r)
+#    plt.show()
+#    P.all_intersections(r, 0)
+#    P.plot(".--k")
+#    plt.axvline(x=r)
+#    plt.show()
+#    #print [v for v in P.nodes if v[0]==r]
+#    P.cut_from_right(r)
+#    P.plot(".--k")
+    #P.cut_from_right(r)
+    #P.plot(".-")
