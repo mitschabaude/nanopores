@@ -2,7 +2,8 @@
 import nanopores.py4gmsh as gmsh
 import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
-from nanopores.tools.polygons import PolygonPore, plot_edges, isempty
+from nanopores.tools.polygons import (PolygonPore, MultiPolygonPore,
+                                     plot_edges, isempty)
 from nanopores.tools.utilities import Log
 
 default = dict(
@@ -46,6 +47,7 @@ class Pore(PolygonPore):
         self.dim = params["dim"]
         self.geoname = params["geoname"] # name of folder where mesh is created
         name = params["porename"] # name of pore wall subdomain, i.e. "dna"
+        self.names = [name]
         PolygonPore.__init__(self, poly, name, **params)
 
     def build(self, h=1.):
@@ -78,8 +80,9 @@ class Pore(PolygonPore):
         dom = self.polygons[porecurrent]
         geo.params["lporecurrent"] = dom.b[1] - dom.a[1]
 
-        poresolid = self.name
-        poresolidb = set([b for b in self.boundaries if b.startswith(self.name)])
+        poresolid = set(self.names)
+        poresolidb = set([b for b in self.boundaries if any(
+                         [b.startswith(name) for name in self.names])])
         pore = set([p for p in self.polygons if p.startswith("pore")])
         self.synonymes = dict(default_synonymes)
         self.synonymes.update(
@@ -110,13 +113,13 @@ class Pore(PolygonPore):
         self.gmsh_edges = [None for x in self.edges]
 
         # in 2D, create plane surfaces for every polygon
-        # TODO: 3D
+        # in 3D, first create boundary of every domain, then volumes in a second loop
         dim = self.dim
         lcs = self.set_length_scales(h)
 
         for pname, p in self.polygons.items():
             gmsh.Comment("Creating %s subdomain." %pname)
-            if isempty(p):
+            if isempty(p) and not p.sphere:
                 gmsh.NoPhysicalVolume(pname)
                 continue
             if dim == 2:
@@ -145,7 +148,7 @@ class Pore(PolygonPore):
         lc["molecule"] = h*self.params.lcMolecule
         for i in range(self.nsections):
             lc["pore%d" % i] = h*self.params.lcCenter
-        lc["%s" % (self.name,)] = h*self.params.lcCenter
+        lc.update(dict.fromkeys(self.names, h*self.params.lcCenter))
         return lc
 
     def Point(self, x, lc):
@@ -192,13 +195,24 @@ class Pore(PolygonPore):
     def PhysicalBoundary(self, bset, bname):
         gmsh.Comment("Creating %s boundary." %bname)
         dim = self.dim
-        if not bset:
+        if not bset: # and not (dim == 3 and bname.startswith("molecule")):
             gmsh.NoPhysicalSurface(bname)
-        if dim == 2:
+        elif dim == 2:
             boundary = [self.Edge(e) for e in bset]
             gmsh.PhysicalSurface(boundary, bname, dim)
         else:
             raise NotImplementedError
+
+class MultiPore(MultiPolygonPore, Pore):
+
+    def __init__(self, polygons=None, **params):
+        params = dict(default, **params)
+        self.dim = params["dim"]
+        self.geoname = params["geoname"] # name of folder where mesh is created
+        MultiPolygonPore.__init__(self, **params)
+        if polygons is not None:
+            self.add_polygons(**polygons)
+
 
 def get_geo(poly, h=1., reconstruct=False, **params):
     p = Pore(poly, **params)
@@ -241,11 +255,11 @@ if __name__ == "__main__":
     print geo
     print "params", geo.params
 
-    #geo.plot_subdomains()
-    #geo.plot_boundaries(interactive=True)
+    geo.plot_subdomains()
+    geo.plot_boundaries(interactive=True)
 
     # --- TEST
-    p = Pore(dnapolygon, **params)
+    p = MultiPore(dict(dna=dnapolygon), **params)
     p.build_polygons()
     p.build_boundaries()
     #print p.polygons.keys()

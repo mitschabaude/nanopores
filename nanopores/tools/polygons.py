@@ -40,7 +40,7 @@ class Polygon(object):
         z = float(z)
         return {v: vnodes for edge in self.edges \
                           for v, vnodes in self.intersect_edge(edge, z, axis)}
-        
+
     def left_intersection(self, z):
         I = self.intersections(z)
         if not I: return
@@ -64,7 +64,7 @@ class Polygon(object):
             #print "PROCESSING", x, todo[x]
             I = self.intersections(z, axis)
             todo = {k: v for k, v in I.items() if len(v)>0}
-            
+
         return I.keys()
 
     def intersect_edge(self, edge, z, axis=1):
@@ -95,7 +95,7 @@ class Polygon(object):
             return {(v, vnodes)}
         else:
             return set()
-        
+
     def intersect_edge_vertical(self, edge, r):
         # return intersection points with line r=r
         # and vertices to provide context for insertion
@@ -184,7 +184,7 @@ class Polygon(object):
         pol.c = c
         pol.d = d
         return pol
-    
+
     def cut_path(self, a, b):
         n = self.len()
         ia = self.index(a)
@@ -196,7 +196,7 @@ class Polygon(object):
             #print i
             self.nodes.remove(nodes[i])
             self.edges.remove(edges[i])
-    
+
     def cut_from_right(self, r):
         # TODO: fails if cut polygon is not connected any more
         nodes = self.all_intersections(r, 0)
@@ -208,16 +208,16 @@ class Polygon(object):
             nextnode = self.nodes[(j+1) % n]
             if nextnode[0] > node[0]:
                 self.cut_path(node, nodes[i+1])
-                
+
     def rmin(self):
         return min(self.nodes, key=lambda v: v[0])
-    
+
     def rmax(self):
         return max(self.nodes, key=lambda v: v[0])
-                
+
     def zmin(self):
         return min(self.nodes, key=lambda v: v[1])
-    
+
     def zmax(self):
         return max(self.nodes, key=lambda v: v[1])
 
@@ -309,14 +309,14 @@ class MultiPolygon(Polygon):
                 if e0 in b:
                     b.remove(e0)
                     b |= {u.edges[i-1], u.edges[i]}
-                    
+
     def all_intersections(self, z, axis=1):
         X = Polygon.all_intersections(self, z, axis)
         for p in self.polygons:
             X1 = p.all_intersections(z, axis)
             X.extend(X1)
         return X
-    
+
     def cut_from_right(self, r):
         if r <= self.rmax()[0]:
             for p in self.polygons:
@@ -343,16 +343,20 @@ class HalfCircle(object):
     # TODO: def plot(self):
 
 class EmptySet(object):
-    def __init__(self):
+    def __init__(self, sphere=False):
          self.nodes = []
          self.edges = []
+         self.sphere = sphere
 
     def boundary(self):
         return set()
 
     def __repr__(self):
         return "EmptySet()"
-    
+
+def Sphere():
+    return EmptySet(sphere=True)
+
 def isempty(poly):
     return isinstance(poly, EmptySet)
 
@@ -443,7 +447,7 @@ class PolygonPore(object):
     def add_molecule(self):
         # do nothing in 3D or if no molecule
         if "dim" in self.params and self.params.dim == 3:
-            self.polygons["molecule"] = EmptySet()
+            self.polygons["molecule"] = Sphere()
             return
 
         if not self.molecule:
@@ -600,6 +604,7 @@ class MultiPolygonPore(PolygonPore):
         self.polygons = OrderedDict()
         self.params = Params(params)
         self.boundaries = OrderedDict()
+        self.names = []
 
         if "x0" in self.params and self.params.x0 is not None:
             self.molecule = True
@@ -612,6 +617,7 @@ class MultiPolygonPore(PolygonPore):
             if not isinstance(p, Polygon):
                 polygons[pname] = Polygon(p)
         self.polygons.update(polygons)
+        self.names.extend(polygons.keys())
 
     def build_polygons(self):
         # read global height, width params
@@ -816,7 +822,7 @@ if __name__ == "__main__":
     p.polygons["bulkfluid_top"].plot("--r")
     p.polygons["bulkfluid_bottom"].plot("--g")
     p.polygons["pore0"].plot(".-b")
-    
+
     plot_edges(p.boundaries["memb"], color="b")
     plot_edges(p.boundaries["lowerb"], color="r")
     plot_edges(p.boundaries["upperb"], color="g")
