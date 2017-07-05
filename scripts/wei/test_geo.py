@@ -51,7 +51,7 @@ p.add_polygons(sam=sam, au=au, sin=sin)
 
 receptor = Ball([0.,0.,25.], 4., 2, lc=0.25)
 p.add_balls(receptor=receptor)
-geo = p.build(h=10.)
+geo = p.build_solid(h=10.)
 P = p.protein
 P.plot(".k")
 from matplotlib import pyplot as plt

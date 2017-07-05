@@ -57,6 +57,18 @@ class Pore(PolygonPore):
             self.build_boundaries()
         geo = self.build_geometry(h)
         return geo
+    
+    def build_solid(self, h=1.):
+        "for visualization"
+        with Log("computing polygons..."):
+            self.build_polygons()
+            self.build_boundaries()
+        self.remove_fluid()
+        with Log("writing gmsh code..."):
+            code, meta = self.to_gmsh(h)
+        meta["params"] = dict(self.params)
+        self.geo = geofile2geo(code, meta, name=self.geoname)
+        return self.geo
 
     def build_geometry(self, h=1.):
         with Log("writing gmsh code..."):
@@ -95,13 +107,15 @@ class Pore(PolygonPore):
         geo.import_synonymes(self.synonymes)
 
     def add_curved_boundaries(self, geo):
+        # TODO
         if self.dim == 2:
             if self.molecule:
                 molec = curved.Circle(self.params.rMolecule,
                                       self.params.x0[::2])
                 geo.curved = dict(moleculeb = molec.snap)
         elif self.dim == 3:
-            raise NotImplementedError
+            pass
+            
 
     def to_gmsh(self, h=1.):
         # create mappings for nodes, edges
@@ -177,7 +191,7 @@ class Pore(PolygonPore):
         self.gmsh_ball_surfs[(x0, r)] = surfs
         return surfs
 
-    def CylSurfaces(self, e, lc):
+    def CylSurfaces(self, e, lc=1.):
         if e in self.gmsh_cyl_surfs:
             return self.gmsh_cyl_surfs[e]
 
@@ -241,7 +255,8 @@ class Pore(PolygonPore):
             boundary = [self.Edge(e) for e in bset]
             gmsh.PhysicalSurface(boundary, bname, dim)
         else:
-            pass
+            boundary = [s for e in bset for s in self.CylSurfaces(e)]
+            gmsh.PhysicalSurface(boundary, bname, dim)
 
 class MultiPore(MultiPolygonPore, Pore):
 

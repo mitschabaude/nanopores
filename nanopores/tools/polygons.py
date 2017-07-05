@@ -464,6 +464,14 @@ class PolygonPore(object):
         domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
         i0 = bisect(self.cs, ball.x0[-1])
         return domains[i0]
+    
+    def remove_fluid(self):
+        domains = ["pore%d" % i for i in range(self.nsections)]
+        domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
+        for dom in domains:
+            self.polygons.pop(dom)
+        for bou in ["upperb", "lowerb", "sideb"]:
+            self.boundaries.pop(bou)
 
     def add_molecule(self, ball):
         # do nothing if empty
