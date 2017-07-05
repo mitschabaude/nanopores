@@ -4,10 +4,9 @@ but this seems to be too hard without relying on external software.
 now it is simply for preparing the polygons involved in a pore geometry where
 only the pore protein crosssection and parameters have to be plugged in."""
 from bisect import bisect
-import numpy as np
 from collections import OrderedDict
 from matplotlib import pyplot as plt
-from nanopores.tools.utilities import Params, collect
+from nanopores.tools.utilities import Params
 
 # convention:
 # a - b - c - d numbering of polygon corners
@@ -323,39 +322,42 @@ class MultiPolygon(Polygon):
                 p.cut_from_right(r)
             self.__init__(*self.polygons)
 
-
-class HalfCircle(object):
-    # could also be implemented with two circular arcs
-    def __init__(self, z, r):
-        self.z = z
+class Ball(object):
+    
+    def __init__(self, x0, r, dim, lc=1.):
+        self.x0 = x0
         self.r = r
-        nodes = [(0, z-r), (0, z), (0, z+r)]
-        self.nodes = nodes
-        x1, x2, x3 = tuple(nodes)
-        self.edges = [(x3, x2), (x2, x1), (x1, x2, x3)]
-
+        self.dim = dim
+        self.lc = lc
+        if dim == 2:
+            self.z = z = x0[-1]
+            nodes = [(0, z-r), (0, z), (0, z+r)]
+            self.nodes = nodes
+            x1, x2, x3 = tuple(nodes)
+            self.edges = [(x3, x2), (x2, x1), (x1, x2, x3)]
+        else:
+            self.nodes = []
+            self.edges = []
+            
     def boundary(self):
-        return {self.edges[2]}
+        if self.dim == 2:
+            return {self.edges[2]}
+        else:
+            return set()
 
     def __repr__(self):
-        return "HalfCircle(%s, %s)" % (self.z, self.r)
-
-    # TODO: def plot(self):
+        return "Ball(%s, %s, %d)" % (self.x0, self.r, self.dim)
 
 class EmptySet(object):
-    def __init__(self, sphere=False):
+    def __init__(self):
          self.nodes = []
          self.edges = []
-         self.sphere = sphere
 
     def boundary(self):
         return set()
 
     def __repr__(self):
         return "EmptySet()"
-
-def Sphere():
-    return EmptySet(sphere=True)
 
 def isempty(poly):
     return isinstance(poly, EmptySet)
@@ -371,16 +373,31 @@ class PolygonPore(object):
         self.name = name
         self.protein = Polygon(poly)
         self.polygons = OrderedDict({name: self.protein})
+        self.balls = OrderedDict()
         self.params = Params(params)
         self.boundaries = OrderedDict()
 
         # cs ... protein crosssections for partition of boundary
         self.add_proteinpartition()
-
+        self.add_molecule_ball()
+            
+    def add_molecule_ball(self):
         if "x0" in self.params and self.params.x0 is not None:
             self.molecule = True
+            lc = self.params.lcMolecule if "lcMolecule" in self.params else 1.
+            molecule = Ball(self.params.x0, self.params.rMolecule,
+                            self.params.dim, lc)
         else:
             self.molecule = False
+            molecule = EmptySet()
+        self.balls.update(molecule=molecule)
+            
+    def add_balls(self, **balls):
+        for pname, p in balls.items():
+            if not isinstance(p, Ball):
+                x0, r = p
+                balls[pname] = Ball(x0, r, self.params.dim)
+        self.balls.update(balls)
 
     def build_polygons(self):
         R = self.params.R
@@ -396,7 +413,8 @@ class PolygonPore(object):
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
         self.add_bulkfluids(R, Htop, Hbot, sections)
-        self.add_molecule()
+        for ball in self.balls.values():
+            self.add_molecule(ball)
 
         return self.polygons
 
@@ -420,8 +438,8 @@ class PolygonPore(object):
         boundaries.update(self.compute_proteinboundary())
 
         # molecule
-        moleculeb = self.polygons["molecule"].boundary()
-        boundaries.update(moleculeb=moleculeb)
+        for bname, ball in self.balls.items():
+            boundaries.update({bname + "b": ball.boundary()})
 
         return boundaries
 
@@ -434,49 +452,36 @@ class PolygonPore(object):
         r = self.params.rMolecule
         return z0 - r - eps <= z <= z0 + r + eps
 
-    def where_is_molecule(self):
+    def where_is_molecule(self, ball=None):
+        "name of domain where ball lies (or None)"
         # TODO: currently this is only based on z position!!
-        if not self.molecule:
+        if ball is None:
+            ball = self.balls["molecule"]
+        if isempty(ball):
             return None
 
         domains = ["pore%d" % i for i in range(self.nsections)]
         domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
-        i0 = bisect(self.cs, self.params.x0[-1])
+        i0 = bisect(self.cs, ball.x0[-1])
         return domains[i0]
 
-    def add_molecule(self):
-        # do nothing in 3D or if no molecule
+    def add_molecule(self, ball):
+        # do nothing in 3D or if empty
         if "dim" in self.params and self.params.dim == 3:
-            self.polygons["molecule"] = Sphere()
             return
-
-        if not self.molecule:
-            self.polygons["molecule"] = EmptySet()
+        if isempty(ball):
             return
-
-        # add molecule to polygons
-        z = self.params.x0[-1]
-        r = self.params.rMolecule
-        molecule = HalfCircle(z, r)
-        self.polygons["molecule"] = molecule
 
         # modify domain in which molecule is contained
-        domstr = self.where_is_molecule()
+        domstr = self.where_is_molecule(ball)
         domain = self.polygons[domstr]
         a = domain.a
         b = domain.b
-        x1, x2, x3 = tuple(molecule.nodes)
+        x1, x2, x3 = tuple(ball.nodes)
         domain.add(x1, (a, b))
         domain.add(x3, (x1, b))
         i = domain.edges.index((x1, x3))
         domain.edges[i] = (x1, x2, x3)
-
-        # rebuild polygon dict with new order (molecule first)
-        # order matters because first length scale overrides later ones
-        poly = self.polygons
-        mol = poly.pop("molecule")
-        self.polygons = OrderedDict(molecule=mol)
-        self.polygons.update(poly)
 
     def add_membrane(self):
         R = self.params.R
@@ -602,14 +607,11 @@ class MultiPolygonPore(PolygonPore):
     Assumes that polygons are disjoint and their union simply connected."""
     def __init__(self, **params):
         self.polygons = OrderedDict()
+        self.balls = OrderedDict()
         self.params = Params(params)
         self.boundaries = OrderedDict()
         self.names = []
-
-        if "x0" in self.params and self.params.x0 is not None:
-            self.molecule = True
-        else:
-            self.molecule = False
+        self.add_molecule_ball()
 
     def add_polygons(self, **polygons):
         "enables adding polygons in defined order"
@@ -632,15 +634,18 @@ class MultiPolygonPore(PolygonPore):
         # first build encompassing polygon out of existing.
         self.protein = MultiPolygon(*self.polygons.values())
         self.protein.cut_from_right(R)
+        self.polygons = OrderedDict()
 
-        bnames = ["%sb" % name for name in self.polygons]
+        bnames = ["%sb" % name for name in self.names]
         self.proteinb = OrderedDict(zip(bnames, self.protein.boundaries))
 
         self.add_membrane()
         cs = self.params.cs if "cs" in self.params else []
         sections = self.add_poresections(cs=cs)
         self.add_bulkfluids(R, Htop, Hbot, sections)
-        self.add_molecule()
+        self.polygons.update(zip(self.names, self.protein.polygons))
+        for ball in self.balls.values():
+            self.add_molecule(ball)
 
         return self.polygons
 
@@ -673,8 +678,8 @@ class MultiPolygonPore(PolygonPore):
         boundaries.update(proteinb)
 
         # molecule
-        moleculeb = self.polygons["molecule"].boundary()
-        boundaries.update(moleculeb=moleculeb)
+        for bname, ball in self.balls.items():
+            boundaries.update({bname + "b": ball.boundary()})
 
         return boundaries
 
@@ -805,7 +810,7 @@ if __name__ == "__main__":
         proteincs=[-2.5, -4.9, -7.51],
         x0 = [0.,0.,-6],
         rMolecule = .5,
-        dim = 3,
+        dim = 2,
         #no_membrane = True
     )
 

@@ -107,8 +107,9 @@ class Pore(PolygonPore):
         # TODO: maybe we should move away from indices and implement map
         # {entity: gmsh_entity} ???
         # set lookup is probably faster than list lookup !!!
-        self.nodes = list(set([x for p in self.polygons.values() for x in p.nodes]))
-        self.edges = list(set([e for p in self.polygons.values() for e in p.edges]))
+        domains = self.balls.values() + self.polygons.values()
+        self.nodes = list(set([x for p in domains for x in p.nodes]))
+        self.edges = list(set([e for p in domains for e in p.edges]))
         self.gmsh_nodes = [None for x in self.nodes]
         self.gmsh_edges = [None for x in self.edges]
 
@@ -117,9 +118,9 @@ class Pore(PolygonPore):
         dim = self.dim
         lcs = self.set_length_scales(h)
 
-        for pname, p in self.polygons.items():
+        for pname, p in self.balls.items() + self.polygons.items():
             gmsh.Comment("Creating %s subdomain." %pname)
-            if isempty(p) and not p.sphere:
+            if isempty(p):
                 gmsh.NoPhysicalVolume(pname)
                 continue
             if dim == 2:
@@ -148,7 +149,7 @@ class Pore(PolygonPore):
         lc["molecule"] = h*self.params.lcMolecule
         for i in range(self.nsections):
             lc["pore%d" % i] = h*self.params.lcCenter
-        lc.update(dict.fromkeys(self.names, h*self.params.lcCenter))
+        #lc.update(dict.fromkeys(self.names, h*self.params.lcCenter))
         return lc
 
     def Point(self, x, lc):
