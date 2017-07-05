@@ -2,9 +2,10 @@
 import nanopores.py4gmsh as gmsh
 import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
-from nanopores.tools.polygons import (PolygonPore, MultiPolygonPore,
-                                     plot_edges, isempty)
-from nanopores.tools.utilities import Log
+from nanopores.tools.polygons import (Ball, Polygon,
+                                      PolygonPore, MultiPolygonPore,
+                                      plot_edges, isempty)
+from nanopores.tools.utilities import Log, union
 
 default = dict(
     geoname = "cylpore",
@@ -103,34 +104,23 @@ class Pore(PolygonPore):
             raise NotImplementedError
 
     def to_gmsh(self, h=1.):
-        # create lists with common nodes, edges
-        # TODO: maybe we should move away from indices and implement map
-        # {entity: gmsh_entity} ???
-        # set lookup is probably faster than list lookup !!!
-        domains = self.balls.values() + self.polygons.values()
-        self.nodes = list(set([x for p in domains for x in p.nodes]))
-        self.edges = list(set([e for p in domains for e in p.edges]))
-        self.gmsh_nodes = [None for x in self.nodes]
-        self.gmsh_edges = [None for x in self.edges]
+        # create mappings for nodes, edges
+        self.gmsh_nodes = {}
+        self.gmsh_edges = {}
+        self.gmsh_cyl_surfs = {}
+        self.gmsh_ball_surfs = {}
 
-        # in 2D, create plane surfaces for every polygon
-        # in 3D, first create boundary of every domain, then volumes in a second loop
-        dim = self.dim
         lcs = self.set_length_scales(h)
 
+        # create volumes
         for pname, p in self.balls.items() + self.polygons.items():
             gmsh.Comment("Creating %s subdomain." %pname)
             if isempty(p):
                 gmsh.NoPhysicalVolume(pname)
                 continue
-            if dim == 2:
-                lc = lcs[pname]
-                #print pname, lc
-                ll = self.LineLoop(p.edges, lc)
-                vol = gmsh.PlaneSurface(ll)
-                gmsh.PhysicalVolume(vol, pname, dim)
-            else:
-                raise NotImplementedError
+            lc = lcs[pname]
+            #print pname, lc
+            self.Volume(p, pname, lc)
 
         # add physical surfaces
         for bname, bset in self.boundaries.items():
@@ -146,31 +136,89 @@ class Pore(PolygonPore):
 
     def set_length_scales(self, h):
         lc = {p: h for p in self.polygons}
+        lc.update({p: h*b.lc for p, b in self.balls.items() if not isempty(b)})
         lc["molecule"] = h*self.params.lcMolecule
         for i in range(self.nsections):
             lc["pore%d" % i] = h*self.params.lcCenter
         #lc.update(dict.fromkeys(self.names, h*self.params.lcCenter))
         return lc
 
+    def Volume(self, p, pname, lc):
+        dim = self.dim
+
+        if dim == 2:
+            surfs = [self.Edge(edge, lc) for edge in p.edges]
+        elif dim == 3:
+            surfs = self.Surfaces(p, lc)
+            if hasattr(p, "holes"):
+                for hole in p.holes:
+                    surfs.extend(["-%s" % s for s in self.Surfaces(hole, lc)])
+        else:
+            raise NotImplementedError
+
+        ll = FacetLoop[dim](surfs)
+        vol = Entity[dim](ll)
+        gmsh.PhysicalVolume(vol, pname, dim)
+
+    def Surfaces(self, p, lc):
+        if isinstance(p, Ball):
+            return self.BallSurfaces(p, lc)
+        elif isinstance(p, Polygon):
+            return [s for e in p.edges for s in self.CylSurfaces(e, lc)]
+        else:
+            raise NotImplementedError
+
+    def BallSurfaces(self, ball, lc):
+        x0, r = tuple(ball.x0), ball.r
+        if (x0, r) in self.gmsh_ball_surfs:
+            return self.gmsh_ball_surfs[(x0, r)]
+
+        surfs = add_ball(x0, r, lc)
+        self.gmsh_ball_surfs[(x0, r)] = surfs
+        return surfs
+
+    def CylSurfaces(self, e, lc):
+        if e in self.gmsh_cyl_surfs:
+            return self.gmsh_cyl_surfs[e]
+
+        # do nothing if edge is in center
+        if e[0][0] == e[1][0] == 0.:
+            return []
+
+        # create Line
+        line = self.Edge(e, lc)
+        surfs = []
+
+        # rotate in 4 steps
+        for j in range(4):
+            ex = gmsh.Extrude('Line{%s}' % line, rotation_axis=[0., 0., 1.],
+                           point_on_axis=[0., 0., 0.], angle="Pi/2.0")
+            line = ex + "[0]"
+            surfs.append(ex + "[1]")
+
+        # save, also for flipped edge
+        self.gmsh_cyl_surfs[e] = surfs
+        self.gmsh_cyl_surfs[e[::-1]] = ["-%s" % s for s in surfs]
+        return surfs
+
     def Point(self, x, lc):
-        i = self.nodes.index(x)
-        gmsh_x = self.gmsh_nodes[i]
-        if gmsh_x is not None:
-            return gmsh_x
+        if x in self.gmsh_nodes:
+            return self.gmsh_nodes[x]
 
         #print x, lc
-        x = x + tuple(0. for i in range(3 - self.dim))
-        gmsh_x = gmsh.Point(x, lc)
-        self.gmsh_nodes[i] = gmsh_x
+        if self.dim < 3:
+            x1 = x + tuple(0. for i in range(3 - self.dim))
+        else:
+            x1 = [x[0], 0., x[1]]
+        gmsh_x = gmsh.Point(x1, lc)
+        self.gmsh_nodes[x] = gmsh_x
         return gmsh_x
 
     def Edge(self, e, lc=1.):
         # generalizes Line and Circle
         # if exists, return gmsh edge
-        i = self.edges.index(e)
-        gmsh_e = self.gmsh_edges[i]
-        if gmsh_e is not None:
-            return gmsh_e
+        if e in self.gmsh_edges:
+            return self.gmsh_edges[e]
         # otherwise, discriminate between Line and Circle
         points = [self.Point(v, lc) for v in e]
 
@@ -179,19 +227,10 @@ class Pore(PolygonPore):
         elif len(e) == 3:
             gmsh_e = gmsh.Circle(points)
 
-        self.gmsh_edges[i] = gmsh_e
-        # also save flipped edge (if exists)
-        try:
-            i1 = self.edges.index(e[::-1])
-            self.gmsh_edges[i1] = "-" + gmsh_e
-        except ValueError:
-            pass
+        # save, also ffor flipped edge
+        self.gmsh_edges[e] = gmsh_e
+        self.gmsh_edges[e[::-1]] = "-" + gmsh_e
         return gmsh_e
-
-    def LineLoop(self, ll, lc=1.):
-        lines = [self.Edge(edge, lc) for edge in ll]
-        ll = gmsh.LineLoop(lines)
-        return ll
 
     def PhysicalBoundary(self, bset, bname):
         gmsh.Comment("Creating %s boundary." %bname)
@@ -202,7 +241,7 @@ class Pore(PolygonPore):
             boundary = [self.Edge(e) for e in bset]
             gmsh.PhysicalSurface(boundary, bname, dim)
         else:
-            raise NotImplementedError
+            pass
 
 class MultiPore(MultiPolygonPore, Pore):
 
@@ -214,6 +253,21 @@ class MultiPore(MultiPolygonPore, Pore):
         if polygons is not None:
             self.add_polygons(**polygons)
 
+FacetLoop = {
+    1: lambda x: x,
+    2: gmsh.LineLoop,
+    3: gmsh.SurfaceLoop
+    }
+
+Entity = {
+    1: lambda x: gmsh.Line(*x),
+    2: gmsh.PlaneSurface,
+    3: gmsh.Volume
+    }
+
+def add_ball(m, r, lc):
+    # add ball in 3D
+    return gmsh.add_ball(m, r, lc, with_volume=False)[2]
 
 def get_geo(poly, h=1., reconstruct=False, **params):
     p = Pore(poly, **params)

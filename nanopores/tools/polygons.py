@@ -323,7 +323,7 @@ class MultiPolygon(Polygon):
             self.__init__(*self.polygons)
 
 class Ball(object):
-    
+
     def __init__(self, x0, r, dim, lc=1.):
         self.x0 = x0
         self.r = r
@@ -338,7 +338,7 @@ class Ball(object):
         else:
             self.nodes = []
             self.edges = []
-            
+
     def boundary(self):
         if self.dim == 2:
             return {self.edges[2]}
@@ -346,7 +346,7 @@ class Ball(object):
             return set()
 
     def __repr__(self):
-        return "Ball(%s, %s, %d)" % (self.x0, self.r, self.dim)
+        return "Ball(%s, %s, dim=%d, lc=%s)" % (self.x0, self.r, self.dim, self.lc)
 
 class EmptySet(object):
     def __init__(self):
@@ -380,7 +380,7 @@ class PolygonPore(object):
         # cs ... protein crosssections for partition of boundary
         self.add_proteinpartition()
         self.add_molecule_ball()
-            
+
     def add_molecule_ball(self):
         if "x0" in self.params and self.params.x0 is not None:
             self.molecule = True
@@ -391,7 +391,7 @@ class PolygonPore(object):
             self.molecule = False
             molecule = EmptySet()
         self.balls.update(molecule=molecule)
-            
+
     def add_balls(self, **balls):
         for pname, p in balls.items():
             if not isinstance(p, Ball):
@@ -466,15 +466,22 @@ class PolygonPore(object):
         return domains[i0]
 
     def add_molecule(self, ball):
-        # do nothing in 3D or if empty
-        if "dim" in self.params and self.params.dim == 3:
-            return
+        # do nothing if empty
         if isempty(ball):
             return
 
-        # modify domain in which molecule is contained
+        # check in which domain ball is contained
         domstr = self.where_is_molecule(ball)
         domain = self.polygons[domstr]
+
+        # in 3D, add ball as hole in containing domain
+        if "dim" in self.params and self.params.dim == 3:
+            if not hasattr(domain, "holes"):
+                domain.holes = []
+            domain.holes.append(ball)
+            return
+
+        # in 2D, modify containing domain
         a = domain.a
         b = domain.b
         x1, x2, x3 = tuple(ball.nodes)
@@ -512,13 +519,6 @@ class PolygonPore(object):
 
         pairs = zip(cs[:-1], cs[1:])
         sections = tuple([self.protein.clip_from_left(a, b, 0) for a, b in pairs])
-#        if len(sections) == 3:
-#            names = ["porebot", "porectr", "poretop"]
-#        elif len(sections) == 2:
-#            names = ["porebot", "poretop"]
-#        elif len(sections) == 1:
-#            names = ["pore"]
-#        else:
         names = ["pore%d" % i for i in range(len(sections))]
         self.nsections = len(sections)
         self.lpore = ztop - zbot

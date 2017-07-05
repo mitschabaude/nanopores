@@ -1,6 +1,6 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
-from nanopores.tools.polygons import Polygon, MultiPolygon, MultiPolygonPore
+from nanopores.tools.polygons import Ball, Polygon, MultiPolygon, MultiPolygonPore
 from nanopores.geometries.cylpore import MultiPore
 from nanopores import user_params
 params = user_params(
@@ -10,13 +10,13 @@ params = user_params(
     cs = [-15.5, 15.5],
     x0 = [0, 0, 10],
     rMolecule = 2.1,
-    dim = 2,
+    dim = 3,
     no_membrane = True,
     r0 = 13, # pore radius
     angle = 40, # aperture angle in degrees
     lcCenter = 0.3,
     lcMolecule = 0.1,
-    
+
 )
 # SiN membrane thickness (in vertical direction)
 lsin = 50.
@@ -45,10 +45,13 @@ sam = [[r0, -l], [r1, l], [R, l], [R, l - lsam],
 au = [sam[5], sam[4], sam[3], [R, -l + lsin], [rsin + tan*lsin, -l + lsin],
       [rsin, -l]]
 sin = [au[5], au[4], au[3], [R, -l]]
-      
+
 p = MultiPore(**params)
 p.add_polygons(sam=sam, au=au, sin=sin)
-geo = p.build(h=6.)
+
+receptor = Ball([0.,0.,25.], 4., 2, lc=0.25)
+p.add_balls(receptor=receptor)
+geo = p.build(h=10.)
 P = p.protein
 P.plot(".k")
 from matplotlib import pyplot as plt
