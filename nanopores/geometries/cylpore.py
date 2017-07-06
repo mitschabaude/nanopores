@@ -5,7 +5,7 @@ from nanopores.geo2xml import geofile2geo, reconstructgeo
 from nanopores.tools.polygons import (Ball, Polygon,
                                       PolygonPore, MultiPolygonPore,
                                       plot_edges, isempty)
-from nanopores.tools.utilities import Log, union
+from nanopores.tools.utilities import Log
 
 default = dict(
     geoname = "cylpore",
@@ -19,9 +19,7 @@ default = dict(
     lcCenter = 0.5,
     hmem = 2.2,
     zmem = 0.,
-    # TODO: better default behaviour of crosssections
-    cs = (), # crosssections; list of z coordinates
-    # maybe TODO: add poreregion (and solve stokes only there?)
+    cs = None, # crosssections; list of z coordinates
     poreregion = False, # whether to include fluid above pore as subdomain
 
 )
@@ -29,11 +27,13 @@ default = dict(
 default_synonymes = dict(
     #subdomains
     bulkfluid = {"bulkfluid_top", "bulkfluid_bottom"},
-    fluid = {"bulkfluid", "pore"},
-    solid = {"membrane", "poresolid", "molecule"},
+    fluid = {"bulkfluid", "pore", "nearpore"},
+    nearpore = {"poreregion_top", "poreregion_bottom"},
+    poreregion = {"pore", "nearpore"},
+    solid = {"membrane", "poresolid", "molecules"},
     ions = "fluid",
     #boundaries
-    noslip = {"poresolidb", "memb", "moleculeb"},
+    noslip = {"poresolidb", "memb", "moleculesb"},
     bV = "lowerb",
     ground = "upperb",
     bulk = {"lowerb", "upperb"},
@@ -51,30 +51,24 @@ class Pore(PolygonPore):
         self.names = [name]
         PolygonPore.__init__(self, poly, name, **params)
 
-    def build(self, h=1.):
+    def build(self, h=1., subs=None, reconstruct=False):
         with Log("computing polygons..."):
             self.build_polygons()
             self.build_boundaries()
-        geo = self.build_geometry(h)
+        geo = self.build_geometry(h, subs, reconstruct)
         return geo
-    
-    def build_solid(self, h=1.):
-        "for visualization"
-        with Log("computing polygons..."):
-            self.build_polygons()
-            self.build_boundaries()
-        self.remove_fluid()
-        with Log("writing gmsh code..."):
-            code, meta = self.to_gmsh(h)
-        meta["params"] = dict(self.params)
-        self.geo = geofile2geo(code, meta, name=self.geoname)
-        return self.geo
 
-    def build_geometry(self, h=1.):
-        with Log("writing gmsh code..."):
-            code, meta = self.to_gmsh(h)
-        meta["params"] = dict(self.params)
-        self.geo = geofile2geo(code, meta, name=self.geoname)
+    def build_geometry(self, h=1., subs=None, reconstruct=False):
+        self.add_synonymes()
+        self.choose_domains(subs)
+        self.geo = None
+        if reconstruct:
+            self.geo = maybe_reconstruct_geo(params=self.params)
+        if self.geo is None:
+            with Log("writing gmsh code..."):
+                code, meta = self.to_gmsh(h)
+            meta["params"] = dict(self.params)
+            self.geo = geofile2geo(code, meta, name=self.geoname)
         self.finalize_geo(self.geo)
         return self.geo
 
@@ -82,40 +76,61 @@ class Pore(PolygonPore):
         geo.params = self.params
         geo.params["lscale"] = 1e9
         geo.params["lpore"] = self.lpore
-        self.add_synonymes(geo)
+        geo.import_synonymes(self.synonymes)
         self.add_curved_boundaries(geo)
 
-    def add_synonymes(self, geo):
+    def add_synonymes(self):
         # define porecurrent depending on molecule position
         porecurrent = "pore0"
         if porecurrent == self.where_is_molecule():
             porecurrent = "pore%d" % (self.nsections - 1,)
         dom = self.polygons[porecurrent]
-        geo.params["lporecurrent"] = dom.b[1] - dom.a[1]
+        self.params["lporecurrent"] = dom.b[1] - dom.a[1]
 
         poresolid = set(self.names)
         poresolidb = set([b for b in self.boundaries if any(
                          [b.startswith(name) for name in self.names])])
-        pore = set([p for p in self.polygons if p.startswith("pore")])
+        pore = set(["pore%d" % i for i in range(self.nsections)])
+        molecules = set(self.balls.keys())
+        moleculesb = set(name + "b" for name in self.balls)
         self.synonymes = dict(default_synonymes)
         self.synonymes.update(
             porecurrent = porecurrent,
             poresolid = poresolid,
             pore = pore,
             poresolidb = poresolidb,
+            molecules = molecules,
+            moleculesb = moleculesb,
         )
-        geo.import_synonymes(self.synonymes)
-
+    
+    def unpack_synonymes(self, syns):
+        if isinstance(syns, str):
+            syns = {syns}
+        domains = set()
+        for syn in syns:
+            if syn in self.domains:
+                domains.add(syn)
+            elif syn in self.synonymes:
+                domains |= self.unpack_synonymes(self.synonymes[syn])
+        return domains
+    
+    def choose_domains(self, subs):
+        if subs is None:
+            return
+        domains = self.unpack_synonymes(subs)
+        for dom in self.domains:
+            if not dom in domains:
+                self.domains.pop(dom)
+        
     def add_curved_boundaries(self, geo):
-        # TODO
-        if self.dim == 2:
-            if self.molecule:
-                molec = curved.Circle(self.params.rMolecule,
-                                      self.params.x0[::2])
-                geo.curved = dict(moleculeb = molec.snap)
-        elif self.dim == 3:
-            pass
-            
+        geo.curved = {}
+        for bname, ball in self.balls.items():
+            name = bname + "b"
+            if self.dim == 2:
+                subdomain = curved.Circle(ball.r, ball.x0)
+            elif self.dim == 3:
+                subdomain = curved.Sphere(ball.r, ball.x0)
+            geo.curved[name] = subdomain.snap     
 
     def to_gmsh(self, h=1.):
         # create mappings for nodes, edges
@@ -127,7 +142,7 @@ class Pore(PolygonPore):
         lcs = self.set_length_scales(h)
 
         # create volumes
-        for pname, p in self.balls.items() + self.polygons.items():
+        for pname, p in self.domains.items():
             gmsh.Comment("Creating %s subdomain." %pname)
             if isempty(p):
                 gmsh.NoPhysicalVolume(pname)
@@ -182,7 +197,7 @@ class Pore(PolygonPore):
         else:
             raise NotImplementedError
 
-    def BallSurfaces(self, ball, lc):
+    def BallSurfaces(self, ball, lc=1.):
         x0, r = tuple(ball.x0), ball.r
         if (x0, r) in self.gmsh_ball_surfs:
             return self.gmsh_ball_surfs[(x0, r)]
@@ -245,28 +260,42 @@ class Pore(PolygonPore):
         self.gmsh_edges[e] = gmsh_e
         self.gmsh_edges[e[::-1]] = "-" + gmsh_e
         return gmsh_e
+    
+    def get_boundary(self, e):
+        dim = self.dim
+        if dim == 2:
+            if e in self.gmsh_edges:
+                return [self.gmsh_edges[e]]
+        elif dim == 3:
+            if isinstance(e, Ball):
+                bdict = self.gmsh_ball_surfs
+                e = tuple(e.x0), e.r
+            else:
+                bdict = self.gmsh_cyl_surfs
+            if e in bdict:
+                return bdict[e]
+        return []            
 
     def PhysicalBoundary(self, bset, bname):
+        # should not create any new stuff
         gmsh.Comment("Creating %s boundary." %bname)
-        dim = self.dim
-        if not bset: # and not (dim == 3 and bname.startswith("molecule")):
-            gmsh.NoPhysicalSurface(bname)
-        elif dim == 2:
-            boundary = [self.Edge(e) for e in bset]
-            gmsh.PhysicalSurface(boundary, bname, dim)
+        boundary = [b for e in bset for b in self.get_boundary(e)]
+        if len(boundary) > 0:
+            gmsh.PhysicalSurface(boundary, bname, self.dim)
         else:
-            boundary = [s for e in bset for s in self.CylSurfaces(e)]
-            gmsh.PhysicalSurface(boundary, bname, dim)
+            gmsh.NoPhysicalSurface(bname)
 
 class MultiPore(MultiPolygonPore, Pore):
 
-    def __init__(self, polygons=None, **params):
+    def __init__(self, polygons=None, balls=None, **params):
         params = dict(default, **params)
         self.dim = params["dim"]
         self.geoname = params["geoname"] # name of folder where mesh is created
         MultiPolygonPore.__init__(self, **params)
         if polygons is not None:
             self.add_polygons(**polygons)
+        if balls is not None:
+            self.add_balls(**balls)
 
 FacetLoop = {
     1: lambda x: x,
@@ -284,18 +313,14 @@ def add_ball(m, r, lc):
     # add ball in 3D
     return gmsh.add_ball(m, r, lc, with_volume=False)[2]
 
-def get_geo(poly, h=1., reconstruct=False, **params):
-    p = Pore(poly, **params)
+def get_geo(poly, h=1., reconstruct=False, subs=None, **params):
+    pore = Pore(poly, **params)
+    geo = pore.build(h=h, reconstruct=reconstruct, subs=subs)
+    return geo
 
-    if reconstruct:
-        geo = maybe_reconstruct_geo(params=p.params)
-        if geo is not None:
-            p.build_polygons()
-            p.build_boundaries()
-            p.finalize_geo(geo)
-            return geo
-
-    geo = p.build(h=h)
+def get_geo_multi(polys, balls=None, h=1., reconstruct=False, subs=None, **params):
+    pore = MultiPore(polys, balls, **params)
+    geo = pore.build(h=h, reconstruct=reconstruct, subs=subs)
     return geo
 
 def maybe_reconstruct_geo(params=None):
@@ -315,20 +340,14 @@ if __name__ == "__main__":
         porename = "dna",
         H = 20.,
         R = 10.,
-        cs = [1.7, -1.7],
         x0 = [0.,0.,0.],
+        dim = 2,
+        subs = None,
     )
 
     dnapolygon = [[1, -5], [1, 5], [3, 5], [3, -5]]
-
-    geo = get_geo(dnapolygon, **params)
-    print geo
-    print "params", geo.params
-
-    geo.plot_subdomains()
-    geo.plot_boundaries(interactive=True)
-
-    # --- TEST
+    
+        # --- TEST
     p = MultiPore(dict(dna=dnapolygon), **params)
     p.build_polygons()
     p.build_boundaries()
@@ -338,11 +357,20 @@ if __name__ == "__main__":
     p.protein.plot(".k", zorder=100)
     #p.polygons["bulkfluid_top"].plot()
     p.polygons["pore0"].plot()
+    p.polygons["bulkfluid_top"].plot("--k")
+    p.polygons["bulkfluid_bottom"].plot("--k")
 
     plot_edges(p.boundaries["memb"], color="blue")
-    plot_edges(p.boundaries["lowerb"])
-    plot_edges(p.boundaries["upperb"])
+    plot_edges(p.boundaries["lowerb"], color="green")
+    plot_edges(p.boundaries["upperb"], color="green")
     plot_edges(p.boundaries["sideb"], color="yellow")
     plot_edges(p.boundaries["dnab"], color="red")
     showplots()
     # ---
+
+    geo = get_geo_multi(dict(dna=dnapolygon), **params)
+    print geo
+    print "params", geo.params
+
+    geo.plot_subdomains()
+    geo.plot_boundaries(interactive=True)

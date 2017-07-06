@@ -53,6 +53,20 @@ class Polygon(object):
         x = max(I.keys(), key=lambda t: t[0])
         self.add(x, I[x])
         return x
+    
+    def top_intersection(self, r):
+        I = self.intersections(r, 0)
+        if not I: return
+        x = max(I.keys(), key=lambda t: t[1])
+        self.add(x, I[x])
+        return x
+    
+    def bottom_intersection(self, r):
+        I = self.intersections(r, 0)
+        if not I: return
+        x = min(I.keys(), key=lambda t: t[1])
+        self.add(x, I[x])
+        return x
 
     def all_intersections(self, z, axis=1):
         I = self.intersections(z, axis)
@@ -71,7 +85,7 @@ class Polygon(object):
             return self.intersect_edge_vertical(edge, z)
         # return intersection points with line z=z
         # and vertices to provide context for insertion
-        x, y = edge
+        x, y = edge[0], edge[-1]
         x0, x1 = x
         y0, y1 = y
         # special case
@@ -219,6 +233,12 @@ class Polygon(object):
 
     def zmax(self):
         return max(self.nodes, key=lambda v: v[1])
+    
+    def set_corners(self, a, b, c, d):
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
 
     def nrange(self, a, b, sign=1):
         # return nodes that range from a to b (including b)
@@ -324,29 +344,25 @@ class MultiPolygon(Polygon):
 
 class Ball(object):
 
-    def __init__(self, x0, r, dim, lc=1.):
+    def __init__(self, x0, r, lc=1.):
         self.x0 = x0
         self.r = r
-        self.dim = dim
         self.lc = lc
-        if dim == 2:
-            self.z = z = x0[-1]
-            nodes = [(0, z-r), (0, z), (0, z+r)]
-            self.nodes = nodes
-            x1, x2, x3 = tuple(nodes)
-            self.edges = [(x3, x2), (x2, x1), (x1, x2, x3)]
-        else:
-            self.nodes = []
-            self.edges = []
+        # TODO: this makes only sense for 2D:
+        self.z = z = x0[-1]
+        nodes = [(0, z-r), (0, z), (0, z+r)]
+        self.nodes = nodes
+        x1, x2, x3 = tuple(nodes)
+        self.edges = [(x3, x2), (x2, x1), (x1, x2, x3)]
 
-    def boundary(self):
-        if self.dim == 2:
+    def boundary(self, dim):
+        if dim == 2:
             return {self.edges[2]}
         else:
-            return set()
+            return {self}
 
     def __repr__(self):
-        return "Ball(%s, %s, dim=%d, lc=%s)" % (self.x0, self.r, self.dim, self.lc)
+        return "Ball(%s, %s, lc=%s)" % (self.x0, self.r, self.lc)
 
 class EmptySet(object):
     def __init__(self):
@@ -385,8 +401,7 @@ class PolygonPore(object):
         if "x0" in self.params and self.params.x0 is not None:
             self.molecule = True
             lc = self.params.lcMolecule if "lcMolecule" in self.params else 1.
-            molecule = Ball(self.params.x0, self.params.rMolecule,
-                            self.params.dim, lc)
+            molecule = Ball(self.params.x0, self.params.rMolecule, lc)
         else:
             self.molecule = False
             molecule = EmptySet()
@@ -396,7 +411,7 @@ class PolygonPore(object):
         for pname, p in balls.items():
             if not isinstance(p, Ball):
                 x0, r = p
-                balls[pname] = Ball(x0, r, self.params.dim)
+                balls[pname] = Ball(x0, r)
         self.balls.update(balls)
 
     def build_polygons(self):
@@ -410,12 +425,15 @@ class PolygonPore(object):
 
         self.add_membrane()
 
-        cs = self.params.cs if "cs" in self.params else []
-        sections = self.add_poresections(cs=cs)
+        sections = self.add_poresections()
+        sections = self.add_poreregions(sections)
         self.add_bulkfluids(R, Htop, Hbot, sections)
         for ball in self.balls.values():
             self.add_molecule(ball)
 
+        # for easier handling of alls domains 
+        self.domains = self.balls.copy()
+        self.domains.update(self.polygons)
         return self.polygons
 
     def build_boundaries(self):
@@ -439,7 +457,7 @@ class PolygonPore(object):
 
         # molecule
         for bname, ball in self.balls.items():
-            boundaries.update({bname + "b": ball.boundary()})
+            boundaries.update({bname + "b": ball.boundary(self.params.dim)})
 
         return boundaries
 
@@ -461,17 +479,12 @@ class PolygonPore(object):
             return None
 
         domains = ["pore%d" % i for i in range(self.nsections)]
-        domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
+        if self.params.poreregion:
+            domains = ["poreregion_bottom"] + domains + ["poreregion_top"]
+        else:
+            domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
         i0 = bisect(self.cs, ball.x0[-1])
         return domains[i0]
-    
-    def remove_fluid(self):
-        domains = ["pore%d" % i for i in range(self.nsections)]
-        domains = ["bulkfluid_bottom"] + domains + ["bulkfluid_top"]
-        for dom in domains:
-            self.polygons.pop(dom)
-        for bou in ["upperb", "lowerb", "sideb"]:
-            self.boundaries.pop(bou)
 
     def add_molecule(self, ball):
         # do nothing if empty
@@ -490,11 +503,9 @@ class PolygonPore(object):
             return
 
         # in 2D, modify containing domain
-        a = domain.a
-        b = domain.b
         x1, x2, x3 = tuple(ball.nodes)
-        domain.add(x1, (a, b))
-        domain.add(x3, (x1, b))
+        domain.left_intersection(x1[1])
+        domain.left_intersection(x3[1])
         i = domain.edges.index((x1, x3))
         domain.edges[i] = (x1, x2, x3)
 
@@ -512,11 +523,15 @@ class PolygonPore(object):
         self.polygons["membrane"] = self.membrane
         return self.membrane
 
-    def add_poresections(self, cs=None, remove_intersections=True):
+    def add_poresections(self, remove_intersections=True):
         # cs ... crosssections
+        cs = self.params.cs if "cs" in self.params else None
         ztop = max(x[1] for x in self.protein.nodes)
         zbot = min(x[1] for x in self.protein.nodes)
-        cs = [] if cs is None else list(cs)
+        if cs is None:
+            cs = [zbot + i/3.*(ztop - zbot) for i in [1, 2]]
+        else:
+            cs = list(cs)
         assert all(zbot < z < ztop for z in cs)
         cs = [zbot] + sorted(cs) + [ztop]
         # do not add crosssections that intersect with molecule
@@ -532,6 +547,42 @@ class PolygonPore(object):
         self.lpore = ztop - zbot
         self.cs = cs
         self.polygons.update({name: s for name, s in zip(names, sections)})
+        return sections
+    
+    def add_poreregions(self, sections):
+        if not "poreregion" in self.params or not self.params.poreregion:
+            self.params.poreregion = False
+            self.polygons["poreregion_top"] = EmptySet()
+            self.polygons["poreregion_bottom"] = EmptySet()
+            return sections
+        if not "H0" in self.params:
+            self.params["H0"] = 0.5*(0.5*self.params.H + self.protein.zmax()[1])
+        if not "R0" in self.params:
+            self.params["R0"] = self.protein.rmax()[0]
+        H0 = self.params.H0
+        R0 = self.params.R0
+        
+        section = sections[-1]
+        a = section.b
+        d = self.protein.top_intersection(R0)
+        upper = self.protein.nrange(d, section.c, -1) + [a]
+        b, c = (0, H0), (R0, H0)
+        nodes = [b, c] + upper
+        prtop = Polygon(nodes)
+        prtop.set_corners(a, b, c, d)
+
+        section = sections[0]
+        b = section.a
+        c = self.protein.bottom_intersection(R0)
+        lower = [b] + self.protein.nrange(section.d, c, -1)
+        a, d = (0, -H0), (R0, -H0)
+        nodes = lower + [d, a]
+        prbot = Polygon(nodes)
+        prbot.set_corners(a, b, c, d)
+        
+        self.polygons["poreregion_top"] = prtop
+        self.polygons["poreregion_bottom"] = prbot
+        sections = [prbot] + list(sections) + [prtop]
         return sections
 
     def add_bulkfluids(self, R, Htop, Hbot, sections):
@@ -648,13 +699,16 @@ class MultiPolygonPore(PolygonPore):
         self.proteinb = OrderedDict(zip(bnames, self.protein.boundaries))
 
         self.add_membrane()
-        cs = self.params.cs if "cs" in self.params else []
-        sections = self.add_poresections(cs=cs)
+        sections = self.add_poresections()
+        sections = self.add_poreregions(sections)
         self.add_bulkfluids(R, Htop, Hbot, sections)
         self.polygons.update(zip(self.names, self.protein.polygons))
         for ball in self.balls.values():
             self.add_molecule(ball)
 
+        # for easier handling of alls domains 
+        self.domains = self.balls.copy()
+        self.domains.update(self.polygons)
         return self.polygons
 
     def build_boundaries(self):
@@ -669,8 +723,10 @@ class MultiPolygonPore(PolygonPore):
         sideb = btop.edgerange(btop.c, btop.d) | bbot.edgerange(bbot.c, bbot.d)
         boundaries.update(upperb=upperb, lowerb=lowerb, sideb=sideb)
 
-        fluid_polys = [btop, bbot] + [self.polygons[
-                        "pore%d" % i] for i in range(self.nsections)]
+        fluid_polys = [btop, bbot] + \
+            [self.polygons["poreregion_top"],
+             self.polygons["poreregion_bottom"]] + \
+            [self.polygons["pore%d" % i] for i in range(self.nsections)]
         fluid_edges = set([e[::-1] for p in fluid_polys for e in p.edges])
 
         # membrane-fluid boundary
@@ -687,7 +743,7 @@ class MultiPolygonPore(PolygonPore):
 
         # molecule
         for bname, ball in self.balls.items():
-            boundaries.update({bname + "b": ball.boundary()})
+            boundaries.update({bname + "b": ball.boundary(self.params.dim)})
 
         return boundaries
 
@@ -697,6 +753,17 @@ def join_nodes(polygons):
 
 def join_edges(polygons):
     return list(set([x for p in polygons for x in p.edges]))
+
+def joint_boundary(polygons):
+    "determine edges that do not feature twice"
+    edges = set()
+    for p in polygons:
+        for e in p.edges:
+            if e[::-1] in edges:
+                edges.remove(e[::-1])
+            else:
+                edges.add(e)
+    return list(edges)
 
 def top_edge_from_node(node, edges):
     edges = [e for e in edges if e[0]==node]
@@ -710,7 +777,7 @@ def bottom_edge_from_node(node, edges):
 
 def compute_upper_boundary(*polygons):
     allnodes = join_nodes(polygons)
-    edges = join_edges(polygons)
+    edges = joint_boundary(polygons)
     # start at top node with r=0, go until rmax
     x0 = max([x for x in allnodes if x[0]==0], key=lambda x: x[1])
     rmax = max([x[0] for x in allnodes])
@@ -723,7 +790,7 @@ def compute_upper_boundary(*polygons):
 
 def compute_lower_boundary(*polygons):
     allnodes = join_nodes(polygons)
-    edges = join_edges(polygons)
+    edges = joint_boundary(polygons)
     # start at bottom node with r=0, go until rmax
     x0 = min([x for x in allnodes if x[0]==0], key=lambda x: x[1])
     rmax = max([x[0] for x in allnodes])
@@ -733,9 +800,6 @@ def compute_lower_boundary(*polygons):
         x0 = edge[0]
         X.append(x0)
     return X
-
-def compute_right_boundary(poly):
-    pass
 
 def compute_disjoint_union(*polygons):
     """compute boundary of disjoint union of polygons,

@@ -37,7 +37,7 @@ class Circle(SubDomain):
         self.R, self.c, self.frac = R, center, frac
         
     def r(self, x):
-        return sqrt((x[0] - self.c[0])**2 + (x[1] - self.c[1])**2)
+        return sqrt((x[0] - self.c[0])**2 + (x[1] - self.c[-1])**2)
 
     def inside(self, x, _):
         return between(self.r(x), (0.*self.frac*self.R, 1./self.frac*self.R))

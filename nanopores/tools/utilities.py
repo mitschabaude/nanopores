@@ -383,6 +383,11 @@ def user_param(**params):
     "expect len(params) = 1"
     return user_params(**params)[params.keys()[0]]
 
+def any_params(**params):
+    args = _argparse()
+    params.update(args)
+    return Params(params)
+
 class Params(dict):
     "for writing params.Qmol instead of params['Qmol']"
     def __getattr__(self, key):
