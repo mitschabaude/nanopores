@@ -369,7 +369,7 @@ class EmptySet(object):
          self.nodes = []
          self.edges = []
 
-    def boundary(self):
+    def boundary(self, *args, **kwargs):
         return set()
 
     def __repr__(self):

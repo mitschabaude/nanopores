@@ -21,7 +21,6 @@ default = dict(
     zmem = 0.,
     cs = None, # crosssections; list of z coordinates
     poreregion = False, # whether to include fluid above pore as subdomain
-
 )
 
 default_synonymes = dict(
@@ -125,12 +124,13 @@ class Pore(PolygonPore):
     def add_curved_boundaries(self, geo):
         geo.curved = {}
         for bname, ball in self.balls.items():
-            name = bname + "b"
-            if self.dim == 2:
-                subdomain = curved.Circle(ball.r, ball.x0)
-            elif self.dim == 3:
-                subdomain = curved.Sphere(ball.r, ball.x0)
-            geo.curved[name] = subdomain.snap     
+            if not isempty(ball):
+                name = bname + "b"
+                if self.dim == 2:
+                    subdomain = curved.Circle(ball.r, ball.x0)
+                elif self.dim == 3:
+                    subdomain = curved.Sphere(ball.r, ball.x0)
+                geo.curved[name] = subdomain.snap     
 
     def to_gmsh(self, h=1.):
         # create mappings for nodes, edges

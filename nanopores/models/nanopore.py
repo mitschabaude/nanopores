@@ -7,14 +7,12 @@ import nanopores as nano
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
 import nanopores.tools.fields as fields
-# default geometry
-from nanopores.geometries.alphahem import get_geo as get_geo_default
+from nanopores.geometries.allpores import get_geo
 
 default = nano.Params(
 geop = nano.Params(
+    geoname = "wei",
     dim = 2,
-    R = 10.,
-    H = 15.,
     x0 = None,
     rMolecule = 0.5,
     reconstruct = False,
@@ -45,21 +43,15 @@ defaultp = default.geop | default.physp
 class Setup(solvers.Setup):
     default = default
 
-    def __init__(self, get_geo=None, create_geo=True,
+    def __init__(self, create_geo=True,
                  geop=None, physp=None, solverp=None, **params):
-        if get_geo is None:
-            get_geo = get_geo_default
-        self.get_geo = get_geo
-
         self.init_params(params, geop=geop, physp=physp, solverp=solverp)
         self.init_geo(create_geo)
         self.init_phys()
 
     def init_geo(self, create_geo=True):
-        print self.geop
         h = self.solverp.h
-        print "h", h
-        self.geo = self.get_geo(h=h, **self.geop) if create_geo else None
+        self.geo = get_geo(h=h, **self.geop) if create_geo else None
 
     def init_phys(self):
         cyl = self.geop.dim == 2
@@ -243,13 +235,13 @@ def Irho(Rho, **params):
 
 if __name__ == "__main__":
     params = nano.user_params(h=1., Nmax=1e4, dim=2, x0=[0,0,-8.5], ahemuniformqs=True)
-    ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
+    #ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
     setup = Setup(**params)
     print setup.geo.params
     print setup.physp
     print setup.solverp
     setup.geo.plot_boundaries(interactive=True)
-    exit()
+    #exit()
     _, pnps = solve(setup, True)
     print get_forces(setup, pnps)
 
