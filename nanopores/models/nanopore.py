@@ -113,7 +113,7 @@ def solve(setup, visualize=False):
 
     # TODO:
     # solve 1D problem for side BCs
-    #set_sideBCs(phys, setup.geop, setup.physp)
+    set_sideBCs(phys, setup.geop, setup.physp)
 
     # if given, use precomputed ion diffusivity
     set_D_from_data(phys, solverp.diffusivity_data)
@@ -130,6 +130,12 @@ def solve(setup, visualize=False):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
+            plotter.plot(cm, "cm")
+            R, H = tuple(setup.geo.params[s] for s in ["R", "H"])
+            #nano.plot1D(dict(cm=cm, cp=cp), dim=2, axis="y",
+            #            rng=(-H/2., H/2., 100), origin=[R, 0])
+            #dolfin.interactive()
+            #nano.showplots()
             #plotter.plot_vector(u, "velocity")
     print "CPU time (solve): %.3g s" %(dolfin.toc(),)
     return pb, pnps
@@ -167,39 +173,40 @@ def set_D_from_data(phys, data):
         D = dolfin.as_matrix(np.diag([D[i] for i in range(phys.dim)]))
         phys.update(Dp=D, Dm=D)
 
-#def solve1D(geop, physp):
-#    geo = pughpore.get_geo1D(lc=.01, **geop)
-#    phys = nano.Physics("pore", geo, **physp)
-#    pnp = nano.solve_pde(simplepnps.SimplePNPProblem, geo, phys)
-#    return geo, pnp
-#
-#def visualize1D(geo, pnp):
-#    v, cp, cm = pnp.solutions()
-#    h = geo.params["H"]
-#    nano.plot1D({"potential": v}, (-h/2, h/2, 1001),
-#                "x", dim=1, axlabels=("z [nm]", "potential [V]"))
-#    nano.plot1D({"c+": cp, "c-":cm},  (-h/2, h/2, 1001),
-#                "x", dim=1, axlabels=("z [nm]", "concentrations [mol/m^3]"))
-#
-#class u1D(dolfin.Expression):
-#    def __init__(self, u, damping=1., **kw):
-#        self.u = u
-#        self.damping = damping
-#        #dolfin.Expression.__init__(self)
-#
-#    def damp(self, scalar):
-#        self.damping *= scalar
-#
-#    def eval(self, value, x):
-#        dim = x.shape[0]
-#        value[0] = self.damping*self.u(x[dim-1])
-#
-#def set_sideBCs(phys, geop, physp):
-#    geo, pnp = solve1D(geop, physp)
-#    v, cp, cm = pnp.solutions()
-#    phys.v0["sideb"] = u1D(v, degree=1)
-#    phys.cp0["sideb"] = u1D(cp, degree=1)
-#    phys.cm0["sideb"] = u1D(cm, degree=1)
+def solve1D(geop, physp):
+    geop["dim"] = 1
+    geo = get_geo(h=.01, **geop)
+    phys = nano.Physics("pore", geo, **physp)
+    pnp = nano.solve_pde(simplepnps.SimplePNPProblem, geo, phys)
+    return geo, pnp
+
+def visualize1D(geo, pnp):
+    v, cp, cm = pnp.solutions()
+    h = geo.params["H"]
+    nano.plot1D({"potential": v}, (-h/2, h/2, 1001),
+                "x", dim=1, axlabels=("z [nm]", "potential [V]"))
+    nano.plot1D({"c+": cp, "c-":cm},  (-h/2, h/2, 1001),
+                "x", dim=1, axlabels=("z [nm]", "concentrations [mol/m^3]"))
+
+class u1D(dolfin.Expression):
+    def __init__(self, u, damping=1., **kw):
+        self.u = u
+        self.damping = damping
+        #dolfin.Expression.__init__(self)
+
+    def damp(self, scalar):
+        self.damping *= scalar
+
+    def eval(self, value, x):
+        dim = x.shape[0]
+        value[0] = self.damping*self.u(x[dim-1])
+
+def set_sideBCs(phys, geop, physp):
+    geo, pnp = solve1D(geop, physp)
+    v, cp, cm = pnp.solutions()
+    phys.v0["sideb"] = u1D(v, degree=1)
+    phys.cp0["sideb"] = u1D(cp, degree=1)
+    phys.cm0["sideb"] = u1D(cm, degree=1)
 
 def join_dicts(list):
     "[{'F':1.0}, {'F':2.0}, ...] --> {'F':[1.0, 2.0, ...]}"
@@ -240,16 +247,23 @@ def Irho(Rho, **params):
 
 if __name__ == "__main__":
     params = nano.any_params(
-        h = 1.,
-        Nmax = 1e4,
+        h = 5.,
+        Nmax = 4e4,
         dim = 2,
         x0 = [0, 0, 0],
         rMolecule = 4.,
-        reconstruct = True,
         lcMolecule = 0.05,
     )
     #ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
-    setup = Setup(**params)
+    print params
+    geop = dict(params)
+    geop.pop("h")
+    setup = Setup(geop=geop, **params)
+
+    #geo, pnp = solve1D(setup.geop, setup.physp)
+    #visualize1D(geo, pnp)
+    #nano.showplots()
+
     print setup.geo.params
     print setup.physp
     print setup.solverp
