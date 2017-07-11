@@ -122,6 +122,8 @@ class Pore(PolygonPore):
                 self.domains.pop(dom)
         
     def add_curved_boundaries(self, geo):
+        if self.dim == 1:
+            return
         geo.curved = {}
         for bname, ball in self.balls.items():
             if not isempty(ball):
@@ -174,17 +176,23 @@ class Pore(PolygonPore):
 
     def Volume(self, p, pname, lc):
         dim = self.dim
-
-        if dim == 2:
+        if dim == 1:
+            # only build right boundary
+            R = self.params.R
+            lines = [self.Edge(e, lc) for e in p.edges if e[0][0]==e[1][0]==R]
+            if len(lines) > 0:
+                gmsh.PhysicalVolume(lines, pname, dim)
+            else:
+                gmsh.NoPhysicalVolume(pname)
+            return
+        elif dim == 2:
             surfs = [self.Edge(edge, lc) for edge in p.edges]
         elif dim == 3:
             surfs = self.Surfaces(p, lc)
             if hasattr(p, "holes"):
                 for hole in p.holes:
                     surfs.extend(["-%s" % s for s in self.Surfaces(hole, lc)])
-        else:
-            raise NotImplementedError
-
+        
         ll = FacetLoop[dim](surfs)
         vol = Entity[dim](ll)
         gmsh.PhysicalVolume(vol, pname, dim)
@@ -235,8 +243,10 @@ class Pore(PolygonPore):
             return self.gmsh_nodes[x]
 
         #print x, lc
-        if self.dim < 3:
-            x1 = x + tuple(0. for i in range(3 - self.dim))
+        if self.dim == 1:
+            x1 = [x[1], 0., 0.]
+        elif self.dim == 2:
+            x1 = [x[0], x[1], 0.]
         else:
             x1 = [x[0], 0., x[1]]
         gmsh_x = gmsh.Point(x1, lc)
@@ -263,7 +273,16 @@ class Pore(PolygonPore):
     
     def get_boundary(self, e):
         dim = self.dim
-        if dim == 2:
+        if dim == 1:
+            R = self.params.R
+            x, y = e[0], e[-1]
+            if x[0] == y[0] == R:
+                return []
+            elif x[0] == R:
+                return [self.gmsh_nodes[x]]
+            elif y[0] == R:
+                return [self.gmsh_nodes[y]]
+        elif dim == 2:
             if e in self.gmsh_edges:
                 return [self.gmsh_edges[e]]
         elif dim == 3:

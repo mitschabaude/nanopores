@@ -21,6 +21,7 @@ volcharge.update(
 )
 permittivity.update(
     molecule = "permMol",
+    molecules = "permMol",
 )
 
 # geometry-dependent parameters

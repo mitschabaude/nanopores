@@ -15,7 +15,9 @@ geop = nano.Params(
     dim = 2,
     x0 = None,
     rMolecule = 0.5,
-    reconstruct = False,
+    receptor = None,
+    lcMolecule = 0.1,
+    lcCenter = 0.4,
 ),
 physp = nano.Params(
     Qmol = -1.,
@@ -37,6 +39,7 @@ solverp = nano.Params(
     cheapest = False,
     stokesiter = False, #True
     diffusivity_data = None,
+    reconstruct = False,
 ))
 defaultp = default.geop | default.physp
 
@@ -51,7 +54,9 @@ class Setup(solvers.Setup):
 
     def init_geo(self, create_geo=True):
         h = self.solverp.h
-        self.geo = get_geo(h=h, **self.geop) if create_geo else None
+        re = self.solverp.reconstruct
+        self.geo = get_geo(h=h, reconstruct=re,
+                           **self.geop) if create_geo else None
 
     def init_phys(self):
         cyl = self.geop.dim == 2
@@ -234,21 +239,31 @@ def Irho(Rho, **params):
     return result
 
 if __name__ == "__main__":
-    params = nano.user_params(h=1., Nmax=1e4, dim=2, x0=[0,0,-8.5], ahemuniformqs=True)
+    params = nano.any_params(
+        h = 1.,
+        Nmax = 1e4,
+        dim = 2,
+        x0 = [0, 0, 0],
+        rMolecule = 4.,
+        reconstruct = True,
+        lcMolecule = 0.05,
+    )
     #ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
     setup = Setup(**params)
     print setup.geo.params
     print setup.physp
     print setup.solverp
-    setup.geo.plot_boundaries(interactive=True)
+    setup.geo.plot_subdomains()
     #exit()
+    #print setup.phys.permittivity
+    #dolfin.plot(setup.geo.pwconst("permittivity"), interactive=True)
     _, pnps = solve(setup, True)
     print get_forces(setup, pnps)
 
     plotter = Plotter(setup)
     v, cp, cm, u, p = pnps.solutions()
     plotter.plot_vector(u, "velocity")
-    #plotter.plot(cm, "cm")
-    #plotter.plot(cp, "cp")
+    plotter.plot(cm, "cm")
+    plotter.plot(cp, "cp")
     #plotter.plot(p, "p")
     dolfin.interactive()

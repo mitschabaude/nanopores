@@ -358,8 +358,10 @@ class Ball(object):
     def boundary(self, dim):
         if dim == 2:
             return {self.edges[2]}
-        else:
+        elif dim == 3:
             return {self}
+        elif dim == 1:
+            return set()
 
     def __repr__(self):
         return "Ball(%s, %s, lc=%s)" % (self.x0, self.r, self.lc)
@@ -556,17 +558,19 @@ class PolygonPore(object):
             self.polygons["poreregion_bottom"] = EmptySet()
             return sections
         if not "H0" in self.params:
-            self.params["H0"] = 0.5*(0.5*self.params.H + self.protein.zmax()[1])
+            self.params["H0"] = 0.5*self.params.H + self.protein.zmax()[1]
         if not "R0" in self.params:
             self.params["R0"] = self.protein.rmax()[0]
         H0 = self.params.H0
         R0 = self.params.R0
+        H0top = H0bot = H0/2.
+        #print self.protein.zmax()[1], H0top, self.params.H*0.5
         
         section = sections[-1]
         a = section.b
         d = self.protein.top_intersection(R0)
         upper = self.protein.nrange(d, section.c, -1) + [a]
-        b, c = (0, H0), (R0, H0)
+        b, c = (0, H0top), (R0, H0top)
         nodes = [b, c] + upper
         prtop = Polygon(nodes)
         prtop.set_corners(a, b, c, d)
@@ -575,7 +579,7 @@ class PolygonPore(object):
         b = section.a
         c = self.protein.bottom_intersection(R0)
         lower = [b] + self.protein.nrange(section.d, c, -1)
-        a, d = (0, -H0), (R0, -H0)
+        a, d = (0, -H0bot), (R0, -H0bot)
         nodes = lower + [d, a]
         prbot = Polygon(nodes)
         prbot.set_corners(a, b, c, d)

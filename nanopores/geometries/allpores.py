@@ -93,7 +93,7 @@ class WeiPore(BasePore):
         R = 100.,
         R0 = 60.,
         H = 150.,
-        H0 = 70.,
+        #H0 = 70.,
         x0 = [0, 0, 46],
         rMolecule = 2.1,
         dim = 3,
@@ -146,7 +146,7 @@ class WeiPore(BasePore):
         
         if params.receptor is not None:
             receptor = polygons.Ball(params.receptor, params.rReceptor, lc=0.1)
-        p.add_balls(receptor=receptor)
+            p.add_balls(receptor=receptor)
         geo = p.build(self.h, params.subs, self.reconstruct)
         return geo
     
@@ -159,5 +159,7 @@ geometries = dict(
 if __name__ == "__main__":
     params = any_params(geoname="wei", h=10.)
     geo = get_geo(**params)
+    print geo
+    print geo.mesh.coordinates()
     geo.plot_subdomains()
     geo.plot_boundaries(interactive=True)
