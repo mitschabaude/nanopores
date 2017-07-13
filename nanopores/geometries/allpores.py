@@ -22,6 +22,11 @@ def get_geo(geoname=None, **params):
     params["geoname"] = geoname
     return geoclass.get_geo(**params)
 
+def get_pore(geoname=None, **params):
+    geoclass = geometries[geoname]()
+    params["geoname"] = geoname
+    return geoclass.get_pore(**params)
+
 class BasePore(object):
 
     def get_geo(self, h=1., reconstruct=False, **params):
@@ -29,6 +34,13 @@ class BasePore(object):
         self.h = h
         self.reconstruct = reconstruct
         return self.build()
+
+    def get_pore(self, **params):
+        self.params = Params(self.default, **params)
+        pore = self.pore()
+        pore.build_polygons()
+        pore.build_boundaries()
+        return pore
 
 class PughPore(BasePore):
 
@@ -80,10 +92,11 @@ class AlphaHem(BasePore):
         subs = None,
     )
 
+    def pore(self):
+        return Pore(alphahempoly, porename="alphahem", **self.params)
+
     def build(self):
-        #pore = MultiPore(**self.params)
-        #pore.add_polygons(alphahem=alphahempoly)
-        pore = Pore(alphahempoly, porename="alphahem", **self.params)
+        pore = self.pore()
         geo = pore.build(self.h, self.params.subs, self.reconstruct)
         return geo
 
@@ -138,7 +151,7 @@ class WeiPore(BasePore):
         sin = [au[5], au[4], au[3], [R, -l]]
         return sam, au, sin, Rsplit
 
-    def build(self):
+    def pore(self):
         params = self.params
         sam, au, sin, Rsplit = self.polygons(params)
 
@@ -158,10 +171,12 @@ class WeiPore(BasePore):
         if params.receptor is not None:
             receptor = polygons.Ball(params.receptor, params.rReceptor, lc=0.1)
             pore.add_balls(receptor=receptor)
-        geo = pore.build(self.h, params.subs, self.reconstruct)
+        return pore
+
+    def build(self):
+        pore = self.pore()
+        geo = pore.build(self.h, self.params.subs, self.reconstruct)
         return geo
-
-
 
 geometries = dict(
     wei = WeiPore,
