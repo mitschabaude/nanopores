@@ -31,6 +31,9 @@ class Polygon(object):
     def __repr__(self):
         return "Polygon(%s)" % (self.nodes,)
 
+    def copy(self):
+        return Polygon(self.nodes)
+
     def init_edges(self):
         nodes = self.nodes
         self.edges = zip(nodes, nodes[1:] + nodes[0:1])
@@ -53,14 +56,14 @@ class Polygon(object):
         x = max(I.keys(), key=lambda t: t[0])
         self.add(x, I[x])
         return x
-    
+
     def top_intersection(self, r):
         I = self.intersections(r, 0)
         if not I: return
         x = max(I.keys(), key=lambda t: t[1])
         self.add(x, I[x])
         return x
-    
+
     def bottom_intersection(self, r):
         I = self.intersections(r, 0)
         if not I: return
@@ -222,6 +225,23 @@ class Polygon(object):
             if nextnode[0] > node[0]:
                 self.cut_path(node, nodes[i+1])
 
+    def cut_from_left(self, r):
+        nodes = self.all_intersections(r, 0)
+        nodes = sorted(nodes, key=lambda x: x[1])
+        n = self.len()
+        for i, node in enumerate(nodes):
+            # check whether nodes in between are left or right of line
+            j = self.nodes.index(node)
+            nextnode = self.nodes[(j+1) % n]
+            if nextnode[0] < node[0]:
+                self.cut_path(node, nodes[i+1])
+
+    def split(self, r):
+        p, q = self.copy(), self.copy()
+        p.cut_from_right(r)
+        q.cut_from_left(r)
+        return p, q
+
     def rmin(self):
         return min(self.nodes, key=lambda v: v[0])
 
@@ -233,7 +253,7 @@ class Polygon(object):
 
     def zmax(self):
         return max(self.nodes, key=lambda v: v[1])
-    
+
     def set_corners(self, a, b, c, d):
         self.a = a
         self.b = b
@@ -342,6 +362,12 @@ class MultiPolygon(Polygon):
                 p.cut_from_right(r)
             self.__init__(*self.polygons)
 
+    def cut_from_left(self, r):
+        if r <= self.rmax()[0]:
+            for p in self.polygons:
+                p.cut_from_left(r)
+            self.__init__(*self.polygons)
+
 class Ball(object):
 
     def __init__(self, x0, r, lc=1.):
@@ -433,7 +459,7 @@ class PolygonPore(object):
         for ball in self.balls.values():
             self.add_molecule(ball)
 
-        # for easier handling of alls domains 
+        # for easier handling of alls domains
         self.domains = self.balls.copy()
         self.domains.update(self.polygons)
         return self.polygons
@@ -550,7 +576,7 @@ class PolygonPore(object):
         self.cs = cs
         self.polygons.update({name: s for name, s in zip(names, sections)})
         return sections
-    
+
     def add_poreregions(self, sections):
         if not "poreregion" in self.params or not self.params.poreregion:
             self.params.poreregion = False
@@ -565,7 +591,7 @@ class PolygonPore(object):
         R0 = self.params.R0
         H0top = H0bot = H0/2.
         #print self.protein.zmax()[1], H0top, self.params.H*0.5
-        
+
         section = sections[-1]
         a = section.b
         d = self.protein.top_intersection(R0)
@@ -583,7 +609,7 @@ class PolygonPore(object):
         nodes = lower + [d, a]
         prbot = Polygon(nodes)
         prbot.set_corners(a, b, c, d)
-        
+
         self.polygons["poreregion_top"] = prtop
         self.polygons["poreregion_bottom"] = prbot
         sections = [prbot] + list(sections) + [prtop]
@@ -710,7 +736,7 @@ class MultiPolygonPore(PolygonPore):
         for ball in self.balls.values():
             self.add_molecule(ball)
 
-        # for easier handling of alls domains 
+        # for easier handling of alls domains
         self.domains = self.balls.copy()
         self.domains.update(self.polygons)
         return self.polygons

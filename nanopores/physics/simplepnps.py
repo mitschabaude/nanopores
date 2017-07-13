@@ -319,7 +319,8 @@ class SimpleStokesProblem(GeneralLinearProblem):
 
 
     @staticmethod
-    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True):
+    def forms(V, geo, phys, f=None, cyl=False, beta=.01, conservative=True,
+              fluid="fluid"):
         # beta = stabilization parameter, TODO: better lower in 2D?
         mesh = geo.mesh
         if f is None:
@@ -333,7 +334,7 @@ class SimpleStokesProblem(GeneralLinearProblem):
         div = phys.div
         lscale = phys.lscale
 
-        dx = geo.dx("fluid")
+        dx = geo.dx(fluid)
         r = Expression("x[0]/L", L=Constant(lscale), degree=1)
         pi2 = Constant(2.*pi)
         h = CellSize(mesh)

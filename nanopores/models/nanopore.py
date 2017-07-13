@@ -40,6 +40,8 @@ solverp = nano.Params(
     stokesiter = False, #True
     diffusivity_data = None,
     reconstruct = False,
+    fluid = "fluid",
+    hybrid = True,
 ))
 defaultp = default.geop | default.physp
 
@@ -64,7 +66,6 @@ class Setup(solvers.Setup):
 
     def prerefine(self, visualize=False):
         return prerefine(self, visualize=visualize)
-
 
 class Plotter(object):
     def __init__(self, setup=None, dim=3):
@@ -93,11 +94,11 @@ class Plotter(object):
         elif self.dim == 2:
             dolfin.plot(u, title=title, key=title, **kwargs)
 
-    def plot_vector(self, u, title="u"):
+    def plot_vector(self, u, title="u", **kwargs):
         if self.dim == 3:
-            nano.plot_cross_vector(u, self.mesh2D, title=title, key=title)
+            nano.plot_cross_vector(u, self.mesh2D, title=title, key=title, **kwargs)
         elif self.dim == 2:
-            dolfin.plot(u, title=title, key=title)
+            dolfin.plot(u, title=title, key=title, **kwargs)
 
 def solve(setup, visualize=False):
     geo, phys, solverp = setup.geo, setup.phys, setup.solverp
@@ -118,19 +119,27 @@ def solve(setup, visualize=False):
     # if given, use precomputed ion diffusivity
     set_D_from_data(phys, solverp.diffusivity_data)
 
-    pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
-               verbose=True, tolnewton=solverp.tol, #taylorhood=True,
-               stokesiter=(it and solverp.stokesiter), iterative=it,
-               cyl=phys.cyl)
+    if solverp.hybrid:
+        pnps = simplepnps.PNPSHybrid(geo, phys, ipicard=solverp.imax,
+                   verbose=True, nverbose=True, tolnewton=solverp.tol, #taylorhood=True,
+                   stokesiter=(it and solverp.stokesiter), iterative=it,
+                   cyl=phys.cyl, fluid=solverp.fluid)
+    else:
+        pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
+                   verbose=True, tolnewton=solverp.tol, #taylorhood=True,
+                   stokesiter=(it and solverp.stokesiter), iterative=it,
+                   cyl=phys.cyl, fluid=solverp.fluid)
+    #v, cp, cm, u, p = pnps.solutions()
+    #plotter.plot(cm, "cm", interactive=True)
 
     print "Number of cells:", geo.mesh.num_cells()
     print "DOFs:", pnps.dofs()
     dolfin.tic()
-    for i in pnps.fixedpoint(ipnp=6):
+    for i in pnps.fixedpoint(): #ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
-            plotter.plot(cm, "cm")
+            #plotter.plot(cm, "cm")
             R, H = tuple(setup.geo.params[s] for s in ["R", "H"])
             #nano.plot1D(dict(cm=cm, cp=cp), dim=2, axis="y",
             #            rng=(-H/2., H/2., 100), origin=[R, 0])
@@ -250,7 +259,7 @@ if __name__ == "__main__":
         h = 5.,
         Nmax = 4e4,
         dim = 2,
-        x0 = [0, 0, 0],
+        x0 = [0, 0, -45.],
         rMolecule = 4.,
         lcMolecule = 0.05,
     )

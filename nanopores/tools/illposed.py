@@ -241,7 +241,10 @@ class AdaptableNonlinearProblem(AdaptableLinearProblem):
         self.bcs1 = _extract_bcs(bcs)
         bcs0 = []
         for bc in bcs:
+            #print bc
+            #plot(self.uold.sub(0), title="before")
             bc.apply(self.uold.vector())
+            #plot(self.uold.sub(0), title="after")
             bcs0.append(bc.homogenized()) # FIXME: this severely limits bcs to PhysicalBC type
 
         u = Function(self.uold.function_space())

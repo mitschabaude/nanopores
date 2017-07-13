@@ -31,7 +31,7 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
     U = np.zeros((Ny,Nx))
     V = np.zeros((Ny,Nx))
     formt = matplotlib.ticker.FuncFormatter(exp_format)
-    ticks = [0] + [10**n for n in range(-16, -9)]
+    ticks = [0] + [10**n for n in range(-16, -8)]
 
     # determine uniform color range from fields (maybe round to nearest 10-power)
     if maxvalue is None:

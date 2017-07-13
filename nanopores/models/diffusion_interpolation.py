@@ -100,7 +100,8 @@ def diffusivity_field(setup, r, ddata_r=None, ddata_z=None,
     VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
     normal = dolfin.project(dolfin.grad(dist), VV)
 
-    D0 = setup.phys.D
+    phys = setup.phys
+    D0 = phys.kT / (6.*np.pi*phys.eta*r*1e-9)
 
     def DPore(x, i):
         r = dist(x)
@@ -188,7 +189,8 @@ def diffusivity_field_simple(setup, r, ddata_bulk, boundary="poresolidb"):
     VV = dolfin.VectorFunctionSpace(setup.geo.mesh, "CG", 1)
     normal = dolfin.project(dolfin.grad(dist), VV)
 
-    D0 = setup.phys.D
+    phys = setup.phys
+    D0 = phys.kT / (6.*np.pi*phys.eta*r*1e-9)
 
     def DBulk(x, i):
         r = dist(x)

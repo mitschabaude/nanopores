@@ -32,7 +32,7 @@ default_synonymes = dict(
     solid = {"membrane", "poresolid", "molecules"},
     ions = "fluid",
     #boundaries
-    noslip = {"poresolidb", "memb", "moleculesb"},
+    noslip = {"poresolidb", "memb", "moleculesb", "sideb"},
     bV = "lowerb",
     ground = "upperb",
     bulk = {"lowerb", "upperb"},
@@ -92,7 +92,9 @@ class Pore(PolygonPore):
         pore = set(["pore%d" % i for i in range(self.nsections)])
         molecules = set(self.balls.keys())
         moleculesb = set(name + "b" for name in self.balls)
-        self.synonymes = dict(default_synonymes)
+        if not hasattr(self, "synonymes"):
+            self.synonymes = dict()
+        self.synonymes.update(default_synonymes)
         self.synonymes.update(
             porecurrent = porecurrent,
             poresolid = poresolid,
@@ -101,7 +103,7 @@ class Pore(PolygonPore):
             molecules = molecules,
             moleculesb = moleculesb,
         )
-    
+
     def unpack_synonymes(self, syns):
         if isinstance(syns, str):
             syns = {syns}
@@ -112,7 +114,7 @@ class Pore(PolygonPore):
             elif syn in self.synonymes:
                 domains |= self.unpack_synonymes(self.synonymes[syn])
         return domains
-    
+
     def choose_domains(self, subs):
         if subs is None:
             return
@@ -120,7 +122,7 @@ class Pore(PolygonPore):
         for dom in self.domains:
             if not dom in domains:
                 self.domains.pop(dom)
-        
+
     def add_curved_boundaries(self, geo):
         if self.dim == 1:
             return
@@ -132,7 +134,7 @@ class Pore(PolygonPore):
                     subdomain = curved.Circle(ball.r, ball.x0)
                 elif self.dim == 3:
                     subdomain = curved.Sphere(ball.r, ball.x0)
-                geo.curved[name] = subdomain.snap     
+                geo.curved[name] = subdomain.snap
 
     def to_gmsh(self, h=1.):
         # create mappings for nodes, edges
@@ -192,7 +194,7 @@ class Pore(PolygonPore):
             if hasattr(p, "holes"):
                 for hole in p.holes:
                     surfs.extend(["-%s" % s for s in self.Surfaces(hole, lc)])
-        
+
         ll = FacetLoop[dim](surfs)
         vol = Entity[dim](ll)
         gmsh.PhysicalVolume(vol, pname, dim)
@@ -270,7 +272,7 @@ class Pore(PolygonPore):
         self.gmsh_edges[e] = gmsh_e
         self.gmsh_edges[e[::-1]] = "-" + gmsh_e
         return gmsh_e
-    
+
     def get_boundary(self, e):
         dim = self.dim
         if dim == 1:
@@ -293,7 +295,7 @@ class Pore(PolygonPore):
                 bdict = self.gmsh_cyl_surfs
             if e in bdict:
                 return bdict[e]
-        return []            
+        return []
 
     def PhysicalBoundary(self, bset, bname):
         # should not create any new stuff
@@ -365,7 +367,7 @@ if __name__ == "__main__":
     )
 
     dnapolygon = [[1, -5], [1, 5], [3, 5], [3, -5]]
-    
+
         # --- TEST
     p = MultiPore(dict(dna=dnapolygon), **params)
     p.build_polygons()

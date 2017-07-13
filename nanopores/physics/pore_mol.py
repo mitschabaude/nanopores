@@ -25,7 +25,7 @@ permittivity.update(
 )
 
 # geometry-dependent parameters
-def Moleculeqv(geo, Qmolq, lscale, r2pi): # 
+def Moleculeqv(geo, Qmolq, lscale, r2pi): #
     "Molecule volume charge density [C/nm**3], adapted to discrete volume"
     scale = dolfin.Constant(1.0/lscale**3)
     r = scale*r2pi
@@ -34,9 +34,29 @@ def Moleculeqv(geo, Qmolq, lscale, r2pi): #
         return Qmolq/vol if vol > 0. else 0.
     const = geo.constant("Moleculeqv", compute)
     return const
-    
+
 def rTarget(geo, lscale):
     return geo.params["rMolecule"]/lscale
+
+def ForceField(geo, grad, qTarget, rTarget):
+    def Forces0(v, u, subdomain=None):
+        E = -grad(v)
+        pi = 3.141592653589793
+        Fel = dolfin.Constant(qTarget)*E
+        Fdrag = dolfin.Constant(6.*pi*eta*rTarget)*u
+        F = Fel + Fdrag
+
+        # projecting
+        if subdomain is not None:
+            mesh = geo.submesh(subdomain)
+        else:
+            mesh = geo.mesh
+        V = dolfin.VectorFunctionSpace(mesh, "CG", 1)
+        Fel = dolfin.project(Fel, V)
+        Fdrag = dolfin.project(Fdrag, V)
+        F = dolfin.project(F, V)
+        return F, Fel, Fdrag
+    return Forces0
 
 # goal functionals of various continuous quantities
 def Fbare(geo, r2pi, Moleculeqv, grad, invscale):
@@ -45,7 +65,7 @@ def Fbare(geo, r2pi, Moleculeqv, grad, invscale):
         #scale = dolfin.Constant(lscale**(-3))
         return Moleculeqv*(-r2pi*grad(v)[i])*dx
     return _Fel
-    
+
 # results functionals
 def ForcesPNPS(geo, Moleculeqv, div, grad, eta, r2pi,
                invscale, dim, cFarad, pscale):
@@ -60,30 +80,30 @@ def ForcesPNPS(geo, Moleculeqv, div, grad, eta, r2pi,
         sym = dolfin.sym
         inner = dolfin.inner
         V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
-        
+
         Farad = dolfin.Constant(cFarad)
         fstokes = -Farad*(cp - cm)*grad(v)
 
         F_dict = dict(Fel=[], Fdrag=[])
         for i in range(dim):
             Fbarevol = rho0*(-grad(v)[i]) * r2pi*invscale(3)*dx
-            
+
             ei = tuple((1. if j==i else 0.) for j in range(dim))
             ei = dolfin.Constant(ei)
             uaux = dolfin.Function(V)
             geo.BC(V, ei, "moleculeb").apply(uaux.vector())
-            
+
             Fdragvol = -(-inner(fstokes, uaux) + \
                 eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
                 div(uaux)*p)* r2pi*invscale(3)*dxf
-                
+
             F_dict["Fel"].append(dolfin.assemble(Fbarevol))
             F_dict["Fdrag"].append(dolfin.assemble(Fdragvol))
-            
+
         F_dict["F"] = [Fe+Fd for Fe, Fd in zip(F_dict["Fel"], F_dict["Fdrag"])]
         return F_dict
     return _forces
-    
+
 def Fdrag(geo, div, grad, eta, r2pi, invscale, dim, pscale):
     "Drag force on Stokes solution with zero RHS"
     def _force(U):
@@ -94,20 +114,17 @@ def Fdrag(geo, div, grad, eta, r2pi, invscale, dim, pscale):
         sym = dolfin.sym
         inner = dolfin.inner
         V = dolfin.VectorFunctionSpace(geo.mesh, "CG", 1)
-    
+
         F_dict = dict(Fdrag=[])
-        for i in range(dim):        
+        for i in range(dim):
             ei = tuple((1. if j==i else 0.) for j in range(dim))
             ei = dolfin.Constant(ei)
             uaux = dolfin.Function(V)
             geo.BC(V, ei, "moleculeb").apply(uaux.vector())
-            
+
             Fdragvol = -(eta2*inner(sym(grad(u)), sym(grad(uaux))) + \
                          div(uaux)*p)* r2pi*invscale(3)*dxf
 
             F_dict["Fdrag"].append(dolfin.assemble(Fdragvol))
         return F_dict
     return _force
-
-                
-    

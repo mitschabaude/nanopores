@@ -548,7 +548,7 @@ def _load_function(FILE, mesh, rank):
     V = _space(mesh, rank)
     return dolfin.Function(V, str(os.path.join(DIR, FILE)))
 
-def get_functions(name, **params):
+def get_functions(name, *keys, **params):
     data = load_file(name, **params)
     if data["empty"]:
         return dict(), None
@@ -560,6 +560,8 @@ def get_functions(name, **params):
         FFILE = PREFIX + "_" + fname + ".xml"
         functions[fname] = _load_function(FFILE, mesh, rank)
 
+    if keys:
+        return tuple([functions[key] for key in keys])
     return functions, mesh
 
 def remove_functions(name, **params):

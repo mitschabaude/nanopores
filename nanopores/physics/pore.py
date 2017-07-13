@@ -49,8 +49,8 @@ permittivity.update(
 surfcharge = dict( # surface charge densities for Neumann RHS
     memb = "Membraneqs",
     chargeddnab = "DNAqs",
-    sinb = "SiNqs",
-    samb = "SAMqs",
+    chargedsinb = "SiNqs",
+    chargedsamb = "SAMqs",
     ahemb = "ahemqs",
     alphahemb = "ahemqs",
 )
