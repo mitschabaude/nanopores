@@ -416,7 +416,7 @@ def convert3D(mesh3D, *forces):
         return dolfin.sqrt(x**2 + y**2)
 
     class Convert3DExpression(dolfin.Expression):
-        def __init__(self, F):
+        def __init__(self, F, **kwargs):
             self.F = F
         def value_shape(self):
             return (3,)
@@ -432,10 +432,11 @@ def convert3D(mesh3D, *forces):
                 value[1] = x[1]/r*F[0]
                 value[2] = F[1]
 
-    U = dolfin.FunctionSpace(mesh3D, "CG", 1)
-    V = dolfin.MixedFunctionSpace([U, U, U])
+    #U = dolfin.FunctionSpace(mesh3D, "CG", 1)
+    #V = dolfin.MixedFunctionSpace([U, U, U])
+    V = dolfin.VectorFunctionSpace(mesh3D, "CG", 1)
     def to3D(F):
-        F2 = dolfin.project(Convert3DExpression(F), V)
+        F2 = dolfin.project(Convert3DExpression(F, degree=1), V)
         #F2 = dolfin.Function(V)
         #F2.interpolate(Convert3DExpression(F))
         return F2
@@ -445,7 +446,7 @@ def convert2D(mesh2D, *forces):
     "convert force from axisymmetric 2D simulation to 2D vector function"
     dolfin.parameters['allow_extrapolation'] = False
     class Convert2DExpression(dolfin.Expression):
-        def __init__(self, F):
+        def __init__(self, F, **kwargs):
             self.F = F
         def value_shape(self):
             return (2,)
@@ -459,10 +460,11 @@ def convert2D(mesh2D, *forces):
                 value[0] = x[0]/r*F[0]
                 value[1] = F[1]
 
-    U = dolfin.FunctionSpace(mesh2D, "CG", 1)
-    V = dolfin.MixedFunctionSpace([U, U])
+    #U = dolfin.FunctionSpace(mesh2D, "CG", 1)
+    #V = dolfin.MixedFunctionSpace([U, U])
+    V = dolfin.VectorFunctionSpace(mesh2D, "CG", 1)
     def to2D(F):
-        F2 = dolfin.project(Convert2DExpression(F), V)
+        F2 = dolfin.project(Convert2DExpression(F, degree=1), V)
         #F2 = dolfin.Function(V)
         #F2.interpolate(Convert3DExpression(F))
         return F2

@@ -253,6 +253,14 @@ class Polygon(object):
 
     def zmax(self):
         return max(self.nodes, key=lambda v: v[1])
+    
+    def radiustop(self):
+        zmax = max(x[1] for x in self.nodes)
+        return min(x[0] for x in self.nodes if x[1]==zmax)
+    
+    def radiusbottom(self):
+        zmin = min(x[1] for x in self.nodes)
+        return min(x[0] for x in self.nodes if x[1]==zmin)
 
     def set_corners(self, a, b, c, d):
         self.a = a

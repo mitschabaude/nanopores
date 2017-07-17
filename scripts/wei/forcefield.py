@@ -60,3 +60,8 @@ if __name__ == "__main__":
         plt = nanopore.Plotter(dim=2)
         #plt.plot(dist, "dist")
         plt.plot(D[1], "D", interactive=True)
+
+for x in [0.,0.], [0.,1.]:
+    print "x", x
+    print "D", D(x)
+    print "F", F(x)
