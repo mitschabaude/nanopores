@@ -3,6 +3,7 @@
 but this seems to be too hard without relying on external software.
 now it is simply for preparing the polygons involved in a pore geometry where
 only the pore protein crosssection and parameters have to be plugged in."""
+import numpy as np
 from bisect import bisect
 from collections import OrderedDict
 from matplotlib import pyplot as plt
@@ -30,6 +31,9 @@ class Polygon(object):
 
     def __repr__(self):
         return "Polygon(%s)" % (self.nodes,)
+    
+    def __contains__(self, x):
+        return winding_number(self, np.array([x])) > 0
 
     def copy(self):
         return Polygon(self.nodes)
@@ -37,6 +41,9 @@ class Polygon(object):
     def init_edges(self):
         nodes = self.nodes
         self.edges = zip(nodes, nodes[1:] + nodes[0:1])
+        
+    def inside(self, x):
+        return winding_number(self, x) > 0
 
     def intersections(self, z, axis=1):
         z = float(z)
@@ -883,6 +890,35 @@ def is_a_hole(poly):
     # s = twice the signed area
     s = sum((e[-1][0] - e[0][0])*(e[-1][1] + e[0][1]) for e in poly.edges)
     return s < 0.
+
+"""winding number algorithm from
+http://geomalgorithms.com/a03-_inclusion.html,
+implemented for array of points at once."""
+
+def winding_number(poly, x):
+    "return array of winding numbers of poly around points x"
+    wn = np.zeros(x.shape[0], dtype=int)
+    for e in poly.edges:
+        v0, v1 = e
+        lor = left_on_right(v0, v1, x)
+        is_left = lor > 0
+        is_right = lor < 0
+        upward_crossing = (v0[1] <= x[:, 1]) & (v1[1] > x[:, 1])
+        downward_crossing = (v0[1] > x[:, 1]) & (v1[1] <= x[:, 1])
+        wn[upward_crossing & is_left] += 1
+        wn[downward_crossing & is_right] -= 1
+    return -wn # minus because winding convention of edges is wrong
+
+def left_on_right(v0, v1, x):
+    """tests whether point x is left (output>0), on (=0), or right (<0)
+    of the infinite line defined by v0, v1. x is many points as (N, 2) array"""
+    return (v1[0] - v0[0])*(x[:,1] - v0[1]) - (x[:,0] - v0[0])*(v1[1] - v0[1])
+    
+#def is_left(v0, v1, x):
+#    return left_on_right(e, x) > 0.
+#
+#def is_right(v0, v1, x):
+#    return left_on_right(e, x) < 0.
 
 def union_example():
     A = Polygon([(0., 0.), (0., 3.), (1., 3.), (1., 2.), (1., 1.), (1., 0.)])
