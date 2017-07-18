@@ -7,6 +7,7 @@ import numpy as np
 from bisect import bisect
 from collections import OrderedDict
 from matplotlib import pyplot as plt
+import matplotlib.path as mpath
 from nanopores.tools.utilities import Params
 
 # convention:
@@ -31,7 +32,7 @@ class Polygon(object):
 
     def __repr__(self):
         return "Polygon(%s)" % (self.nodes,)
-    
+
     def __contains__(self, x):
         return winding_number(self, np.array([x])) > 0
 
@@ -41,9 +42,13 @@ class Polygon(object):
     def init_edges(self):
         nodes = self.nodes
         self.edges = zip(nodes, nodes[1:] + nodes[0:1])
-        
-    def inside(self, x):
-        return winding_number(self, x) > 0
+
+    def inside(self, x, radius=0., newpath=False):
+        if newpath or not hasattr(self, "path"):
+            self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
+        return self.path.contains_points(x, radius=radius)
+
+        #return winding_number(self, x) > 0
 
     def intersections(self, z, axis=1):
         z = float(z)
@@ -260,11 +265,11 @@ class Polygon(object):
 
     def zmax(self):
         return max(self.nodes, key=lambda v: v[1])
-    
+
     def radiustop(self):
         zmax = max(x[1] for x in self.nodes)
         return min(x[0] for x in self.nodes if x[1]==zmax)
-    
+
     def radiusbottom(self):
         zmin = min(x[1] for x in self.nodes)
         return min(x[0] for x in self.nodes if x[1]==zmin)
@@ -913,7 +918,7 @@ def left_on_right(v0, v1, x):
     """tests whether point x is left (output>0), on (=0), or right (<0)
     of the infinite line defined by v0, v1. x is many points as (N, 2) array"""
     return (v1[0] - v0[0])*(x[:,1] - v0[1]) - (x[:,0] - v0[0])*(v1[1] - v0[1])
-    
+
 #def is_left(v0, v1, x):
 #    return left_on_right(e, x) > 0.
 #
