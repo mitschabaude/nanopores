@@ -46,9 +46,15 @@ class Polygon(object):
     def inside(self, x, radius=0., newpath=False):
         if newpath or not hasattr(self, "path"):
             self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
+        #return np.array([self.path.contains_point(t) for t in x])
         return self.path.contains_points(x, radius=radius)
 
-        #return winding_number(self, x) > 0
+    def inside_single(self, x, radius=0., newpath=False):
+        x = np.array([np.sqrt(x[0]**2 + x[1]**2), x[2]])
+        if newpath or not hasattr(self, "path"):
+            self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
+        return self.path.contains_point(x, radius=radius)
+        #return self.path.contains_points(np.array([x]), radius=radius)[0]
 
     def intersections(self, z, axis=1):
         z = float(z)
@@ -464,13 +470,13 @@ class PolygonPore(object):
 
     def build_polygons(self):
         R = self.params.R
-        if "Hbot" in self.params:
-            Hbot = self.params.Hbot
-            Htop = self.params.Htop
-        else:
+        if not "Hbot" in self.params:
             H = self.params.H
-            Htop = Hbot = H/2.
-
+            self.params["Htop"] = H/2.
+            self.params["Hbot"] = H/2.
+        Hbot = self.params.Hbot
+        Htop = self.params.Htop
+            
         self.add_membrane()
 
         sections = self.add_poresections()

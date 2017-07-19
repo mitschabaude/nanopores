@@ -66,16 +66,22 @@ class RandomWalk(object):
         self.D = self.ood_evaluation(D)
         self.divD = self.ood_evaluation(divD)
         self.phys = nanopores.Physics("pore_mol", **params)
+        
+        self.alive = np.full((N,), True, dtype=bool)
+        self.success = np.full((N,), False, dtype=bool)
+        self.fail = np.full((N,), False, dtype=bool)
+
         #self._Dx = np.zeros((N, params["dim"]))
         #self._Fx = np.zeros((N, params["dim"]))
         
     def ood_evaluation(self, f):
+        dim = self.params.dim
         def newf(x):
             try:
                 return f(x)
             except RuntimeError:
                 #print "ood:", x
-                return np.zeros(self.params.dim)
+                return np.zeros(dim)
         return newf
         
     def evaluate(self, function):
@@ -125,10 +131,56 @@ class RandomWalk(object):
     
     def update(self, dx):
         self.xold = self.x.copy()
+        self.rzold = self.rz.copy()
         self.x = self.x + dx
         r = np.sqrt(np.sum(self.x[:, :2]**2, 1))
         self.rz = np.column_stack([r, self.x[:, 2]])
         self.t += self.dt
+        
+    def update_one(self, i, xnew):
+        self.x[i] = xnew
+        self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
+        self.rz[i, 1] = xnew[2]
+        
+    def inside_wall(self, factor=1., x=None):
+        if x is None:
+            return self.pore.protein.inside(self.rz,
+                   radius=self.params.rMolecule*factor)
+        else:
+            return self.pore.protein.inside_single(x,
+                   radius=self.params.rMolecule*factor)
+
+    def simple_reflect(self, factor=2., minsize=0.5):
+        radius = self.params.rMolecule*factor
+        inside = self.inside_wall(factor)
+        for i in np.nonzero(inside)[0]:
+            x0, x1 = self.xold[i], self.x[i]
+            x = self.binary_search_inside(self.xold[i], self.x[i],
+                                          radius, minsize)
+            t = (x - x0)/(x1 - x0)
+            #print "update", t
+            #print "update", self.xold[i], ",", x, ",", self.x[i]
+            self.update_one(i, x)
+            
+    def binary_search_inside(self, x0, x1, radius, minsize=0.5):
+        if self.pore.protein.inside_single(x0, radius=radius):
+            print "ERROR: something wrong"
+            print x0, x1
+            raise Exception
+        if np.sum((x0 - x1)**2) < minsize**2:
+            return x0
+        x05 = .5*(x0 + x1)
+        if self.pore.protein.inside_single(x05, radius=radius):
+            x1 = x05
+        else:
+            x0 = x05
+        return self.binary_search_inside(x0, x1, radius, minsize)
+    
+    def finish(self):
+        z = self.rz[:, 1]
+        r = self.rz[:, 0]
+        Htop = self.params.Htop
+        Hbot = self.params.Hbot
 
     def walk(self):
         "one step of random walk"
@@ -144,14 +196,27 @@ class RandomWalk(object):
         dx = dW + dt*divD + dt*D/kT*F
         #print "%.2f (dx) = %.2f (dW) + %.2f (divD) + %.2f (F)" % (
         #        abs(dx[0, 2]), abs(dW[0, 2]), abs(dt*divD[0, 2]), abs((dt*D/kT*F)[0, 2]))
-        print "t = %.2f microsec" % (self.t*1e-3)
+        #print ("t = %.2f microsec" % (self.t*1e-3))
         
         # update position and time
         self.update(dx)
+        
+        # correct particles that collided with pore wall
+        self.simple_reflect(factor=1.8, minsize=0.01)
+        
+        # mark particles that finished walk
+        self.finish()
+        
+#        inside = self.inside_wall(factor=2.)
+#        if any(inside):
+#            print self.x[inside]
+#            print [self.inside_wall(2., x) for x in self.x[inside]]
+#            raise Exception("ERROR")
 
     def ellipse_collection(self, ax):
         "for matplotlib plotting"
         xz = self.x[:, [0,2]]
+        #xz = self.rz
         sizes = self.params.rMolecule*np.ones(self.N)
         colors = ["b"]*self.N
         coll = collections.EllipseCollection(sizes, sizes, np.zeros_like(sizes),
@@ -161,11 +226,17 @@ class RandomWalk(object):
 
     def move_ellipses(self, coll):
         xz = self.x[:, [0,2]]
+        #xz = self.rz
         coll.set_offsets(xz)
+        inside = self.inside_wall()
+        margin = self.inside_wall(2.)
+        colors = [("r" if inside[i] else "g") if margin[i] else "b" for i in range(self.N)]
+        coll.set_facecolors(colors)
         #y = self.x[:, 1]
         #d = 50.
         #sizes = self.params.rMolecule*(1. + y/d)
         #coll.set(widths=sizes, heights=sizes)
+        
         
 def polygon_patches(rw, ax):
     settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
@@ -184,12 +255,13 @@ def polygon_patches(rw, ax):
 
 def panimate(rw, **aniparams):
     R = rw.params.R
-    H = rw.params.H
+    Htop = rw.params.Htop
+    Hbot = rw.params.Hbot
 
     fig = plt.figure()
     fig.set_size_inches(6, 6)
     #ax = plt.axes([0,0,1,1], autoscale_on=False, xlim=(-R, R), ylim=(-H, H))
-    ax = plt.axes(xlim=(-R, R), ylim=(-H*0.5, H*0.5))
+    ax = plt.axes(xlim=(-R, R), ylim=(-Hbot, Htop))
     coll = rw.ellipse_collection(ax)
     patch1, patch2 = polygon_patches(rw, ax)
 
@@ -213,8 +285,6 @@ def panimate(rw, **aniparams):
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
-    R = rw.params.R
-    H = rw.params.H
     
     #while rw.t < 1e4:
     #    rw.walk()
