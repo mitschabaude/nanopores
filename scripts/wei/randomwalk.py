@@ -62,9 +62,9 @@ class RandomWalk(object):
         
         self.t = 0.
         F, D, divD = load_externals(**params)
-        self.F = self.ood_evaluation(F)
-        self.D = self.ood_evaluation(D)
-        self.divD = self.ood_evaluation(divD)
+        self.F = F #self.ood_evaluation(F)
+        self.D = D #self.ood_evaluation(D)
+        self.divD = divD #self.ood_evaluation(divD)
         self.phys = nanopores.Physics("pore_mol", **params)
         
         self.alive = np.full((N,), True, dtype=bool)
@@ -80,7 +80,7 @@ class RandomWalk(object):
             try:
                 return f(x)
             except RuntimeError:
-                #print "ood:", x
+                print "ood:", x
                 return np.zeros(dim)
         return newf
         
@@ -89,7 +89,7 @@ class RandomWalk(object):
     
     def evaluate_vector_cyl(self, function):
         r = self.rz[:, 0] + 1e-30
-        R = self.x / r[:, None]
+        R = self.x[self.alive] / r[:, None]
         F = self.evaluate(function)
         return np.column_stack([F[:, 0]*R[:, 0], F[:, 0]*R[:, 1], F[:, 1]])
     
@@ -114,8 +114,8 @@ class RandomWalk(object):
         Dn = D[:, 0]
         Dt = D[:, 1]
         r = self.rz[:, 0]
-        xbar = self.x[:, 0]/r
-        ybar = self.x[:, 1]/r
+        xbar = self.x[self.alive, 0]/r
+        ybar = self.x[self.alive, 1]/r
         Dx = Dn*xbar**2 + Dt*(1.-xbar**2)
         Dy = Dn*ybar**2 + Dt*(1.-ybar**2)
         return np.column_stack([Dx, Dy, Dt])
@@ -126,19 +126,21 @@ class RandomWalk(object):
         return D[:, 1, None]
     
     def brownian(self, D):
-        zeta = np.random.randn(self.N, 3)
+        n = np.count_nonzero(self.alive)
+        zeta = np.random.randn(n, 3)
         return np.sqrt(2.*self.dt*1e9*D) * zeta
     
     def update(self, dx):
         self.xold = self.x.copy()
-        self.rzold = self.rz.copy()
-        self.x = self.x + dx
-        r = np.sqrt(np.sum(self.x[:, :2]**2, 1))
-        self.rz = np.column_stack([r, self.x[:, 2]])
+        #self.rzold = self.rz.copy()
+        self.x[self.alive] = self.x[self.alive] + dx
+        self.finish()
+        r = np.sqrt(np.sum(self.x[self.alive, :2]**2, 1))
+        self.rz = np.column_stack([r, self.x[self.alive, 2]])
         self.t += self.dt
         
     def update_one(self, i, xnew):
-        self.x[i] = xnew
+        self.x[np.nonzero(self.alive)[0][i]] = xnew
         self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
         self.rz[i, 1] = xnew[2]
         
@@ -153,11 +155,12 @@ class RandomWalk(object):
     def simple_reflect(self, factor=2., minsize=0.5):
         radius = self.params.rMolecule*factor
         inside = self.inside_wall(factor)
+        alive = self.alive
+        X0, X1 = self.xold[alive], self.x[alive]
         for i in np.nonzero(inside)[0]:
-            x0, x1 = self.xold[i], self.x[i]
-            x = self.binary_search_inside(self.xold[i], self.x[i],
-                                          radius, minsize)
-            t = (x - x0)/(x1 - x0)
+            x0, x1 = X0[i], X1[i]
+            x = self.binary_search_inside(x0, x1, radius, minsize)
+            #t = (x - x0)/(x1 - x0)
             #print "update", t
             #print "update", self.xold[i], ",", x, ",", self.x[i]
             self.update_one(i, x)
@@ -177,10 +180,17 @@ class RandomWalk(object):
         return self.binary_search_inside(x0, x1, radius, minsize)
     
     def finish(self):
-        z = self.rz[:, 1]
-        r = self.rz[:, 0]
-        Htop = self.params.Htop
-        Hbot = self.params.Hbot
+        alive = self.alive
+        z = self.x[alive, 2]
+        r = np.sqrt(np.sum(self.x[alive, :2]**2, 1))
+        Htop = self.params.Htop - 1.
+        Hbot = self.params.Hbot - 1.
+        R = self.params.R - 1.
+        zmem = self.params.zmem
+        self.success[alive] = (z < -Hbot) | ((r > R) & (z < zmem))
+        self.fail[alive] = (z > Htop) | ((r > R) & (z > zmem))
+        self.alive[alive] = ~(self.fail[alive] | self.success[alive])
+        #print self.alive
 
     def walk(self):
         "one step of random walk"
@@ -193,19 +203,17 @@ class RandomWalk(object):
         
         # get step
         dW = self.brownian(D)
-        dx = dW + dt*divD + dt*D/kT*F
+        dx = dW + dt*divD + dt*D/kT*F*0.5
         #print "%.2f (dx) = %.2f (dW) + %.2f (divD) + %.2f (F)" % (
         #        abs(dx[0, 2]), abs(dW[0, 2]), abs(dt*divD[0, 2]), abs((dt*D/kT*F)[0, 2]))
         #print ("t = %.2f microsec" % (self.t*1e-3))
         
-        # update position and time
+        # update position and time and discard finished particles
         self.update(dx)
         
         # correct particles that collided with pore wall
         self.simple_reflect(factor=1.8, minsize=0.01)
         
-        # mark particles that finished walk
-        self.finish()
         
 #        inside = self.inside_wall(factor=2.)
 #        if any(inside):
@@ -228,9 +236,13 @@ class RandomWalk(object):
         xz = self.x[:, [0,2]]
         #xz = self.rz
         coll.set_offsets(xz)
-        inside = self.inside_wall()
-        margin = self.inside_wall(2.)
-        colors = [("r" if inside[i] else "g") if margin[i] else "b" for i in range(self.N)]
+        #inside = self.inside_wall()
+        margin = np.nonzero(self.alive)[0][self.inside_wall(2.)]
+        colors = np.full((self.N,), "b", dtype=str)
+        colors[margin] = "g"
+        colors[self.success] = "w"
+        colors[self.fail] = "k"
+        #colors = [("r" if inside[i] else "g") if margin[i] else "b" for i in range(self.N)]
         coll.set_facecolors(colors)
         #y = self.x[:, 1]
         #d = 50.

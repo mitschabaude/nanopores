@@ -739,12 +739,12 @@ class MultiPolygonPore(PolygonPore):
     def build_polygons(self):
         # read global height, width params
         R = self.params.R
-        if "Hbot" in self.params:
-            Hbot = self.params.Hbot
-            Htop = self.params.Htop
-        else:
+        if not "Hbot" in self.params:
             H = self.params.H
-            Htop = Hbot = H/2.
+            self.params["Htop"] = H/2.
+            self.params["Hbot"] = H/2.
+        Hbot = self.params.Hbot
+        Htop = self.params.Htop
 
         # first build encompassing polygon out of existing.
         self.protein = MultiPolygon(*self.polygons.values())
