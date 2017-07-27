@@ -49,21 +49,30 @@ def initial(R, z, N=10):
 
 class RandomWalk(object):
 
-    def __init__(self, pore, N=10, dt=1., **params):
+    def __init__(self, pore, N=10, dt=1., margtop=20., margbot=10., **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
         self.params.update(params)
-        r1 = pore.protein.radiustop() - self.params.rMolecule - 10.
-        ztop = pore.protein.zmax()[1]
-        x, r, z = initial(r1, ztop, N)
+        
+        # initialize some parameters and create random walkers at entrance
+        self.rtop = pore.protein.radiustop() - self.params.rMolecule
+        self.ztop = pore.protein.zmax()[1]
+        self.margtop = margtop
+        self.rbot = pore.protein.radiusbottom() - self.params.rMolecule
+        self.zbot = pore.protein.zmin()[1]
+        self.margbot = margbot
+        r1 = self.rtop - self.params.rMolecule
+        x, r, z = initial(r1, self.ztop, N)
+        
         self.N = N
         self.x = x
         self.xold = x
         self.rz = np.column_stack([r, z])
         self.dt = dt
-
         self.t = 0.
+        
+        # load force and diffusivity fields
         F, D, divD = load_externals(**params)
         self.F = F #self.ood_evaluation(F)
         self.D = D #self.ood_evaluation(D)
@@ -73,11 +82,7 @@ class RandomWalk(object):
         self.alive = np.full((N,), True, dtype=bool)
         self.success = np.full((N,), False, dtype=bool)
         self.fail = np.full((N,), False, dtype=bool)
-        
         self.times = np.zeros(N)
-
-        #self._Dx = np.zeros((N, params["dim"]))
-        #self._Fx = np.zeros((N, params["dim"]))
 
     def ood_evaluation(self, f):
         dim = self.params.dim
@@ -142,17 +147,21 @@ class RandomWalk(object):
         self.update_alive()
         r = np.sqrt(np.sum(self.x[self.alive, :2]**2, 1))
         self.rz = np.column_stack([r, self.x[self.alive, 2]])
+        
+    def is_success(self, r, z):
+        return (z < self.zbot - self.margbot) | (
+               (r > self.rbot + self.margbot) & (z < self.zbot))
+    
+    def is_fail(self, r, z):
+        return (z > self.ztop + self.margtop) | (
+               (r > self.rtop + self.margtop) & (z > self.ztop))
 
     def update_alive(self):
         alive = self.alive
         z = self.x[alive, 2]
         r = np.sqrt(np.sum(self.x[alive, :2]**2, 1))
-        Htop = self.params.Htop - 1.
-        Hbot = self.params.Hbot - 1.
-        R = self.params.R - 1.
-        zmem = self.params.zmem
-        self.success[alive] = (z < -Hbot) | ((r > R) & (z < zmem))
-        self.fail[alive] = (z > Htop) | ((r > R) & (z > zmem))
+        self.success[alive] = self.is_success(r, z)
+        self.fail[alive] = self.is_fail(r, z)
         died = self.fail[alive] | self.success[alive]
         self.alive[alive] = ~died
         self.times[alive] = self.t
@@ -323,10 +332,11 @@ def exponential_hist(times, a, b, **params):
     params.pop("label")
     total = integrate_hist(hist)
     tmean = times.mean()
-    T = np.logspace(a, b, 500)
+    T = np.logspace(a-3, b, 1000)
     fT = np.exp(-T/tmean)*T/tmean
     fT *= total/integrate_values(T, fT)
     plt.plot(T, fT, **params)
+    plt.xlim(10**a, 10**b)
 
 def histogram(rw, a=0, b=3, scale=1e-6):
     t = rw.times * 1e-9 / scale # assuming times are in nanosaconds
@@ -334,7 +344,8 @@ def histogram(rw, a=0, b=3, scale=1e-6):
     exponential_hist(t[rw.success], a, b, color="g", label="translocated")
     exponential_hist(t[rw.fail], a, b, color="r", label="did not translocate")
     
-    plt.xlabel("microsec")
+    plt.xlabel(r"$\tau$ off [$\mu$s]")
+    plt.ylabel("count")
     plt.legend(loc="best")
     
     
@@ -347,8 +358,6 @@ if __name__ == "__main__":
         plt.show()
     else:
         for t in rw.walk(): pass
-    
-    print rw.times * 1e-3
     
     histogram(rw)
     plt.show()
