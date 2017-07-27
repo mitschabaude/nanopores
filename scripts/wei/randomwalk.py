@@ -10,6 +10,7 @@ import dolfin
 import nanopores
 from nanopores.tools import fields
 from nanopores.geometries.allpores import get_pore
+from nanopores.tools.polygons import Polygon, Ball
 fields.set_dir_dropbox()
 dolfin.parameters["allow_extrapolation"] = False
 params = nanopores.user_params(
@@ -23,8 +24,86 @@ params = nanopores.user_params(
     N = 10, # number of (simultaneous) random walks
     dt = 1.,
     walldist = 2., # in multiples of radius, should be >= 1
+    margtop = 20.,
+    margbot = 10.,
     cylplot = False, # True for plot in r-z domain
 )
+
+# domains are places where molecule can bind and/or be reflected after collision
+domain_params = dict(
+    cyl = False, # determines whether rz or xyz coordinates are passed to .inside
+    walldist = 1.5, # multiple of radius that determines what counts as collision
+
+    exclusion = True,
+    minsize = 0.01, # accuracy when performing reflection
+
+    binding = False,
+    eps = 1., # margin in addition to walldist, determines re-attempting
+    p = 0.1, # binding probability for one attempt
+    t = 1e6, # mean of exponentially distributed binding duration
+)
+
+class Domain(object):
+
+    def __init__(self, domain, **params):
+        self.domain = domain
+        self.__dict__.update(domain_params)
+        self.__dict__.update(params)
+        if isinstance(domain, Polygon):
+            self.cyl = True
+
+    def collide(self, rw):
+        "compute collisions and consequences with RandomWalk instance"
+        radius = rw.params.rMolecule * self.walldist
+
+        # determine collisions and then operate only on collided particles
+        X = rw.rz if self.cyl else rw.x[rw.alive]
+        collided = self.domain.inside(X, radius=radius)
+
+        # "reflect" particles by shortening last step
+        if self.exclusion:
+            X0, X1 = rw.xold[rw.alive], rw.x[rw.alive]
+            for i in np.nonzero(collided)[0]:
+                x = self.binary_search_inside(X0[i], X1[i], radius)
+                rw.update_one(i, x)
+
+        # attempt binding for particles that can bind
+        if self.binding:
+            can_bind = rw.can_bind[rw.alive]
+            attempt = collided & can_bind
+            # bind with probability p
+            bind = np.random.rand(np.sum(attempt)) <= self.p
+            # draw exponentially distributed binding time
+            duration = np.random.exponential(self.t, np.sum(bind))
+            # update can_bind and bind_times of random walk
+            iattempt = rw.i[rw.alive][attempt]
+            ibind = iattempt[bind]
+            rw.can_bind[iattempt] = False
+            rw.bind_times[ibind] += duration
+            # some statistics
+            rw.attempts[rw.i[rw.alive][attempt]] += 1
+            rw.bindings[rw.i[rw.alive][attempt][bind]] += 1
+
+            # unbind particles that can not bind and are out of nobind zone
+            X_can_not_bind = X[~can_bind]
+            rnobind = radius + self.eps
+            unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
+            iunbind = rw.i[rw.alive][~can_bind][unbind]
+            rw.can_bind[iunbind] = True
+
+    def binary_search_inside(self, x0, x1, radius):
+        if self.domain.inside_single(x0, radius=radius):
+            print "ERROR: x0 is in domain despite having been excluded before."
+            print "x0", x0, "x1", x1
+            raise Exception
+        if np.sum((x0 - x1)**2) < self.minsize**2:
+            return x0
+        x05 = .5*(x0 + x1)
+        if self.domain.inside_single(x05, radius=radius):
+            x1 = x05
+        else:
+            x0 = x05
+        return self.binary_search_inside(x0, x1, radius)
 
 # external forces
 def load_externals(**params):
@@ -49,29 +128,28 @@ def initial(R, z, N=10):
 
 class RandomWalk(object):
 
-    def __init__(self, pore, N=10, dt=1., margtop=20., margbot=10., **params):
+    def __init__(self, pore, N=10, dt=1., **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
         self.params.update(params)
-        
+
         # initialize some parameters and create random walkers at entrance
         self.rtop = pore.protein.radiustop() - self.params.rMolecule
         self.ztop = pore.protein.zmax()[1]
-        self.margtop = margtop
         self.rbot = pore.protein.radiusbottom() - self.params.rMolecule
         self.zbot = pore.protein.zmin()[1]
-        self.margbot = margbot
         r1 = self.rtop - self.params.rMolecule
         x, r, z = initial(r1, self.ztop, N)
-        
+
         self.N = N
         self.x = x
         self.xold = x
         self.rz = np.column_stack([r, z])
         self.dt = dt
         self.t = 0.
-        
+        self.i = np.arange(N)
+
         # load force and diffusivity fields
         F, D, divD = load_externals(**params)
         self.F = F #self.ood_evaluation(F)
@@ -82,7 +160,21 @@ class RandomWalk(object):
         self.alive = np.full((N,), True, dtype=bool)
         self.success = np.full((N,), False, dtype=bool)
         self.fail = np.full((N,), False, dtype=bool)
+        self.can_bind = np.full((N,), True, dtype=bool)
         self.times = np.zeros(N)
+        self.bind_times = np.zeros(N)
+        self.attempts = np.zeros(N, dtype=int)
+        self.bindings = np.zeros(N, dtype=int)
+
+        self.domains = []
+        self.add_domain(pore.protein, binding=False, exclusion=True,
+                        walldist=self.params.walldist)
+
+    def add_domain(self, domain, **params):
+        """add domain where particles can bind and/or are excluded from.
+        domain only has to implement the .inside(x, radius) method.
+        params can be domain_params"""
+        self.domains.append(Domain(domain, **params))
 
     def ood_evaluation(self, f):
         dim = self.params.dim
@@ -147,14 +239,14 @@ class RandomWalk(object):
         self.update_alive()
         r = np.sqrt(np.sum(self.x[self.alive, :2]**2, 1))
         self.rz = np.column_stack([r, self.x[self.alive, 2]])
-        
+
     def is_success(self, r, z):
-        return (z < self.zbot - self.margbot) | (
-               (r > self.rbot + self.margbot) & (z < self.zbot))
-    
+        return (z < self.zbot - self.params.margbot) | (
+               (r > self.rbot + self.params.margbot) & (z < self.zbot))
+
     def is_fail(self, r, z):
-        return (z > self.ztop + self.margtop) | (
-               (r > self.rtop + self.margtop) & (z > self.ztop))
+        return (z > self.ztop + self.params.margtop) | (
+               (r > self.rtop + self.params.margtop) & (z > self.ztop))
 
     def update_alive(self):
         alive = self.alive
@@ -170,7 +262,7 @@ class RandomWalk(object):
         self.x[np.nonzero(self.alive)[0][i]] = xnew
         self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
         self.rz[i, 1] = xnew[2]
-        
+
     def inside_wall(self, factor=1., x=None):
         if x is None:
             return self.pore.protein.inside(self.rz,
@@ -226,22 +318,31 @@ class RandomWalk(object):
 
         # update position and time and determine which particles are alive
         self.update(dx)
-        
+
         # correct particles that collided with pore wall
-        self.simple_reflect()
-        
+        #self.simple_reflect()
+        for domain in self.domains:
+            domain.collide(self)
+
     def walk(self):
-        yield self.t
-        while np.any(self.alive):
-            with nanopores.Log("Step t=%.3f" % self.t):
-                self.step()
+        with nanopores.Log("Running..."):
             yield self.t
-            
+            while np.any(self.alive):
+                #with nanopores.Log("%.0f ns, cpu time:" % self.t):
+                self.step()
+                yield self.t
+
         self.finalize()
-        
+
     def finalize(self):
-        #print self.times
         print "finished!"
+        print "mean # of attempts:", self.attempts.mean()
+        print "mean # of bindings:", self.bindings.mean()
+        print "mean dwell time with binding: %.1f ms" % (
+            1e-6*(self.bind_times + self.times).mean())
+        print "mean dwell time without binding: %.1f mus" % (
+            1e-3*self.times.mean())
+        self.times += self.bind_times
 
     def ellipse_collection(self, ax):
         "for matplotlib plotting"
@@ -262,8 +363,9 @@ class RandomWalk(object):
         margin = np.nonzero(self.alive)[0][self.inside_wall(2.)]
         colors = np.full((self.N,), "b", dtype=str)
         colors[margin] = "r"
-        colors[self.success] = "w"
+        colors[self.success] = "k"
         colors[self.fail] = "k"
+        colors[self.alive & ~self.can_bind] = "r"
         #colors = [("r" if inside[i] else "g") if margin[i] else "b" for i in range(self.N)]
         coll.set_facecolors(colors)
         #y = self.x[:, 1]
@@ -271,20 +373,28 @@ class RandomWalk(object):
         #sizes = self.params.rMolecule*(1. + y/d)
         #coll.set(widths=sizes, heights=sizes)
 
-def polygon_patches(rw, ax):
-    settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
-                    edgecolor="black")
-    polygon = rw.pore.protein.nodes
-    polygon = np.array(polygon)
-    polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
+    def polygon_patches(self, cyl=False):
+        poly_settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
+                        edgecolor="k")
+        ball_settings = dict(facecolor="#aaaaaa", linewidth=1., edgecolor="k",
+                             alpha=0.5)
+        patches = []
+        for dom in self.domains:
+            dom = dom.domain
+            if isinstance(dom, Polygon):
+                polygon = dom.nodes
+                polygon = np.array(polygon)
+                patches.append(mpatches.Polygon(polygon, **poly_settings))
+                if not cyl:
+                    polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
+                    patches.append(mpatches.Polygon(polygon_m, **poly_settings))
+            elif isinstance(dom, Ball):
+                xy = dom.x0[0], dom.x0[2]
+                p = mpatches.Circle(xy, dom.r, **ball_settings)
+                p.set_zorder(200)
+                patches.append(p)
 
-    patch1 = mpatches.Polygon(polygon, **settings)
-    patch2 = mpatches.Polygon(polygon_m, **settings)
-    #patch.set_zorder(10)
-    #patchm.set_zorder(10)
-    return patch1, patch2
-    #ax.add_patch(patch)
-    #ax.add_patch(patchm)
+        return patches
 
 def panimate(rw, cyl=False, **aniparams):
     R = rw.params.R
@@ -297,7 +407,7 @@ def panimate(rw, cyl=False, **aniparams):
     xlim = (-R, R) if not cyl else (0., R)
     ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
     coll = rw.ellipse_collection(ax)
-    patch1, patch2 = polygon_patches(rw, ax)
+    patches = rw.polygon_patches(cyl)
 
     def init():
         return ()
@@ -305,12 +415,11 @@ def panimate(rw, cyl=False, **aniparams):
     def animate(t):
         if t == 0:
             ax.add_collection(coll)
-            ax.add_patch(patch1)
-            if not cyl:
-                ax.add_patch(patch2)
-        
+            for p in patches:
+                ax.add_patch(p)
+
         rw.move_ellipses(coll, cyl=cyl)
-        return (coll, patch1, patch2) if not cyl else (coll, patch1)
+        return tuple([coll] + patches)
 
     aniparams = dict(dict(interval=10, blit=True), **aniparams)
     ani = animation.FuncAnimation(ax.figure, animate, frames=rw.walk(),
@@ -326,6 +435,8 @@ def integrate_values(T, fT):
     return np.dot(values, np.diff(T))
 
 def exponential_hist(times, a, b, **params):
+    if len(times) == 0:
+        return
     bins = np.logspace(a, b, 100)
     hist = plt.hist(times, bins=bins, alpha=0.5, **params)
     plt.xscale("log")
@@ -340,25 +451,26 @@ def exponential_hist(times, a, b, **params):
 
 def histogram(rw, a=0, b=3, scale=1e-6):
     t = rw.times * 1e-9 / scale # assuming times are in nanosaconds
-    
+
     exponential_hist(t[rw.success], a, b, color="g", label="translocated")
     exponential_hist(t[rw.fail], a, b, color="r", label="did not translocate")
-    
+
     plt.xlabel(r"$\tau$ off [$\mu$s]")
     plt.ylabel("count")
     plt.legend(loc="best")
-    
-    
+
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
+    receptor = Ball([9., 0., -30.], 8.)
+    rw.add_domain(receptor, exclusion=True, walldist=1.,
+                  binding=True, eps=1., t=1e6, p=0.1)
 
     if nanopores.user_param(video=True):
         ani = panimate(rw, cyl=params.cylplot)
         plt.show()
     else:
         for t in rw.walk(): pass
-    
-    histogram(rw)
+
+    histogram(rw, b=6)
     plt.show()
-    

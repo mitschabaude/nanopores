@@ -415,6 +415,14 @@ class Ball(object):
         elif dim == 1:
             return set()
 
+    def inside(self, x, radius=0.):
+        m = np.array([self.x0])
+        return np.sum((x - m)**2, 1) <= (self.r + radius)**2
+
+    def inside_single(self, x, radius=0.):
+        m = np.array(self.x0)
+        return np.sum((x - m)**2) <= (self.r + radius)**2
+
     def __repr__(self):
         return "Ball(%s, %s, lc=%s)" % (self.x0, self.r, self.lc)
 
@@ -476,7 +484,7 @@ class PolygonPore(object):
             self.params["Hbot"] = H/2.
         Hbot = self.params.Hbot
         Htop = self.params.Htop
-            
+
         self.add_membrane()
 
         sections = self.add_poresections()
