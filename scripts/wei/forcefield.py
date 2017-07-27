@@ -32,7 +32,7 @@ if not fields.exists(name, **params):
 name_D = "wei_D_2D"
 if not fields.exists(name_D, **params):
     setup = nanopore.Setup(**params)
-    dic = diffusivity_field(setup, r=params.rMolecule, boundary="poresolidb")
+    dic = diffusivity_field(setup, r=params["rMolecule"], boundary="poresolidb")
     fields.save_functions(name_D, params, **dic)
     fields.update()
 

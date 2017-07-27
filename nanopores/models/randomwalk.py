@@ -11,18 +11,22 @@ import nanopores
 from nanopores.tools import fields
 from nanopores.geometries.allpores import get_pore
 from nanopores.tools.polygons import Polygon, Ball
+from nanopores.models import nanopore
 fields.set_dir_dropbox()
-dolfin.parameters["allow_extrapolation"] = False
+dolfin.parameters["allow_extrapolation"] = True
+
 params = nanopores.user_params(
     # general params
     geoname = "wei",
     dim = 2,
     rMolecule = 6.,
+    h = 5.,
+    Nmax = 4e4,
     Qmol = -1.,
-    bV = -0.5,
+    bV = -0.2,
     # random walk params
-    N = 10, # number of (simultaneous) random walks
-    dt = 1.,
+    N = 100, # number of (simultaneous) random walks
+    dt = 10., # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 20.,
     margbot = 10.,
@@ -40,7 +44,7 @@ domain_params = dict(
     binding = False,
     eps = 1., # margin in addition to walldist, determines re-attempting
     p = 0.1, # binding probability for one attempt
-    t = 1e6, # mean of exponentially distributed binding duration
+    t = 1e6, # mean of exponentially distributed binding duration [ns]
 )
 
 class Domain(object):
@@ -107,12 +111,7 @@ class Domain(object):
 
 # external forces
 def load_externals(**params):
-    F, = fields.get_functions("wei_force_ps", "F", **params)
-    D, = fields.get_functions("wei_D_2D", "D", **params)
-    V = D.function_space()
-    divD = dolfin.project(dolfin.as_vector([
-               dolfin.grad(D[0])[0], dolfin.grad(D[1])[1]]), V)
-    return F, D, divD
+    return nanopore.force_diff(**params)
 
 # initial positions: uniformly distributed over disc
 def initial(R, z, N=10):
@@ -128,19 +127,21 @@ def initial(R, z, N=10):
 
 class RandomWalk(object):
 
-    def __init__(self, pore, N=10, dt=1., **params):
+    def __init__(self, pore, N=10, dt=1., walldist=2.,
+                 margtop=20., margbot=10., rstart=None, **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
-        self.params.update(params)
+        self.params.update(params, margtop=margtop, margbot=margbot)
 
         # initialize some parameters and create random walkers at entrance
         self.rtop = pore.protein.radiustop() - self.params.rMolecule
         self.ztop = pore.protein.zmax()[1]
         self.rbot = pore.protein.radiusbottom() - self.params.rMolecule
         self.zbot = pore.protein.zmin()[1]
-        r1 = self.rtop - self.params.rMolecule
-        x, r, z = initial(r1, self.ztop, N)
+        if rstart is None:
+            rstart = self.rtop - self.params.rMolecule
+        x, r, z = initial(rstart, self.ztop, N)
 
         self.N = N
         self.x = x
@@ -168,13 +169,16 @@ class RandomWalk(object):
 
         self.domains = []
         self.add_domain(pore.protein, binding=False, exclusion=True,
-                        walldist=self.params.walldist)
+                        walldist=walldist)
 
     def add_domain(self, domain, **params):
         """add domain where particles can bind and/or are excluded from.
         domain only has to implement the .inside(x, radius) method.
         params can be domain_params"""
         self.domains.append(Domain(domain, **params))
+        
+    def add_wall_binding(self, **params):
+        self.domains[0].__dict__.update(params, binding=True)
 
     def ood_evaluation(self, f):
         dim = self.params.dim
@@ -263,42 +267,6 @@ class RandomWalk(object):
         self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
         self.rz[i, 1] = xnew[2]
 
-    def inside_wall(self, factor=1., x=None):
-        if x is None:
-            return self.pore.protein.inside(self.rz,
-                   radius=self.params.rMolecule*factor)
-        else:
-            return self.pore.protein.inside_single(x,
-                   radius=self.params.rMolecule*factor)
-
-    def simple_reflect(self, minsize=0.01):
-        factor = self.params.walldist
-        radius = self.params.rMolecule*factor
-        inside = self.inside_wall(factor)
-        alive = self.alive
-        X0, X1 = self.xold[alive], self.x[alive]
-        for i in np.nonzero(inside)[0]:
-            x0, x1 = X0[i], X1[i]
-            x = self.binary_search_inside(x0, x1, radius, minsize)
-            #t = (x - x0)/(x1 - x0)
-            #print "update", t
-            #print "update", self.xold[i], ",", x, ",", self.x[i]
-            self.update_one(i, x)
-
-    def binary_search_inside(self, x0, x1, radius, minsize=0.5):
-        if self.pore.protein.inside_single(x0, radius=radius):
-            print "ERROR: something wrong"
-            print x0, x1
-            raise Exception
-        if np.sum((x0 - x1)**2) < minsize**2:
-            return x0
-        x05 = .5*(x0 + x1)
-        if self.pore.protein.inside_single(x05, radius=radius):
-            x1 = x05
-        else:
-            x0 = x05
-        return self.binary_search_inside(x0, x1, radius, minsize)
-
     def step(self):
         "one step of random walk"
         # evaluate F and D
@@ -360,9 +328,9 @@ class RandomWalk(object):
            [np.sqrt(np.sum(self.x[:, :2]**2, 1)), self.x[:, 2]])
         coll.set_offsets(xz)
         #inside = self.inside_wall()
-        margin = np.nonzero(self.alive)[0][self.inside_wall(2.)]
+        #margin = np.nonzero(self.alive)[0][self.inside_wall(2.)]
         colors = np.full((self.N,), "b", dtype=str)
-        colors[margin] = "r"
+        #colors[margin] = "r"
         colors[self.success] = "k"
         colors[self.fail] = "k"
         colors[self.alive & ~self.can_bind] = "r"
@@ -396,7 +364,7 @@ class RandomWalk(object):
 
         return patches
 
-def panimate(rw, cyl=False, **aniparams):
+def video(rw, cyl=False, **aniparams):
     R = rw.params.R
     Htop = rw.params.Htop
     Hbot = rw.params.Hbot
@@ -421,28 +389,32 @@ def panimate(rw, cyl=False, **aniparams):
         rw.move_ellipses(coll, cyl=cyl)
         return tuple([coll] + patches)
 
-    aniparams = dict(dict(interval=10, blit=True), **aniparams)
+    aniparams = dict(dict(interval=10, blit=True, save_count=5000), **aniparams)
     ani = animation.FuncAnimation(ax.figure, animate, frames=rw.walk(),
                                   init_func=init, **aniparams)
     return ani
 
-def integrate_hist(hist):
+def integrate_hist(hist, cutoff):
     n, bins, _ = hist
-    return np.dot(n, np.diff(bins))
+    I, = np.nonzero(bins > cutoff)
+    return np.dot(n[I[:-1]], np.diff(bins[I]))
 
 def integrate_values(T, fT):
     values = 0.5*(fT[:-1] + fT[1:])
     return np.dot(values, np.diff(T))
 
 def exponential_hist(times, a, b, **params):
+    cutoff = 100 # cutoff frequency in microsec
     if len(times) == 0:
         return
     bins = np.logspace(a, b, 100)
     hist = plt.hist(times, bins=bins, alpha=0.5, **params)
     plt.xscale("log")
     params.pop("label")
-    total = integrate_hist(hist)
-    tmean = times.mean()
+    total = integrate_hist(hist, cutoff)
+    if sum(times > cutoff) == 0:
+        return
+    tmean = times[times > cutoff].mean()
     T = np.logspace(a-3, b, 1000)
     fT = np.exp(-T/tmean)*T/tmean
     fT *= total/integrate_values(T, fT)
@@ -458,19 +430,33 @@ def histogram(rw, a=0, b=3, scale=1e-6):
     plt.xlabel(r"$\tau$ off [$\mu$s]")
     plt.ylabel("count")
     plt.legend(loc="best")
+    
+def save(ani, name="rw"):
+    ani.save(nanopores.HOME + "/presentations/nanopores/%s.mp4" % name,
+                 fps=30, dpi=200, writer="ffmpeg_file",
+                 extra_args=['-vcodec', 'libx264'])
+    
+def run(rw, dovideo=False, dosave=False, cyl=False, name="rw"):
+    if dovideo:
+        ani = video(rw, cyl=cyl)
+        if dosave:
+            save(ani, name=name)
+        else:
+            plt.show()
+    else:
+        for t in rw.walk(): pass
+    if (not dovideo) or (not dosave):
+        histogram(rw, b=6)
+        plt.show()
+    
 
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
     receptor = Ball([9., 0., -30.], 8.)
     rw.add_domain(receptor, exclusion=True, walldist=1.,
-                  binding=True, eps=1., t=1e6, p=0.1)
+                  binding=True, eps=1., t=1.5e6, p=0.14)
 
-    if nanopores.user_param(video=True):
-        ani = panimate(rw, cyl=params.cylplot)
-        plt.show()
-    else:
-        for t in rw.walk(): pass
-
-    histogram(rw, b=6)
-    plt.show()
+    p = nanopores.user_params(video=False, save=False, cyl=False)
+    run(rw, p.video, p.save, p.cyl, name="wei")
+    

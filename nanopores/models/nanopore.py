@@ -221,6 +221,48 @@ def join_dicts(list):
     "[{'F':1.0}, {'F':2.0}, ...] --> {'F':[1.0, 2.0, ...]}"
     return {key:[dic[key] for dic in list] for key in list[0]}
 
+# point-size/implicit fields
+def force_pointsize(**params):
+    name = "force_pointsize"
+    if not fields.exists(name, **params):
+        setup = Setup(**params)
+        #print setup.geo
+        #setup.geo.plot_boundaries(interactive=True)
+        _, pnps = solve(setup, True)
+        v, cp, cm, u, p = pnps.solutions()
+    
+        F, Fel, Fdrag = setup.phys.ForceField(v, u, "fluid")
+        fields.save_functions(name, params, F=F, Fel=Fel, Fdrag=Fdrag)
+        fields.update()
+    F, = fields.get_functions(name, "F", **params)
+    return F
+
+def diffusivity_simple(**params):
+    from nanopores.models.diffusion_interpolation import diffusivity_field
+    name = "diffusivity_simple"
+    if not fields.exists(name, **params):
+        setup = Setup(**params)
+        dic = diffusivity_field(setup, r=params["rMolecule"],
+                                boundary="poresolidb")
+        fields.save_functions(name, params, **dic)
+        fields.update()
+    D, = fields.get_functions(name, "D", **params)
+    return D
+
+def force_diff(**params):
+    # for random walk (with pointsize force field, no current)
+    F = force_pointsize(**params)
+    D = diffusivity_simple(**params)
+    name = "diffusivity_div_simple"
+    if not fields.exists(name, **params):
+        V = D.function_space()
+        divD = dolfin.project(dolfin.as_vector([
+                  dolfin.grad(D[0])[0], dolfin.grad(D[1])[1]]), V)
+        fields.save_functions(name, params, divD=divD)
+        fields.update()
+    divD, = fields.get_functions(name, "divD", **params)
+    return F, D, divD
+
 # evaluate finite-size model for a number of x positions
 @solvers.cache_forcefield("force", defaultp)
 def F_explicit(X, **params):
