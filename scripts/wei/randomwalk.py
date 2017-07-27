@@ -73,6 +73,8 @@ class RandomWalk(object):
         self.alive = np.full((N,), True, dtype=bool)
         self.success = np.full((N,), False, dtype=bool)
         self.fail = np.full((N,), False, dtype=bool)
+        
+        self.times = np.zeros(N)
 
         #self._Dx = np.zeros((N, params["dim"]))
         #self._Fx = np.zeros((N, params["dim"]))
@@ -137,16 +139,29 @@ class RandomWalk(object):
         self.xold = self.x.copy()
         #self.rzold = self.rz.copy()
         self.x[self.alive] = self.x[self.alive] + dx
-        self.finish()
+        self.update_alive()
         r = np.sqrt(np.sum(self.x[self.alive, :2]**2, 1))
         self.rz = np.column_stack([r, self.x[self.alive, 2]])
-        self.t += self.dt
+
+    def update_alive(self):
+        alive = self.alive
+        z = self.x[alive, 2]
+        r = np.sqrt(np.sum(self.x[alive, :2]**2, 1))
+        Htop = self.params.Htop - 1.
+        Hbot = self.params.Hbot - 1.
+        R = self.params.R - 1.
+        zmem = self.params.zmem
+        self.success[alive] = (z < -Hbot) | ((r > R) & (z < zmem))
+        self.fail[alive] = (z > Htop) | ((r > R) & (z > zmem))
+        died = self.fail[alive] | self.success[alive]
+        self.alive[alive] = ~died
+        self.times[alive] = self.t
 
     def update_one(self, i, xnew):
         self.x[np.nonzero(self.alive)[0][i]] = xnew
         self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
         self.rz[i, 1] = xnew[2]
-
+        
     def inside_wall(self, factor=1., x=None):
         if x is None:
             return self.pore.protein.inside(self.rz,
@@ -183,20 +198,7 @@ class RandomWalk(object):
             x0 = x05
         return self.binary_search_inside(x0, x1, radius, minsize)
 
-    def finish(self):
-        alive = self.alive
-        z = self.x[alive, 2]
-        r = np.sqrt(np.sum(self.x[alive, :2]**2, 1))
-        Htop = self.params.Htop - 1.
-        Hbot = self.params.Hbot - 1.
-        R = self.params.R - 1.
-        zmem = self.params.zmem
-        self.success[alive] = (z < -Hbot) | ((r > R) & (z < zmem))
-        self.fail[alive] = (z > Htop) | ((r > R) & (z > zmem))
-        self.alive[alive] = ~(self.fail[alive] | self.success[alive])
-        #print self.alive
-
-    def walk(self):
+    def step(self):
         "one step of random walk"
         # evaluate F and D
         D = self.evaluate_D_cyl()
@@ -204,6 +206,7 @@ class RandomWalk(object):
         divD = 1e9*self.evaluate_vector_cyl(self.divD)
         kT = self.phys.kT
         dt = self.dt
+        self.t += self.dt
 
         # get step
         dW = self.brownian(D)
@@ -212,18 +215,24 @@ class RandomWalk(object):
         #        abs(dx[0, 2]), abs(dW[0, 2]), abs(dt*divD[0, 2]), abs((dt*D/kT*F)[0, 2]))
         #print ("t = %.2f microsec" % (self.t*1e-3))
 
-        # update position and time and discard finished particles
+        # update position and time and determine which particles are alive
         self.update(dx)
-
+        
         # correct particles that collided with pore wall
         self.simple_reflect()
-
-
-#        inside = self.inside_wall(factor=2.)
-#        if any(inside):
-#            print self.x[inside]
-#            print [self.inside_wall(2., x) for x in self.x[inside]]
-#            raise Exception("ERROR")
+        
+    def walk(self):
+        yield self.t
+        while np.any(self.alive):
+            with nanopores.Log("Step t=%.3f" % self.t):
+                self.step()
+            yield self.t
+            
+        self.finalize()
+        
+    def finalize(self):
+        #print self.times
+        print "finished!"
 
     def ellipse_collection(self, ax):
         "for matplotlib plotting"
@@ -253,7 +262,6 @@ class RandomWalk(object):
         #sizes = self.params.rMolecule*(1. + y/d)
         #coll.set(widths=sizes, heights=sizes)
 
-
 def polygon_patches(rw, ax):
     settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
                     edgecolor="black")
@@ -274,8 +282,8 @@ def panimate(rw, cyl=False, **aniparams):
     Htop = rw.params.Htop
     Hbot = rw.params.Hbot
 
-    fig = plt.figure()
-    fig.set_size_inches(6, 6)
+    #fig = plt.figure()
+    #fig.set_size_inches(6, 6)
     #ax = plt.axes([0,0,1,1], autoscale_on=False, xlim=(-R, R), ylim=(-H, H))
     xlim = (-R, R) if not cyl else (0., R)
     ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
@@ -283,29 +291,65 @@ def panimate(rw, cyl=False, **aniparams):
     patch1, patch2 = polygon_patches(rw, ax)
 
     def init():
-        ax.add_patch(patch1)
-        if not cyl:
-            ax.add_patch(patch2)
-        return (patch1, patch2) if not cyl else (patch1,)
+        return ()
 
-    def animate(i):
-        if i == 0:
+    def animate(t):
+        if t == 0:
             ax.add_collection(coll)
-        else:
-            rw.walk()
-            rw.move_ellipses(coll, cyl=cyl)
+            ax.add_patch(patch1)
+            if not cyl:
+                ax.add_patch(patch2)
+        
+        rw.move_ellipses(coll, cyl=cyl)
         return (coll, patch1, patch2) if not cyl else (coll, patch1)
 
-    aniparams = dict(dict(frames=1800, interval=10, blit=True), **aniparams)
-    ani = animation.FuncAnimation(ax.figure, animate, init_func=init, **aniparams)
+    aniparams = dict(dict(interval=10, blit=True), **aniparams)
+    ani = animation.FuncAnimation(ax.figure, animate, frames=rw.walk(),
+                                  init_func=init, **aniparams)
     return ani
 
+def integrate_hist(hist):
+    n, bins, _ = hist
+    return np.dot(n, np.diff(bins))
+
+def integrate_values(T, fT):
+    values = 0.5*(fT[:-1] + fT[1:])
+    return np.dot(values, np.diff(T))
+
+def exponential_hist(times, a, b, **params):
+    bins = np.logspace(a, b, 100)
+    hist = plt.hist(times, bins=bins, alpha=0.5, **params)
+    plt.xscale("log")
+    params.pop("label")
+    total = integrate_hist(hist)
+    tmean = times.mean()
+    T = np.logspace(a, b, 500)
+    fT = np.exp(-T/tmean)*T/tmean
+    fT *= total/integrate_values(T, fT)
+    plt.plot(T, fT, **params)
+
+def histogram(rw, a=0, b=3, scale=1e-6):
+    t = rw.times * 1e-9 / scale # assuming times are in nanosaconds
+    
+    exponential_hist(t[rw.success], a, b, color="g", label="translocated")
+    exponential_hist(t[rw.fail], a, b, color="r", label="did not translocate")
+    
+    plt.xlabel("microsec")
+    plt.legend(loc="best")
+    
+    
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
 
-    #while rw.t < 1e4:
-    #    rw.walk()
-
-    ani = panimate(rw, cyl=params.cylplot)
+    if nanopores.user_param(video=True):
+        ani = panimate(rw, cyl=params.cylplot)
+        plt.show()
+    else:
+        for t in rw.walk(): pass
+    
+    print rw.times * 1e-3
+    
+    histogram(rw)
     plt.show()
+    
