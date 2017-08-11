@@ -16,6 +16,10 @@ except:
 fieldsname = sys.argv[3]
 if samples!=0:
 	from run import *
+    if fields.exists(fieldsname):
+        enter = raw_input("%s already exists! Continue? [y/n]}\n"%fieldsname)
+        if enter != 'y'
+            exit()
 else:
 	import nanopores as nano
 	import nanopores.geometries.pughpore as pughpore
@@ -41,9 +45,11 @@ h2 =        geop.h2
 h1 =        geop.h1
 h4 =        geop.h4
 rMolecule = geop.rMolecule
-params=dict(avgbind1=17.2e6,avgbind2=3e4,P_bind1=0.193,P_bind2=3e-1,z0=hpore/2.+0.)
+#params=dict(avgbind1=17.2e6,avgbind2=3e4,P_bind1=0.193,P_bind2=3e-1,z0=hpore/2.+0.)
+params=dict(avgbind1=17.2e6,avgbind2=3e4,P_bind1=0.020,P_bind2=3e-1,z0=hpore/2.+0.)
 #b1 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
-b2 = [[[2.5, hpore/2.-h2-24.], [2.5, hpore/2.-h2-32.]]]
+#b2 = [[[2.5, hpore/2.-h2-24.], [2.5, hpore/2.-h2-32.]]]
+b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
 b1 = []
 #b2 = []
 outside=True
