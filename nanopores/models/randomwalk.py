@@ -9,8 +9,8 @@ import matplotlib.patches as mpatches
 import dolfin
 import nanopores
 from nanopores.tools import fields
-from nanopores.geometries.allpores import get_pore
-from nanopores.tools.polygons import Polygon, Ball
+from nanopores import get_pore
+from nanopores.tools.polygons import Polygon, Ball, isempty
 from nanopores.models import nanopore
 fields.set_dir_dropbox()
 dolfin.parameters["allow_extrapolation"] = True
@@ -33,7 +33,8 @@ params = nanopores.user_params(
     cylplot = False, # True for plot in r-z domain
 )
 
-# domains are places where molecule can bind and/or be reflected after collision
+# domains are places where molecule can bind
+# and/or be reflected after collision
 domain_params = dict(
     cyl = False, # determines whether rz or xyz coordinates are passed to .inside
     walldist = 1.5, # multiple of radius that determines what counts as collision
@@ -45,9 +46,14 @@ domain_params = dict(
     eps = 1., # margin in addition to walldist, determines re-attempting
     p = 0.1, # binding probability for one attempt
     t = 1e6, # mean of exponentially distributed binding duration [ns]
+    dx = 0.4, # width of bond energy barrier [nm]
+    use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
 )
 
 class Domain(object):
+    """based on existing domain object which need only support the
+    methods .inside and .inside_single, which get either xyz or rz 
+    coordinates depending on the cyl attribute set in init."""
 
     def __init__(self, domain, **params):
         self.domain = domain
@@ -78,7 +84,7 @@ class Domain(object):
             # bind with probability p
             bind = np.random.rand(np.sum(attempt)) <= self.p
             # draw exponentially distributed binding time
-            duration = np.random.exponential(self.t, np.sum(bind))
+            duration = self.draw_binding_durations(attempt, bind, rw)
             # update can_bind and bind_times of random walk
             iattempt = rw.i[rw.alive][attempt]
             ibind = iattempt[bind]
@@ -108,6 +114,20 @@ class Domain(object):
         else:
             x0 = x05
         return self.binary_search_inside(x0, x1, radius)
+    
+    def draw_binding_durations(self, attempt, bind, rw):
+        if self.use_force and np.sum(bind) > 0:
+            # evaluate force magnitude at binding particles
+            ibind = np.nonzero(attempt)[0][bind]
+            F = np.array([rw.F(x) for x in rw.rz[ibind]])
+            F = np.sqrt(np.sum(F**2, 1))
+            # create array of mean times
+            kT = rw.phys.kT
+            dx = 1e-9*self.dx
+            t = self.t * np.exp(-F*dx/kT)
+        else:
+            t = self.t
+        return np.random.exponential(t, np.sum(bind))
 
 # external forces
 def load_externals(**params):
@@ -128,7 +148,8 @@ def initial(R, z, N=10):
 class RandomWalk(object):
 
     def __init__(self, pore, N=10, dt=1., walldist=2.,
-                 margtop=20., margbot=10., rstart=None, **params):
+                 margtop=20., margbot=10., rstart=None, zstart=None,
+                 **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
@@ -139,9 +160,12 @@ class RandomWalk(object):
         self.ztop = pore.protein.zmax()[1]
         self.rbot = pore.protein.radiusbottom() - self.params.rMolecule
         self.zbot = pore.protein.zmin()[1]
+        self.zmid = .5*(self.ztop + self.zbot) if isempty(pore.membrane) else pore.params["zmem"]
         if rstart is None:
             rstart = self.rtop - self.params.rMolecule
-        x, r, z = initial(rstart, self.ztop, N)
+        if zstart is None:
+            zstart = self.ztop
+        x, r, z = initial(rstart, zstart, N)
 
         self.N = N
         self.x = x
@@ -169,6 +193,9 @@ class RandomWalk(object):
 
         self.domains = []
         self.add_domain(pore.protein, binding=False, exclusion=True,
+                        walldist=walldist)
+        if not isempty(pore.membrane):
+            self.add_domain(pore.membrane, binding=False, exclusion=True,
                         walldist=walldist)
 
     def add_domain(self, domain, **params):
@@ -436,27 +463,26 @@ def save(ani, name="rw"):
                  fps=30, dpi=200, writer="ffmpeg_file",
                  extra_args=['-vcodec', 'libx264'])
     
-def run(rw, dovideo=False, dosave=False, cyl=False, name="rw"):
-    if dovideo:
-        ani = video(rw, cyl=cyl)
-        if dosave:
+# convenience function for interactive experiments
+def run(rw, name="rw", a=-1, b=4, **aniparams):
+    params = nanopores.user_params(video=False, save=False, cyl=False)
+    if params.video:
+        ani = video(rw, cyl=params.cyl, **aniparams)
+        if params.save:
             save(ani, name=name)
         else:
             plt.show()
     else:
         for t in rw.walk(): pass
-    if (not dovideo) or (not dosave):
-        histogram(rw, b=6)
+    if (not params.video) or (not params.save):
+        histogram(rw, a, b)
         plt.show()
     
-
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
     receptor = Ball([9., 0., -30.], 8.)
     rw.add_domain(receptor, exclusion=True, walldist=1.,
                   binding=True, eps=1., t=1.5e6, p=0.14)
-
-    p = nanopores.user_params(video=False, save=False, cyl=False)
-    run(rw, p.video, p.save, p.cyl, name="wei")
+    run(rw, name="wei")
     

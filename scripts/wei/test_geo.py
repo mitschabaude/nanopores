@@ -21,6 +21,7 @@ params = user_params(
     reconstruct = False,
     poreregion = True,
 )
+
 # SiN membrane thickness (in vertical direction)
 lsin = 50.
 # Au membrane thickness (in vertical direction)

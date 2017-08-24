@@ -4,6 +4,8 @@ python class to handle n-dimensional rectangular boxes and unions of them
 note: very naive implementation of union, suitable for a couple 100 boxes
 '''
 
+# TODO: implement tests for points inside (sub-)domain by unpacking synonymes
+#       and traversing expression tree.
 # TODO: customizable length scales
 # TODO: to make merge always applicable, would need check for connectedness
 #       and handle Surface in Volume cases

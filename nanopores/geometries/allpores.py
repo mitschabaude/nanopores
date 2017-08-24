@@ -10,19 +10,25 @@ should behave as follows:
        building
     -) allows easy, modular addition of new geometries"""
 import numpy as np
-from nanopores.tools.utilities import Params, any_params
-import nanopores.tools.polygons as polygons
-from nanopores.geometries.cylpore import MultiPore, Pore
-import nanopores.geometries.pughpore as pughpore
-import nanopores.geometries.curved as curved
-from nanopores.geometries.alphahempoly import poly as alphahempoly
+
+def lazy_import():
+    global Params, any_params, polygons, MultiPore, Pore, pughpore
+    global curved, alphahempoly
+    from nanopores.tools.utilities import Params, any_params
+    import nanopores.tools.polygons as polygons
+    from nanopores.geometries.cylpore import MultiPore, Pore
+    import nanopores.geometries.pughpore as pughpore
+    import nanopores.geometries.curved as curved
+    from nanopores.geometries.alphahempoly import poly as alphahempoly
 
 def get_geo(geoname=None, **params):
+    lazy_import()
     geoclass = geometries[geoname]()
     params["geoname"] = geoname
     return geoclass.get_geo(**params)
 
 def get_pore(geoname=None, **params):
+    lazy_import()
     geoclass = geometries[geoname]()
     params["geoname"] = geoname
     return geoclass.get_pore(**params)
@@ -44,7 +50,9 @@ class BasePore(object):
 
 class PughPore(BasePore):
 
-    default = dict(pughpore.params,
+    @property
+    def default():
+        return dict(pughpore.params,
         geoname = "pugh",
         diamPore = 6., # will override l0,.. if set
         diamDNA = 2.5, # will override l0,.. if diamPore set
