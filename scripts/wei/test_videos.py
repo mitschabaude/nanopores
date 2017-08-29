@@ -1,8 +1,7 @@
 # (c) 2017 Gregor Mitscha-Baude
 import nanopores
 from nanopores.models.randomwalk import (get_pore, RandomWalk, Ball, run)
-import matplotlib as mpl
-#mpl.verbose.set_level("helpful")
+
 params = nanopores.user_params(
     # general params
     geoname = "alphahem",

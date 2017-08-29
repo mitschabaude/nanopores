@@ -111,15 +111,15 @@ class AlphaHem(BasePore):
 class WeiPore(BasePore):
 
     default = dict(
-        R = 100.,
-        R0 = 60.,
-        H = 150.,
+        R = 200.,
+        R0 = 120.,
+        H = 300.,
         #H0 = 70.,
         x0 = [0, 0, 46],
-        rMolecule = 2.1,
+        rMolecule = 6.,
         dim = 3,
         no_membrane = True,
-        r0 = 13, # pore radius
+        dp = 45, # pore radius as used in paper
         angle = 40, # aperture angle in degrees
         lcCenter = 0.3,
         lcMolecule = 0.1,
@@ -127,8 +127,9 @@ class WeiPore(BasePore):
         subs = None,
         reconstruct = False,
         poreregion = True,
-        receptor = [8., 0., -30.],
-        rReceptor = 7.,
+        receptor = None, #[40., 0., -30.],
+        rReceptor = 1.25,
+        reverse = True, # if True, narrow opening is at the top, as in paper
     )
 
     def polygons(self, params):
@@ -143,7 +144,7 @@ class WeiPore(BasePore):
         sin = np.sin(angle2)
         cos = np.cos(angle2)
         l = l0/2.
-        r0 = params.r0
+        r0 = params.dp - lsam
         r1 = r0 + l0*tan
         rsam = r0 + lsam/cos
         rsin = r0 + lsam/cos + rlau
@@ -151,12 +152,22 @@ class WeiPore(BasePore):
         split = 0.7
         Rsplit = split*R + (1.-split)*r1
 
-        sam = [[r0, -l], [r1, l], [R, l], [R, l - lsam],
-               [rsam - tan*(lsam - l0), l - lsam], [rsam, -l]]
-        au = [sam[5], sam[4], sam[3], [R, -l + lsin],
-              [rsin + tan*lsin, -l + lsin],
-              [rsin, -l]]
-        sin = [au[5], au[4], au[3], [R, -l]]
+        if not params.reverse:
+            sam = [[r0, -l], [r1, l], [R, l], [R, l - lsam],
+                   [rsam - tan*(lsam - l0), l - lsam], [rsam, -l]]
+            au = [sam[5], sam[4], sam[3], [R, -l + lsin],
+                  [rsin + tan*lsin, -l + lsin],
+                  [rsin, -l]]
+            sin = [au[5], au[4], au[3], [R, -l]]
+        else:
+            l = -l
+            sam = [[r0, -l], [r1, l], [R, l], [R, l + lsam],
+                   [rsam - tan*(lsam - l0), l + lsam], [rsam, -l]][::-1]
+            au = [sam[-6], sam[-5], sam[-4], [R, -l - lsin],
+                  [rsin + tan*lsin, -l - lsin],
+                  [rsin, -l]][::-1]
+            sin = [au[-6], au[-5], au[-4], [R, -l]][::-1]
+
         return sam, au, sin, Rsplit
 
     def pore(self):
@@ -193,9 +204,10 @@ geometries = dict(
 )
 
 if __name__ == "__main__":
+    lazy_import()
     params = any_params(geoname="wei", h=10.)
     geo = get_geo(**params)
     print geo
-    print geo.mesh.coordinates()
+    #print geo.mesh.coordinates()
     geo.plot_subdomains()
     geo.plot_boundaries(interactive=True)

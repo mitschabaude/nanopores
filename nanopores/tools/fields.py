@@ -107,8 +107,23 @@ def get(name, *args, **params):
         return values[0]
     return tuple(values)
 
+def is_function_test(name, index=None, **params):
+    FILE, params = Header().get_file_params(name, params, index)
+    data = _load(FILE)
+    print "is function:", is_function(data)
+
+def is_function(data):
+    return all([string in data for string in ["functions", "ranks", "prefix", "empty"]])
+
 def remove(name, index=None, **params):
-    Header().remove(name, params, index)
+    # test if file is saved function; if yes, call remove_functions
+    h = Header()
+    FILE, params = h.get_file_params(name, params, index)
+    data = _load(FILE)
+    if is_function(data):
+        remove_functions(name, index, **params)
+    else:
+        h.remove(name, params, index)
 
 def rename(name, index, newname):
     # do NOT create new file, because this would break function data
@@ -473,9 +488,9 @@ class CacheBase(object):
 
             if self.overwrite or not self._exists(params):
                 out = f(params, *args)
-                self.save(out, params)
+                self._save(out, params)
 
-            return self.load(params)
+            return self._load(params)
         return wrapper
 
     def _exists(self, params):
@@ -484,11 +499,11 @@ class CacheBase(object):
 class cache(CacheBase):
     "default -- for cashing simple json-able output"
 
-    def save(self, result, params):
-        save_entries(self.name, params, result=result)
+    def _save(self, result, params):
+        save(self.name, params, result=result)
         update()
 
-    def load(self, params):
+    def _load(self, params):
         return get_entry(self.name, "result", **params)
 
 "caching discrete dolfin functions"
@@ -564,14 +579,14 @@ def get_functions(name, *keys, **params):
         return tuple([functions[key] for key in keys])
     return functions, mesh
 
-def remove_functions(name, **params):
+def remove_functions(name, index=None, **params):
     h = Header()
-    FILE, params = h.get_file_params(name, params)
+    FILE, params = h.get_file_params(name, params, index)
     data = _load(FILE)
     PREFIX = data["prefix"]
     files = [PREFIX + "_" + fname + ".xml" for fname in data["functions"]]
     files.append(PREFIX + "_mesh.xml")
-    h.remove(name, params)
+    h.remove(name, params, index)
     for f in files:
         path = os.path.join(DIR, f)
         print "Removing %s" %path

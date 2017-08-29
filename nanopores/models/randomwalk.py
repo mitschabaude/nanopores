@@ -8,11 +8,10 @@ import matplotlib.patches as mpatches
 
 import dolfin
 import nanopores
-from nanopores.tools import fields
 from nanopores import get_pore
 from nanopores.tools.polygons import Polygon, Ball, isempty
 from nanopores.models import nanopore
-fields.set_dir_dropbox()
+
 dolfin.parameters["allow_extrapolation"] = True
 
 params = nanopores.user_params(
@@ -30,7 +29,6 @@ params = nanopores.user_params(
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 20.,
     margbot = 10.,
-    cylplot = False, # True for plot in r-z domain
 )
 
 # domains are places where molecule can bind
@@ -52,7 +50,7 @@ domain_params = dict(
 
 class Domain(object):
     """based on existing domain object which need only support the
-    methods .inside and .inside_single, which get either xyz or rz 
+    methods .inside and .inside_single, which get either xyz or rz
     coordinates depending on the cyl attribute set in init."""
 
     def __init__(self, domain, **params):
@@ -114,7 +112,7 @@ class Domain(object):
         else:
             x0 = x05
         return self.binary_search_inside(x0, x1, radius)
-    
+
     def draw_binding_durations(self, attempt, bind, rw):
         if self.use_force and np.sum(bind) > 0:
             # evaluate force magnitude at binding particles
@@ -136,9 +134,9 @@ def load_externals(**params):
 # initial positions: uniformly distributed over disc
 def initial(R, z, N=10):
     # create uniform polar coordinates r**2, theta
-    r2 = R**2*np.random.rand(N)
+    r = R*np.sqrt(np.random.rand(N))
     theta = 2.*np.pi*np.random.rand(N)
-    r = np.sqrt(r2)
+
     x = np.zeros((N, 3))
     x[:, 0] = r*np.cos(theta)
     x[:, 1] = r*np.sin(theta)
@@ -203,7 +201,7 @@ class RandomWalk(object):
         domain only has to implement the .inside(x, radius) method.
         params can be domain_params"""
         self.domains.append(Domain(domain, **params))
-        
+
     def add_wall_binding(self, **params):
         self.domains[0].__dict__.update(params, binding=True)
 
@@ -333,9 +331,9 @@ class RandomWalk(object):
         print "finished!"
         print "mean # of attempts:", self.attempts.mean()
         print "mean # of bindings:", self.bindings.mean()
-        print "mean dwell time with binding: %.1f ms" % (
-            1e-6*(self.bind_times + self.times).mean())
-        print "mean dwell time without binding: %.1f mus" % (
+        print "mean dwell time with binding: %.3f mus" % (
+            1e-3*(self.bind_times + self.times).mean())
+        print "mean dwell time without binding: %.3f mus" % (
             1e-3*self.times.mean())
         self.times += self.bind_times
 
@@ -457,12 +455,12 @@ def histogram(rw, a=0, b=3, scale=1e-6):
     plt.xlabel(r"$\tau$ off [$\mu$s]")
     plt.ylabel("count")
     plt.legend(loc="best")
-    
+
 def save(ani, name="rw"):
     ani.save(nanopores.HOME + "/presentations/nanopores/%s.mp4" % name,
                  fps=30, dpi=200, writer="ffmpeg_file",
                  extra_args=['-vcodec', 'libx264'])
-    
+
 # convenience function for interactive experiments
 def run(rw, name="rw", a=-1, b=4, **aniparams):
     params = nanopores.user_params(video=False, save=False, cyl=False)
@@ -477,7 +475,7 @@ def run(rw, name="rw", a=-1, b=4, **aniparams):
     if (not params.video) or (not params.save):
         histogram(rw, a, b)
         plt.show()
-    
+
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
@@ -485,4 +483,4 @@ if __name__ == "__main__":
     rw.add_domain(receptor, exclusion=True, walldist=1.,
                   binding=True, eps=1., t=1.5e6, p=0.14)
     run(rw, name="wei")
-    
+
