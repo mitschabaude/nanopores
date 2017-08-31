@@ -1,4 +1,5 @@
 # (c) 2017 Gregor Mitscha-Baude
+import numpy as np
 import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
@@ -17,12 +18,30 @@ params = nanopores.user_params(
     # random walk params
     N = 100, # number of (simultaneous) random walks
     dt = 10., # time step [ns]
-    walldist = 1.6, # in multiples of radius, should be >= 1
+    walldist = 1.5, # in multiples of radius, should be >= 1
     margtop = 50.,
     margbot = 20.,
-    zstart = 70, # 46.5
-    rstart = 70, # 42.
+    zstart = 60., # 46.5
+    xstart = 38., # 42.
+    rstart = 10.
 )
+
+#class RandomWalk(randomwalk.RandomWalk):
+#    
+#    # start at point [rstart, 0, zstart]
+#    def initial(self):
+#        rstart = self.params.rstart
+#        zstart = self.params.zstart
+#        if rstart is None:
+#            rstart = 0.
+#        if zstart is None:
+#            zstart = self.ztop
+#    
+#        x = np.zeros((self.N, 3))
+#        x[:, 0] = rstart
+#        x[:, 1] = 0.
+#        x[:, 2] = zstart
+#        return x, np.abs(x[:, 0]), x[:, 2]
 
 # domains are places where molecule can bind
 # and/or be reflected after collision
@@ -44,8 +63,8 @@ params = nanopores.user_params(
 pore = nanopores.get_pore(**params)
 rw = randomwalk.RandomWalk(pore, **params)
 
-receptor = randomwalk.Ball([39., 0., 46.5], 1.25)
+receptor = randomwalk.Ball([42. - 4., 0., 46.5], 1.25)
 rw.add_domain(receptor, exclusion=True, walldist=1.2,
               binding=True, eps=1., t=1e6, p=0.5)
 #rw.add_wall_binding(t=1e4, p=0.1, eps=0.1)
-randomwalk.run(rw, "rw_wei", a=-3, b=6, save_count=1000)
+randomwalk.run(rw, "rw_wei", a=-3, b=1.5, save_count=1000)

@@ -68,6 +68,7 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
             ax.add_patch(patch)
             ax.add_patch(patchm)
 
+
 def exp_format(x, pos):
     a, b = '{:.1e}'.format(x).split('e')
     b = int(b)

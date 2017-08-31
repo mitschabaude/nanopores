@@ -5,12 +5,14 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import collections
 import matplotlib.patches as mpatches
+from scipy.stats import poisson, gamma
 
 import dolfin
 import nanopores
 from nanopores import get_pore
 from nanopores.tools.polygons import Polygon, Ball, isempty
 from nanopores.models import nanopore
+from nanopores.tools.poreplots import streamlines
 
 dolfin.parameters["allow_extrapolation"] = True
 
@@ -103,7 +105,7 @@ class Domain(object):
         if self.domain.inside_single(x0, radius=radius):
             print "ERROR: x0 is in domain despite having been excluded before."
             print "x0", x0, "x1", x1
-            raise Exception
+            #raise Exception
         if np.sum((x0 - x1)**2) < self.minsize**2:
             return x0
         x05 = .5*(x0 + x1)
@@ -131,41 +133,27 @@ class Domain(object):
 def load_externals(**params):
     return nanopore.force_diff(**params)
 
-# initial positions: uniformly distributed over disc
-def initial(R, z, N=10):
-    # create uniform polar coordinates r**2, theta
-    r = R*np.sqrt(np.random.rand(N))
-    theta = 2.*np.pi*np.random.rand(N)
-
-    x = np.zeros((N, 3))
-    x[:, 0] = r*np.cos(theta)
-    x[:, 1] = r*np.sin(theta)
-    x[:, 2] = z
-    return x, r, x[:, 2]
-
 class RandomWalk(object):
 
     def __init__(self, pore, N=10, dt=1., walldist=2.,
-                 margtop=20., margbot=10., rstart=None, zstart=None,
-                 **params):
+                 margtop=20., margbot=10., xstart=None, zstart=None,
+                 rstart=None, **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
-        self.params.update(params, margtop=margtop, margbot=margbot)
-
+        self.params.update(params, margtop=margtop, margbot=margbot,
+                           rstart=rstart, xstart=xstart, zstart=zstart)
+        
         # initialize some parameters and create random walkers at entrance
         self.rtop = pore.protein.radiustop() - self.params.rMolecule
         self.ztop = pore.protein.zmax()[1]
         self.rbot = pore.protein.radiusbottom() - self.params.rMolecule
         self.zbot = pore.protein.zmin()[1]
         self.zmid = .5*(self.ztop + self.zbot) if isempty(pore.membrane) else pore.params["zmem"]
-        if rstart is None:
-            rstart = self.rtop - self.params.rMolecule
-        if zstart is None:
-            zstart = self.ztop
-        x, r, z = initial(rstart, zstart, N)
-
         self.N = N
+        
+        x, r, z = self.initial()
+
         self.x = x
         self.xold = x
         self.rz = np.column_stack([r, z])
@@ -195,6 +183,28 @@ class RandomWalk(object):
         if not isempty(pore.membrane):
             self.add_domain(pore.membrane, binding=False, exclusion=True,
                         walldist=walldist)
+            
+    # initial positions: uniformly distributed over disc
+    def initial(self):
+        rstart = self.params.rstart
+        xstart = self.params.xstart
+        zstart = self.params.zstart
+        if rstart is None:
+            rstart = self.rtop - self.params.rMolecule
+        if xstart is None:
+            xstart = 0.
+        if zstart is None:
+            zstart = self.ztop
+            
+        # create uniform polar coordinates r, theta
+        r = rstart * np.sqrt(np.random.rand(self.N))
+        theta = 2.*np.pi * np.random.rand(self.N)
+    
+        x = np.zeros((self.N, 3))
+        x[:, 0] = xstart + r*np.cos(theta)
+        x[:, 1] = r*np.sin(theta)
+        x[:, 2] = zstart
+        return x, np.sqrt(x[:, 0]**2 + x[:, 1]**2), x[:, 2]
 
     def add_domain(self, domain, **params):
         """add domain where particles can bind and/or are excluded from.
@@ -388,6 +398,10 @@ class RandomWalk(object):
                 patches.append(p)
 
         return patches
+    
+    def plot_streamlines(self, cyl=False):
+        # TODO:
+        pass
 
 def video(rw, cyl=False, **aniparams):
     R = rw.params.R
@@ -399,6 +413,7 @@ def video(rw, cyl=False, **aniparams):
     #ax = plt.axes([0,0,1,1], autoscale_on=False, xlim=(-R, R), ylim=(-H, H))
     xlim = (-R, R) if not cyl else (0., R)
     ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
+    #streamlines(rx=R, ry=Htop, Nx=100, Ny=100, maxvalue=None, F=rw.F)
     coll = rw.ellipse_collection(ax)
     patches = rw.polygon_patches(cyl)
 
@@ -424,37 +439,59 @@ def integrate_hist(hist, cutoff):
     I, = np.nonzero(bins > cutoff)
     return np.dot(n[I[:-1]], np.diff(bins[I]))
 
-def integrate_values(T, fT):
+def integrate_values(T, fT, cutoff):
     values = 0.5*(fT[:-1] + fT[1:])
-    return np.dot(values, np.diff(T))
+    I, = np.nonzero(T > cutoff)
+    return np.dot(values[I[:-1]], np.diff(T[I]))
 
 def exponential_hist(times, a, b, **params):
-    cutoff = 100 # cutoff frequency in microsec
+    cutoff = 0.03 # cutoff frequency in ms
     if len(times) == 0:
         return
     bins = np.logspace(a, b, 100)
     hist = plt.hist(times, bins=bins, alpha=0.5, **params)
     plt.xscale("log")
     params.pop("label")
+    color = params.pop("color")
     total = integrate_hist(hist, cutoff)
     if sum(times > cutoff) == 0:
         return
     tmean = times[times > cutoff].mean()
     T = np.logspace(a-3, b, 1000)
     fT = np.exp(-T/tmean)*T/tmean
-    fT *= total/integrate_values(T, fT)
-    plt.plot(T, fT, **params)
+    fT *= total/integrate_values(T, fT, cutoff)
+    plt.plot(T, fT, label="exp. fit, mean = %.2f ms" % (tmean,),
+             color="dark" + color, **params)
     plt.xlim(10**a, 10**b)
 
-def histogram(rw, a=0, b=3, scale=1e-6):
+def histogram(rw, a=-3, b=3, scale=1e-3):
     t = rw.times * 1e-9 / scale # assuming times are in nanosaconds
 
-    exponential_hist(t[rw.success], a, b, color="g", label="translocated")
-    exponential_hist(t[rw.fail], a, b, color="r", label="did not translocate")
+    exponential_hist(t[rw.success], a, b, color="green", label="translocated")
+    exponential_hist(t[rw.fail], a, b, color="red", label="did not translocate")
 
-    plt.xlabel(r"$\tau$ off [$\mu$s]")
+    plt.xlabel(r"$\tau$ off [ms]")
     plt.ylabel("count")
     plt.legend(loc="best")
+    
+def hist_poisson(rw, name="attempts", n=10):
+    attempts = getattr(rw, name)
+    k = np.arange(n + 1)
+
+    plt.figure()
+    plt.hist(attempts, bins=(k - 0.5), label=name, color="#aaaaff")
+    # poisson fit
+    a = attempts.mean()
+    K = len(attempts)
+    k0 = np.linspace(0., n, 500)
+    plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-",
+             label="Poisson fit, mean = %.2f" %a, color="b")
+    plt.plot(k, K*poisson.pmf(k, a), "o", color="b")    
+    plt.xlim(-0.5, n+0.5)
+    plt.xticks(k, k)
+    plt.xlabel("# %s" % name)
+    plt.ylabel("count")    
+    plt.legend()
 
 def save(ani, name="rw"):
     ani.save(nanopores.HOME + "/presentations/nanopores/%s.mp4" % name,
@@ -474,6 +511,7 @@ def run(rw, name="rw", a=-1, b=4, **aniparams):
         for t in rw.walk(): pass
     if (not params.video) or (not params.save):
         histogram(rw, a, b)
+        hist_poisson(rw, "bindings")
         plt.show()
 
 if __name__ == "__main__":
