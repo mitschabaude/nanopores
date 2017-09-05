@@ -111,15 +111,15 @@ class AlphaHem(BasePore):
 class WeiPore(BasePore):
 
     default = dict(
-        R = 200.,
-        R0 = 120.,
-        H = 300.,
+        R = 120.,
+        R0 = 100.,
+        H = 240.,
         #H0 = 70.,
         x0 = [0, 0, 46],
         rMolecule = 6.,
         dim = 3,
         no_membrane = True,
-        dp = 45, # pore radius as used in paper
+        dp = 45, # (small) pore radius as used in paper
         angle = 40, # aperture angle in degrees
         lcCenter = 0.3,
         lcMolecule = 0.1,
@@ -144,7 +144,7 @@ class WeiPore(BasePore):
         sin = np.sin(angle2)
         cos = np.cos(angle2)
         l = l0/2.
-        r0 = params.dp - lsam
+        r0 = params.dp/2. - lsam
         r1 = r0 + l0*tan
         rsam = r0 + lsam/cos
         rsin = r0 + lsam/cos + rlau

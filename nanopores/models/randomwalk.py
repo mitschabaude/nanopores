@@ -142,8 +142,9 @@ class RandomWalk(object):
         self.pore = pore
         self.params = pore.params
         self.params.update(params, margtop=margtop, margbot=margbot,
+                           walldist=walldist,
                            rstart=rstart, xstart=xstart, zstart=zstart)
-        
+
         # initialize some parameters and create random walkers at entrance
         self.rtop = pore.protein.radiustop() - self.params.rMolecule
         self.ztop = pore.protein.zmax()[1]
@@ -151,7 +152,7 @@ class RandomWalk(object):
         self.zbot = pore.protein.zmin()[1]
         self.zmid = .5*(self.ztop + self.zbot) if isempty(pore.membrane) else pore.params["zmem"]
         self.N = N
-        
+
         x, r, z = self.initial()
 
         self.x = x
@@ -183,23 +184,23 @@ class RandomWalk(object):
         if not isempty(pore.membrane):
             self.add_domain(pore.membrane, binding=False, exclusion=True,
                         walldist=walldist)
-            
+
     # initial positions: uniformly distributed over disc
     def initial(self):
         rstart = self.params.rstart
         xstart = self.params.xstart
         zstart = self.params.zstart
         if rstart is None:
-            rstart = self.rtop - self.params.rMolecule
+            rstart = self.rtop - self.params.rMolecule*(self.params.walldist - 1.)
         if xstart is None:
             xstart = 0.
         if zstart is None:
             zstart = self.ztop
-            
+
         # create uniform polar coordinates r, theta
         r = rstart * np.sqrt(np.random.rand(self.N))
         theta = 2.*np.pi * np.random.rand(self.N)
-    
+
         x = np.zeros((self.N, 3))
         x[:, 0] = xstart + r*np.cos(theta)
         x[:, 1] = r*np.sin(theta)
@@ -398,7 +399,7 @@ class RandomWalk(object):
                 patches.append(p)
 
         return patches
-    
+
     def plot_streamlines(self, cyl=False):
         # TODO:
         pass
@@ -473,7 +474,7 @@ def histogram(rw, a=-3, b=3, scale=1e-3):
     plt.xlabel(r"$\tau$ off [ms]")
     plt.ylabel("count")
     plt.legend(loc="best")
-    
+
 def hist_poisson(rw, name="attempts", n=10):
     attempts = getattr(rw, name)
     k = np.arange(n + 1)
@@ -486,11 +487,11 @@ def hist_poisson(rw, name="attempts", n=10):
     k0 = np.linspace(0., n, 500)
     plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-",
              label="Poisson fit, mean = %.2f" %a, color="b")
-    plt.plot(k, K*poisson.pmf(k, a), "o", color="b")    
+    plt.plot(k, K*poisson.pmf(k, a), "o", color="b")
     plt.xlim(-0.5, n+0.5)
     plt.xticks(k, k)
     plt.xlabel("# %s" % name)
-    plt.ylabel("count")    
+    plt.ylabel("count")
     plt.legend()
 
 def save(ani, name="rw"):
@@ -511,6 +512,7 @@ def run(rw, name="rw", a=-1, b=4, **aniparams):
         for t in rw.walk(): pass
     if (not params.video) or (not params.save):
         histogram(rw, a, b)
+        hist_poisson(rw, "attempts")
         hist_poisson(rw, "bindings")
         plt.show()
 
