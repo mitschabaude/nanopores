@@ -13,6 +13,7 @@ from nanopores import get_pore
 from nanopores.tools.polygons import Polygon, Ball, isempty
 from nanopores.models import nanopore
 from nanopores.tools.poreplots import streamlines
+from nanopores.tools import fields
 
 dolfin.parameters["allow_extrapolation"] = True
 
@@ -348,6 +349,17 @@ class RandomWalk(object):
             1e-3*self.times.mean())
         self.times += self.bind_times
 
+    def save(self, name="rw"):
+        fields.save_fields(name, self.params,
+            times = self.times,
+            success = self.success,
+            fail = self.fail,
+            bind_times = self.bind_times,
+            attempts = self.attempts,
+            bindings = self.bindings,
+            )
+        fields.update()
+
     def ellipse_collection(self, ax):
         "for matplotlib plotting"
         xz = self.x[:, [0,2]]
@@ -399,10 +411,13 @@ class RandomWalk(object):
                 patches.append(p)
 
         return patches
-
     def plot_streamlines(self, cyl=False):
         # TODO:
         pass
+
+def load_results(name, **params):
+    data = fields.get_fields(name, **params)
+    return nanopores.Params(data)
 
 def video(rw, cyl=False, **aniparams):
     R = rw.params.R
@@ -500,7 +515,7 @@ def save(ani, name="rw"):
                  extra_args=['-vcodec', 'libx264'])
 
 # convenience function for interactive experiments
-def run(rw, name="rw", a=-1, b=4, **aniparams):
+def run(rw, name="rw", plot=True, a=-1, b=4, **aniparams):
     params = nanopores.user_params(video=False, save=False, cyl=False)
     if params.video:
         ani = video(rw, cyl=params.cyl, **aniparams)
@@ -510,7 +525,7 @@ def run(rw, name="rw", a=-1, b=4, **aniparams):
             plt.show()
     else:
         for t in rw.walk(): pass
-    if (not params.video) or (not params.save):
+    if plot and ((not params.video) or (not params.save)):
         histogram(rw, a, b)
         hist_poisson(rw, "attempts")
         hist_poisson(rw, "bindings")

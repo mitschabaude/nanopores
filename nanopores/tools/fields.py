@@ -310,6 +310,7 @@ class Header(object):
 
 def mergefile(f, FILE):
     "merge file content f into FILE, knowing they are compatible"
+    # TODO: make the .extend work with stored arrays!!
     # read FILE
     f0 = _load(FILE)
     # update f0 by f. keys "params", fields" get special treatment

@@ -36,7 +36,7 @@ receptor_params = dict(
     binding = True,
     eps = 0.1, # margin in addition to walldist, determines re-attempting [nm]
     t = 3.3e9, # mean of exponentially distributed binding duration [ns]
-    p = 0.0193, # binding probability for one attempt
+    p = 0.01937, # binding probability for one attempt
 
     use_force = False, # if True, t_mean = t*exp(-|F|*dx/kT)
     dx = 0.1, # width of bond energy barrier [nm]
@@ -59,13 +59,16 @@ karr = 2.*phys.pi * r * D * cmol # arrival rate
 b = c * kon / karr # bindings per event
 
 print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
-print "=> number of bindings per event: %.1f / %.1f = %.4f (= a*p = attempts * binding prob)" % (ckon, karr, b)
+print "=> number of bindings per event: %.1f / %.1f = %.5f (= 1 - exp(-a*p) = prob of binding at least once)" % (ckon, karr, b)
 
+# solve b = 1 - exp(-ap); p = -log(1 - b)/a
 a = 0.2775
-p = b/a
+ap = -np.log(1 - b)
+p = ap/a
+print "=> a*p = -log(1 - %.5f) = %.5f" % (b, ap)
 print
-print "Average number of attempts: a = %.3f (from large simulation with current parameters)" % a
-print "=> binding probability p = a*p / a = %.4f / %.4f = %.4f" % (b, a, p)
+print "Average number of attempts: a = %.5f (from large simulation with current parameters)" % a
+print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
 receptor_params["p"] = p
 
 pore = nanopores.get_pore(**params)
@@ -75,4 +78,7 @@ rw.add_domain(receptor, **receptor_params)
 #rw.add_wall_binding(t=1e4, p=0.1, eps=0.1)
 #print rw.rtop
 
-randomwalk.run(rw, "rw_wei", a=-3, b=6, save_count=1000)
+name = "rw_wei_0"
+randomwalk.run(rw, name, a=-3, b=6, save_count=1000)
+rw.save(name)
+print randomwalk.load_results(name)
