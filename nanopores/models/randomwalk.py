@@ -143,7 +143,7 @@ class RandomWalk(object):
         self.pore = pore
         self.params = pore.params
         self.params.update(params, margtop=margtop, margbot=margbot,
-                           walldist=walldist,
+                           walldist=walldist, dt=dt,
                            rstart=rstart, xstart=xstart, zstart=zstart)
 
         # initialize some parameters and create random walkers at entrance
@@ -350,6 +350,8 @@ class RandomWalk(object):
         self.times += self.bind_times
 
     def save(self, name="rw"):
+        if "N" in self.params:
+            self.params.pop("N")
         fields.save_fields(name, self.params,
             times = self.times,
             success = self.success,
@@ -417,7 +419,10 @@ class RandomWalk(object):
 
 def load_results(name, **params):
     data = fields.get_fields(name, **params)
-    return nanopores.Params(data)
+    load = lambda a: a if isinstance(a, np.ndarray) else a.load()
+    data = nanopores.Params({k: load(data[k]) for k in data})
+    print "Found %d simulated events." % len(data.times)
+    return data
 
 def video(rw, cyl=False, **aniparams):
     R = rw.params.R
@@ -490,20 +495,26 @@ def histogram(rw, a=-3, b=3, scale=1e-3):
     plt.ylabel("count")
     plt.legend(loc="best")
 
-def hist_poisson(rw, name="attempts", n=10):
+def hist_poisson(rw, name="attempts", ran=None, n=10):
     attempts = getattr(rw, name)
-    k = np.arange(n + 1)
+    if ran is None:
+        n0 = 0
+        n1 = n
+    else:
+        n0, n1 = ran
+        
+    k = np.arange(n0, n1 + 1)
 
     plt.figure()
     plt.hist(attempts, bins=(k - 0.5), label=name, color="#aaaaff")
     # poisson fit
     a = attempts.mean()
     K = len(attempts)
-    k0 = np.linspace(0., n, 500)
+    k0 = np.linspace(n0, n1, 500)
     plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-",
-             label="Poisson fit, mean = %.2f" %a, color="b")
+             label="Poisson fit, mean = %.4f" %a, color="b")
     plt.plot(k, K*poisson.pmf(k, a), "o", color="b")
-    plt.xlim(-0.5, n+0.5)
+    plt.xlim(n0 - 0.5, n1 + 0.5)
     plt.xticks(k, k)
     plt.xlabel("# %s" % name)
     plt.ylabel("count")

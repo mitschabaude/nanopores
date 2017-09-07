@@ -3,7 +3,7 @@ import numpy as np
 import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
-#fields.set_dir_dropbox()
+fields.set_dir_dropbox()
 
 params = nanopores.user_params(
     # general params
@@ -25,6 +25,11 @@ params = nanopores.user_params(
     zstart = 46.5, # 46.5
     xstart = 0., # 42.
     rstart = None,
+    
+    # receptor params
+    rec_t = 3.7e9,
+    rec_p = 0.01763,
+    rec_eps = 0.1,
 )
 
 receptor = randomwalk.Ball([8.5 - 3. + 2., 0., 40.5], 0.5) # ztop 46.5
@@ -34,9 +39,9 @@ receptor_params = dict(
     #minsize = 0.01, # accuracy when performing reflection
 
     binding = True,
-    eps = 0.1, # margin in addition to walldist, determines re-attempting [nm]
-    t = 3.3e9, # mean of exponentially distributed binding duration [ns]
-    p = 0.01937, # binding probability for one attempt
+    eps = params.rec_eps, # margin in addition to walldist, determines re-attempting [nm]
+    t = params.rec_t, # mean of exponentially distributed binding duration [ns]
+    p = params.rec_p, # binding probability for one attempt
 
     use_force = False, # if True, t_mean = t*exp(-|F|*dx/kT)
     dx = 0.1, # width of bond energy barrier [nm]
@@ -62,12 +67,12 @@ print "Number of events per second: %.1f (from Smoluchowski rate equation)" % ka
 print "=> number of bindings per event: %.1f / %.1f = %.5f (= 1 - exp(-a*p) = prob of binding at least once)" % (ckon, karr, b)
 
 # solve b = 1 - exp(-ap); p = -log(1 - b)/a
-a = 0.2775
+a = 0.305
 ap = -np.log(1 - b)
 p = ap/a
 print "=> a*p = -log(1 - %.5f) = %.5f" % (b, ap)
 print
-print "Average number of attempts: a = %.5f (from large simulation with current parameters)" % a
+print "Average number of attempts: a = %.5f (from many simulations with dt=1, eps=0.1)" % a
 print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
 receptor_params["p"] = p
 
@@ -78,7 +83,7 @@ rw.add_domain(receptor, **receptor_params)
 #rw.add_wall_binding(t=1e4, p=0.1, eps=0.1)
 #print rw.rtop
 
-name = "rw_wei_0"
-randomwalk.run(rw, name, a=-3, b=6, save_count=1000)
+name = "rw_wei_2"
+randomwalk.run(rw, name, plot=False, save_count=1000)
 rw.save(name)
-print randomwalk.load_results(name)
+#randomwalk.load_results(name)

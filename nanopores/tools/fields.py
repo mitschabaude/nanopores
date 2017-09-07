@@ -26,6 +26,7 @@ import os, json
 import numpy as np
 from nanopores.dirnames import DATADIR, HOME
 DIR = os.path.join(DATADIR, "fields")
+# changes to these constants break access to existing stored data:
 HEADER = "header.txt"
 SUFFIX = ".field.txt"
 ARRAY_DIR = "arrays"
@@ -321,7 +322,7 @@ def mergefile(f, FILE):
         dontupdate.append("fields")
         for F in f["fields"]:
             if F in f0["fields"]:
-                f0["fields"][F].extend(f["fields"][F])
+                f0["fields"][F] = _concat(f0["fields"][F], f["fields"][F])
             else:
                 f0["fields"][F] = f["fields"][F]
     # other keys are simply overwritten
@@ -358,7 +359,26 @@ def _delete_arrays(FILE):
         fname = array_dir() + "/" + a + ".npy"
         print "Removing %s." % fname
         os.remove(fname)
-
+        
+def _concat(a, b):
+    # a, b are fields, therefore of list or array or NpyFile types
+    # all combinations should be possible
+    # result is returned as list or array
+    
+    # delete data underneath NpyFiles
+    if isinstance(a, NpyFile):
+        a = a.extract()
+    if isinstance(b, NpyFile):
+        b = b.extract()
+        
+    if isinstance(a, np.ndarray):
+        if isinstance(b, np.ndarray):
+            return np.append(a, b, axis=0)
+    else: # a should be list or similar
+        a = list(a)
+        a.extend(list(b))
+        return a
+            
 # json extension to save large arrays efficiently
 # attention: large arrays are NOT immediately decoded, but returned as NpyFiles
 
@@ -375,6 +395,17 @@ class NpyFile(object):
         if self.array is None:
             self.array = np.load(array_dir() + "/" + self.name + ".npy")
         return self.array
+    
+    def delete(self):
+        fname = array_dir() + "/" + self.name + ".npy"
+        print "Removing %s." % fname
+        os.remove(fname)
+        
+    def extract(self):
+        "load and delete underlying file"
+        a = self.load()
+        self.delete()
+        return a
 
     def __repr__(self):
         return "<Stored %s, load with .load()>" % (self.name)
