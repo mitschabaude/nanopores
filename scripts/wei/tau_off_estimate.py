@@ -1,18 +1,7 @@
 # (c) 2017 Gregor Mitscha-Baude
-from matplotlib import pyplot as plt
 import numpy as np
 
-import nanopores
-import nanopores.models.randomwalk as rw
-from nanopores.tools import fields
-fields.set_dir_dropbox()
-
-name = "rw_wei_2"
-#data = rw.load_results(name)
-#
-#rw.histogram(data, a=-2, b=6)
-#rw.hist_poisson(data, "attempts", (1, 10))
-
+# get experimental event data
 csvfile = "tau_off_wei.csv"
 data = np.genfromtxt(csvfile, delimiter=',')
 bins = data[:, 0]
@@ -42,26 +31,14 @@ for i in range(N):
     sample = a + (b-a)*np.random.rand(counts[i])
     fake = np.append(fake, sample)
 
-plt.hist(fake, bins=bins, alpha=0.3, label="Wei et al. 2012")
-
-# now get the same number of sampleswith binding from our own data
-data = rw.load_results(name)
-bind = data.bindings > 0
-times = data.times[bind]
-times *= 1e-9 # data are in ns, we want s
-
-n = sum(counts)
-print "Found %d simulated binding events, have %d experimental binding events." % (sum(bind), N)
-if sum(bind) > n:
-    times = times[:n]
-
-plt.hist(times, bins=bins, alpha=0.3, label="Simulation")
-plt.legend()
-plt.xlabel(r"$\tau$ off [s]")
-plt.ylabel("count")
-plt.xlim(0, 20)
-
-rw.hist_poisson(data, "attempts", (1, 10))
-rw.hist_poisson(data, "bindings", (1, 10))
-
-plt.show()
+# estimate b and tau parameters
+euler = 0.577215664901532
+theta = np.mean(np.log(fake)) - np.log(np.mean(fake))
+print "theta:", theta
+b = theta/euler + 1.
+print "estimate b:", b
+b0 = b/np.expm1(b)*np.exp(b)
+print "mean number of bindings, given K>0:", b0
+tau = np.mean(fake)/b0
+print "mean binding duration, exponential assumption:", np.mean(fake)
+print "mean binding duration, gamma assumption:", tau

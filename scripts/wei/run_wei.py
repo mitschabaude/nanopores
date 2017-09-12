@@ -25,7 +25,7 @@ params = nanopores.user_params(
     zstart = 46.5, # 46.5
     xstart = 0., # 42.
     rstart = None,
-    
+
     # receptor params
     rec_t = 3.7e9,
     rec_p = 0.01763,
@@ -84,6 +84,6 @@ rw.add_domain(receptor, **receptor_params)
 #print rw.rtop
 
 name = "rw_wei_2"
-randomwalk.run(rw, name, plot=False, save_count=1000)
-rw.save(name)
+randomwalk.run(rw, name, plot=True, save_count=1000)
+#rw.save(name)
 #randomwalk.load_results(name)

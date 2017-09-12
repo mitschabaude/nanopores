@@ -502,14 +502,22 @@ def hist_poisson(rw, name="attempts", ran=None, n=10):
         n1 = n
     else:
         n0, n1 = ran
-        
+
     k = np.arange(n0, n1 + 1)
 
     plt.figure()
     plt.hist(attempts, bins=(k - 0.5), label=name, color="#aaaaff")
     # poisson fit
-    a = attempts.mean()
-    K = len(attempts)
+    if n0 >= 1:
+        mean = attempts[attempts >= n0].mean()
+        a = poisson_from_positiveK(mean)
+        print "Poisson fit, mean of K>0:", mean
+        print "Inferred total mean:", a
+        print "Mean of all K:", attempts.mean()
+        K = len(attempts[attempts > 0])/(1.-np.exp(-a))
+    else:
+        a = attempts.mean()
+        K = len(attempts)
     k0 = np.linspace(n0, n1, 500)
     plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-",
              label="Poisson fit, mean = %.4f" %a, color="b")
@@ -519,6 +527,30 @@ def hist_poisson(rw, name="attempts", ran=None, n=10):
     plt.xlabel("# %s" % name)
     plt.ylabel("count")
     plt.legend()
+
+def solve_newton(C, f, f1, x0=1., n=20):
+    "solve f(x) == C"
+    x = x0 # initial value
+    print "Newton iteration:"
+    for i in range(n):
+        dx = -(f(x) - C)/f1(x)
+        x = x + dx
+        res = abs(f(x) - C)
+        print i, "Residual", res, "Value", x
+        if res < 1e-12:
+            break
+    print
+    return x
+
+def poisson_from_positiveK(mean):
+    # solve x/(1 - exp(-x)) == mean
+    def f(x):
+        return x/(1. - np.exp(-x))
+    def f1(x):
+        return (np.expm1(x) - x)/(2.*np.cosh(x) - 2.)
+
+    x = solve_newton(mean, f, f1, mean, n=10)
+    return x
 
 def save(ani, name="rw"):
     ani.save(nanopores.HOME + "/presentations/nanopores/%s.mp4" % name,

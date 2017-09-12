@@ -90,6 +90,6 @@ class cache_forcefield(fields.CacheBase):
                 result = {}
                 I = []
             result = {key: [val[i] for i in I] for key, val in result.items()}
-            return result
+            return Params(result)
         return wrapper
 
