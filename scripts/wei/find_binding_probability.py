@@ -85,13 +85,13 @@ def binding_prob_from_data(rMolecule=1.25, rPore=6.):
     c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
     cmol = c * 1e3 * phys.mol # concentration [1/m**3]
     ckon = c*kon
-    
+
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * rMolecule * 1e-9) # [m**2/s]
     r = rPore* 1e-9 # effective radius for proteins at pore entrance [m]
     karr = 2.*phys.pi * r * D * cmol # arrival rate
     p0 = ckon / karr # fraction of events that have binding
-    
+
     print "Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon)
     print "Number of bindings per second: %.1f (inverse of tau_on)" % ckon
     print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
@@ -118,26 +118,26 @@ if __name__ == "__main__":
     P2 = np.linspace(0, 1, 100)
     data2 = binding_prob(P2, nproc=5, N=20000)
     plt.plot(P2, data2.p0, ".-", label="actual (N=20000)")
-    
+
     P3 = np.linspace(0, 0.05, 10)
-    data3 = binding_prob(P2, nproc=5, N=100000)
+    data3 = binding_prob(P3, nproc=5, N=100000)
     #plt.plot(P3, data3.p0, ".-", label="actual (N=100000)")
 
     PP = np.linspace(0, 1, 500)
     plt.plot(PP, 1. - np.exp(-0.3*PP), label="Poisson")
-    
+
     p0 = binding_prob_from_data()
     plt.plot([0, 1], [p0, p0], "k--", label="p0 = %.4f" % p0)
-    
+
     p = invert_monotone(p0, P2, data2.p0)
     plt.plot([p], [p0], "ok", label="inferred p = %.4f" % p)
-    
+
     print "binding prob. inferred from simulations: p = %.6f" % p
     a = 0.3
     ap = -np.log(1 - p0)
     p1 = ap/a
     print "binding prob. inferred from assumed Poisson distribution: p = %.6f" % p1
-    
+
     plt.xlabel("p")
     plt.ylabel("probability of >= 1 binding")
     plt.legend()
