@@ -555,7 +555,7 @@ def poisson_from_positiveK(mean):
 def save(ani, name="rw"):
     ani.save(nanopores.HOME + "/presentations/nanopores/%s.mp4" % name,
                  fps=30, dpi=200, writer="ffmpeg_file",
-                 extra_args=['-vcodec', 'libx264'])
+                 extra_args=["-vcodec", "libx264"])
 
 # convenience function for interactive experiments
 def run(rw, name="rw", plot=True, a=-1, b=4, **aniparams):
