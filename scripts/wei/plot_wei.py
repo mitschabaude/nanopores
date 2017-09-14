@@ -44,14 +44,14 @@ for i in range(N):
 
 plt.hist(fake, bins=bins, alpha=0.3, label="Wei et al. 2012")
 
-# now get the same number of sampleswith binding from our own data
+# now get the same number of samples with binding from our own data
 data = rw.load_results(name)
 bind = data.bindings > 0
 times = data.times[bind]
 times *= 1e-9 # data are in ns, we want s
 
 n = sum(counts)
-print "Found %d simulated binding events, have %d experimental binding events." % (sum(bind), N)
+print "Found %d simulated binding events, have %d experimental binding events." % (sum(bind), n)
 if sum(bind) > n:
     times = times[:n]
 

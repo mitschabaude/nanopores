@@ -28,7 +28,7 @@ params = nanopores.user_params(
 
     # receptor params
     rec_t = 3.7e9,
-    rec_p = 0.01763,
+    rec_p = 0.0187,
     rec_eps = 0.1,
 )
 
@@ -74,7 +74,7 @@ print "=> a*p = -log(1 - %.5f) = %.5f" % (b, ap)
 print
 print "Average number of attempts: a = %.5f (from many simulations with dt=1, eps=0.1)" % a
 print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
-receptor_params["p"] = p
+#receptor_params["p"] = p
 
 pore = nanopores.get_pore(**params)
 #print pore.protein

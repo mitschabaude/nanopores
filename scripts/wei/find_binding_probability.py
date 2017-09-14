@@ -63,6 +63,9 @@ def binding_prob(P, **params):
         print "Start Random Walk with p = %s." % p
         for t in rw.walk():
             pass
+        
+        # times with binding
+        times = rw.times[rw.bindings > 0]
 
         result.new = dict(
             p0 = np.mean(rw.bindings > 0),
@@ -71,9 +74,9 @@ def binding_prob(P, **params):
             mean_attempts = np.mean(rw.attempts),
             std_bindings = np.std(rw.bindings),
             std_attempts = np.std(rw.attempts),
-            mean_time = np.mean(rw.times),
-            std_time = np.std(rw.times),
-            mean_log_time = np.mean(np.log(rw.times)),
+            mean_time = np.mean(times),
+            std_time = np.std(times),
+            mean_log_time = np.mean(np.log(times)),
         )
     return result
 
@@ -111,17 +114,17 @@ def invert_monotone(y, X, Y):
     return x
 
 if __name__ == "__main__":
-    #P1 = np.linspace(0, 1, 50)
-    #data1 = binding_prob(P1, nproc=5, N=1000)
-    #plt.plot(P1, data1.p0, ".-", label="actual (N=1000)")
+    P1 = np.linspace(0, 1, 50)
+    data1 = binding_prob(P1, nproc=5, calc=False, N=1000)
+    plt.plot(P1, data1.p0, ".-", label="actual (N=1000)")
 
     P2 = np.linspace(0, 1, 100)
-    data2 = binding_prob(P2, nproc=5, N=20000)
+    data2 = binding_prob(P2, nproc=5, calc=False, N=20000)
     plt.plot(P2, data2.p0, ".-", label="actual (N=20000)")
 
     P3 = np.linspace(0, 0.05, 10)
-    data3 = binding_prob(P3, nproc=5, N=100000)
-    #plt.plot(P3, data3.p0, ".-", label="actual (N=100000)")
+    data3 = binding_prob(P3, nproc=5, calc=False, N=100000)
+    plt.plot(P3, data3.p0, ".-", label="actual (N=100000)")
 
     PP = np.linspace(0, 1, 500)
     plt.plot(PP, 1. - np.exp(-0.3*PP), label="Poisson")
@@ -129,7 +132,7 @@ if __name__ == "__main__":
     p0 = binding_prob_from_data()
     plt.plot([0, 1], [p0, p0], "k--", label="p0 = %.4f" % p0)
 
-    p = invert_monotone(p0, P2, data2.p0)
+    p = invert_monotone(p0, P3, data3.p0)
     plt.plot([p], [p0], "ok", label="inferred p = %.4f" % p)
 
     print "binding prob. inferred from simulations: p = %.6f" % p
