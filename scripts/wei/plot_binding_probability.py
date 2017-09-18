@@ -15,8 +15,11 @@ data2a = binding_prob(P2a, nproc=5, calc=False, N=20000)
 P3 = np.linspace(0, 0.05, 10)
 data3 = binding_prob(P3, nproc=5, calc=False, N=100000)
 
+P4a = np.linspace(0.01, 0.5, 20)
+data4a = binding_prob(P4a, nproc=5, calc=False, N=4000)
+
 P4 = np.linspace(0.01, 0.5, 20)
-data4 = binding_prob(P4, nproc=5, calc=False, N=4000)
+data4 = binding_prob(P4, nproc=5, calc=True, N=100000)
 
 a = 0.3 # mean number of attempts
 a1 = 2.17
