@@ -42,7 +42,7 @@ for i in range(N):
     sample = a + (b-a)*np.random.rand(counts[i])
     fake = np.append(fake, sample)
 
-plt.hist(fake, bins=bins, alpha=0.3, label="Wei et al. 2012")
+plt.hist(fake, bins=bins, rwidth=0.8, label="Wei et al. 2012")
 
 # now get the same number of samples with binding from our own data
 data = rw.load_results(name)
@@ -55,7 +55,7 @@ print "Found %d simulated binding events, have %d experimental binding events." 
 if sum(bind) > n:
     times = times[:n]
 
-plt.hist(times, bins=bins, alpha=0.3, label="Simulation")
+plt.hist(times, bins=bins, histtype="bar", rwidth=0.5, label="Simulation")
 plt.legend()
 plt.xlabel(r"$\tau$ off [s]")
 plt.ylabel("count")
@@ -64,4 +64,7 @@ plt.xlim(0, 20)
 rw.hist_poisson(data, "attempts", (1, 10))
 rw.hist_poisson(data, "bindings", (1, 10))
 
-plt.show()
+#plt.show()
+
+import folders
+nanopores.savefigs("tau_off", folders.FIGDIR + "/wei", (6, 4.5))
