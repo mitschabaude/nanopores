@@ -7,7 +7,7 @@ import nanopores.models.randomwalk as rw
 from nanopores.tools import fields
 fields.set_dir_dropbox()
 
-name = "rw_wei_2"
+name = "rw_wei_3"
 #data = rw.load_results(name)
 #
 #rw.histogram(data, a=-2, b=6)
