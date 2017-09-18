@@ -37,12 +37,14 @@ counts = np.round(counts).astype(int)
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
-for i in range(N):
-    a, b = bins[i], bins[i+1]
-    sample = a + (b-a)*np.random.rand(counts[i])
-    fake = np.append(fake, sample)
 
-plt.hist(fake, bins=bins, rwidth=0.8, label="Wei et al. 2012")
+a, b = bins[1]*0.1, bins[1]
+sample = a*(b/a)**(np.random.rand(counts[0]))
+fake = np.append(fake, sample)
+for i in range(1, N):
+    a, b = bins[i], bins[i+1]
+    sample = a*(b/a)**(np.random.rand(counts[i]))
+    fake = np.append(fake, sample)
 
 # now get the same number of samples with binding from our own data
 data = rw.load_results(name)
@@ -55,7 +57,8 @@ print "Found %d simulated binding events, have %d experimental binding events." 
 if sum(bind) > n:
     times = times[:n]
 
-plt.hist(times, bins=bins, histtype="bar", rwidth=0.5, label="Simulation")
+plt.hist(fake, bins=bins, label="Wei et al. 2012")
+plt.hist(times, bins=bins, histtype="step", rwidth=1., label="Simulation")
 plt.legend()
 plt.xlabel(r"$\tau$ off [s]")
 plt.ylabel("count")
@@ -64,6 +67,13 @@ plt.xlim(0, 20)
 rw.hist_poisson(data, "attempts", (1, 10))
 rw.hist_poisson(data, "bindings", (1, 10))
 
+plt.figure()
+rw.histogram(data, a=-7, b=3)
+#fake0 = fake[fake > bins[1]]
+plt.hist(fake, bins=np.logspace(-7, 3, 100), histtype="step", label="Wei et al. 2012")
+plt.yscale("log")
+plt.ylim(ymin=1., ymax=1e5)
+plt.legend()
 #plt.show()
 
 import folders

@@ -83,7 +83,7 @@ plt.legend()
 
 plt.figure("time_log")
 euler = 0.577215664901532
-theta = -0.736486800755/euler + 1. # estimate from histogram
+theta = -0.439392/euler + 1. # estimate from histogram
 plt.plot(P4, (log - np.log(mu))/euler + 1., "o", label="Simulated (N=4000)")
 plt.plot(P4, np.ones_like(P4)*theta, "--k", label="Estimate from histogram")
 from scipy.special import digamma

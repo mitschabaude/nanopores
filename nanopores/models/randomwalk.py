@@ -485,13 +485,13 @@ def exponential_hist(times, a, b, **params):
              color="dark" + color, **params)
     plt.xlim(10**a, 10**b)
 
-def histogram(rw, a=-3, b=3, scale=1e-3):
+def histogram(rw, a=-3, b=3, scale=1e-0):
     t = rw.times * 1e-9 / scale # assuming times are in nanosaconds
 
     exponential_hist(t[rw.success], a, b, color="green", label="translocated")
     exponential_hist(t[rw.fail], a, b, color="red", label="did not translocate")
 
-    plt.xlabel(r"$\tau$ off [ms]")
+    plt.xlabel(r"$\tau$ off [s]")
     plt.ylabel("count")
     plt.legend(loc="best")
 

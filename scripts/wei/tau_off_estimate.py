@@ -26,9 +26,9 @@ counts = np.round(counts).astype(int)
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
-for i in range(N):
+for i in range(1, N):
     a, b = bins[i], bins[i+1]
-    sample = a + (b-a)*np.random.rand(counts[i])
+    sample = a*(b/a)**(np.random.rand(counts[i]))
     fake = np.append(fake, sample)
 
 # estimate b and tau parameters

@@ -52,7 +52,7 @@ counts = np.round(counts).astype(int)
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
-for i in range(N):
+for i in range(1, N):
     a, b = bins[i], bins[i+1]
     sample = a + (b-a)*np.random.rand(counts[i])
     fake = np.append(fake, sample)
@@ -66,7 +66,7 @@ print "mu, sigma =", mu, sigma
 print "mu^2/sigma^2 =", mu**2/sigma**2
 print "ap, lambda =", ap, lmbda
 print
-print "binding probability: %.1f%% (for a=4.1)" % (100.*ap/4.1,)
+print "binding probability: %.1f%% (for a=2.2)" % (100.*ap/2.2,)
 print "mean binding duration: %.1f ms" % (1./lmbda,)
 
 #
