@@ -26,6 +26,15 @@ counts = np.round(counts).astype(int)
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
+
+frac = 1.
+while frac > 0.5:
+    frac /= 2.
+    a, b = bins[1]*frac, bins[1]*2*frac
+    sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
+    fake = np.append(fake, sample)
+    print "frac", frac
+
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
     sample = a*(b/a)**(np.random.rand(counts[i]))

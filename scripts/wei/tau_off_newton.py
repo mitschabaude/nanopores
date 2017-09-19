@@ -23,7 +23,7 @@ def solve(C, n=20):
 
 def get_parameters(mu, sigma):
     C = mu**2/sigma**2
-    ap = solve(C, 30)
+    ap = solve(C, 10)
     lmbda = ap/(mu*(1. - exp(-ap)))
     return ap, lmbda
 
@@ -52,9 +52,18 @@ counts = np.round(counts).astype(int)
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
+
+frac = 1.
+while frac > 0.5: #int(counts[0]*frac) > 1:
+    frac /= 2.
+    a, b = bins[1]*frac, bins[1]*2*frac
+    sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
+    fake = np.append(fake, sample)
+    print "frac", frac
+
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
-    sample = a + (b-a)*np.random.rand(counts[i])
+    sample = a*(b/a)**(np.random.rand(counts[i]))
     fake = np.append(fake, sample)
 
 # compute mu, variance, solve for parameters
@@ -66,8 +75,8 @@ print "mu, sigma =", mu, sigma
 print "mu^2/sigma^2 =", mu**2/sigma**2
 print "ap, lambda =", ap, lmbda
 print
-print "binding probability: %.1f%% (for a=2.2)" % (100.*ap/2.2,)
-print "mean binding duration: %.1f ms" % (1./lmbda,)
+print "binding probability: %.3f (for a=2.2)" % (ap/2.2,)
+print "mean binding duration: %.3f s" % (1./lmbda,)
 
 #
 #

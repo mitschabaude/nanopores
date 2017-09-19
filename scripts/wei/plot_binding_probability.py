@@ -77,7 +77,7 @@ plt.figure("time_stdmean")
 mu = np.array(data4.mean_time)
 sigma = np.array(data4.std_time)
 log = np.array(data4.mean_log_time)
-plt.plot(P4, (mu/sigma)**2, "o", label="Simulated (N=4000)")
+plt.plot(P4, (mu/sigma)**2, "o", label="Simulated (N=100000)")
 def f(x):
     return np.exp(x)/(2.*np.expm1(x)/x - 1.)
 plt.plot(P4, f(a*P4), label="Poisson (a = %.1f)" % a)
@@ -86,8 +86,8 @@ plt.legend()
 
 plt.figure("time_log")
 euler = 0.577215664901532
-theta = -0.439392/euler + 1. # estimate from histogram
-plt.plot(P4, (log - np.log(mu))/euler + 1., "o", label="Simulated (N=4000)")
+theta = -0.573810187498/euler + 1. # estimate from histogram
+plt.plot(P4, (log - np.log(mu))/euler + 1., "o", label="Simulated (N=100000)")
 plt.plot(P4, np.ones_like(P4)*theta, "--k", label="Estimate from histogram")
 from scipy.special import digamma
 from scipy.stats import poisson
@@ -103,17 +103,17 @@ def f1v(x):
 plt.plot(P4, f1v(a*P4)/euler + 1., label="Poisson (a = %.1f)" % a)
 plt.plot(P4, f1v(a1*P4)/euler + 1., label="Mod. Poisson (a = %.1f)" % a1)
 plt.xlabel("p")
-plt.legend(loc="lower right")
+plt.legend()
 
 plt.figure("time_mean")
 #tau = 3.7
-tau = 3.9
+tau = 3.88
 def g(x):
     return x/(1. - np.exp(-x))
 def taufit(a):
     return tau/g(a*p)
 
-plt.plot(P4, 1e-9*taufit(a1)/tau*mu, "o", label="Simulated (N=4000)")
+plt.plot(P4, 1e-9*taufit(a1)/tau*mu, "o", label="Simulated (N=100000)")
 plt.plot(P4, taufit(a)*g(a*P4), label="Poisson, tau = %.2f" % (taufit(a)))
 plt.plot(P4, taufit(a1)*g(a1*P4), label="Mod. Poisson, tau = %.2f" % (taufit(a1)))
 plt.plot(P4, tau*np.ones_like(P4), "--", color="orange", label="Exponential, tau = %.2f" % tau)
@@ -132,7 +132,7 @@ def h(x):
 def sigfit(a):
     return sig/h(a*p)
 
-plt.plot(P4, 1e-9*sigfit(a1)/tau*sigma, "o", label="Simulated (N=4000)")
+plt.plot(P4, 1e-9*sigfit(a1)/tau*sigma, "o", label="Simulated (N=100000)")
 plt.plot(P4, sigfit(a)*h(a*P4), label="Poisson (a = %.1f, tau = %.2f)" % (a, sigfit(a)))
 plt.plot(P4, sigfit(a1)*h(a1*P4), label="Mod. Poisson (a = %.1f, tau = %.2f)" % (a1, sigfit(a1)))
 plt.plot(P4, sig*np.ones_like(P4), "--", color="orange", label="Exponential (tau = %.2f)" % sig)

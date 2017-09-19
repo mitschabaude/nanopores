@@ -34,13 +34,19 @@ N = N+1
 # the counts should be integer-values, so
 counts = np.round(counts).astype(int)
 
+# TODO: need better experimental data => webtool
 # now let's reproduce the plot
 # first create fake data samples that reproduce the histogram
 fake = np.array([])
 
-a, b = bins[1]*0.1, bins[1]
-sample = a*(b/a)**(np.random.rand(counts[0]))
-fake = np.append(fake, sample)
+frac = 1.
+while int(counts[0]*frac) > 1:
+    frac /= 2.
+    a, b = bins[1]*frac, bins[1]*2*frac
+    sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
+    fake = np.append(fake, sample)
+    print "frac", frac
+
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
     sample = a*(b/a)**(np.random.rand(counts[i]))
@@ -49,29 +55,58 @@ for i in range(1, N):
 # now get the same number of samples with binding from our own data
 data = rw.load_results(name)
 bind = data.bindings > 0
-times = data.times[bind]
-times *= 1e-9 # data are in ns, we want s
+times = 1e-9*data.times # data are in ns, we want s
 
 n = sum(counts)
 print "Found %d simulated binding events, have %d experimental binding events." % (sum(bind), n)
 if sum(bind) > n:
-    times = times[:n]
+    # only consider same number of bind_times
+    i = np.flatnonzero(bind)[n-1] + 1
+else:
+    i = len(times)
+bind_times = times[:i][bind[:i]]
+fail_times = times[:i][data.fail[:i]]
+success_times = times[:i][data.success[:i]]
 
+# simple histogram
+plt.figure("hist_simple")
 plt.hist(fake, bins=bins, label="Wei et al. 2012")
-plt.hist(times, bins=bins, histtype="step", rwidth=1., label="Simulation")
+plt.hist(bind_times, bins=bins, histtype="step", rwidth=1., label="Simulation")
 plt.legend()
 plt.xlabel(r"$\tau$ off [s]")
 plt.ylabel("count")
 plt.xlim(0, 20)
 
-rw.hist_poisson(data, "attempts", (1, 10))
-rw.hist_poisson(data, "bindings", (1, 10))
+#rw.hist_poisson(data, "attempts", (1, 10))
+#rw.hist_poisson(data, "bindings", (1, 10))
 
-plt.figure()
-rw.histogram(data, a=-7, b=3)
+# histogram plot with short and long events and experimental data
+plt.figure("hist")
+cutoff = 0.03e-3 # cutoff frequency in s
+a, b = -6.5, 3 # log10 of plot interval
+bins = np.logspace(a, b, 100)
+
+# successful events
+hist = plt.hist(success_times, bins=bins, color="green", label="translocated")
+# failed attempts
+hist = plt.hist(fail_times, bins=bins, color="red", label="did not translocate")
+
+
+#total = rw.integrate_hist(hist, cutoff)
+#tmean = times[times > cutoff].mean()
+#T = np.logspace(a-3, b, 1000)
+#fT = np.exp(-T/tmean)*T/tmean
+#fT *= total/integrate_values(T, fT, cutoff)
+#plt.plot(T, fT, label="exp. fit, mean = %.2f ms" % (tmean,),
+#         color="dark" + color, **params)
+#plt.xlim(10**a, 10**b)
+
 #fake0 = fake[fake > bins[1]]
-plt.hist(fake, bins=np.logspace(-7, 3, 100), histtype="step", label="Wei et al. 2012")
+plt.hist(fake, bins=bins, histtype="step", color="orange", label="Wei et al. 2012")
+plt.xscale("log")
 plt.yscale("log")
+plt.ylabel("count")
+plt.xlabel(r"$\tau$ off [s]")
 plt.ylim(ymin=1., ymax=1e5)
 plt.legend()
 #plt.show()
