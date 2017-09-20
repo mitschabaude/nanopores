@@ -64,6 +64,7 @@ if sum(bind) > n:
     i = np.flatnonzero(bind)[n-1] + 1
 else:
     i = len(times)
+print "Number of simulated events we use:", i
 bind_times = times[:i][bind[:i]]
 fail_times = times[:i][data.fail[:i]]
 success_times = times[:i][data.success[:i]]
@@ -84,12 +85,12 @@ plt.xlim(0, 20)
 plt.figure("hist")
 cutoff = 0.03e-3 # cutoff frequency in s
 a, b = -6.5, 3 # log10 of plot interval
-bins = np.logspace(a, b, 100)
+bins = np.logspace(a, b, 40)
 
 # successful events
-hist = plt.hist(success_times, bins=bins, color="green", label="translocated")
+hist = plt.hist(success_times, bins=bins, color="green", rwidth=0.9, label="translocated")
 # failed attempts
-hist = plt.hist(fail_times, bins=bins, color="red", label="did not translocate")
+hist = plt.hist(fail_times, bins=bins, color="red", rwidth=0.9, label="did not translocate")
 
 
 #total = rw.integrate_hist(hist, cutoff)
