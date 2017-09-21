@@ -222,6 +222,8 @@ def join_dicts(list):
     return {key:[dic[key] for dic in list] for key in list[0]}
 
 # point-size/implicit fields
+# TODO: better, GENERAL interface (like cache_forcefield)
+#       that can at least control name
 def force_pointsize(**params):
     name = "force_pointsize"
     if not fields.exists(name, **params):

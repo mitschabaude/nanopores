@@ -77,17 +77,20 @@ def compare_D_models(calc=True, **params):
     V = [i/100. for i in range(-10, 11)]
     Vplot = 1e3*np.array(V)
     DD = OrderedDict([
+        ("bulk D", None),
         ("r-dependent D", ddsimplefine),
         ("z-dependent D", ddprofile),
         ("r- and z-dep. D", ddcoupled),
-        #"constant (rel. D = 0.3)": None,
     ])
-    colors = ["b", "g", "c"]
+    colors = ["k", "b", "g", "c"]
     plot_grid()
     G = [0]*len(DD)
     for i, model in enumerate(DD):
         params["diffusivity_data"] = DD[model]
-        results = IV(V, nproc=5, name="IV-ahem", calc=calc, **params)
+        mod_params = dict(params)
+        if model == "bulk D":
+            mod_params["rDPore"] = 1.
+        results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
         plt.plot(Vplot, I, "-", color=colors[i], label=model)
 
@@ -97,6 +100,8 @@ def compare_D_models(calc=True, **params):
 
     plt.xlabel("Voltage Bias [mV]")
     plt.ylabel("Current [pA]")
+    plt.ylim(-100, 100)
+    plt.ylim(-200, 200)
     gexp = plot_experiment()
     plt.legend(loc="best", frameon=False)
 
@@ -111,7 +116,7 @@ def compare_D_models(calc=True, **params):
 
 
 calc = True
-default = dict(dim=2, h=1., Nmax=2e4, rDPore=0.3)
+default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3)
 
 # with constant D = 0.3*D0 in pore
 dd = None
@@ -139,3 +144,4 @@ compare_D_models(calc, **default)
 
 from nanopores import savefigs
 savefigs("IV", folders.FIGDIR + "/ahem", size=(5,3.7))
+#plt.show()
