@@ -26,7 +26,7 @@ params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+
 drop, th = f.get("events_pugh_experiment", "drop", "t")
 th = [1e0*time for time in th]
 
-cmap=matplotlib.cm.get_cmap('viridis')
+#cmap=matplotlib.cm.get_cmap('viridis')
 data=f.get_fields(fieldsname,**params)
 figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
 t = data["t"]
@@ -114,5 +114,5 @@ else:
 
 
 plt.tight_layout()
-#plt.show()
-plt.savefig('events_onlyone_compare.pdf')
+plt.show()
+#plt.savefig('events_onlyone_compare.pdf')

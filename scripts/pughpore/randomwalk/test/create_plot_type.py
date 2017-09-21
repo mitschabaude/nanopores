@@ -23,7 +23,7 @@ hpore=geop.hpore
 fieldsname='events3_onlyone_5'
 params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 
-cmap=matplotlib.cm.get_cmap('viridis')
+#cmap=matplotlib.cm.get_cmap('viridis')
 data=f.get_fields(fieldsname,**params)
 figname = fieldsname+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
 t = data["t"]

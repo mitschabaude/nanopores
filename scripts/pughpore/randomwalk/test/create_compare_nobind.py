@@ -20,11 +20,11 @@ number=False
 
 geop = nano.Params(pughpore.params)
 hpore=geop.hpore
-fieldsname='eventsnew_both_1_'
-params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=3e-1,z0=hpore/2.+0.)
+fieldsname='eventspara_nobind'
+params=dict(avgbind1=17.2e6,avgbind2=3e4,P_bind1=0.193,P_bind2=3e-1,z0=hpore/2.+0.)
 
 drop, th = f.get("events_pugh_experiment", "drop", "t")
-th = [1e0*time for time in th]
+th = [1e3*time for time in th]
 
 #cmap=matplotlib.cm.get_cmap('viridis')
 data=f.get_fields(fieldsname,**params)
@@ -44,9 +44,9 @@ avgbind1=params["avgbind1"]*1e-6
 avgbind2=params["avgbind2"]*1e-6
 
 
-color2='#0080ff'
-color1='#00cbba'
-color3='#00ff55'
+color2='green'
+color1='lightgreen'
+color3='red'
 
 plt.figure(figsize=(7,5),dpi=80)
 gs = gridspec.GridSpec(2,3,width_ratios=[4,2,1],height_ratios=[1,2.5])
@@ -59,24 +59,20 @@ maxperc=40.
 #plt1=plt.subplot(gs[1,0])
 plt1=plt.subplot()
 for k in range(lendata):
-    if t[k]<0.0015:
-        type1 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
-    elif t[k]<2.:
-        type2 = plt1.scatter([t[k]],[a[k]],color=color1,s=8)
+    if ood[k]==0:
+        type1 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
     else:
-        type3 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
-#    if ood[k]==0:
-#        type1 = plt1.scatter([t[k]],[a[k]],color=color2,s=8)
-#    else:
-#        type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
+        type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
 experiment = plt1.scatter(th,drop,color='#888888',s=8)
-plt.legend([experiment,type1,type2,type3],['experimental data','did not bind','short binding','long binding'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
+plt.legend([experiment,type0,type1],['experimental data','did not translocate','successful translocation'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
 xfmt=FormatStrFormatter('%g')
 plt1.set_xlim([.2*min(t),max(max(t),max(th))*2.])
 plt1.set_ylim([minperc,maxperc])
 plt1.set_xscale('log')
 plt1.xaxis.set_major_formatter(xfmt)
 plt1.invert_yaxis()
+plt1.plot([17600],[26],marker='o',ms=115,mfc='None',mec='black')
+plt1.text(17600,24,"Assumed\n long bindings",fontsize=13,horizontalalignment='center')
 plt1.set_ylabel(r'A/I$_0$ [%]',fontsize=15)
 if fac==1.:
 #    if P_bind1!=0.:
@@ -120,5 +116,5 @@ else:
 
 
 plt.tight_layout()
-plt.show()
-#plt.savefig('events_both_compare_intro.pdf')
+#plt.show()
+plt.savefig('events_nobind_compare_2.pdf')

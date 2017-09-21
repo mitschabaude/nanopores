@@ -13,16 +13,15 @@ DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
 f.set_dir(DATADIR)
 
 hpore=46.
-fieldsname='number_of_collisions_all'
-#params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0.,P_bind2=0.,z0=23.) # old one interval lengths(4,8,13)
-params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0*0.035,P_bind2=0*3e-1,z0=hpore/2.+0.) # for binding everywhere
+#fieldsname='number_of_collisions_all'
+fieldsname='number_of_collisions'
+params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=0.,P_bind2=0.,z0=23.) # old one interval lengths(4,8,13)
+#params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0*0.035,P_bind2=0*3e-1,z0=hpore/2.+0.) # for binding everywhere
 
 data=f.get_fields(fieldsname,**params)
-#data2=f.get_fields(fieldsname+'2',**params)
-#data3=f.get_fields(fieldsname+'3',**params)
+data2=f.get_fields(fieldsname+'2',**params)
+data3=f.get_fields(fieldsname+'3',**params)
 Nc=np.array(data["Nc"])
-print np.mean(Nc)
-exit()
 Nc2=np.array(data2["Nc"])
 Nc3=np.array(data3["Nc"])
 lam=np.mean(Nc)
@@ -42,35 +41,47 @@ P3=np.array([P3(x) for x in k])
 color1 = 'blue'
 color2 = 'green'
 color3 = 'red'
-alpha=.2
+alpha=.25
+s=30.
 
-plt.figure(figsize=(10,4),dpi=80)
-gs = gridspec.GridSpec(1,2,width_ratios=[1,1])
+plt.figure(figsize=(5,4),dpi=80)
+#gs = gridspec.GridSpec(1,2,width_ratios=[1,1])
 #gs.update(wspace=0.,hspace=0.)
 
-plt1=plt.subplot(gs[0])
-plt1.hist(Nc,20,normed=1,alpha=alpha,color=color1)
-len3 = plt1.scatter(k,P,color=color1)
+#plt1=plt.subplot(gs[0])
+plt.hist(Nc,bins=19,normed=1,alpha=alpha,color=color1,histtype='bar',align='left')
+len3 = plt.scatter(k,P,color=color1,s=s)
 
-plt1.hist(Nc2,15,normed=1,alpha=alpha,color=color2)
-len2 = plt1.scatter(k,P2,color=color2)
+plt.hist(Nc2,13,normed=1,alpha=alpha,color=color2,histtype='bar',align='left')
+len2 = plt.scatter(k,P2,color=color2,s=s)
 
-plt1.hist(Nc3,10,normed=1,alpha=alpha,color=color3)
-len1 = plt1.scatter(k,P3,color=color3)
-plt1.legend([len3,len2,len1],['length 14nm','length 8nm','length 3nm'],frameon=False)
-plt1.set_xlabel('binding attempts')
-plt1.set_ylabel('relative frequency/probability')
+plt.hist(Nc3,8,normed=1,alpha=alpha,color=color3,histtype='bar',align='left')
+len1 = plt.scatter(k,P3,color=color3,s=s)
+ax=plt.gca()
+
+xlim=[-.5,16.]
+ylim=[0.,.40]
+xticks=np.arange(0.,17.,2.)
+yticks=np.arange(0.,.5,.1)
+ax.set_xlim(xlim)
+ax.set_ylim(ylim)
+ax.set_xticks(xticks)
+ax.set_yticks(yticks)
+
+ax.legend([len1,len2,len3],['length 3nm','length 8nm','length 14nm'],frameon=False)
+ax.set_xlabel('binding attempts')
+ax.set_ylabel('relative frequency/probability')
 
 
-plt2=plt.subplot(gs[1])
-plt2.plot([3.,8.,14.],[lam3,lam2,lam])
-plt2.scatter([14.],[lam], color=color1,s=100,marker='s')
-plt2.scatter([8.0],[lam2],color=color2,s=100,marker='s')
-plt2.scatter([3.0],[lam3],color=color3,s=100,marker='s')
-plt2.set_xlabel('length of binding site [nm]')
-plt2.set_ylabel('mean binding attempts')
+#plt2=plt.subplot(gs[1])
+#plt2.plot([3.,8.,14.],[lam3,lam2,lam])
+#plt2.scatter([14.],[lam], color=color1,s=100,marker='s')
+#plt2.scatter([8.0],[lam2],color=color2,s=100,marker='s')
+#plt2.scatter([3.0],[lam3],color=color3,s=100,marker='s')
+#plt2.set_xlabel('length of binding site [nm]')
+#plt2.set_ylabel('mean binding attempts')
 
 
 plt.tight_layout()
-#plt.savefig('attempts.pdf')
-plt.show()
+plt.savefig('attempts.pdf')
+#plt.show()

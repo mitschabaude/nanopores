@@ -34,8 +34,8 @@ gray='#888888'
 orange='#ff6600'
 #orange=gray
 
-#log=True
-log=False
+log=True
+#log=False
 
 if log:
     plt.figure(figsize=(10,5),dpi=80)
@@ -110,7 +110,9 @@ plt4.axes.get_yaxis().set_visible(False)
 
 plt.tight_layout()
 if log:
-    plt.savefig('hist_data1.pdf')
+    pass
+#    plt.savefig('hist_data1.pdf')
 else:
-    plt.savefig('hist_data2.pdf')
-#plt.show()
+    pass
+#    plt.savefig('hist_data2.pdf')
+plt.show()
