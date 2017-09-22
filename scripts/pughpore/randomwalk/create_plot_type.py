@@ -127,7 +127,7 @@ def save_fig_type(params,fieldsname):
         plt4.axes.get_xaxis().set_visible(False)
         plt4.axes.get_yaxis().set_visible(False)
 
-    plt.legend([type1,type0],['successful\ntranslocation','did not\ntranslocate'],scatterpoints=4,loc=(.8,0.50))
+    plt.legend([type1,type0],['successful translocation','did not translocate'],scatterpoints=4,loc=(.6,0.50))
     plt.tight_layout()
     nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/',pdf=True)
     print 'savefig:'

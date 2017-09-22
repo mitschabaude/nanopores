@@ -136,6 +136,7 @@ def save_fig_traj(params,fieldsname,i,showtraj):
 
 
     plt.tight_layout()
-    nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/')
+#    nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/')
+    plt.show()
     print 'savefig: %s'%figname
     plt.close("all")
