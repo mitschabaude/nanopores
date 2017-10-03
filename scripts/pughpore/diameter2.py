@@ -64,9 +64,10 @@ if calc:
 #        3: [4.16, 4.17, 4.18, 4.19, 4.2, 4.21, 4.22, 4.23, 4.25, 4.275, 4.3, 4.4,
 #            4.45, 4.5, 4.6, 4.8, 5., 5.5, 6., 6.5, 7., 7.5, 8.]}
 
-
+figsize1 = (4.1, 3.3)
+figsize2 = (4.1, 3.3)
 for dim in 2, 3:
-    plt.figure("abs_%dD" % dim)
+    fig = plt.figure("abs_%dD" % dim, figsize=figsize1)
     result = Idiam(diam[dim], calc=calc, nproc=2, **params[dim])
     d = result["x"]
     print "diameters (%dD):" % dim, d
@@ -75,47 +76,46 @@ for dim in 2, 3:
     n = len(d)
     Jon = 1e12*np.array(result["Jon"])
     Joff = 1e12*np.array(result["Joff"])
-    plt.plot(d, Jon, "s-b", label="without molecule")
+    plt.plot(d, Jon, "s-b", label="No protein")
     plt.plot([0,10], [2.29*1e3*0.08]*2, "--b", label="Pugh et al.")
     plt.fill_between([0,10], [(2.29 - 0.26)*0.08*1e3]*2,
                      [(2.29 + 0.26)*0.08*1e3]*2, color="#ccccff")
-    plt.plot(d, Joff, "s-g", label="with molecule")
+    plt.plot(d, Joff, "s-g", label="With protein")
     plt.plot([0,10], [2.29*0.08*1e3*(1 - 0.262)]*2, "--g", label="Pugh et al.")
     plt.fill_between([0,10], [(2.29*(1 - 0.262) - 0.26)*0.08*1e3]*2,
                         [(2.29*(1 - 0.262) + 0.26)*0.08*1e3]*2, color="#ccffcc")
-    plt.xlabel("pore diameter [nm]")
-    if dim==3:
-        plt.ylabel("current at -80mV [pA]")
-    else:
-        loc, _ = plt.yticks()
-        plt.yticks(loc, [])
+    plt.xlabel("Pore diameter [nm]")
+    plt.ylabel("Current [pA]")
+
     plt.xlim(4., 7.6)
     plt.ylim(0., 1250.)
     locx, _ = plt.xticks()
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
-    if dim==3:
-        plt.annotate("diameter of trypsin", (2*2.0779, 900),
-                     xytext=(2*2.0779 + 0.2, 900-20), color="#666666",
-                     arrowprops=dict(arrowstyle="->", color="#666666"))
+    plt.annotate("Diameter of trypsin", (2*2.0779, 900),
+                 xytext=(2*2.0779 + 0.2, 900-20), color="#666666",
+                 arrowprops=dict(arrowstyle="->", color="#666666"))
     #plt.title("influence of pore diameter on current (%dD)" %dim)
-    else:
-        plt.legend(loc="upper left")
+    plt.legend(loc="lower right")
+    fig.tight_layout()
 
-    plt.figure("drop_%dD" % dim)
+    fig = plt.figure("drop_%dD" % dim, figsize=figsize2)
     drop = (1. - Joff/Jon)*100
-    plt.plot(d, drop, "s-r", label="simulated current blockade")
+    plt.plot(d, drop, "s-r", label="Simulated blockade")
     plt.plot([0,10], [26.2]*2, "--r", label="Pugh et al.")
     plt.fill_between([0,10], [26.2 - 0.7]*2, [26.2 + 0.7]*2,
                      color="#ffcccc")
     plt.xlim(4., 7.6)
-    plt.ylim(ymin=0., ymax=105.)
+    #plt.xticks([4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5])
+    #plt.ylim(ymin=0., ymax=50.)
     #plt.xlabel("pore diameter [nm]")
-    if dim==3:
-        plt.ylabel("current blockade [%]")
-    else:
-        loc, _ = plt.yticks()
-        plt.yticks(loc, [])
-    plt.ylim(ymin=0., ymax=105.)
+    plt.xlabel("Pore diameter [nm]")
+    plt.ylabel("Current blockade [%]")
+#    else:
+#        loc, _ = plt.yticks()
+#        plt.yticks(loc, [])
+    ymax = 100 if dim==2 else 50
+    htext = ymax*0.9
+    plt.ylim(ymin=0., ymax=ymax)
 
     #loc, _ = plt.xticks()
     #plt.xticks(locx, [])
@@ -123,28 +123,29 @@ for dim in 2, 3:
     #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x*0.01))
     #plt.gca().yaxis.set_major_formatter(ticks)
 
-    plt.axvline(x=fit[dim], ymin=0., ymax=26.2/100., color="#ffaaaa", zorder=-90)
+    plt.axvline(x=fit[dim], ymin=0., ymax=26.2/ymax, color="#ffaaaa", zorder=-90)
     plt.scatter([fit[dim]], [26.2], s=400, c="#ffaaaa", linewidths=0)
     plt.annotate("%.1f nm" % (fit[dim],), (fit[dim], 26.2),
              xytext=(fit[dim] + 0.1, 26.2 + 2.), color="#ff6666")
-                 #arrowprops=dict(arrowstyle="->", color="#666666"))
 
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
-    htext = 80 # 2
+    #htext = 45 # 2
     xofftext = 0.3 # 0.2
-    if dim==3:
-        plt.annotate("diameter of trypsin", (2*2.0779, htext),
-                 xytext=(2*2.0779 + xofftext, htext-1.), color="#666666",
-                 arrowprops=dict(arrowstyle="->", color="#666666"))
+    plt.annotate("Diameter of trypsin", (2*2.0779, htext),
+             xytext=(2*2.0779 + xofftext, htext-1.), color="#666666",
+             arrowprops=dict(arrowstyle="->", color="#666666"))
 
 #    plt.annotate("diameter of trypsin", (2*2.0779, 2),
 #                 xytext=(2*2.0779 + 0.2, 2-0.2), color="#666666",
 #                 arrowprops=dict(arrowstyle="->", color="#666666"))
 #
-        plt.legend(bbox_to_anchor=(.1, .7), loc="upper left")
+    plt.legend(bbox_to_anchor=(.36, (.5 if dim==3 else .7)))
+    fig.tight_layout()
+    plt.subplots_adjust(left=0.2)
     #plt.legend(loc="center right" if dim==3 else "best")
+    #fig.savefig(DIR + name + "_" + label + ".eps", bbox_inches=bbox_inches)
 
 
 import folders
-pugh.nano.savefigs("new", folders.FIGDIR + "/Idiam2", (6*0.9, 4.5*0.9))
+pugh.nano.savefigs("new", folders.FIGDIR + "/Idiam2", bbox_inches=None)
 #plt.show()

@@ -64,19 +64,19 @@ def diff_profile_fit(a=-10.3, b=0.05, N=20):
     return Z, [Dfit(z) for z in Z]
 
 z, D = diff_profile_fit(a=-12, b=2, N=100)
-plt.plot(z, D, label="tabulated (infinite cylinder)")
+plt.plot(z, D, "-b", label="Tabulated (infinite cylinder)")
 
 data = diff_profile_z_ahem(a=-12, b=2, N=100, **params)
 z = [x0[2] for x0 in data["x"]]
 Dz = data["D"]
 
-plt.plot(z, Dz, "o-", label="full hydrodynamic model")
-plt.ylabel("rel. diffusivity")
+plt.plot(z, Dz, "og", label="Full hydrodynamic model")
+plt.ylabel("Rel. diffusivity")
 plt.xlabel("z [nm]")
 plt.xlim(-10, 0)
 ax = plt.gca()
-ax.yaxis.tick_right()
-ax.yaxis.set_label_position("right")
+#ax.yaxis.tick_right()
+#ax.yaxis.set_label_position("right")
 plt.legend(loc="upper left", frameon=False)
 
 from nanopores import savefigs

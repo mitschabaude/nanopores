@@ -75,7 +75,7 @@ plt.hist(fake, bins=bins, label="Wei et al. 2012")
 plt.hist(bind_times, bins=bins, histtype="step", rwidth=1., label="Simulation")
 plt.legend()
 plt.xlabel(r"$\tau$ off [s]")
-plt.ylabel("count")
+plt.ylabel("Count")
 plt.xlim(0, 20)
 
 #rw.hist_poisson(data, "attempts", (1, 10))
@@ -88,9 +88,9 @@ a, b = -6.5, 3 # log10 of plot interval
 bins = np.logspace(a, b, 40)
 
 # successful events
-hist = plt.hist(success_times, bins=bins, color="green", rwidth=0.9, label="translocated")
+hist = plt.hist(success_times, bins=bins, color="green", rwidth=0.9, label="Translocated")
 # failed attempts
-hist = plt.hist(fail_times, bins=bins, color="red", rwidth=0.9, label="did not translocate")
+hist = plt.hist(fail_times, bins=bins, color="red", rwidth=0.9, label="Did not translocate")
 
 
 #total = rw.integrate_hist(hist, cutoff)
@@ -106,7 +106,7 @@ hist = plt.hist(fail_times, bins=bins, color="red", rwidth=0.9, label="did not t
 plt.hist(fake, bins=bins, histtype="step", color="orange", label="Wei et al. 2012")
 plt.xscale("log")
 plt.yscale("log")
-plt.ylabel("count")
+plt.ylabel("Count")
 plt.xlabel(r"$\tau$ off [s]")
 plt.ylim(ymin=1., ymax=1e5)
 plt.legend()

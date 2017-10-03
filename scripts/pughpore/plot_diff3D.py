@@ -68,16 +68,17 @@ X, D = fields.get("diffz_pugh", "x", "D", diamPore=6.)
 zmin = min([x1[2] for x1 in X], key=lambda x: abs(x))
 i = X.index([0., 0., zmin])
 D0 = D[i]
-Dxx1 = Dxx[-1]
-Dzz1 = Dzz[-1]
+Dxx1 = max(Dxx)
+Dzz1 = max(Dzz)
 xlin = linspace(r+1e-3, 3., 100)
 dn = [Dn_plane(t, r, N=20) for t in xlin]
-dn = [d*D0/dn[-1] for d in dn]
+dn = [d*Dxx1/dn[-1] for d in dn]
 plt.plot(xlin, dn, "-b")
 dt = [Dt_plane(t, r) for t in xlin]
-dt = [d*D0/dt[-1] for d in dt]
+dt = [d*Dzz1/dt[-1] for d in dt]
 plt.plot(xlin, dt, "-g")
-plt.xlim(0., 2.5)
+plt.xlim(0., 1.5)
+plt.xticks([0, 0.5, 1., 1.5])
 
 plt.plot(x, Dxx, "ob", label=r"$D_{xx}$")
 plt.plot(x, Dyy, "sg", label=r"$D_{yy}$")
@@ -88,14 +89,14 @@ plt.plot(x, Dzz, ".r", label=r"$D_{zz}$")
 
 #plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
 plt.xlabel("x distance from pore wall [nm]")
-plt.ylabel("diffusivity relative to bulk")
+plt.ylabel("Rel. diffusivity")
 plt.ylim(0, 1)
 plt.axvline(x=0.11, linestyle="--", color="#666666")
-plt.annotate("ion radius", (0.11, 0.94),
+plt.annotate("Ion radius", (0.11, 0.94),
                  xytext=(0.25, 0.94-0.002), color="#666666",
                  arrowprops=dict(arrowstyle="->", color="#666666"))
-plt.yticks([i/10. for i in range(11)])
+plt.yticks([i/10. for i in range(0, 11, 2)])
 plt.legend(loc="lower right") #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
-plt.gcf().set_size_inches(4.5, 4.5)
+plt.gcf().set_size_inches(3.2, 3.2)
 nanopores.savefigs("pugh_Dions", FIGDIR)
 plt.show()

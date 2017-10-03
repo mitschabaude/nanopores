@@ -29,18 +29,18 @@ def get_IV(calc=True, **params):
 
     V = 1e3*np.array(results["x"])
     I = 1e12*np.array(results["J"])
-    plt.plot(V, I, "-", label="Simulation")
+    plt.plot(V, I, "-b", label="Simulation")
     plt.xlabel("Voltage Bias [mV]")
     plt.ylabel("Current [pA]")
 
     V = 1e3*np.array(results_uniform["x"])
     I = 1e12*np.array(results_uniform["J"])
-    plt.plot(V, I, "-", label="Simulation (homog. charge)")
+    plt.plot(V, I, "-g", label="Simulation (homog. charge)")
 
     # experimental data from Bhattacharya2011
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
-    plt.plot(bmV, I, "s", label="Experiment")
+    plt.plot(bmV, I, "sr", label="Experiment")
     plt.legend(loc="best", frameon=False)
 
 def plot_grid():
@@ -77,7 +77,7 @@ def compare_D_models(calc=True, **params):
     V = [i/100. for i in range(-10, 11)]
     Vplot = 1e3*np.array(V)
     DD = OrderedDict([
-        ("bulk D", None),
+        ("Bulk D", None),
         ("r-dependent D", ddsimplefine),
         ("z-dependent D", ddprofile),
         ("r- and z-dep. D", ddcoupled),
@@ -88,7 +88,7 @@ def compare_D_models(calc=True, **params):
     for i, model in enumerate(DD):
         params["diffusivity_data"] = DD[model]
         mod_params = dict(params)
-        if model == "bulk D":
+        if model == "Bulk D":
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])

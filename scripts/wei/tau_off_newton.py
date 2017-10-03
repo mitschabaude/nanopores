@@ -29,7 +29,7 @@ def get_parameters(mu, sigma):
 
 # get experimental event data
 csvfile = "tau_off_wei.csv"
-data = np.genfromtxt(csvfile, delimiter=',')
+data = np.genfromtxt(csvfile, delimiter=",")
 bins = data[:, 0]
 counts = data[:, 1]
 
