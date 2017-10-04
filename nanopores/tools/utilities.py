@@ -23,15 +23,12 @@ def crange(a, b, N): # continuous range with step 1/N
 
 def smooth(a, k=3):
     a = np.array(a)
-    b = a.copy()
     # range of kernel
     start = -(k // 2)
     end = (k // 2) + (k % 2)
     N = a.shape[0]
-    for i in range(N):
-        aa = a[max(0, i + start) : min(N, i + end)]
-        b[i] = np.mean(aa)
-    return b
+    b = [a[max(0, i + start) : min(N, i + end)].mean() for i in range(N)]
+    return np.array(b)
 
 def import_vars(mod):
     d = vars(import_module(mod))

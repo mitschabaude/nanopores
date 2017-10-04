@@ -84,9 +84,6 @@ plt.plot(x, Dxx, "ob", label=r"$D_{xx}$")
 plt.plot(x, Dyy, "sg", label=r"$D_{yy}$")
 plt.plot(x, Dzz, ".r", label=r"$D_{zz}$")
 
-
-
-
 #plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
 plt.xlabel("x distance from pore wall [nm]")
 plt.ylabel("Rel. diffusivity")
