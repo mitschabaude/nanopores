@@ -78,8 +78,11 @@ plt.xlabel(r"$\tau$ off [s]")
 plt.ylabel("Count")
 plt.xlim(0, 20)
 
-#rw.hist_poisson(data, "attempts", (1, 10))
-#rw.hist_poisson(data, "bindings", (1, 10))
+plt.figure("hist_attempts")
+rw.hist_poisson(data, "attempts", (0, 12), lines=False)
+plt.figure("hist_bindings")
+rw.hist_poisson(data, "bindings", (0, 4), lines=False)
+#rw.hist_poisson(data, "attempts", (1, 10), modified=True)
 
 # histogram plot with short and long events and experimental data
 plt.figure("hist")
@@ -113,4 +116,4 @@ plt.legend()
 #plt.show()
 
 import folders
-nanopores.savefigs("tau_off", folders.FIGDIR + "/wei", (6, 4.5))
+nanopores.savefigs("tau_off", folders.FIGDIR + "/wei", (4, 3))

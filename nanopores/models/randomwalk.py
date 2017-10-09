@@ -495,7 +495,7 @@ def histogram(rw, a=-3, b=3, scale=1e-0):
     plt.ylabel("count")
     plt.legend(loc="best")
 
-def hist_poisson(rw, name="attempts", ran=None, n=10):
+def hist_poisson(rw, name="attempts", ran=None, n=10, pfit=True, mpfit=True, lines=True):
     attempts = getattr(rw, name)
     if ran is None:
         n0 = 0
@@ -504,28 +504,44 @@ def hist_poisson(rw, name="attempts", ran=None, n=10):
         n0, n1 = ran
 
     k = np.arange(n0, n1 + 1)
+    bins = np.arange(n0 - 0.5, n1 + 1.5)
+    
+    astr = "ap = %.3f" if name == "bindings" else "a = %.1f"
 
-    plt.figure()
-    plt.hist(attempts, bins=(k - 0.5), label=name, color="#aaaaff")
+    plt.hist(attempts, bins=bins, label="Simulated "+name, color="#aaaaff")
     # poisson fit
-    if n0 >= 1:
-        mean = attempts[attempts >= n0].mean()
-        a = poisson_from_positiveK(mean)
-        print "Poisson fit, mean of K>0:", mean
-        print "Inferred total mean:", a
-        print "Mean of all K:", attempts.mean()
-        K = len(attempts[attempts > 0])/(1.-np.exp(-a))
-    else:
-        a = attempts.mean()
-        K = len(attempts)
+    a = attempts.mean()
+    K = len(attempts)
+    a0 = attempts[attempts >= 1].mean()
+    a1 = poisson_from_positiveK(a0)
+    print "Mod. Poisson fit, mean of K>0:", a0
+    print "Inferred total mean:", a1
+    print "Standard Poisson fit, mean:", a
+    p1 = a/a1
+    K1 = len(attempts[attempts > 0])/(1.-np.exp(-a1))
+    
+    pdf = K*poisson.pmf(k, a)
+    pdf1 = K*p1*poisson.pmf(k, a1)
+    if n0 == 0:
+        pdf1[0] += K*(1. - p1)
+        
     k0 = np.linspace(n0, n1, 500)
-    plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-",
-             label="Poisson fit, mean = %.4f" %a, color="b")
-    plt.plot(k, K*poisson.pmf(k, a), "o", color="b")
+    if pfit:
+        if lines:
+            plt.plot(k0, K*gamma.pdf(a, k0 + 1), "-", color="C1")        
+        plt.plot(k, pdf, "s",
+                 label=("Poisson fit, "+astr)%(a), color="C1")
+    if mpfit:
+        if lines:
+            plt.plot(k0, K1*gamma.pdf(a1, k0 + 1), "-", color="C2")
+        plt.plot(k, pdf1, "v",
+                 label=("Mod. Poisson fit, "+astr)%(a1), color="C2")
     plt.xlim(n0 - 0.5, n1 + 0.5)
     plt.xticks(k, k)
+    plt.yscale("log")
+    plt.ylim(ymin=1.)
     plt.xlabel("# %s" % name)
-    plt.ylabel("count")
+    plt.ylabel("Count")
     plt.legend()
 
 def solve_newton(C, f, f1, x0=1., n=20):

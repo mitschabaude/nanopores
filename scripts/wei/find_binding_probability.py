@@ -80,17 +80,24 @@ def binding_prob(P, **params):
         )
     return result
 
-def binding_prob_from_data(rMolecule=1.25, rPore=6.):
+def binding_prob_from_data(rMolecule=1.25):
     phys = nanopores.Physics()
+    
+    dp = 26 # pore diameter including sam layer [nm]
+    rsam = 3 # estimated thickness of sam layer
+    rPore = dp/2. - rsam - rMolecule
+    #rPore = 6.
+    print "Effective pore radius:", rPore
 
     # calculate binding probability with data from (Wei 2012)
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
     c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
     cmol = c * 1e3 * phys.mol # concentration [1/m**3]
-    ckon = c*kon
+    ckon = c*kon # [1/s]
 
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * rMolecule * 1e-9) # [m**2/s]
+    print "D:", D
     r = rPore* 1e-9 # effective radius for proteins at pore entrance [m]
     karr = 2.*phys.pi * r * D * cmol # arrival rate
     p0 = ckon / karr # fraction of events that have binding
