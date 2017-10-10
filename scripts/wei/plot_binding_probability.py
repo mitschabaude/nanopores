@@ -112,20 +112,21 @@ plt.legend(frameon=False)
 plt.figure("time_mean")
 #tau = 3.7
 tau = 3.88
+P4a = np.linspace(0, 0.15, 500)
 def g(x):
     return x/(1. - np.exp(-x))
 def taufit(a):
     return tau/g(a*p)
 
 plt.plot(P4, 1e-9*taufit(a1)/tau*mu, "o", label="Simulated (N=100000)", zorder=100)
-plt.plot(P4, tau*np.ones_like(P4), "--", color="orange", label="Const., tau = %.2f" % tau)
-plt.plot(P4, taufit(a)*g(a*P4), label="Poisson, tau = %.2f" % (taufit(a)), color="C1")
-plt.plot(P4, taufit(a1)*g(a1*P4), label="Mod. Poisson, tau = %.2f" % (taufit(a1)), color="C2")
+plt.plot(P4a, tau*np.ones_like(P4a), "--", color="orange", label="Const., tau = %.2f" % tau)
+plt.plot(P4a, taufit(a)*g(a*P4a), label="Poisson, tau = %.2f" % (taufit(a)), color="C1")
+plt.plot(P4a, taufit(a1)*g(a1*P4a), label="Mod. Poisson, tau = %.2f" % (taufit(a1)), color="C2")
 plt.plot([p], [tau], "o", color="#000066", label=r"p, tau off from data")
 #lima, limb = plt.ylim()
 #plt.axvline(x=p, ymin=0., ymax=(tau - lima)/(limb - lima), color="#000066", zorder=-90)
-#plt.xlim(-0.01, 0.21)
-plt.ylim(ymax=6.6)
+plt.xlim(-0.004, 0.154)
+plt.ylim(3.6, 4.8)
 plt.xlabel(r"Binding probability $p$")
 plt.ylabel(r"Mean $\tau$ off [s]")
 plt.legend(loc="upper left", frameon=False)
