@@ -2,7 +2,7 @@
 import nanopores.py4gmsh as gmsh
 import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
-from nanopores.tools.polygons import (Ball, Polygon,
+from nanopores.tools.polygons import (Ball, Polygon, MultiPolygon,
                                       PolygonPore, MultiPolygonPore,
                                       plot_edges, isempty)
 from nanopores.tools.utilities import Log
@@ -56,6 +56,12 @@ class Pore(PolygonPore):
             self.build_boundaries()
         geo = self.build_geometry(h, subs, reconstruct)
         return geo
+    
+    def build_nogeo(self, subs=None):
+        self.build_polygons()
+        self.build_boundaries()
+        self.add_synonymes()
+        self.choose_domains(subs)
 
     def build_geometry(self, h=1., subs=None, reconstruct=False):
         self.add_synonymes()
@@ -122,6 +128,10 @@ class Pore(PolygonPore):
         for dom in self.domains:
             if not dom in domains:
                 self.domains.pop(dom)
+                
+    def get_subdomain(self, sub):
+        domains = [self.domains[k] for k in self.unpack_synonymes(sub)]
+        return MultiPolygon(*domains)
 
     def add_curved_boundaries(self, geo):
         if self.dim == 1:

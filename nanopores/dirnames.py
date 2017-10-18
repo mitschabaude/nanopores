@@ -10,6 +10,7 @@ HOME = os.path.expanduser("~")
 NAME = "nanopores"
 DATADIR = os.path.join(HOME,".%s" %NAME)
 DROPBOX = os.path.join(HOME, "Dropbox", "nanopores")
+DROPBOX_FIGDIR = os.path.join(HOME, "Dropbox", "nanopores", "figures")
 
 # this should be done by every IO function separately
 #if not os.path.exists(DATADIR):

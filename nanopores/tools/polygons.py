@@ -55,6 +55,10 @@ class Polygon(object):
             self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
         return self.path.contains_point(x, radius=radius)
         #return self.path.contains_points(np.array([x]), radius=radius)[0]
+        
+    def inside_winding(self, r, z):
+        rz = np.column_stack([r, z])
+        return winding_number(self, rz) > 0
 
     def intersections(self, z, axis=1):
         z = float(z)
