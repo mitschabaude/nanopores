@@ -31,8 +31,8 @@ params = nanopores.user_params(
     geop = dict(R=21, Hbot=21, Htop=21),
     
     # random walk params
-    N = 100, # number of (simultaneous) random walks
-    dt = 0.1, # time step [ns]
+    N = 10000, # number of (simultaneous) random walks
+    dt = 0.01, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
     zstart = 1.,
@@ -45,6 +45,7 @@ params = nanopores.user_params(
     # stopping criterion: max time (w/o binding) and radius
     Tmax = 10000.,
     Rmax = 20.,
+    zstop = -1.28,
 )
 NAME = "rw_exittime"
 
@@ -64,7 +65,7 @@ def setup_rw(params):
     Rmax = params.Rmax
     
     def success(self, r, z):
-        return self.in_channel(r, z) & (z <= -1.28)
+        return self.in_channel(r, z) & (z <= params.zstop)
     
     def fail(self, r, z):
         if self.t > Tmax:
@@ -129,28 +130,34 @@ def plot_evolution(params, color=None, label=None):
                      facecolor=color, linewidth=0)
     plt.xlabel("Time [ns]")
     plt.ylabel("Exit probability")
-    plt.xlim(xmin=5)
+    plt.xlim(xmin=5, xmax=5e6)
     print "last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
         t[-2]*1e-6, p[-2], errp[-2])
-    # return end probability
-    return p[-1]
+
+def end_probability(params):
+    data = get_results(NAME, params, calc=do_calculations)
+    return data.success.mean()
 
 # FIGURE: Evolution for different starting positions
-Z = [0.5, 1.0, 1.5, 2.5, 5., 10.]
+Z = [0.5, 1.0, 2.5, 5., 10.]
 P = []
-plt.figure("positions")
+plt.figure("positions", figsize=(5, 4))
 for i, z in enumerate(Z):
-    C = "C%d" % i
-    p = plot_evolution(Params(params, zstart=z),
-                       label=r"$z_0 = %.1f$nm" % z, color=C)
-    P.append(p)
-plt.legend(frameon=False)
+    label = r"$z_0 = %.1f$nm" if z < 10 else r"$z_0 = %d$nm"
+    plot_evolution(Params(params, zstart=z),
+                   label=label % z, color="C%d" % i)
+plt.legend(frameon=False, loc="upper left")
 
 # FIGURE: Starting position vs. end probability
-plt.figure("end_prob")
+# TODO: mark pore entry and recognition site
+zstop = params.zstop
+Z = [zstop, -1., -.75, -.5, -.25, 0., 0.25, 0.5, 1.0, 1.5, 2.5, 3.5, 5., 7.5, 10.]
+plt.figure("end_prob", figsize=(3, 4))
+P = [end_probability(Params(params, zstart=z)) for z in Z]
 plt.plot(Z, P, "o")
-plt.xlabel("Starting position above pore [nm]")
-plt.ylabel("Final exit probability")
+plt.axvline(x=zstop)
+plt.xlabel(r"Distance $z_0$ [nm]")
+#plt.ylabel("Final exit probability")
 
 plt.figure()
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
