@@ -27,4 +27,4 @@ rw = RandomWalk(pore, **params)
 #rw.add_domain(receptor, exclusion=True, walldist=1.,
 #              binding=True, eps=1., t=1e6, p=0.1)
 rw.add_wall_binding(t=1e4, p=0.1, eps=0.1)
-run(rw, "rw_ahem", a=-3, b=6, save_count=1000)
+run(rw, "rw_ahem", a=-9, b=3, save_count=1000)

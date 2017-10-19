@@ -586,7 +586,9 @@ def run(rw, name="rw", plot=True, a=-1, b=4, **aniparams):
         for t in rw.walk(): pass
     if plot and ((not params.video) or (not params.save)):
         histogram(rw, a, b)
+        plt.figure()
         hist_poisson(rw, "attempts")
+        plt.figure()
         hist_poisson(rw, "bindings")
         plt.show()
 
