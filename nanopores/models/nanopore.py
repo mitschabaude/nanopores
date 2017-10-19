@@ -28,6 +28,7 @@ physp = nano.Params(
     Membraneqs = -0.0,
     ahemqs = -0.1,
     ahemuniformqs = False,
+    posDTarget = True,
 ),
 solverp = nano.Params(
     # TODO: add possibility of hybrid solve and PNP-only solve
@@ -62,6 +63,8 @@ class Setup(solvers.Setup):
 
     def init_phys(self):
         cyl = self.geop.dim == 2
+        if self.geo is None:
+            self.physp["rTarget"] = self.geop["rMolecule"]*1e-9
         self.phys = nano.Physics("pore_mol", self.geo, cyl=cyl, **self.physp)
 
     def prerefine(self, visualize=False):
@@ -112,7 +115,6 @@ def solve(setup, visualize=False):
 
     it = phys.dim==3
 
-    # TODO:
     # solve 1D problem for side BCs
     set_sideBCs(phys, setup.geop, setup.physp)
 
@@ -140,7 +142,7 @@ def solve(setup, visualize=False):
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
             #plotter.plot(cm, "cm")
-            R, H = tuple(setup.geo.params[s] for s in ["R", "H"])
+            #R, H = tuple(setup.geo.params[s] for s in ["R", "H"])
             #nano.plot1D(dict(cm=cm, cp=cp), dim=2, axis="y",
             #            rng=(-H/2., H/2., 100), origin=[R, 0])
             #dolfin.interactive()
@@ -183,7 +185,7 @@ def set_D_from_data(phys, data):
         phys.update(Dp=D, Dm=D)
 
 def solve1D(geop, physp):
-    geop["dim"] = 1
+    geop = dict(geop, dim=1)
     geo = get_geo(h=.01, **geop)
     phys = nano.Physics("pore", geo, **physp)
     pnp = nano.solve_pde(simplepnps.SimplePNPProblem, geo, phys)
@@ -254,15 +256,23 @@ def diffusivity_simple(**params):
 def force_diff(**params):
     # for random walk (with pointsize force field, no current)
     F = force_pointsize(**params)
-    D = diffusivity_simple(**params)
-    name = "diffusivity_div_simple"
-    if not fields.exists(name, **params):
-        V = D.function_space()
-        divD = dolfin.project(dolfin.as_vector([
-                  dolfin.grad(D[0])[0], dolfin.grad(D[1])[1]]), V)
-        fields.save_functions(name, params, divD=divD)
-        fields.update()
-    divD, = fields.get_functions(name, "divD", **params)
+    setup = Setup(create_geo=False, **params)
+    if setup.phys.posDTarget:
+        D = diffusivity_simple(**params)
+        name = "diffusivity_div_simple"
+        if not fields.exists(name, **params):
+            V = D.function_space()
+            divD = dolfin.project(dolfin.as_vector([
+                      dolfin.grad(D[0])[0], dolfin.grad(D[1])[1]]), V)
+            fields.save_functions(name, params, divD=divD)
+            fields.update()
+        divD, = fields.get_functions(name, "divD", **params)
+    else:
+        D0 = setup.phys.DTargetBulk
+        D0a = np.array([D0, D0, D0])
+        divDa = np.array([0., 0., 0.])
+        D = lambda x: D0a
+        divD = lambda x: divDa
     return F, D, divD
 
 # evaluate finite-size model for a number of x positions

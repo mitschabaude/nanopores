@@ -44,8 +44,7 @@ class BasePore(object):
     def get_pore(self, **params):
         self.params = Params(self.default, **params)
         pore = self.pore()
-        pore.build_polygons()
-        pore.build_boundaries()
+        pore.build_nogeo()
         return pore
 
 class PughPore(BasePore):

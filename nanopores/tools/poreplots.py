@@ -8,13 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
+def streamlines(polygon=None, patches=None, R=10., Htop=10., Hbot=10.,
+                    Nx=100, Ny=100, figsize=(5, 5),
                     maxvalue=None, **fields):
     "streamlines plot of 2D vector field around nanopore"
     # TODO: make work for 3D vector field
 
     # interpolate on regular mesh symmetric w.r.t. center axis
-    mesh2D = nanopores.RectangleMesh([-rx-0.1,-ry-0.1], [rx+0.1,ry+0.1], Nx, Ny)
+    mesh2D = nanopores.RectangleMesh([-R-0.1,-Hbot-0.1], [R+0.1,Htop+0.1], Nx, Ny)
     fields2 = nanopores.convert2D(mesh2D, *(fields.values()))
 
     # prepare polygon and copy to left half
@@ -27,11 +28,11 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
     # prepare plots
     Ny += 1
     Nx += 1
-    Y, X = np.mgrid[-ry:ry:Ny*1j, -rx:rx:Nx*1j]
+    Y, X = np.mgrid[-Hbot:Htop:Ny*1j, -R:R:Nx*1j]
     U = np.zeros((Ny,Nx))
     V = np.zeros((Ny,Nx))
     formt = matplotlib.ticker.FuncFormatter(exp_format)
-    ticks = [0] + [10**n for n in range(-16, -8)]
+    ticks = [0] + [10**n for n in range(-15, -8)]
 
     # determine uniform color range from fields (maybe round to nearest 10-power)
     if maxvalue is None:
@@ -40,7 +41,7 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
 
     for i, F in enumerate(fields2):
         Fstr = fields.keys()[i]
-        fig, ax = plt.subplots(figsize=(5, 4.5), num=Fstr)
+        fig, ax = plt.subplots(num=Fstr, figsize=figsize)
 
         # fill array with function values
         for y in range(Ny):
@@ -53,11 +54,20 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
         strength = np.sqrt(U*U+V*V)
         norm = matplotlib.colors.SymLogNorm(linthresh=ticks[1], linscale=1.0,
                                             vmin=0., vmax=maxvalue)
-        strm = plt.streamplot(X, Y, U, V, arrowsize=1.5, linewidth=1.5, density=1.5,
+        strm = plt.streamplot(X, Y, U, V, arrowsize=1.0, linewidth=0.75, density=2.0,
                               cmap=cm.viridis, color=strength, norm=norm)
+        #if i==len(fields2)-1:
         plt.colorbar(strm.lines, ticks=ticks, format=formt)
-        plt.xlabel('x [nm]') #, fontsize=20)
-        plt.ylabel('z [nm]') #, fontsize=20)
+        fig.axes[1].set_ylabel("Force [N]")
+        #plt.xlabel('x [nm]') #, fontsize=20)
+        #plt.ylabel('z [nm]') #, fontsize=20)
+        fig.axes[0].tick_params(
+            axis="both",       # changes apply to both axes
+            which="both",      # both major and minor ticks are affected
+            bottom="off", top="off", left="off", right="off",
+            labelbottom="off", labeltop="off",
+            labelleft="off", labelright="off")
+        
 
         # plot pore polygon on top
         if polygon is not None:
@@ -67,6 +77,11 @@ def streamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
             patchm.set_zorder(10)
             ax.add_patch(patch)
             ax.add_patch(patchm)
+            
+        if patches is not None:
+            for p in patches[i]:
+                p.set_zorder(10)
+                ax.add_patch(p)
 
 
 def exp_format(x, pos):
@@ -84,8 +99,8 @@ if __name__ == "__main__":
     from nanopores.models.pughpoints import plot_polygon
     #from nanopores.models.diffusion import get_pugh_diffusivity
 
-    from nanopores.tools.utilities import uCross, RectangleMesh
-    from math import pi, sqrt
+#    from nanopores.tools.utilities import uCross, RectangleMesh
+#    from math import pi, sqrt
 
     dparams = {2: dict(diamPore=6., diamDNA=2.5, Nmax=1.2e5, dim=2, r=0.11, h=.75,
                        cheapest=False, Membraneqs=-.5),

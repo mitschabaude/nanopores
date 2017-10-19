@@ -15,7 +15,7 @@ from nanopores.models import nanopore
 from nanopores.tools.poreplots import streamlines
 from nanopores.tools import fields
 
-dolfin.parameters["allow_extrapolation"] = True
+dolfin.parameters["allow_extrapolation"] = False #True
 
 params = nanopores.user_params(
     # general params
@@ -26,6 +26,7 @@ params = nanopores.user_params(
     Nmax = 4e4,
     Qmol = -1.,
     bV = -0.2,
+    posDTarget = True,
     # random walk params
     N = 100, # number of (simultaneous) random walks
     dt = 10., # time step [ns]
@@ -145,6 +146,7 @@ class RandomWalk(object):
         self.params.update(params, margtop=margtop, margbot=margbot,
                            walldist=walldist, dt=dt,
                            rstart=rstart, xstart=xstart, zstart=zstart)
+        self.sim_params = params
 
         # initialize some parameters and create random walkers at entrance
         self.rtop = pore.protein.radiustop() - self.params.rMolecule
@@ -165,7 +167,7 @@ class RandomWalk(object):
 
         # load force and diffusivity fields
         F, D, divD = load_externals(**params)
-        self.F = F #self.ood_evaluation(F)
+        self.F = self.ood_evaluation(F)
         self.D = D #self.ood_evaluation(D)
         self.divD = divD #self.ood_evaluation(divD)
         self.phys = nanopores.Physics("pore_mol", **params)
@@ -216,14 +218,23 @@ class RandomWalk(object):
 
     def add_wall_binding(self, **params):
         self.domains[0].__dict__.update(params, binding=True)
+        
+    def set_stopping_criteria(self, success=None, fail=None):
+        if success is not None:
+            self.is_success = success.__get__(self)
+        if fail is not None:
+            self.is_fail = fail.__get__(self)
 
+    was_ood = False
     def ood_evaluation(self, f):
         dim = self.params.dim
         def newf(x):
             try:
                 return f(x)
             except RuntimeError:
-                print "ood:", x
+                if not self.was_ood:
+                    print "\nFirst particle out of domain:", x
+                    self.was_ood = True
                 return np.zeros(dim)
         return newf
 
@@ -288,6 +299,13 @@ class RandomWalk(object):
     def is_fail(self, r, z):
         return (z > self.ztop + self.params.margtop) | (
                (r > self.rtop + self.params.margtop) & (z > self.ztop))
+        
+    def in_channel(self, r, z):
+        if not hasattr(self, "_channel"):
+            self._channel = self.pore.get_subdomain("pore")
+        channel = self._channel
+        #return np.array([x in channel for x in zip(r, z)])
+        return channel.inside_winding(r, z)
 
     def update_alive(self):
         alive = self.alive
@@ -411,11 +429,31 @@ class RandomWalk(object):
                 p = mpatches.Circle(xy, dom.r, **ball_settings)
                 p.set_zorder(200)
                 patches.append(p)
-
         return patches
-    def plot_streamlines(self, cyl=False):
-        # TODO:
-        pass
+    
+    def plot_streamlines(self, both=False, Hbot=None, Htop=None, R=None, **params):
+        R = self.params.R if R is None else R
+        Htop = self.params.Htop if Htop is None else Htop
+        Hbot = self.params.Hbot if Hbot is None else Hbot
+        #ax = plt.axes(xlim=(-R, R), ylim=(-Hbot, Htop))
+        dolfin.parameters["allow_extrapolation"] = True
+        if both:
+            Fel, Fdrag = fields.get_functions("force_pointsize",
+                                              "Fel", "Fdrag", **self.sim_params)
+            streamlines(patches=[self.polygon_patches(), self.polygon_patches()],
+                        R=R, Htop=Htop, Hbot=Hbot,
+                        Nx=100, Ny=100, Fel=Fel, Fdrag=Fdrag, **params)
+        else:
+            streamlines(patches=[self.polygon_patches()],
+                        R=R, Htop=Htop, Hbot=Hbot,
+                        Nx=100, Ny=100, F=self.F, **params)
+        dolfin.parameters["allow_extrapolation"] = False
+        
+#        for p in patches:
+#            p.set_zorder(100)
+#            plt.gca().add_patch(p)
+        plt.xlim(-R, R)
+        plt.ylim(-Hbot, Htop)
 
 def load_results(name, **params):
     data = fields.get_fields(name, **params)
@@ -574,7 +612,7 @@ def save(ani, name="rw"):
                  extra_args=["-vcodec", "libx264"])
 
 # convenience function for interactive experiments
-def run(rw, name="rw", plot=True, a=-1, b=4, **aniparams):
+def run(rw, name="rw", plot=False, a=-1, b=4, **aniparams):
     params = nanopores.user_params(video=False, save=False, cyl=False)
     if params.video:
         ani = video(rw, cyl=params.cyl, **aniparams)
@@ -586,10 +624,10 @@ def run(rw, name="rw", plot=True, a=-1, b=4, **aniparams):
         for t in rw.walk(): pass
     if plot and ((not params.video) or (not params.save)):
         histogram(rw, a, b)
-        plt.figure()
-        hist_poisson(rw, "attempts")
-        plt.figure()
-        hist_poisson(rw, "bindings")
+        #plt.figure()
+        #hist_poisson(rw, "attempts")
+        #plt.figure()
+        #hist_poisson(rw, "bindings")
         plt.show()
 
 if __name__ == "__main__":

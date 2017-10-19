@@ -11,6 +11,7 @@ qTarget = Qmolq
 rpermMol = rpermDNA
 permMol = lambda eperm, rpermMol: eperm*rpermMol
 cyl = lambda dim: True if dim==2 else False
+posDTarget = True # if True, position-dep. D used for target mols
 
 # params for unspecific binding
 bind_prob = 0.1
@@ -38,10 +39,13 @@ def Moleculeqv(geo, Qmolq, lscale, r2pi): #
 def rTarget(geo, lscale):
     return geo.params["rMolecule"]/lscale
 
-def ForceField(geo, grad, qTarget, rTarget):
+def DTargetBulk(rTarget, kT, eta, pi):
+    "Stokes-Einstein relation"
+    return kT/(6.*pi*eta*rTarget)
+
+def ForceField(geo, grad, eta, qTarget, rTarget, pi):
     def Forces0(v, u, subdomain=None):
         E = -grad(v)
-        pi = 3.141592653589793
         Fel = dolfin.Constant(qTarget)*E
         Fdrag = dolfin.Constant(6.*pi*eta*rTarget)*u
         F = Fel + Fdrag
