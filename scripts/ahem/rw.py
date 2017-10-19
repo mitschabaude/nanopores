@@ -6,7 +6,12 @@ import nanopores
 from nanopores.models.randomwalk import (get_pore, RandomWalk, run, load_results)
 from nanopores.tools import fields
 from nanopores import Params
+fields.set_dir_dropbox()
 FIGDIR = nanopores.dirnames.DROPBOX_FIGDIR
+
+# TODO: Idee waere statt der ahem-validierung eine current trace abzubilden,
+# damit man sieht an welchem punkt in der pore das Nukkleotid registriert wird
+# oder eine echte current trace
 
 ########### PARAMETERS ###########
 # TODO: confirm rMolecule and Qmol !!!
@@ -26,7 +31,7 @@ params = nanopores.user_params(
     geop = dict(R=21, Hbot=21, Htop=21),
     
     # random walk params
-    N = 1000, # number of (simultaneous) random walks
+    N = 100, # number of (simultaneous) random walks
     dt = 0.1, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
@@ -127,14 +132,25 @@ def plot_evolution(params, color=None, label=None):
     plt.xlim(xmin=5)
     print "last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
         t[-2]*1e-6, p[-2], errp[-2])
+    # return end probability
+    return p[-1]
 
 # FIGURE: Evolution for different starting positions
 Z = [0.5, 1.0, 1.5, 2.5, 5., 10.]
+P = []
 plt.figure("positions")
 for i, z in enumerate(Z):
     C = "C%d" % i
-    plot_evolution(Params(params, zstart=z), label=r"$z_0 = %.1f$nm" % z, color=C)
-plt.legend()
+    p = plot_evolution(Params(params, zstart=z),
+                       label=r"$z_0 = %.1f$nm" % z, color=C)
+    P.append(p)
+plt.legend(frameon=False)
+
+# FIGURE: Starting position vs. end probability
+plt.figure("end_prob")
+plt.plot(Z, P, "o")
+plt.xlabel("Starting position above pore [nm]")
+plt.ylabel("Final exit probability")
 
 plt.figure()
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
