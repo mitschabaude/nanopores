@@ -34,8 +34,8 @@ params = nanopores.user_params(
     ahemuniformqs = False,
     
     # random walk params
-    N = 1000, # number of (simultaneous) random walks
-    dt = 0.1, # time step [ns]
+    N = 10000, # number of (simultaneous) random walks
+    dt = 0.01, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
     zstart = 1.,
@@ -188,16 +188,58 @@ for i, t in enumerate(T):
 plt.legend(frameon=False, loc="upper left")#loc="lower right")
 
 # FIGURE: Different surface charges
+# TODO: surf charge together with bonding
 plt.figure("surf_charge", figsize=(5, 4))
-Rho = [-0.2, 0.0001, 0.2]
+Rho = [-0.2, -0.1, 0.0001, 0.1, 0.2][::-1]
 labels = ["None"] # ["No binding", "100ns", u"10µs", "1ms"]
 for i, rho in enumerate(Rho):
-    label = r"$\rho = %.1f$ C/$m^2$" % rho if rho is not None else "None"
+    label = r"$\rho$ = %.1f C/m$^2$" % rho if rho is not None else "None"
     plot_evolution(Params(params, ahemqs=rho, ahemuniformqs=True),
                    label=label, color="C%d" % i)
-#plt.xlim(xmin=1.)
-#plt.ylim(ymin=0.4)
-plt.legend(frameon=False, loc="upper left")#loc="lower right")
+plt.legend(frameon=False, loc="upper left")
+
+# FIGURE: surf charge vs. end prob
+plt.figure("surf_end_prob", figsize=(4, 4))
+Rho = [-0.3, -0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2]
+P = [end_probability(Params(params, ahemqs=rho, ahemuniformqs=True)) for rho in Rho]
+plt.plot(Rho, P, "-o")
+plt.xlabel(r"Surface charge [C/m$^2$]")
+
+# FIGURE: Different applied voltages
+plt.figure("bV", figsize=(5, 4))
+V = [1e-5, 0.25, 0.5, 1.0]
+labels = ["None"] # ["No binding", "100ns", u"10µs", "1ms"]
+for i, v in enumerate(V):
+    label = r"bV = %dmV" % (v*1000)
+    plot_evolution(Params(params, bV=v), label=label, color="C%d" % i)
+plt.legend(frameon=False, loc="upper left")
+
+# FIGURE: voltage vs. end prob
+plt.figure("bV_end_prob", figsize=(4, 4))
+V = [-0.25, -0.1, 1e-5, 0.1, 0.2, 0.3, 0.4, 0.5, 1.]
+P = [end_probability(Params(params, bV=v)) for v in V]
+plt.plot(V, P, "-o")
+plt.xlabel(r"Voltage bias [V]")
+
+# FIGURE: starting position, different voltages:
+plt.figure("pos_bV_end_prob", figsize=(3, 4))
+zstop = params.zstop
+Z = [zstop, -.5, 0., 0.5, 1.0, 1.5, 2.5, 3.5, 5., 7.5, 10.]
+V = [1e-5, 0.25, 0.5, 1.0]
+for v in V:
+    P = [end_probability(Params(params, zstart=z, bV=v)) for z in Z]
+    plt.plot(Z, P, "-o", label="bV = %dmV" % (v*1000))
+plt.legend(frameon=False)
+# annotation of recognition site
+xofftext = -2.7
+yofftext = -0.15
+htext = 0.0
+color = "black"
+plt.axvline(x=zstop, linestyle="--", color=color)
+plt.annotate("Recogni-\ntion site", (zstop, htext),
+    xytext=(zstop + xofftext, htext + yofftext), color=color,
+    )
+plt.xlabel(r"Distance $z_0$ [nm]")
 
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
 plt.show()
