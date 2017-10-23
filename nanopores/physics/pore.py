@@ -9,7 +9,7 @@ DNAqsPure = -qq/nm**2 # = -0.16 # DNA surface charge density [C/m**2]
 dnaqsdamp = 1. # DNA charge damping
 SiNqs = -0.022
 SAMqs = -0.078
-ahemqs = 0.
+ahemqs = None
 
 rpermPore = rpermw
 rpermProtein = 2. # TODO ?????
@@ -120,14 +120,14 @@ def CurrentPNPSDetail(geo, cFarad, UT, grad, r2pi, dim, invscale, Dp, Dm):
 
 # surface charges of alphahemolysin
 ahemqstotal = [-3.815, 3.1, 16.6, -8.885][::-1]
-ahemuniformqs = False
+ahemuniformqs = False # True is equivalent to ahemqs = 0.0033743749779856706
 ahemqs0 = lambda ahemqsmulti: ahemqsmulti[0]
 ahemqs1 = lambda ahemqsmulti: ahemqsmulti[1]
 ahemqs2 = lambda ahemqsmulti: ahemqsmulti[2]
 ahemqs3 = lambda ahemqsmulti: ahemqsmulti[3]
 surfcharge.update({"alphahemb%d" % i: "ahemqs%d" % i for i in range(4)})
 
-def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs):
+def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs, ahemqs):
     if not ("alphahemb0" in geo._physical_boundary) or (
             len(geo._physical_boundary["alphahemb0"]) == 0):
         return [0.]*4
@@ -136,7 +136,10 @@ def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs):
     if not ahemuniformqs:
         qs = [ahemqstotal[i]*qq/area(i) for i in range(4)]
     else:
-        qs0 = qq*sum(ahemqstotal)/sum(area(i) for i in range(4))
+        if ahemqs is None:
+            qs0 = qq*sum(ahemqstotal)/sum(area(i) for i in range(4))
+        else:
+            qs0 = ahemqs
         qs = [qs0]*4
     print "Calculated alphahem surface charges:", qs
     return qs

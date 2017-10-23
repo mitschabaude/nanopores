@@ -26,7 +26,7 @@ physp = nano.Params(
     bV = -0.1,
     rDPore = .9,
     Membraneqs = -0.0,
-    ahemqs = -0.1,
+    ahemqs = None,
     ahemuniformqs = False,
     posDTarget = True,
 ),
@@ -236,7 +236,8 @@ def force_pointsize(**params):
         v, cp, cm, u, p = pnps.solutions()
     
         F, Fel, Fdrag = setup.phys.ForceField(v, u, "fluid")
-        fields.save_functions(name, params, F=F, Fel=Fel, Fdrag=Fdrag)
+        fields.save_functions(name, setup.active_params,
+                              F=F, Fel=Fel, Fdrag=Fdrag)
         fields.update()
     F, = fields.get_functions(name, "F", **params)
     return F
@@ -248,15 +249,18 @@ def diffusivity_simple(**params):
         setup = Setup(**params)
         dic = diffusivity_field(setup, r=params["rMolecule"],
                                 boundary="poresolidb")
-        fields.save_functions(name, params, **dic)
+        fields.save_functions(name, setup.active_params, **dic)
         fields.update()
     D, = fields.get_functions(name, "D", **params)
     return D
 
 def force_diff(**params):
     # for random walk (with pointsize force field, no current)
-    F = force_pointsize(**params)
     setup = Setup(create_geo=False, **params)
+    # DEBUG
+    #print "active params", setup.active_params
+    #print "inactive params", setup.inactive_params
+    F = force_pointsize(**params)
     if setup.phys.posDTarget:
         D = diffusivity_simple(**params)
         name = "diffusivity_div_simple"
@@ -264,7 +268,7 @@ def force_diff(**params):
             V = D.function_space()
             divD = dolfin.project(dolfin.as_vector([
                       dolfin.grad(D[0])[0], dolfin.grad(D[1])[1]]), V)
-            fields.save_functions(name, params, divD=divD)
+            fields.save_functions(name, setup.active_params, divD=divD)
             fields.update()
         divD, = fields.get_functions(name, "divD", **params)
     else:

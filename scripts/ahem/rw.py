@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # (c) 2017 Gregor Mitscha-Baude
 "script to generate all figures for exit-time paper"
 import numpy as np
@@ -29,10 +30,12 @@ params = nanopores.user_params(
     posDTarget = False,
     R=21, Hbot=21, Htop=21,
     geop = dict(R=21, Hbot=21, Htop=21),
+    ahemqs = None,
+    ahemuniformqs = False,
     
     # random walk params
-    N = 10000, # number of (simultaneous) random walks
-    dt = 0.01, # time step [ns]
+    N = 1000, # number of (simultaneous) random walks
+    dt = 0.1, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
     zstart = 1.,
@@ -123,14 +126,14 @@ def plot_evolution(params, color=None, label=None):
     p = np.arange(sum(success))/N
     t.append(endtime)
     p = np.append(p, [p[-1]])
-    errp = np.sqrt(p*(1.-p)/N)
+    errp = 1.96*np.sqrt(p*(1.-p)/N) # 95% confidence
     
     plt.semilogx(t, p, color=color, label=label)
     plt.fill_between(t, p - errp, p + errp, alpha=0.2,
                      facecolor=color, linewidth=0)
     plt.xlabel("Time [ns]")
     plt.ylabel("Exit probability")
-    plt.xlim(xmin=5, xmax=5e6)
+    plt.xlim(xmin=0.1, xmax=5e6)
     print "last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
         t[-2]*1e-6, p[-2], errp[-2])
 
@@ -139,7 +142,7 @@ def end_probability(params):
     return data.success.mean()
 
 # FIGURE: Evolution for different starting positions
-Z = [0.5, 1.0, 2.5, 5., 10.]
+Z = [0., 0.5, 1.0, 2.5, 5., 10.]
 P = []
 plt.figure("positions", figsize=(5, 4))
 for i, z in enumerate(Z):
@@ -149,16 +152,52 @@ for i, z in enumerate(Z):
 plt.legend(frameon=False, loc="upper left")
 
 # FIGURE: Starting position vs. end probability
-# TODO: mark pore entry and recognition site
 zstop = params.zstop
 Z = [zstop, -1., -.75, -.5, -.25, 0., 0.25, 0.5, 1.0, 1.5, 2.5, 3.5, 5., 7.5, 10.]
 plt.figure("end_prob", figsize=(3, 4))
 P = [end_probability(Params(params, zstart=z)) for z in Z]
 plt.plot(Z, P, "o")
-plt.axvline(x=zstop)
+# annotation of recognition site
+xofftext = -2.7
+yofftext = -0.15
+htext = 0.05
+color = "C1"
+plt.axvline(x=zstop, linestyle="--", color=color)
+plt.annotate("Recogni-\ntion site", (zstop, htext),
+    xytext=(zstop + xofftext, htext + yofftext), color=color,
+    )#arrowprops=dict(arrowstyle="->", color=color))
+#htext = 0.95
+#color = "#66aa66"
+#plt.axvline(x=0., linestyle="--", color=color)
+#plt.annotate("Pore entrance", (0., htext),
+#    xytext=(0. + xofftext, htext + yofftext), color=color,)
+#    #arrowprops=dict(arrowstyle="->", color=color))
 plt.xlabel(r"Distance $z_0$ [nm]")
 #plt.ylabel("Final exit probability")
 
-plt.figure()
+# FIGURE: Different binding durations
+plt.figure("bind_times", figsize=(5, 4))
+T = [0., 100., 10000., 1000000.]
+labels = ["No binding", "100ns", u"10µs", "1ms"]
+for i, t in enumerate(T):
+    #label = r"$\tau = %g$ns" % t if t > 0 else "No binding"
+    plot_evolution(Params(params, t_bind=t),
+                   label=labels[i], color="C%d" % i)
+#plt.xlim(xmin=1.)
+#plt.ylim(ymin=0.4)
+plt.legend(frameon=False, loc="upper left")#loc="lower right")
+
+# FIGURE: Different surface charges
+plt.figure("surf_charge", figsize=(5, 4))
+Rho = [-0.2, 0.0001, 0.2]
+labels = ["None"] # ["No binding", "100ns", u"10µs", "1ms"]
+for i, rho in enumerate(Rho):
+    label = r"$\rho = %.1f$ C/$m^2$" % rho if rho is not None else "None"
+    plot_evolution(Params(params, ahemqs=rho, ahemuniformqs=True),
+                   label=label, color="C%d" % i)
+#plt.xlim(xmin=1.)
+#plt.ylim(ymin=0.4)
+plt.legend(frameon=False, loc="upper left")#loc="lower right")
+
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
 plt.show()

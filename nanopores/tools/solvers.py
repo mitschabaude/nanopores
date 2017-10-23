@@ -16,6 +16,7 @@ class Setup(object):
         self.init_phys()
 
     def init_params(self, params, **paramsets):
+        active = set()
         for p in paramsets:
             setattr(self, p, Params(self.default[p]))
             dic = getattr(self, p)
@@ -23,7 +24,10 @@ class Setup(object):
                 dic.update(paramsets[p])
             for k in dic:
                 if k in params:
+                    active.add(k)
                     dic[k] = params[k]
+        self.active_params = {p: params[p] for p in active}
+        self.inactive_params = {p: params[p] for p in params if not p in active}
 
     # subclasses have to overwrite
     def init_geo(self):
