@@ -1,4 +1,15 @@
 # (c) 2017 Gregor Mitscha-Baude
+"""This module provides a completely general way to create axisymmetric
+nanopore geometries and meshes in 1D, 2D and 3D, only from the shape of the
+pore (given by a set of nodes) and some additional parameters, like membrane
+thickness and position etc. In 3D there is the possibility of adding solid
+spheres at arbitrary positions; in 2D, half-spheres that lie on the
+central axis."""
+# TODO: Use the list of domains and boundaries, together with initial mesh
+# creation parameters and adaptivity parameters that apply to ALL pores,
+# to create an accurate string representation of the adapted mesh, which can
+# then easily be reused and only has to be saved once, e.g. for saved force
+# fields.
 import nanopores.py4gmsh as gmsh
 import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
@@ -378,7 +389,7 @@ if __name__ == "__main__":
 
     dnapolygon = [[1, -5], [1, 5], [3, 5], [3, -5]]
 
-        # --- TEST
+    # --- TEST
     p = MultiPore(dict(dna=dnapolygon), **params)
     p.build_polygons()
     p.build_boundaries()

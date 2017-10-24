@@ -7,7 +7,8 @@ import nanopores
 from nanopores.models.randomwalk import (get_pore, RandomWalk, run, load_results)
 from nanopores.tools import fields
 from nanopores import Params
-fields.set_dir_dropbox()
+#fields.set_dir_dropbox()
+fields.set_dir(fields.HOME + "/code/nanopores/fields")
 FIGDIR = nanopores.dirnames.DROPBOX_FIGDIR
 
 # TODO: Idee waere statt der ahem-validierung eine current trace abzubilden,
@@ -196,13 +197,14 @@ for i, rho in enumerate(Rho):
     label = r"$\rho$ = %.1f C/m$^2$" % rho if rho is not None else "None"
     plot_evolution(Params(params, ahemqs=rho, ahemuniformqs=True),
                    label=label, color="C%d" % i)
+plt.ylabel("")
 plt.legend(frameon=False, loc="upper left")
 
 # FIGURE: surf charge vs. end prob
 plt.figure("surf_end_prob", figsize=(4, 4))
 Rho = [-0.3, -0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2]
 P = [end_probability(Params(params, ahemqs=rho, ahemuniformqs=True)) for rho in Rho]
-plt.plot(Rho, P, "-o")
+plt.plot(Rho, P, ":o")
 plt.xlabel(r"Surface charge [C/m$^2$]")
 
 # FIGURE: Different applied voltages
@@ -216,25 +218,28 @@ plt.legend(frameon=False, loc="upper left")
 
 # FIGURE: voltage vs. end prob
 plt.figure("bV_end_prob", figsize=(4, 4))
-V = [-0.25, -0.1, 1e-5, 0.1, 0.2, 0.3, 0.4, 0.5, 1.]
+#V = [-0.25, -0.1, 1e-5, 0.1, 0.2, 0.3, 0.4, 0.5, 1.]
+V = [-0.35, -0.25, -0.1, 1e-5, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
 P = [end_probability(Params(params, bV=v)) for v in V]
-plt.plot(V, P, "-o")
+plt.plot(V, P, ":o")
 plt.xlabel(r"Voltage bias [V]")
 
 # FIGURE: starting position, different voltages:
 plt.figure("pos_bV_end_prob", figsize=(3, 4))
 zstop = params.zstop
-Z = [zstop, -.5, 0., 0.5, 1.0, 1.5, 2.5, 3.5, 5., 7.5, 10.]
+Z = [zstop, -.75, -.5, -.25, 0., 0.25, 0.5, 1.0, 1.5, 2., 3., 4., 5., 6., 7.5, 10., 12.5]
+rstart = lambda z: (1. if z>=0. else 0.1)
+#Z = [zstop, -.5, 0., 0.5, 1.0, 1.5, 2.5, 3.5, 5., 7.5, 10.]
 V = [1e-5, 0.25, 0.5, 1.0]
 for v in V:
-    P = [end_probability(Params(params, zstart=z, bV=v)) for z in Z]
-    plt.plot(Z, P, "-o", label="bV = %dmV" % (v*1000))
+    P = [end_probability(Params(params, zstart=z, bV=v, rstart=rstart(z))) for z in Z]
+    plt.plot(Z, P, ":o", label="%dmV" % (v*1000))
 plt.legend(frameon=False)
 # annotation of recognition site
 xofftext = -2.7
 yofftext = -0.15
 htext = 0.0
-color = "black"
+color = "C4" #"#999999"
 plt.axvline(x=zstop, linestyle="--", color=color)
 plt.annotate("Recogni-\ntion site", (zstop, htext),
     xytext=(zstop + xofftext, htext + yofftext), color=color,
