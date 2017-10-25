@@ -28,13 +28,14 @@ class Cylinder(SubDomain):
         x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
         x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
             
-            
+#import numpy as np
 class Circle(SubDomain):
     # hole
 
     def __init__(self, R, center=(0.,0.,0.), frac=0.75):
         SubDomain.__init__(self)
         self.R, self.c, self.frac = R, center, frac
+        print "DEBUG", self.c, self.R
         
     def r(self, x):
         return sqrt((x[0] - self.c[0])**2 + (x[1] - self.c[-1])**2)
@@ -47,9 +48,14 @@ class Circle(SubDomain):
 
     def snap(self, x):
         r = self.r(x)
+        #xold = np.copy(x)
         if self.inside(x, False):
             x[0] = self.c[0] + (self.R / r)*(x[0] - self.c[0])
-            x[1] = self.c[1] + (self.R / r)*(x[1] - self.c[1])
+            x[1] = self.c[-1] + (self.R / r)*(x[1] - self.c[-1])
+#        
+#        rr = np.sqrt(np.sum((xold - x)**2))
+#        if rr > 1e-3:
+#            print "snap %.4f" % rr, r, xold, "-->", x
             
             
 class Sphere(SubDomain):

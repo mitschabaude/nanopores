@@ -69,6 +69,10 @@ class Setup(solvers.Setup):
 
     def prerefine(self, visualize=False):
         return prerefine(self, visualize=visualize)
+    
+def get_active_params(params):
+    setup = Setup(create_geo=False, **params)
+    return setup.active_params
 
 class Plotter(object):
     def __init__(self, setup=None, dim=3):
@@ -308,6 +312,19 @@ def Irho(Rho, **params):
     for rho, result in nano.collect_dict(Rho):
         params["dnaqsdamp"] = rho
         setup = Setup(**params)
+        pb, pnps = solve(setup, visualize=True)
+        result.new = pnps.evaluate(setup.phys.CurrentPNPSDetail)
+    return result
+
+# I for molecule at different z-positions = 1D current profile
+@solvers.cache_forcefield("Iz", defaultp)
+def Iz(Z, **params):
+    for z, result in nano.collect_dict(Z):
+        params["x0"] = [0., 0., z]
+        setup = Setup(**params)
+        #setup.geo.plot_subdomains()
+        #setup.geo.plot_boundaries()
+        #print setup.geo
         pb, pnps = solve(setup, visualize=True)
         result.new = pnps.evaluate(setup.phys.CurrentPNPSDetail)
     return result
