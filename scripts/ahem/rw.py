@@ -4,9 +4,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import nanopores
-from nanopores.models.randomwalk import get_pore, RandomWalk, run, load_results
+from nanopores.models.randomwalk import (get_pore, RandomWalk, run,
+                                         load_results, get_rw)
+#from nanopores.models.randomwalk import get_results as get_results_rw
 from nanopores.models.nanopore import Iz, get_active_params
-from nanopores.tools import fields, solvers
+from nanopores.tools import fields
 from nanopores import Params
 #fields.set_dir_dropbox()
 fields.set_dir(fields.HOME + "/code/nanopores/fields")
@@ -59,7 +61,7 @@ plot_streamlines = False
 run_test = False
 plot_rw_results = False
 do_calculations = True
-create_current_profile = True
+create_current_trace = True
 
 ########### SET UP RANDOM WALK  ###########
 def setup_rw(params):
@@ -113,7 +115,7 @@ def get_results(NAME, params, calc=True):
     if N_missing > 0 and calc:
         new_params = Params(params, N=N_missing)
         rw = setup_rw(new_params)
-        run(rw, NAME, plot=False)
+        run(rw, NAME)
         rw.save(NAME)
     # return results
     data = load_results(NAME, **params)
@@ -250,28 +252,76 @@ if plot_rw_results:
         )
     plt.xlabel(r"Distance $z_0$ [nm]")
     
-########### CREATE CURRENT PROFILE ###########
-if create_current_profile:
+########### CREATE CURRENT TRACE ###########
+# linear interpolation:
+def evaluate_interpolation(x, X, Y):
+    """assuming data pairs X, Y = f(X) where X are sorted (monotonically increasing),
+    find y = f(x) by interpolating between the nearest x values.
+    x can be single number or array, return value will be of same type."""
+    # get index of first element in X larger than x
+    i = np.searchsorted(X, x)
+    # now interpolate linearly between (X[i-1], Y[i-1]) and (X[i], Y[i])
+    # x = X[i-1] + t*(X[i] - X[i-1])
+    t = (x - X[i-1])/(X[i] - X[i-1])
+    y = Y[i-1] + t*(Y[i] - Y[i-1])
+    return y
+
+def interpolation(X, Y):
+    X = np.array(X)
+    Y = np.array(Y)
+    return lambda x: evaluate_interpolation(x, X, Y)
+
+def plot_current(i, rw, J):
+    z = rw.positions[i][:, 2]
+    t = rw.timetraces[i]
+    plt.plot(t, J(z))
+    
+if create_current_trace:
+    # create current profile
     rw = setup_rw(params)
     margin = 5.
     Htop = rw.ztop + 3*margin
     Hbot = -rw.zbot + 3*margin
     R = (Htop + Hbot)*.5
-    sim_params = dict(get_active_params(params), Nmax=4e4, h=0.5, rDPore=0.3,
-                      R=R, Htop=Htop, Hbot=Hbot,
-                      geop = dict(R=R, Htop=Htop, Hbot=Hbot),)
+    sim_params0 = dict(Nmax=4e4, h=0.5, rDPore=.3)
+    sim_params1 = dict(Nmax=2e4, h=0.5, rDPore=1.)
+    sim_params = sim_params1
+    sim_params = dict(get_active_params(params), R=R, Htop=Htop, Hbot=Hbot,
+                      geop = dict(R=R, Htop=Htop, Hbot=Hbot), **sim_params)
+    
     Z = np.linspace(rw.zbot - margin, rw.ztop + margin, 50)
-
-    data = Iz(Z, nproc=5, name="current_exittime", **sim_params)
-    #import dolfin
-    #dolfin.interactive()
-    #print data.keys()
-    #print data
+    data = Iz(Z, nproc=5, name="current_exittime",
+              calc=do_calculations, **sim_params)
+    
+    # FIGURE: current profile
     plt.figure("current")
-    plt.plot(data.x, np.array(data.J)*1e12)
+    plt.plot(data.x, 0.3*np.array(data.J)*1e12, "-o")
     plt.xlabel("z position of nucleotide [nm]")
     plt.ylabel("Current [pA]")
     
-
+    # define linear interpolation
+    J = lambda x: 0.3e12*interpolation(data.x, data.J)(x)
+    #zlin = np.linspace(rw.zbot - margin, rw.ztop + margin, 500)
+    #plt.plot(zlin, 0.3e12*J(zlin), ".")
+    
+    # run a few random walks and record times/positions (until respective rw stops)
+    # TODO: this should be an option in every random walk
+    N = 20
+    new_params = dict(params, N=N, record_positions=True, margtop=10, margbot=4)
+    rw = get_rw("rw_exittime_path", new_params)
+    zstop = params.zstop
+    #print data
+    #i = np.where(rw.success)[0][0]
+    for j, i in enumerate(np.where(rw.success)[0]):
+        print i
+        z = rw.positions[i][:, 2]
+        i0 = np.where(z < zstop)[0][0]
+        plt.figure("current_trace%d" % j)
+        rw.plot_path(i)
+        plt.scatter([rw.positions[i][i0, 0]], [z[i0]], s=200, c="#ff6666", linewidths=0)
+        plt.axes([.5, .5, .4, .4])
+        plot_current(i, rw, J)
+        plt.scatter([t[i0]], [J(z[i0])], s=200, c="#ff6666", linewidths=0)
+    
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
 plt.show()

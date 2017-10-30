@@ -139,7 +139,7 @@ class RandomWalk(object):
 
     def __init__(self, pore, N=10, dt=1., walldist=2.,
                  margtop=20., margbot=10., xstart=None, zstart=None,
-                 rstart=None, **params):
+                 rstart=None, record_positions=False, **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
@@ -187,6 +187,12 @@ class RandomWalk(object):
         if not isempty(pore.membrane):
             self.add_domain(pore.membrane, binding=False, exclusion=True,
                         walldist=walldist)
+        
+        self.record_positions = record_positions
+        if self.record_positions:
+            self.timetraces = [[] for i in range(N)]
+            self.positions = [[] for i in range(N)]
+            self.update_positions_record()
 
     # initial positions: uniformly distributed over disc
     def initial(self):
@@ -292,20 +298,38 @@ class RandomWalk(object):
         r = np.sqrt(np.sum(self.x[self.alive, :2]**2, 1))
         self.rz = np.column_stack([r, self.x[self.alive, 2]])
 
+#    def is_success(self, r, z):
+#        return (z < self.zbot - self.params.margbot) | (
+#               (r > self.rbot + self.params.margbot) & (z < self.zbot))
+#
+#    def is_fail(self, r, z):
+#        return (z > self.ztop + self.params.margtop) | (
+#               (r > self.rtop + self.params.margtop) & (z > self.ztop))
+        
     def is_success(self, r, z):
-        return (z < self.zbot - self.params.margbot) | (
-               (r > self.rbot + self.params.margbot) & (z < self.zbot))
+        return (r**2 + (z - self.zbot)**2 > self.params.margbot**2) & (
+               self.below_channel(r, z))
 
     def is_fail(self, r, z):
-        return (z > self.ztop + self.params.margtop) | (
-               (r > self.rtop + self.params.margtop) & (z > self.ztop))
+        return (r**2 + (z - self.ztop)**2 > self.params.margtop**2) & (
+               self.above_channel(r, z))
         
     def in_channel(self, r, z):
         if not hasattr(self, "_channel"):
             self._channel = self.pore.get_subdomain("pore")
-        channel = self._channel
-        #return np.array([x in channel for x in zip(r, z)])
-        return channel.inside_winding(r, z)
+        return self._channel.inside_winding(r, z)
+    
+    def above_channel(self, r, z):
+        if not hasattr(self, "_above_channel"):
+            self._above_channel = self.pore.get_subdomain(
+                    {"bulkfluid_top", "poreregion_top"})
+        return self._above_channel.inside_winding(r, z)
+        
+    def below_channel(self, r, z):
+        if not hasattr(self, "_below_channel"):
+            self._below_channel = self.pore.get_subdomain(
+                    {"bulkfluid_bottom", "poreregion_bottom"})
+        return self._below_channel.inside_winding(r, z)
 
     def update_alive(self):
         alive = self.alive
@@ -321,6 +345,15 @@ class RandomWalk(object):
         self.x[np.nonzero(self.alive)[0][i]] = xnew
         self.rz[i, 0] = np.sqrt(xnew[0]**2 + xnew[1]**2)
         self.rz[i, 1] = xnew[2]
+        
+    def update_positions_record(self):
+        for i in range(self.N):
+            if self.alive[i]:
+                t = self.times[i] + self.bind_times[i]
+                x = np.copy(self.x[i])
+                self.timetraces[i].append(t)
+                self.positions[i].append(x)
+    
 
     def step(self):
         "one step of random walk"
@@ -346,6 +379,9 @@ class RandomWalk(object):
         #self.simple_reflect()
         for domain in self.domains:
             domain.collide(self)
+            
+        if self.record_positions:
+            self.update_positions_record()
 
     def walk(self):
         with nanopores.Log("Running..."):
@@ -366,10 +402,17 @@ class RandomWalk(object):
         print "mean dwell time without binding: %.3f mus" % (
             1e-3*self.times.mean())
         self.times += self.bind_times
+        
+        if self.record_positions:
+            for i in range(self.N):
+                self.positions[i] = np.array(self.positions[i])
+                self.timetraces[i] = np.array(self.timetraces[i])
 
     def save(self, name="rw"):
         if "N" in self.params:
             self.params.pop("N")
+        path = dict(positions = self.positions,
+            timetraces = self.timetraces) if self.record_positions else dict()
         fields.save_fields(name, self.params,
             times = self.times,
             success = self.success,
@@ -377,9 +420,9 @@ class RandomWalk(object):
             bind_times = self.bind_times,
             attempts = self.attempts,
             bindings = self.bindings,
-            )
+            **path)
         fields.update()
-
+        
     def ellipse_collection(self, ax):
         "for matplotlib plotting"
         xz = self.x[:, [0,2]]
@@ -454,13 +497,96 @@ class RandomWalk(object):
 #            plt.gca().add_patch(p)
         plt.xlim(-R, R)
         plt.ylim(-Hbot, Htop)
-
+        
+    def plot_pore(self, cyl=False):
+        R = self.params.R
+        Htop = self.params.Htop
+        Hbot = self.params.Hbot
+        
+        xlim = (-R, R) if not cyl else (0., R)
+        ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
+        
+        patches = self.polygon_patches(cyl)
+        for p in patches:
+            ax.add_patch(p)
+        return ax        
+        
+    def plot_path(self, i=0, cyl=False):
+        self.plot_pore(cyl)
+        path = self.positions[i]
+        x = np.sqrt(path[:, 0]**2 + path[:, 1]**2) if cyl else path[:, 0]
+        z = path[:, 2]
+        plt.plot(x, z)
+        
+def _load(a):
+    return a.load() if isinstance(a, fields.NpyFile) else a
+    
 def load_results(name, **params):
-    data = fields.get_fields(name, **params)
-    load = lambda a: a if isinstance(a, np.ndarray) else a.load()
-    data = nanopores.Params({k: load(data[k]) for k in data})
+    data = fields.get_fields(name, **params) 
+    data = nanopores.Params({k: _load(data[k]) for k in data})
     print "Found %d simulated events." % len(data.times)
     return data
+
+def get_results(name, params, setup=None, calc=True):
+    # setup is function rw = setup(params) that sets up rw
+    if setup is None:
+        def setup(params):
+            pore = get_pore(**params)
+            return RandomWalk(pore, **params)
+    # check existing saved rws
+    if fields.exists(name, **params):
+        data = load_results(name, **params)
+        N = len(data.times)
+    else:
+        N = 0
+    # determine number of missing rws and run
+    N_missing = params["N"] - N
+    if N_missing > 0 and calc:
+        new_params = nanopores.Params(params, N=N_missing)
+        rw = setup(new_params)
+        run(rw, name)
+        rw.save(name)
+    # return results
+    data = load_results(name, **params)
+    return data
+
+def reconstruct_rw(data, params, setup=None, finalize=True):
+    """if positions where recorded, the complete random walk instance
+    can IN PRINCIPLE be reconstructed and restarted.
+    this is a simple first attempt."""
+    # TODO: recreate rw.rz, rw.t, rw.can_bind
+    if setup is None:
+        def setup(params):
+            pore = get_pore(**params)
+            return RandomWalk(pore, **params)
+        
+    rw = setup(params)
+    rw.__dict__.update(
+        times = data.times - data.bind_times,
+        success = data.success,
+        fail = data.fail,
+        bind_times = data.bind_times,
+        attempts = data.attempts,
+        bindings = data.bindings,
+    )
+    if rw.record_positions:
+        rw.positions = [[x for x in _load(X)] for X in data.positions]
+        rw.timetraces = [[t for t in _load(T)] for T in data.timetraces]
+        rw.x = np.array([X[-1] for X in data.positions])
+        rw.alive = ~(data.success | data.fail)
+        
+    if finalize:
+        rw.finalize()
+    return rw
+    
+def get_rw(name, params, setup=None, calc=True, finalize=True):
+    if setup is None:
+        def setup(params):
+            pore = get_pore(**params)
+            return RandomWalk(pore, **params)
+        
+    data = get_results(name, params, setup, calc)
+    return reconstruct_rw(data, params, setup, finalize)
 
 def video(rw, cyl=False, **aniparams):
     R = rw.params.R
