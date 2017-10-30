@@ -23,10 +23,10 @@ def plot_sliced(geo, **params):
     dolfin.plot(subsub, **plot_params)
 
 geo1 = allpores.get_geo(geoname="wei", subs="solid", h=10., x0=[0.,0.,0.], dim=3)
-plot_sliced(geo1)
+plot_sliced(geo1, scalarbar=False)
 print geo1
 
 geo2 = allpores.get_geo(geoname="alphahem", subs="solid", h=1., x0=[0.,0.,0.], dim=3)
-plot_sliced(geo2)
+plot_sliced(geo2, scalarbar=False)
 
 dolfin.interactive()
