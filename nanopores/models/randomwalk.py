@@ -505,7 +505,6 @@ class RandomWalk(object):
         
         xlim = (-R, R) if not cyl else (0., R)
         ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
-        
         patches = self.polygon_patches(cyl)
         for p in patches:
             ax.add_patch(p)

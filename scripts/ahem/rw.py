@@ -3,10 +3,13 @@
 "script to generate all figures for exit-time paper"
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+import matplotlib.font_manager as fm
+
 import nanopores
 from nanopores.models.randomwalk import (get_pore, RandomWalk, run,
                                          load_results, get_rw)
-#from nanopores.models.randomwalk import get_results as get_results_rw
+#from nanopores.models.randomwalk import get_results
 from nanopores.models.nanopore import Iz, get_active_params
 from nanopores.tools import fields
 from nanopores import Params
@@ -314,10 +317,11 @@ if create_current_trace:
     rw = get_rw("rw_exittime_path", new_params)
     zstop = params.zstop
     rzstop = 0.8
+    # FIGURE(S): Molecule path + current trace
     stopcolor = "#ff6666"
     startcolor = "#77ee77"
     dotsize = 100
-    # FIGURE: Molecule path + current trace
+    max_num_figures = 5
     jsuccess = jfail = 0
     for i in range(N):
         x = rw.positions[i][:, 0]
@@ -325,34 +329,49 @@ if create_current_trace:
         t = rw.timetraces[i]
         if rw.success[i]:
             jsuccess += 1
-            if jsuccess > 5: continue
+            if jsuccess > max_num_figures: continue
             i0 = np.where(z < zstop)[0][0]
-            plt.figure("current_trace_success%d" % jsuccess, figsize=(4, 4))
+            plt.figure("current_trace_success%d" % jsuccess, figsize=(4, 4), frameon=False)
             rw.plot_path(i)
             plt.scatter([rw.positions[i][i0, 0]], [z[i0]], s=dotsize, c=stopcolor)
         else:
             jfail += 1
-            if jfail > 5: continue
-            plt.figure("current_trace_fail%d" % jfail, figsize=(4, 4))
+            if jfail > max_num_figures: continue
+            plt.figure("current_trace_fail%d" % jfail, figsize=(4, 4), frameon=False)
             rw.plot_path(i)
         plt.xlim(-6, 17)
         plt.ylim(ymin=-16, ymax=10)
+        plt.scatter([x[0]], [z[0]], c=startcolor, s=dotsize, label="Start")
         plt.plot([-rzstop, rzstop], [zstop, zstop], c=stopcolor,
                  label="Recognition site", linestyle="-", zorder=-50)
         print "Start", x[0], z[0]
-        plt.scatter([x[0]], [z[0]], c=startcolor, s=dotsize, label="Start")
-        plt.axis("off")
+        ax = plt.gca()
+        ax.set_axis_off() # <=> plt.axis("off")
+        ax.get_xaxis().set_visible(False) # so that white space disappears!
+        ax.get_yaxis().set_visible(False)
         handles, labels = plt.gca().get_legend_handles_labels()
         plt.legend(handles[::-1], labels[::-1], loc="lower left", frameon=False)
-        plt.axes([.57, .49, .27, .27])
+        #plt.gcf().tight_layout()
+        #plt.subplots_adjust(left=0.5, right=0.95)
+        ax = plt.axes([.57, .49, .27, .27])
         plot_current(i, rw, J, "-k")
         plt.ylim(300, 985)
         if rw.success[i]:
             plt.scatter([t[i0]], [J(z[i0])], s=dotsize, c=stopcolor)
+        scalebar = AnchoredSizeBar(ax.transData, 10, "10ns", 2, 
+                           pad=0.4,
+                           color="#666666",
+                           frameon=False,
+                           size_vertical=25,
+                           fontproperties = fm.FontProperties(size=8)
+                           #fontproperties=fontprops
+                           )
+        ax.add_artist(scalebar)
         plt.xlabel("Time")
         plt.ylabel("Current")
         plt.tick_params(axis="both", which='both', left="off", labelleft="off",
                         bottom='off', labelbottom='off')
+        #plt.gcf().tight_layout()
     
-nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
+nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf", bbox_inches="tight")
 plt.show()
