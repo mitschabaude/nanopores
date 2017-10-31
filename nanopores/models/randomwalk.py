@@ -511,12 +511,12 @@ class RandomWalk(object):
             ax.add_patch(p)
         return ax        
         
-    def plot_path(self, i=0, cyl=False):
+    def plot_path(self, i=0, cyl=False, **plot_params):
         self.plot_pore(cyl)
         path = self.positions[i]
         x = np.sqrt(path[:, 0]**2 + path[:, 1]**2) if cyl else path[:, 0]
         z = path[:, 2]
-        plt.plot(x, z)
+        plt.plot(x, z, **plot_params)
         
 def _load(a):
     return a.load() if isinstance(a, fields.NpyFile) else a

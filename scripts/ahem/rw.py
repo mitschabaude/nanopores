@@ -266,15 +266,18 @@ def evaluate_interpolation(x, X, Y):
     y = Y[i-1] + t*(Y[i] - Y[i-1])
     return y
 
-def interpolation(X, Y):
+def interpolation(X, Y, extend_to_infty=True):
+    if extend_to_infty:
+        X = [-np.infty] + X + [np.infty]
+        Y = [Y[0]] + Y + [Y[-1]]
     X = np.array(X)
     Y = np.array(Y)
     return lambda x: evaluate_interpolation(x, X, Y)
 
-def plot_current(i, rw, J):
+def plot_current(i, rw, J, *plot_args, **plot_params):
     z = rw.positions[i][:, 2]
     t = rw.timetraces[i]
-    plt.plot(t, J(z))
+    plt.plot(t, J(z), *plot_args, **plot_params)
     
 if create_current_trace:
     # create current profile
@@ -304,24 +307,52 @@ if create_current_trace:
     #zlin = np.linspace(rw.zbot - margin, rw.ztop + margin, 500)
     #plt.plot(zlin, 0.3e12*J(zlin), ".")
     
-    # run a few random walks and record times/positions (until respective rw stops)
-    # TODO: this should be an option in every random walk
+    # run a few random walks with recorded positions
     N = 20
-    new_params = dict(params, N=N, record_positions=True, margtop=10, margbot=4)
+    new_params = dict(params, N=N, record_positions=True, zstart=4.,
+                      margtop=10, margbot=2)
     rw = get_rw("rw_exittime_path", new_params)
     zstop = params.zstop
-    #print data
-    #i = np.where(rw.success)[0][0]
-    for j, i in enumerate(np.where(rw.success)[0]):
-        print i
+    rzstop = 0.8
+    stopcolor = "#ff6666"
+    startcolor = "#77ee77"
+    dotsize = 100
+    # FIGURE: Molecule path + current trace
+    jsuccess = jfail = 0
+    for i in range(N):
+        x = rw.positions[i][:, 0]
         z = rw.positions[i][:, 2]
-        i0 = np.where(z < zstop)[0][0]
-        plt.figure("current_trace%d" % j)
-        rw.plot_path(i)
-        plt.scatter([rw.positions[i][i0, 0]], [z[i0]], s=200, c="#ff6666", linewidths=0)
-        plt.axes([.5, .5, .4, .4])
-        plot_current(i, rw, J)
-        plt.scatter([t[i0]], [J(z[i0])], s=200, c="#ff6666", linewidths=0)
+        t = rw.timetraces[i]
+        if rw.success[i]:
+            jsuccess += 1
+            if jsuccess > 5: continue
+            i0 = np.where(z < zstop)[0][0]
+            plt.figure("current_trace_success%d" % jsuccess, figsize=(4, 4))
+            rw.plot_path(i)
+            plt.scatter([rw.positions[i][i0, 0]], [z[i0]], s=dotsize, c=stopcolor)
+        else:
+            jfail += 1
+            if jfail > 5: continue
+            plt.figure("current_trace_fail%d" % jfail, figsize=(4, 4))
+            rw.plot_path(i)
+        plt.xlim(-6, 17)
+        plt.ylim(ymin=-16, ymax=10)
+        plt.plot([-rzstop, rzstop], [zstop, zstop], c=stopcolor,
+                 label="Recognition site", linestyle="-", zorder=-50)
+        print "Start", x[0], z[0]
+        plt.scatter([x[0]], [z[0]], c=startcolor, s=dotsize, label="Start")
+        plt.axis("off")
+        handles, labels = plt.gca().get_legend_handles_labels()
+        plt.legend(handles[::-1], labels[::-1], loc="lower left", frameon=False)
+        plt.axes([.57, .49, .27, .27])
+        plot_current(i, rw, J, "-k")
+        plt.ylim(300, 985)
+        if rw.success[i]:
+            plt.scatter([t[i0]], [J(z[i0])], s=dotsize, c=stopcolor)
+        plt.xlabel("Time")
+        plt.ylabel("Current")
+        plt.tick_params(axis="both", which='both', left="off", labelleft="off",
+                        bottom='off', labelbottom='off')
     
 nanopores.savefigs("exittime", FIGDIR + "/ahem", ending=".pdf")
 plt.show()
