@@ -91,6 +91,7 @@ def binding_prob_from_data(rMolecule=1.25):
 
     # calculate binding probability with data from (Wei 2012)
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
+    # kon = 1.5e5
     c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
     cmol = c * 1e3 * phys.mol # concentration [1/m**3]
     ckon = c*kon # [1/s]
@@ -103,9 +104,9 @@ def binding_prob_from_data(rMolecule=1.25):
     p0 = ckon / karr # fraction of events that have binding
 
     print "Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon)
-    print "Number of bindings per second: %.1f (inverse of tau_on)" % ckon
-    print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
-    print "=> fraction of events where binding occurs: %.1f / %.1f = %.5f" % (ckon, karr, p0)
+    print "Number of bindings per second: %.3f (inverse of tau_on)" % ckon
+    print "Number of arrivals per second: %.1f (from Smoluchowski rate equation)" % karr
+    print "=> fraction of arrivals where binding occurs: %.3f / %.1f = %.6f" % (ckon, karr, p0)
     print "= p0 = prob. of binding at least once"
     return p0
 
