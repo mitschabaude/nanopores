@@ -27,12 +27,15 @@ params = nanopores.user_params(
     Qmol = -1.,
     bV = -0.2,
     posDTarget = True,
+    x0 = None,
+    
     # random walk params
     N = 100, # number of (simultaneous) random walks
     dt = 10., # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
-    margtop = 20.,
-    margbot = 10.,
+    margtop = 40.,
+    margbot = 20.,
+    initial = "disc",  # oder "sphere"
 )
 
 # domains are places where molecule can bind
@@ -50,6 +53,8 @@ domain_params = dict(
     t = 1e6, # mean of exponentially distributed binding duration [ns]
     dx = 0.4, # width of bond energy barrier [nm]
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
+    
+    bind_type = "collision", # or "proximity"
 )
 
 class Domain(object):
@@ -81,27 +86,32 @@ class Domain(object):
 
         # attempt binding for particles that can bind
         if self.binding:
-            can_bind = rw.can_bind[rw.alive]
-            attempt = collided & can_bind
-            # bind with probability p
-            bind = np.random.rand(np.sum(attempt)) <= self.p
-            # draw exponentially distributed binding time
-            duration = self.draw_binding_durations(attempt, bind, rw)
-            # update can_bind and bind_times of random walk
-            iattempt = rw.i[rw.alive][attempt]
-            ibind = iattempt[bind]
-            rw.can_bind[iattempt] = False
-            rw.bind_times[ibind] += duration
-            # some statistics
-            rw.attempts[rw.i[rw.alive][attempt]] += 1
-            rw.bindings[rw.i[rw.alive][attempt][bind]] += 1
-
-            # unbind particles that can not bind and are out of nobind zone
-            X_can_not_bind = X[~can_bind]
-            rnobind = radius + self.eps
-            unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
-            iunbind = rw.i[rw.alive][~can_bind][unbind]
-            rw.can_bind[iunbind] = True
+            if self.bind_type == "collision":
+                can_bind = rw.can_bind[rw.alive]
+                attempt = collided & can_bind
+                # bind with probability p
+                bind = np.random.rand(np.sum(attempt)) <= self.p
+                # draw exponentially distributed binding time
+                duration = self.draw_binding_durations(attempt, bind, rw)
+                # update can_bind and bind_times of random walk
+                iattempt = rw.i[rw.alive][attempt]
+                ibind = iattempt[bind]
+                rw.can_bind[iattempt] = False
+                rw.bind_times[ibind] += duration
+                # some statistics
+                rw.attempts[rw.i[rw.alive][attempt]] += 1
+                rw.bindings[rw.i[rw.alive][attempt][bind]] += 1
+    
+                # unbind particles that can not bind and are out of nobind zone
+                X_can_not_bind = X[~can_bind]
+                rnobind = radius + self.eps
+                unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
+                iunbind = rw.i[rw.alive][~can_bind][unbind]
+                rw.can_bind[iunbind] = True
+            else:
+                rbind = rw.params.rMolecule + self.ra
+                overlap = self.domain.inside(X, radius=rbind)
+                
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
@@ -196,6 +206,12 @@ class RandomWalk(object):
 
     # initial positions: uniformly distributed over disc
     def initial(self):
+        if self.params.initial == "sphere":
+            return self.initial_half_sphere()
+        else:
+            self.initial_disc()
+        
+    def initial_disc(self):
         rstart = self.params.rstart
         xstart = self.params.xstart
         zstart = self.params.zstart
@@ -215,7 +231,28 @@ class RandomWalk(object):
         x[:, 1] = r*np.sin(theta)
         x[:, 2] = zstart
         return x, np.sqrt(x[:, 0]**2 + x[:, 1]**2), x[:, 2]
-
+    
+    def initial_half_sphere(self):
+        rstart = self.params.rstart
+        xstart = self.params.xstart
+        zstart = self.params.zstart
+        if rstart is None:
+            rstart = 2.*self.pore.protein.radiustop()
+        if xstart is None:
+            xstart = 0.
+        if zstart is None:
+            zstart = self.ztop + self.params.rMolecule*self.params.walldist
+            
+        # draw 3D gaussian points, project to half-sphere and
+        # only accept if above channel
+        x = np.random.randn(self.N, 3)
+        x[:, 2] = np.abs(x[:, 2])
+        R = np.sqrt(np.sum(x**2, 1))
+        m = np.array([[xstart, 0., zstart]])
+        x = m + rstart*x/R[:, None]
+        
+        return x, np.sqrt(x[:, 0]**2 + x[:, 1]**2), x[:, 2]
+        
     def add_domain(self, domain, **params):
         """add domain where particles can bind and/or are excluded from.
         domain only has to implement the .inside(x, radius) method.
@@ -517,6 +554,10 @@ class RandomWalk(object):
         z = path[:, 2]
         plt.plot(x, z, **plot_params)
         
+def setup_default(params):
+    pore = get_pore(**params)
+    return RandomWalk(pore, **params)
+        
 def _load(a):
     return a.load() if isinstance(a, fields.NpyFile) else a
     
@@ -526,12 +567,8 @@ def load_results(name, **params):
     print "Found %d simulated events." % len(data.times)
     return data
 
-def get_results(name, params, setup=None, calc=True):
+def get_results(name, params, setup=setup_default, calc=True):
     # setup is function rw = setup(params) that sets up rw
-    if setup is None:
-        def setup(params):
-            pore = get_pore(**params)
-            return RandomWalk(pore, **params)
     # check existing saved rws
     if fields.exists(name, **params):
         data = load_results(name, **params)
@@ -549,16 +586,11 @@ def get_results(name, params, setup=None, calc=True):
     data = load_results(name, **params)
     return data
 
-def reconstruct_rw(data, params, setup=None, finalize=True):
-    """if positions where recorded, the complete random walk instance
+def reconstruct_rw(data, params, setup=setup_default, finalize=True):
+    """if positions were recorded, the complete random walk instance
     can IN PRINCIPLE be reconstructed and restarted.
     this is a simple first attempt."""
-    # TODO: recreate rw.rz, rw.t, rw.can_bind
-    if setup is None:
-        def setup(params):
-            pore = get_pore(**params)
-            return RandomWalk(pore, **params)
-        
+    # TODO: recreate rw.rz, rw.t, rw.can_bind    
     rw = setup(params)
     rw.__dict__.update(
         times = data.times - data.bind_times,
@@ -578,12 +610,7 @@ def reconstruct_rw(data, params, setup=None, finalize=True):
         rw.finalize()
     return rw
     
-def get_rw(name, params, setup=None, calc=True, finalize=True):
-    if setup is None:
-        def setup(params):
-            pore = get_pore(**params)
-            return RandomWalk(pore, **params)
-        
+def get_rw(name, params, setup=setup_default, calc=True, finalize=True):
     data = get_results(name, params, setup, calc)
     return reconstruct_rw(data, params, setup, finalize)
 
@@ -758,7 +785,7 @@ def run(rw, name="rw", plot=False, a=-1, b=4, **aniparams):
 if __name__ == "__main__":
     pore = get_pore(**params)
     rw = RandomWalk(pore, **params)
-    receptor = Ball([9., 0., -30.], 8.)
+    receptor = Ball([15., 0., 30.], 8.)
     rw.add_domain(receptor, exclusion=True, walldist=1.,
                   binding=True, eps=1., t=1.5e6, p=0.14)
     run(rw, name="wei")

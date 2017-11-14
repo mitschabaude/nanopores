@@ -114,7 +114,7 @@ class WeiPore(BasePore):
         R0 = 100.,
         H = 240.,
         #H0 = 70.,
-        x0 = [0, 0, 46],
+        x0 = None, #[0, 0, 46],
         rMolecule = 6.,
         dim = 3,
         no_membrane = True,

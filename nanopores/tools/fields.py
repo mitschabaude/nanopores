@@ -49,10 +49,13 @@ def set_dir(NEWDIR):
 def set_dir_default():
     set_dir(os.path.join(DATADIR, "fields"))
 
-# for cloud storage (with a fixed known path)
+# options for cloud storage (with a fixed known path)
 DROPBOX = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+MEGA = os.path.join(HOME, "code", "nanopores", "fields")
 def set_dir_dropbox():
     set_dir(DROPBOX)
+def set_dir_mega():
+    set_dir(MEGA)
 
 # user interface that wraps Header object
 def update():

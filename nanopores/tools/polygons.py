@@ -892,6 +892,9 @@ def compute_disjoint_union(*polygons):
                 boundaries[i].add(e)
 
     polys = []
+    # construct connected subsets of unit polygon
+    # start with any boundary edge and iteratively add all connected edges
+    # repeat until no edges left
     while edges:
         e = next(iter(edges))
         edges.pop(e)
@@ -902,7 +905,7 @@ def compute_disjoint_union(*polygons):
             nodes.append(v)
             e = next(e1 for e1 in edges if e1[0]==v)
             edges.pop(e)
-            v = e[1]
+            v = e[-1]
         polys.append(Polygon(nodes))
 
     return polys, boundaries

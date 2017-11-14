@@ -8,7 +8,7 @@ import matplotlib.font_manager as fm
 
 import nanopores
 from nanopores.models.randomwalk import (get_pore, RandomWalk, run,
-                                         load_results, get_rw)
+                                         load_results, get_rw, setup_default)
 #from nanopores.models.randomwalk import get_results
 from nanopores.models.nanopore import Iz, get_active_params
 from nanopores.tools import fields
@@ -61,10 +61,10 @@ NAME = "rw_exittime"
 
 ########### WHAT TO DO  ###########
 plot_streamlines = False
-run_test = False
+run_test = True
 plot_rw_results = False
 do_calculations = True
-create_current_trace = True
+create_current_trace = False
 
 ########### SET UP RANDOM WALK  ###########
 def setup_rw(params):
@@ -98,12 +98,12 @@ if plot_streamlines:
 
 ########### RUN A TEST RANDOM WALK ###########
 if run_test:
-    rw = setup_rw(params)
-    run(rw, NAME, a=-11, b=-2, plot=True, save_count=1000)
-    rw.save(NAME)
-    
-    data = load_results(NAME, **params)
-    print data.keys()
+    rw = setup_default(Params(params, N=100, dt=0.1))
+    #setup_rw()
+    run(rw, NAME)
+    #rw.save(NAME)
+    #data = load_results(NAME, **params)
+    #print data.keys()
     
 ########### RETURN RW RESULTS, RUN IF NOT EXISTENT ###########
 def get_results(NAME, params, calc=True):
