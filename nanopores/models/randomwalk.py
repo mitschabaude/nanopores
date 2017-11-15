@@ -54,7 +54,7 @@ domain_params = dict(
     dx = 0.4, # width of bond energy barrier [nm]
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
     
-    bind_type = "collision", # or "proximity"
+    bind_type = "collision", # or "zone"
 )
 
 class Domain(object):
@@ -108,10 +108,35 @@ class Domain(object):
                 unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
-            else:
+            elif self.bind_type == "zone":
+                # calculate binding rate in binding zone
                 rbind = rw.params.rMolecule + self.ra
-                overlap = self.domain.inside(X, radius=rbind)
+                Vbind = 4./3.*np.pi*rbind**3 # [nm**3]
+                Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
+                self.kbind = 1e-9 * self.ka / Vbind # [1/ns]
+                # mean no. bindings during this step
+                nbind = self.kbind * rw.dt
+                # determine particles in binding zone
+                attempt = self.domain.inside(X, radius=rbind)
+                # draw poisson distributed number of bindings
+                bindings = np.random.poisson(nbind, size=np.sum(attempt))
+                # draw gamma distributed binding durations and add to time
+                duration = np.random.gamma(bindings, scale=self.t)
+                iattempt = rw.i[rw.alive][attempt]
+                rw.bind_times[iattempt] += duration
+                # some statistics
+                rw.attempt_times[iattempt] += rw.dt
+                rw.bindings[iattempt] += bindings
                 
+                # update can_bind for video
+                # actually can_bind should be called can_not_bind here
+#                rw.can_bind[iattempt] = False
+#                
+#                X_can_not_bind = X[~can_bind]
+#                rnobind = radius + self.eps
+#                unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
+#                iunbind = rw.i[rw.alive][~can_bind][unbind]
+#                rw.can_bind[iunbind] = True
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
@@ -189,6 +214,7 @@ class RandomWalk(object):
         self.times = np.zeros(N)
         self.bind_times = np.zeros(N)
         self.attempts = np.zeros(N, dtype=int)
+        self.attempt_times = np.zeros(N)
         self.bindings = np.zeros(N, dtype=int)
 
         self.domains = []
@@ -433,6 +459,9 @@ class RandomWalk(object):
     def finalize(self):
         print "finished!"
         print "mean # of attempts:", self.attempts.mean()
+        print "mean attempt time: %s ns (fraction of total time: %s)" % (
+                self.attempt_times.mean(),
+                self.attempt_times.mean()/self.times.mean())
         print "mean # of bindings:", self.bindings.mean()
         print "mean dwell time with binding: %.3f mus" % (
             1e-3*(self.bind_times + self.times).mean())
@@ -764,7 +793,7 @@ def save(ani, name="rw"):
                  extra_args=["-vcodec", "libx264"])
 
 # convenience function for interactive experiments
-def run(rw, name="rw", plot=False, a=-1, b=4, **aniparams):
+def run(rw, name="rw", plot=False, a=-3, b=3, **aniparams):
     params = nanopores.user_params(video=False, save=False, cyl=False)
     if params.video:
         ani = video(rw, cyl=params.cyl, **aniparams)

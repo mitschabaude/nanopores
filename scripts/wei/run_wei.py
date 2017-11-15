@@ -17,7 +17,7 @@ params = nanopores.user_params(
     dp = 23.,
 
     # random walk params
-    N = 100, # number of (simultaneous) random walks
+    N = 1000, # number of (simultaneous) random walks
     dt = 1., # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 50.,
@@ -31,14 +31,14 @@ params = nanopores.user_params(
     rec_t = 3.82e9,
     rec_p = 0.0187,
     rec_eps = 0.0,
-    ka = 1e5,
-    ra = 10,
+    ka = 1.5e5,
+    ra = 3,
 )
 
 def receptor_params(params):
     return dict(
     exclusion = False,
-    walldist = 10.,
+    walldist = 1.,
     #minsize = 0.01, # accuracy when performing reflection
 
     binding = True,
@@ -47,7 +47,7 @@ def receptor_params(params):
     p = params.rec_p, # binding probability for one attempt
     ka = params.ka, # (bulk) association rate constant [1/Ms]
     ra = params.ra, # radius of the association zone (w/o rMolecule) [nm]
-    binding_type = "proximity",
+    bind_type = "zone",
 
     use_force = False, # if True, t_mean = t*exp(-|F|*dx/kT)
     dx = 0.1, # width of bond energy barrier [nm]
@@ -95,6 +95,7 @@ def setup_rw(params):
     return rw
 
 rw = setup_rw(params)
-randomwalk.run(rw, NAME)
+randomwalk.run(rw)
+#rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
 #rw.save(NAME)
 #randomwalk.load_results(name)
