@@ -36,8 +36,11 @@ def Moleculeqv(geo, Qmolq, lscale, r2pi): #
     const = geo.constant("Moleculeqv", compute)
     return const
 
-def rTarget(geo, lscale):
-    return geo.params["rMolecule"]/lscale
+def rMolecule(geo):
+    return geo.params["rMolecule"]
+
+def rTarget(rMolecule, lscale):
+    return rMolecule/lscale
 
 def DTargetBulk(rTarget, kT, eta, pi):
     "Stokes-Einstein relation"

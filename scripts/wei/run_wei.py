@@ -17,23 +17,28 @@ params = nanopores.user_params(
     dp = 23.,
 
     # random walk params
-    N = 1000, # number of (simultaneous) random walks
+    N = 10, # number of (simultaneous) random walks
     dt = 1., # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
-    margtop = 50.,
+    margtop = 60.,
     margbot = 0.,
     #zstart = 46.5, # 46.5
     #xstart = 0., # 42.
-    rstart = None,
+    rstart = 30,
     initial = "sphere",
 
     # receptor params
     rec_t = 3.82e9,
     rec_p = 0.0187,
     rec_eps = 0.0,
-    ka = 1.5e5,
-    ra = 3,
+    ka = 1.5e10, #5,
+    #ra = 3,
+    zreceptor = .99, # receptor location relative to pore length (1 = top)
 )
+##### constants
+rrec = 0.5 # receptor radius
+distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
+ra = distrec - rrec #params.rMolecule*(params.walldist - 1.) - rrec
 
 def receptor_params(params):
     return dict(
@@ -46,15 +51,16 @@ def receptor_params(params):
     t = params.rec_t, # mean of exponentially distributed binding duration [ns]
     p = params.rec_p, # binding probability for one attempt
     ka = params.ka, # (bulk) association rate constant [1/Ms]
-    ra = params.ra, # radius of the association zone (w/o rMolecule) [nm]
+    ra = ra, # radius of the association zone (w/o rMolecule) [nm]
     bind_type = "zone",
+    collect_stats_mode = True,
 
-    use_force = False, # if True, t_mean = t*exp(-|F|*dx/kT)
+    use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
     dx = 0.1, # width of bond energy barrier [nm]
     )
     
 NAME = "rw_wei_4"
-print_calculations = True
+print_calculations = False
 
 # print calculations
 if print_calculations:
@@ -89,8 +95,13 @@ if print_calculations:
 
 def setup_rw(params):
     pore = nanopores.get_pore(**params)
-    receptor = randomwalk.Ball([8.5 - 3. + 2., 0., 40.5], 0.5) # ztop 46.5    
     rw = randomwalk.RandomWalk(pore, **params)    
+    
+    zrec = rw.zbot + rrec + (rw.ztop - rw.zbot - 2.*rrec)*params["zreceptor"]
+    xrec = pore.radius_at(zrec) - distrec
+    posrec = [xrec, 0., zrec]
+    print "Receptor position: %s" % posrec
+    receptor = randomwalk.Ball(posrec, rrec) # ztop 46.5
     rw.add_domain(receptor, **receptor_params(params))
     return rw
 

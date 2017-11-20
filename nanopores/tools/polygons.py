@@ -727,6 +727,11 @@ class PolygonPore(object):
                 s -= pmemb
 
         return dic
+    
+    def radius_at(self, z):
+        "return z-dependent pore radius"
+        I = self.protein.intersections(z)
+        return min(x[0] for x in I.keys())
 
 class MultiPolygonPore(PolygonPore):
     """For pores consisting of multiple subdomains, e.g. Wei-Rant pore,

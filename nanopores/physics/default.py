@@ -9,7 +9,7 @@ def lscale(geo):
         try:
             return geo.parameter("nm")/nm
         except:
-            return 1.0
+            return 1e9
 
 def grad(lscale):
     def grad0(u):

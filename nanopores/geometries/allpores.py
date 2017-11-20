@@ -118,7 +118,7 @@ class WeiPore(BasePore):
         rMolecule = 6.,
         dim = 3,
         no_membrane = True,
-        dp = 45, # (small) pore radius as used in paper
+        dp = 45, # (small) pore diameter as used in paper
         angle = 40, # aperture angle in degrees
         lcCenter = 0.3,
         lcMolecule = 0.1,
@@ -135,7 +135,7 @@ class WeiPore(BasePore):
         lsin = 50. # SiN membrane thickness (in vertical direction)
         lau = 40. # Au membrane thickness (in vertical direction)
         rlau = 10. # Au thickness in radial direction
-        lsam = 3 # SAM layer thickness (in vertical direction)
+        lsam = 3. # SAM layer thickness (in vertical direction)
 
         l0 = lau + lsin + lsam
         angle2 = params.angle/2. * np.pi/180.

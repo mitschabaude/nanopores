@@ -48,13 +48,21 @@ domain_params = dict(
     minsize = 0.01, # accuracy when performing reflection
 
     binding = False,
+    bind_type = "collision", # or "zone"
+    # "collision" parameters:
     eps = 1., # margin in addition to walldist, determines re-attempting
     p = 0.1, # binding probability for one attempt
+    # "zone" parameters:
+    ka = 1e5, # (bulk) association rate constant [1/Ms]
+    ra = 1, # radius of the association zone (w/o rMolecule) [nm]
+    # in collect_stats_mode, which applies only to "zone" binding, we separate
+    # the random walk and sampling phases; during rw, only stats about attempt
+    # time and (if use_force = True) position are collected
+    collect_stats_mode = False,
+    
     t = 1e6, # mean of exponentially distributed binding duration [ns]
     dx = 0.4, # width of bond energy barrier [nm]
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
-    
-    bind_type = "collision", # or "zone"
 )
 
 class Domain(object):
@@ -75,7 +83,8 @@ class Domain(object):
 
         # determine collisions and then operate only on collided particles
         X = rw.rz if self.cyl else rw.x[rw.alive]
-        collided = self.domain.inside(X, radius=radius)
+        if self.exclusion or (self.binding and self.bind_type == "collision"):
+            collided = self.domain.inside(X, radius=radius)
 
         # "reflect" particles by shortening last step
         if self.exclusion:
@@ -113,30 +122,38 @@ class Domain(object):
                 rbind = rw.params.rMolecule + self.ra
                 Vbind = 4./3.*np.pi*rbind**3 # [nm**3]
                 Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
-                self.kbind = 1e-9 * self.ka / Vbind # [1/ns]
+                kbind = 1e-9 * self.ka / Vbind # [1/ns]
                 # mean no. bindings during this step
-                nbind = self.kbind * rw.dt
+                nbind = kbind * rw.dt
                 # determine particles in binding zone
                 attempt = self.domain.inside(X, radius=rbind)
-                # draw poisson distributed number of bindings
-                bindings = np.random.poisson(nbind, size=np.sum(attempt))
-                # draw gamma distributed binding durations and add to time
-                duration = np.random.gamma(bindings, scale=self.t)
                 iattempt = rw.i[rw.alive][attempt]
-                rw.bind_times[iattempt] += duration
-                # some statistics
                 rw.attempt_times[iattempt] += rw.dt
-                rw.bindings[iattempt] += bindings
+                
+                if not self.collect_stats_mode:
+                    # draw poisson distributed number of bindings
+                    bindings = np.random.poisson(nbind, size=np.sum(attempt))
+                    # draw gamma distributed binding durations and add to time
+                    duration = self.draw_zone_binding_durations(bindings, rw)
+                    #duration = np.random.gamma(bindings, scale=self.t)
+                    rw.bind_times[iattempt] += duration
+                    # statistics
+                    rw.bindings[iattempt] += bindings
+                elif self.use_force:
+                    self.collect_forces(attempt, iattempt, rw)
+                
+                if not hasattr(rw, "binding_zone"):
+                    rw.binding_zone = dict(Vbind=Vbind, ka=self.ka,
+                                           kbind=kbind)
                 
                 # update can_bind for video
                 # actually can_bind should be called can_not_bind here
-#                rw.can_bind[iattempt] = False
-#                
-#                X_can_not_bind = X[~can_bind]
-#                rnobind = radius + self.eps
-#                unbind = ~self.domain.inside(X_can_not_bind, radius=rnobind)
-#                iunbind = rw.i[rw.alive][~can_bind][unbind]
-#                rw.can_bind[iunbind] = True
+                rw.can_bind[iattempt] = False
+                can_bind = rw.can_bind[rw.alive]
+                X_can_not_bind = X[~can_bind]
+                unbind = ~self.domain.inside(X_can_not_bind, radius=rbind)
+                iunbind = rw.i[rw.alive][~can_bind][unbind]
+                rw.can_bind[iunbind] = True
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
@@ -165,6 +182,30 @@ class Domain(object):
         else:
             t = self.t
         return np.random.exponential(t, np.sum(bind))
+    
+    def draw_zone_binding_durations(self, bindings, rw):
+        if self.use_force and np.sum(bindings) > 0:
+            # evaluate force magnitude at binding particles
+            ibind = np.nonzero(bindings)[0]
+            F = np.array([rw.F(x) for x in rw.rz[ibind]])
+            F = np.sqrt(np.sum(F**2, 1))
+            # create array of mean times
+            kT = rw.phys.kT
+            dx = 1e-9*self.dx
+            t = np.zeros(bindings.shape)
+            t[ibind] = self.t * np.exp(-F*dx/kT)
+        else:
+            t = self.t
+        return np.random.gamma(bindings, scale=t)
+    
+    def collect_forces(self, attempt, iattempt, rw):
+        if not hasattr(rw, "binding_zone_forces"):
+            rw.binding_zone_forces = [[] for i in range(rw.N)]
+        if np.any(attempt):
+            F = np.array([rw.F(x) for x in rw.rz[attempt]])
+            F = np.sqrt(np.sum(F**2, 1))
+            for i, f in enumerate(F):
+                rw.binding_zone_forces[iattempt[i]].append(f)
 
 # external forces
 def load_externals(**params):
@@ -247,6 +288,7 @@ class RandomWalk(object):
             xstart = 0.
         if zstart is None:
             zstart = self.ztop
+        self.rstart = rstart
 
         # create uniform polar coordinates r, theta
         r = rstart * np.sqrt(np.random.rand(self.N))
@@ -268,6 +310,7 @@ class RandomWalk(object):
             xstart = 0.
         if zstart is None:
             zstart = self.ztop + self.params.rMolecule*self.params.walldist
+        self.rstart = rstart
             
         # draw 3D gaussian points, project to half-sphere and
         # only accept if above channel
@@ -459,26 +502,64 @@ class RandomWalk(object):
     def finalize(self):
         print "finished!"
         print "mean # of attempts:", self.attempts.mean()
+        tdwell = self.times.mean()
+        tbind = self.bind_times.mean()
+        ta = self.attempt_times.mean()
         print "mean attempt time: %s ns (fraction of total time: %s)" % (
-                self.attempt_times.mean(),
-                self.attempt_times.mean()/self.times.mean())
+                ta, ta/tdwell)
         print "mean # of bindings:", self.bindings.mean()
-        print "mean dwell time with binding: %.3f mus" % (
-            1e-3*(self.bind_times + self.times).mean())
-        print "mean dwell time without binding: %.3f mus" % (
-            1e-3*self.times.mean())
+        print "mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell))
+        print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
         self.times += self.bind_times
+        
+        if hasattr(self, "binding_zone"):
+            # calculate effective association rate in pore
+            phys = self.phys
+            Dbulk = phys.DTargetBulk
+            r = 1e-9*self.rstart # radius of arrival zone
+            karr = 2.*self.phys.pi*r*Dbulk*1e3*phys.mol # events/Ms
+            ka = self.binding_zone["ka"] # bulk association rate [1/Ms]
+            Vbind = self.binding_zone["Vbind"] # binding volume per mole [1/M]
+            cchar = 1./Vbind # [M], receptor concentration at which all targets
+            # are in binding zone, so that ka * cchar = kbind
+            kbind = ka * cchar # binding zone assoc. rate [1/s]
+            ta = 1e-9*ta # mean attempt time := time in binding zone [s]
+            nbind = ta * kbind # mean no. bindings per event
+            
+            keff = karr * ta * cchar * ka # = karr * nbind = bindings / Ms = 
+            # effective association rate
+            frac = karr * ta / Vbind # fraction of time spent in binding zone
+            # in simulation, relative to bulk = keff / ka
+            #print "karr", karr
+            #print "ta", ta
+            #print "Vbind", Vbind
+            #print "kbind", kbind
+            print "nbind: %.3f (bindings per event)" % nbind
+            print "ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
+                    keff, ka, frac)
         
         if self.record_positions:
             for i in range(self.N):
                 self.positions[i] = np.array(self.positions[i])
                 self.timetraces[i] = np.array(self.timetraces[i])
+                
+        if hasattr(self, "binding_zone_forces"):
+            for i in range(self.N):
+                self.binding_zone_forces[i] = np.array(self.binding_zone_forces[i])
 
     def save(self, name="rw"):
         if "N" in self.params:
             self.params.pop("N")
-        path = dict(positions = self.positions,
-            timetraces = self.timetraces) if self.record_positions else dict()
+            
+        optional = dict()
+        if self.record_positions:
+            optional.update(positions = self.positions,
+                            timetraces = self.timetraces)
+        if hasattr(self, "binding_zone"):
+            optional.update(attempt_times = self.attempt_times)
+        if hasattr(self, "binding_zone_forces"):
+            optional.update(binding_zone_forces = self.binding_zone_forces)
+        
         fields.save_fields(name, self.params,
             times = self.times,
             success = self.success,
@@ -486,7 +567,7 @@ class RandomWalk(object):
             bind_times = self.bind_times,
             attempts = self.attempts,
             bindings = self.bindings,
-            **path)
+            **optional)
         fields.update()
         
     def ellipse_collection(self, ax):
@@ -523,19 +604,27 @@ class RandomWalk(object):
                         edgecolor="k")
         ball_settings = dict(facecolor="#aaaaaa", linewidth=1., edgecolor="k",
                              alpha=0.5)
+        ball_bind_zone_settings = dict(facecolor="#ffaaaa", linewidth=0.,
+                                       alpha=0.5)
         patches = []
         for dom in self.domains:
-            dom = dom.domain
-            if isinstance(dom, Polygon):
-                polygon = dom.nodes
+            domp = dom.domain
+            if isinstance(domp, Polygon):
+                polygon = domp.nodes
                 polygon = np.array(polygon)
                 patches.append(mpatches.Polygon(polygon, **poly_settings))
                 if not cyl:
                     polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
                     patches.append(mpatches.Polygon(polygon_m, **poly_settings))
-            elif isinstance(dom, Ball):
-                xy = dom.x0[0], dom.x0[2]
-                p = mpatches.Circle(xy, dom.r, **ball_settings)
+            elif isinstance(domp, Ball):
+                xy = domp.x0[0], domp.x0[2]
+                if dom.binding and dom.bind_type == "zone":
+                    p1 = mpatches.Circle(xy, domp.r + dom.ra,
+                                         **ball_bind_zone_settings)
+                    p1.set_zorder(-100)
+                    patches.append(p1)
+                
+                p = mpatches.Circle(xy, domp.r, **ball_settings)
                 p.set_zorder(200)
                 patches.append(p)
         return patches
