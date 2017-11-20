@@ -120,7 +120,8 @@ class Domain(object):
             elif self.bind_type == "zone":
                 # calculate binding rate in binding zone
                 rbind = rw.params.rMolecule + self.ra
-                Vbind = 4./3.*np.pi*rbind**3 # [nm**3]
+                # TODO: Vbind calculation only applies to balls:
+                Vbind = 4./3.*np.pi*(rbind + self.domain.r)**3 # [nm**3]
                 Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
                 kbind = 1e-9 * self.ka / Vbind # [1/ns]
                 # mean no. bindings during this step
