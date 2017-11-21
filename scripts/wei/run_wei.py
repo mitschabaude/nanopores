@@ -14,11 +14,13 @@ params = nanopores.user_params(
     Nmax = 1e5,
     Qmol = 2., #15.,
     bV = -0.2,
-    dp = 23.,
+    dp = 26.,
+    geop = dict(dp = 26.),
+    posDTarget = True,
 
     # random walk params
-    N = 10, # number of (simultaneous) random walks
-    dt = 1., # time step [ns]
+    N = 1000, # number of (simultaneous) random walks
+    dt = .2, # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 60.,
     margbot = 0.,
@@ -28,13 +30,14 @@ params = nanopores.user_params(
     initial = "sphere",
 
     # receptor params
-    rec_t = 3.82e9,
-    rec_p = 0.0187,
-    rec_eps = 0.0,
-    ka = 1.5e10, #5,
-    #ra = 3,
+    tbind = 40e9, # = 1/kd = 1/(25e-3)s [ns]
+    ka = 1.5e5,
     zreceptor = .99, # receptor location relative to pore length (1 = top)
 )
+##### what to do
+NAME = "rw_wei_fig2ab"
+print_calculations = False
+
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
@@ -47,22 +50,16 @@ def receptor_params(params):
     #minsize = 0.01, # accuracy when performing reflection
 
     binding = True,
-    eps = params.rec_eps, # margin in addition to walldist, determines re-attempting [nm]
-    t = params.rec_t, # mean of exponentially distributed binding duration [ns]
-    p = params.rec_p, # binding probability for one attempt
+    t = params.tbind, # mean of exponentially distributed binding duration [ns]
     ka = params.ka, # (bulk) association rate constant [1/Ms]
-    ra = ra, # radius of the association zone (w/o rMolecule) [nm]
+    ra = ra, # additional radius of the association zone [nm]
     bind_type = "zone",
     collect_stats_mode = True,
 
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
     dx = 0.1, # width of bond energy barrier [nm]
     )
-    
-NAME = "rw_wei_4"
-print_calculations = False
 
-# print calculations
 if print_calculations:
     phys = nanopores.Physics()
     # calculate binding probability with data from (Wei 2012)
