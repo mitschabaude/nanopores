@@ -21,7 +21,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 15000, # number of (simultaneous) random walks
+    N = 100000, # number of (simultaneous) random walks
     dt = .5, # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 60.,
