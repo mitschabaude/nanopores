@@ -1,5 +1,6 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
+import matplotlib.pyplot as  plt
 import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
@@ -19,8 +20,8 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 1000, # number of (simultaneous) random walks
-    dt = .2, # time step [ns]
+    N = 5000, # number of (simultaneous) random walks
+    dt = .5, # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 60.,
     margbot = 0.,
@@ -32,11 +33,12 @@ params = nanopores.user_params(
     # receptor params
     tbind = 40e9, # = 1/kd = 1/(25e-3)s [ns]
     ka = 1.5e5,
-    zreceptor = .99, # receptor location relative to pore length (1 = top)
+    zreceptor = .95, # receptor location relative to pore length (1 = top)
 )
 ##### what to do
-NAME = "rw_wei_fig2ab"
+NAME = "rw_wei_"
 print_calculations = False
+run_test = False
 
 ##### constants
 rrec = 0.5 # receptor radius
@@ -102,8 +104,16 @@ def setup_rw(params):
     rw.add_domain(receptor, **receptor_params(params))
     return rw
 
-rw = setup_rw(params)
-randomwalk.run(rw)
-#rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
-#rw.save(NAME)
-#randomwalk.load_results(name)
+##### run test rw
+if run_test:
+    rw = setup_rw(params)
+    randomwalk.run(rw)
+
+##### run rw in collect mode and draw bindings from empirical distributions
+if True:
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+    ta = rw.attempt_times
+    ta = ta[ta > 0.]
+    tt = np.logspace(-.5, 2.5, 20)
+    plt.hist(ta, bins=tt)
+    plt.xscale("log")

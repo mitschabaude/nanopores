@@ -556,8 +556,6 @@ class RandomWalk(object):
         if self.record_positions:
             optional.update(positions = self.positions,
                             timetraces = self.timetraces)
-        if hasattr(self, "binding_zone"):
-            optional.update(attempt_times = self.attempt_times)
         if hasattr(self, "binding_zone_forces"):
             optional.update(binding_zone_forces = self.binding_zone_forces)
         
@@ -568,6 +566,7 @@ class RandomWalk(object):
             bind_times = self.bind_times,
             attempts = self.attempts,
             bindings = self.bindings,
+            attempt_times = self.attempt_times,
             **optional)
         fields.update()
         
@@ -718,6 +717,7 @@ def reconstruct_rw(data, params, setup=setup_default, finalize=True):
         bind_times = data.bind_times,
         attempts = data.attempts,
         bindings = data.bindings,
+        attempt_times = data.attempt_times,
     )
     if rw.record_positions:
         rw.positions = [[x for x in _load(X)] for X in data.positions]
