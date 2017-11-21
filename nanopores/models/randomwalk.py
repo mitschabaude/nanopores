@@ -76,7 +76,21 @@ class Domain(object):
         self.__dict__.update(params)
         if isinstance(domain, Polygon):
             self.cyl = True
-
+            
+    def initialize_binding_zone(self, rw):
+        if not self.binding or not self.bind_type == "zone":
+            return
+        # calculate binding rate in binding zone
+        self.rbind = rw.params.rMolecule + self.ra
+        # TODO: Vbind calculation only applies to balls:
+        Vbind = 4./3.*np.pi*(self.rbind + self.domain.r)**3 # [nm**3]
+        Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
+        kbind = 1e-9 * self.ka / Vbind # [1/ns]
+        # mean no. bindings during this step
+        self.nbind = kbind * rw.dt
+        self.Vbind = Vbind
+        self.kbind = kbind
+        
     def collide(self, rw):
         "compute collisions and consequences with RandomWalk instance"
         radius = rw.params.rMolecule * self.walldist
@@ -118,22 +132,14 @@ class Domain(object):
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
             elif self.bind_type == "zone":
-                # calculate binding rate in binding zone
-                rbind = rw.params.rMolecule + self.ra
-                # TODO: Vbind calculation only applies to balls:
-                Vbind = 4./3.*np.pi*(rbind + self.domain.r)**3 # [nm**3]
-                Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
-                kbind = 1e-9 * self.ka / Vbind # [1/ns]
-                # mean no. bindings during this step
-                nbind = kbind * rw.dt
                 # determine particles in binding zone
-                attempt = self.domain.inside(X, radius=rbind)
+                attempt = self.domain.inside(X, radius=self.rbind)
                 iattempt = rw.i[rw.alive][attempt]
                 rw.attempt_times[iattempt] += rw.dt
                 
                 if not self.collect_stats_mode:
                     # draw poisson distributed number of bindings
-                    bindings = np.random.poisson(nbind, size=np.sum(attempt))
+                    bindings = np.random.poisson(self.nbind, size=np.sum(attempt))
                     # draw gamma distributed binding durations and add to time
                     duration = self.draw_zone_binding_durations(bindings, rw)
                     #duration = np.random.gamma(bindings, scale=self.t)
@@ -143,16 +149,12 @@ class Domain(object):
                 elif self.use_force:
                     self.collect_forces(attempt, iattempt, rw)
                 
-                if not hasattr(rw, "binding_zone"):
-                    rw.binding_zone = dict(Vbind=Vbind, ka=self.ka,
-                                           kbind=kbind)
-                
                 # update can_bind for video
                 # actually can_bind should be called can_not_bind here
                 rw.can_bind[iattempt] = False
                 can_bind = rw.can_bind[rw.alive]
                 X_can_not_bind = X[~can_bind]
-                unbind = ~self.domain.inside(X_can_not_bind, radius=rbind)
+                unbind = ~self.domain.inside(X_can_not_bind, radius=self.rbind)
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
 
@@ -327,7 +329,9 @@ class RandomWalk(object):
         """add domain where particles can bind and/or are excluded from.
         domain only has to implement the .inside(x, radius) method.
         params can be domain_params"""
-        self.domains.append(Domain(domain, **params))
+        dom = Domain(domain, **params)
+        self.domains.append(dom)
+        dom.initialize_binding_zone(self)
 
     def add_wall_binding(self, **params):
         self.domains[0].__dict__.update(params, binding=True)
@@ -513,14 +517,16 @@ class RandomWalk(object):
         print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
         self.times += self.bind_times
         
-        if hasattr(self, "binding_zone"):
+        for domain in self.domains:
+            if not domain.binding or not domain.bind_type == "zone":
+                continue
             # calculate effective association rate in pore
             phys = self.phys
             Dbulk = phys.DTargetBulk
             r = 1e-9*self.rstart # radius of arrival zone
             karr = 2.*self.phys.pi*r*Dbulk*1e3*phys.mol # events/Ms
-            ka = self.binding_zone["ka"] # bulk association rate [1/Ms]
-            Vbind = self.binding_zone["Vbind"] # binding volume per mole [1/M]
+            ka = domain.ka # bulk association rate [1/Ms]
+            Vbind = domain.Vbind # binding volume per mole [1/M]
             cchar = 1./Vbind # [M], receptor concentration at which all targets
             # are in binding zone, so that ka * cchar = kbind
             kbind = ka * cchar # binding zone assoc. rate [1/s]
@@ -724,6 +730,8 @@ def reconstruct_rw(data, params, setup=setup_default, finalize=True):
         rw.timetraces = [[t for t in _load(T)] for T in data.timetraces]
         rw.x = np.array([X[-1] for X in data.positions])
         rw.alive = ~(data.success | data.fail)
+    if hasattr(data, "binding_zone_forces"):
+        rw.binding_zone_forces = [list(_load(X)) for X in data.binding_zone_forces]
         
     if finalize:
         rw.finalize()

@@ -5,6 +5,7 @@ import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
 fields.set_dir_mega()
+# TODO: fit bond rupture length to wei data
 
 params = nanopores.user_params(
     # general params
@@ -20,7 +21,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 5000, # number of (simultaneous) random walks
+    N = 15000, # number of (simultaneous) random walks
     dt = .5, # time step [ns]
     walldist = 2., # in multiples of radius, should be >= 1
     margtop = 60.,
@@ -39,6 +40,7 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
+plot_distribution = True
 
 ##### constants
 rrec = 0.5 # receptor radius
@@ -59,7 +61,7 @@ def receptor_params(params):
     collect_stats_mode = True,
 
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
-    dx = 0.1, # width of bond energy barrier [nm]
+    dx = 3., # width of bond energy barrier [nm]
     )
 
 if print_calculations:
@@ -108,12 +110,116 @@ def setup_rw(params):
 if run_test:
     rw = setup_rw(params)
     randomwalk.run(rw)
+    
+##### draw bindings and forces from empirical distribution
+def draw_empirically(rw, N=1e8, nmax=1000):
+    self = rw.domains[1]
+    N = int(N)
+    ka = self.kbind
+    # draw indices of existing random walks
+    I = np.random.randint(rw.N, size=(N,))
+    times = (1e-9*rw.times)[I]
+    bindings = np.random.poisson((ka*rw.attempt_times)[I])
+    ibind, = np.nonzero(bindings > 0)
+    n = len(ibind)
+    ibind = ibind[:min(n, nmax)]
+    print "%d binding events drawn, %s used." % (n, len(ibind))
+    n = len(ibind)
+    
+    f = np.array([f for F in rw.binding_zone_forces for f in F])
+    F = np.random.choice(f, size=(n,))
+    dx = 1e-9*self.dx
+    kT = rw.phys.kT
+    t = self.t * np.exp(-F*dx/kT)
+    print "dwell time reduction by force", np.mean(t)/self.t
+    bind_times = 1e-9*np.random.gamma(bindings[ibind], scale=t)
+    times[ibind] += bind_times
+    
+    tfail = times[rw.fail[I]]
+    tsuccess = times[rw.success[I]]
+    return tfail, tsuccess
+
+##### load tau_off histogram from source and create fake data
+def tauoff_wei():
+    csvfile = "tau_off_wei.csv"
+    data = np.genfromtxt(csvfile, delimiter=',')
+    bins = data[:, 0]
+    counts = data[:, 1]
+    
+    # inspection showed that there seems to be a good,
+    # evenly spaced approximation to all bins except the first and last with
+    # spacing 0.55, i.e. of the form (beta + 0.55*np.arange(0, N)) for some beta
+    x = bins[:-1]
+    N = len(x)
+    # minimize norm(x - (beta + 0.55*np.arange(0, N)) w.r.t. beta
+    beta = x.mean() - 0.55*(N-1)/2.
+    # turns out beta is close to 0.25, which gives nice numbers,
+    # so we will just take that
+    bins = 0.25 + 0.55*np.arange(0, N)
+    bins = [0.] + list(bins) + [20.]
+    N = N+1
+    
+    # the counts should be integer-values, so
+    counts = np.round(counts).astype(int)
+    
+    # TODO: need better experimental data => webtool
+    # now let's reproduce the plot
+    # first create fake data samples that reproduce the histogram
+    fake = np.array([])
+    
+    frac = 1.
+    while int(counts[0]*frac) > 1:
+        frac /= 2.
+        a, b = bins[1]*frac, bins[1]*2*frac
+        sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
+        fake = np.append(fake, sample)
+        #print "frac", frac
+    
+    for i in range(1, N):
+        a, b = bins[i], bins[i+1]
+        sample = a*(b/a)**(np.random.rand(counts[i]))
+        fake = np.append(fake, sample)
+        
+    print len(fake), "events loaded from experimental data."
+    return fake
 
 ##### run rw in collect mode and draw bindings from empirical distributions
-if True:
+if plot_distribution:
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
     ta = rw.attempt_times
     ta = ta[ta > 0.]
-    tt = np.logspace(-.5, 2.5, 20)
-    plt.hist(ta, bins=tt)
+    #tt = np.logspace(-.5, 2.5, 100)
+    tt = np.linspace(0.25, 200., 100)
+    plt.figure("attempt_times")
+    plt.hist(ta, bins=tt, normed=True, label="Simulated")
+    ta0 = ta.mean()
+    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
+    #plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Attempt time [ns]")
+    plt.ylabel("Rel. frequency")
+    plt.legend()
+    
+    forces = np.array([f for F in rw.binding_zone_forces for f in F])
+    plt.figure("force")
+    plt.hist(1e12*forces, bins=50, normed=True)
+    plt.xlabel("Force [pN]")
+    plt.ylabel("Rel. frequency")
+    
+    plt.figure("hist")
+    fake = tauoff_wei()
+    tfail, tsuccess = draw_empirically(rw, N=3e8, nmax=len(fake))
+    a, b = -6.5, 3 # log10 of plot interval
+    bins = np.logspace(a, b, 40)
+    plt.hist(tsuccess, bins=bins, color="green", alpha=0.6, rwidth=0.9, label="Translocated", zorder=50)
+    plt.hist(tfail, bins=bins, color="red", alpha=0.6, rwidth=0.9, label="Did not translocate")
+    plt.hist(fake, bins=bins, histtype="step", color="orange", label="Wei et al.", zorder=100)
     plt.xscale("log")
+    plt.yscale("log")
+    plt.ylabel("Count")
+    plt.xlabel(r"$\tau$ off [s]")
+    plt.ylim(ymin=1.)
+    plt.legend()
+  
+import folders
+nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", (4, 3), ending=".pdf")
