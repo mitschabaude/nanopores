@@ -227,7 +227,7 @@ if plot_distribution:
 voltages = [-0.2, -0.25, -0.3, -0.35]
 zrecs = [.90, .95, .99]
 N = 10000
-params.update(N=N)
+params.update(N=N, dp=30., geop=dict(dp=30.))
 for v in voltages:
     for z in zrecs:
         params.update(bV=v, zreceptor=z)

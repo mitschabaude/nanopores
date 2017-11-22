@@ -93,7 +93,6 @@ class Domain(object):
     def collide(self, rw):
         "compute collisions and consequences with RandomWalk instance"
         radius = rw.params.rMolecule * self.walldist
-        rzone = self.rbind - self.domain.r
 
         # determine collisions and then operate only on collided particles
         X = rw.rz if self.cyl else rw.x[rw.alive]
@@ -132,6 +131,8 @@ class Domain(object):
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
             elif self.bind_type == "zone":
+                # TODO: only Ball!!!
+                rzone = self.rbind - self.domain.r
                 # determine particles in binding zone
                 attempt = self.domain.inside(X, radius=rzone)
                 iattempt = rw.i[rw.alive][attempt]
