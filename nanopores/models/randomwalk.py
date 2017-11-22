@@ -695,6 +695,7 @@ def load_results(name, **params):
 def get_results(name, params, setup=setup_default, calc=True):
     # setup is function rw = setup(params) that sets up rw
     # check existing saved rws
+    data = None
     if fields.exists(name, **params):
         data = load_results(name, **params)
         N = len(data.times)
@@ -707,8 +708,10 @@ def get_results(name, params, setup=setup_default, calc=True):
         rw = setup(new_params)
         run(rw, name)
         rw.save(name)
+        data = load_results(name, **params)
     # return results
-    data = load_results(name, **params)
+    elif data is None:
+        data = load_results(name, **params)
     return data
 
 def reconstruct_rw(data, params, setup=setup_default, finalize=True):

@@ -41,6 +41,7 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
+voltage_dependence = False
 
 ##### constants
 rrec = 0.5 # receptor radius
@@ -140,7 +141,7 @@ def draw_empirically(rw, N=1e8, nmax=1000):
     
     tfail = times[rw.fail[I]]
     tsuccess = times[rw.success[I]]
-    return tfail, tsuccess
+    return tfail, tsuccess, times, ibind
 
 ##### load tau_off histogram from source and create fake data
 def tauoff_wei():
@@ -155,7 +156,7 @@ def tauoff_wei():
     x = bins[:-1]
     N = len(x)
     # minimize norm(x - (beta + 0.55*np.arange(0, N)) w.r.t. beta
-    beta = x.mean() - 0.55*(N-1)/2.
+    #beta = x.mean() - 0.55*(N-1)/2.
     # turns out beta is close to 0.25, which gives nice numbers,
     # so we will just take that
     bins = 0.25 + 0.55*np.arange(0, N)
@@ -210,7 +211,7 @@ if plot_distribution:
     
     plt.figure("hist")
     fake = tauoff_wei()
-    tfail, tsuccess = draw_empirically(rw, N=3e8, nmax=len(fake))
+    tfail, tsuccess, _, _ = draw_empirically(rw, N=3e8, nmax=len(fake))
     a, b = -6.5, 3 # log10 of plot interval
     bins = np.logspace(a, b, 40)
     plt.hist(tsuccess, bins=bins, color="green", alpha=0.6, rwidth=0.9, label="Translocated", zorder=50)
@@ -223,19 +224,32 @@ if plot_distribution:
     plt.ylim(ymin=1.)
     plt.legend()
     
-# determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-voltages = [-0.2, -0.25, -0.3, -0.35]
-zrecs = [.90, .95, .99]
-N = 10000
-params.update(N=N, dp=30., geop=dict(dp=30.))
-for v in voltages:
-    for z in zrecs:
-        params.update(bV=v, zreceptor=z)
-        rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
+rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+_, _, times, ibind = draw_empirically(rw, N=2e8) #, nmax=523)
+times = times[ibind]
+bins = np.logspace(-3, 2., 35)
+tt = np.logspace(-3, 2., 100)
+hist, _ = np.histogram(times, bins=bins)
+cfd = np.cumsum(hist)/float(np.sum(hist))
+t = 0.5*(bins[:-1] + bins[1:])
+tm = times.mean()
+plt.semilogx(tt, 1. - np.exp(-tt/tm))
+plt.semilogx(t, cfd, "v", color="C0")
+
+#plt.hist(times, bins=bins, cumulative=True, 
+#         normed=1, histtype="step")
     
-# recreate voltage-dependent plot of tauoff
-#params.update(
-#        )
+###### recreate voltage-dependent plot of tauoff
+if voltage_dependence:
+    voltages = [-0.2, -0.25, -0.3, -0.35]
+    zrecs = [.90, .95, .99]
+    N = 10000
+    params.update(N=N, dp=30., geop=dict(dp=30.))
+    for v in voltages:
+        for z in zrecs:
+            params.update(bV=v, zreceptor=z)
+            rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
   
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", (4, 3), ending=".pdf")
