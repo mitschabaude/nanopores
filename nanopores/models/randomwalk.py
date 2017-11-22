@@ -1,10 +1,10 @@
 # (c) 2017 Gregor Mitscha-Baude
 "random walk of many particles in cylindrical pore"
 import numpy as np
-from matplotlib import pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import collections
+import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib import animation
+from matplotlib import collections
 from scipy.stats import poisson, gamma
 
 import dolfin
@@ -82,8 +82,7 @@ class Domain(object):
             return
         # calculate binding rate in binding zone
         self.rbind = rw.params.rMolecule + self.ra
-        # TODO: Vbind calculation only applies to balls:
-        Vbind = 4./3.*np.pi*(self.rbind + self.domain.r)**3 # [nm**3]
+        Vbind = 4./3.*np.pi*self.rbind**3 # [nm**3]
         Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
         kbind = 1e-9 * self.ka / Vbind # [1/ns]
         # mean no. bindings during this step
@@ -94,6 +93,7 @@ class Domain(object):
     def collide(self, rw):
         "compute collisions and consequences with RandomWalk instance"
         radius = rw.params.rMolecule * self.walldist
+        rzone = self.rbind - self.domain.r
 
         # determine collisions and then operate only on collided particles
         X = rw.rz if self.cyl else rw.x[rw.alive]
@@ -133,7 +133,7 @@ class Domain(object):
                 rw.can_bind[iunbind] = True
             elif self.bind_type == "zone":
                 # determine particles in binding zone
-                attempt = self.domain.inside(X, radius=self.rbind)
+                attempt = self.domain.inside(X, radius=rzone)
                 iattempt = rw.i[rw.alive][attempt]
                 rw.attempt_times[iattempt] += rw.dt
                 
@@ -154,7 +154,7 @@ class Domain(object):
                 rw.can_bind[iattempt] = False
                 can_bind = rw.can_bind[rw.alive]
                 X_can_not_bind = X[~can_bind]
-                unbind = ~self.domain.inside(X_can_not_bind, radius=self.rbind)
+                unbind = ~self.domain.inside(X_can_not_bind, radius=rzone)
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
 

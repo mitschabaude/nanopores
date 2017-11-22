@@ -40,12 +40,12 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
-plot_distribution = True
+plot_distribution = False
 
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
-ra = distrec - rrec #params.rMolecule*(params.walldist - 1.) - rrec
+ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
 
 def receptor_params(params):
     return dict(
@@ -56,7 +56,7 @@ def receptor_params(params):
     binding = True,
     t = params.tbind, # mean of exponentially distributed binding duration [ns]
     ka = params.ka, # (bulk) association rate constant [1/Ms]
-    ra = ra, # additional radius of the association zone [nm]
+    ra = ra, # radius of the association zone [nm]
     bind_type = "zone",
     collect_stats_mode = True,
 
@@ -119,19 +119,22 @@ def draw_empirically(rw, N=1e8, nmax=1000):
     # draw indices of existing random walks
     I = np.random.randint(rw.N, size=(N,))
     times = (1e-9*rw.times)[I]
-    bindings = np.random.poisson((ka*rw.attempt_times)[I])
+    bindings = np.zeros(N, dtype=bool)
+    avgbindings = (ka*rw.attempt_times)[I]
+    bindings[avgbindings > 0] = np.random.poisson(avgbindings[avgbindings > 0])
+    del avgbindings
     ibind, = np.nonzero(bindings > 0)
-    n = len(ibind)
-    ibind = ibind[:min(n, nmax)]
-    print "%d binding events drawn, %s used." % (n, len(ibind))
-    n = len(ibind)
+    n0 = len(ibind)
+    n = min(n0, nmax)
+    ibind = ibind[:n]
+    print "%d binding events drawn, %s used." % (n0, n)
     
     f = np.array([f for F in rw.binding_zone_forces for f in F])
     F = np.random.choice(f, size=(n,))
     dx = 1e-9*self.dx
     kT = rw.phys.kT
     t = self.t * np.exp(-F*dx/kT)
-    print "dwell time reduction by force", np.mean(t)/self.t
+    print "dwell time reduction by force:", np.mean(t)/self.t
     bind_times = 1e-9*np.random.gamma(bindings[ibind], scale=t)
     times[ibind] += bind_times
     
@@ -142,7 +145,7 @@ def draw_empirically(rw, N=1e8, nmax=1000):
 ##### load tau_off histogram from source and create fake data
 def tauoff_wei():
     csvfile = "tau_off_wei.csv"
-    data = np.genfromtxt(csvfile, delimiter=',')
+    data = np.genfromtxt(csvfile, delimiter=",")
     bins = data[:, 0]
     counts = data[:, 1]
     
@@ -163,8 +166,7 @@ def tauoff_wei():
     counts = np.round(counts).astype(int)
     
     # TODO: need better experimental data => webtool
-    # now let's reproduce the plot
-    # first create fake data samples that reproduce the histogram
+    # create fake data samples that reproduce the histogram
     fake = np.array([])
     
     frac = 1.
@@ -191,7 +193,7 @@ if plot_distribution:
     #tt = np.logspace(-.5, 2.5, 100)
     tt = np.linspace(0.25, 200., 100)
     plt.figure("attempt_times")
-    plt.hist(ta, bins=tt, normed=True, label="Simulated")
+    plt.hist(ta, bins=tt, normed=True, label="Simulations")
     ta0 = ta.mean()
     plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
     #plt.xscale("log")
@@ -202,7 +204,7 @@ if plot_distribution:
     
     forces = np.array([f for F in rw.binding_zone_forces for f in F])
     plt.figure("force")
-    plt.hist(1e12*forces, bins=50, normed=True)
+    plt.hist(1e12*forces, bins=200, normed=True)
     plt.xlabel("Force [pN]")
     plt.ylabel("Rel. frequency")
     
@@ -220,6 +222,20 @@ if plot_distribution:
     plt.xlabel(r"$\tau$ off [s]")
     plt.ylim(ymin=1.)
     plt.legend()
+    
+# determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
+voltages = [-0.2, -0.25, -0.3, -0.35]
+zrecs = [.90, .95, .99]
+N = 10000
+params.update(N=N)
+for v in voltages:
+    for z in zrecs:
+        params.update(bV=v, zreceptor=z)
+        rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+    
+# recreate voltage-dependent plot of tauoff
+#params.update(
+#        )
   
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", (4, 3), ending=".pdf")
