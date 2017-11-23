@@ -5,6 +5,8 @@ import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
 fields.set_dir_mega()
+
+from nonlinear_least_squares import NLS
 # TODO: fit bond rupture length to wei data
 
 params = nanopores.user_params(
@@ -41,28 +43,31 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
+plot_cdf = False
 voltage_dependence = False
 
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
+dx = 1.
 
 def receptor_params(params):
+    dx0 = params["dx"] if "dx" in params else dx
     return dict(
     exclusion = False,
     walldist = 1.,
     #minsize = 0.01, # accuracy when performing reflection
 
     binding = True,
-    t = params.tbind, # mean of exponentially distributed binding duration [ns]
-    ka = params.ka, # (bulk) association rate constant [1/Ms]
+    t = params["tbind"], # mean of exponentially distributed binding duration [ns]
+    ka = params["ka"], # (bulk) association rate constant [1/Ms]
     ra = ra, # radius of the association zone [nm]
     bind_type = "zone",
     collect_stats_mode = True,
 
     use_force = True, # if True, t_mean = t*exp(-|F|*dx/kT)
-    dx = 3., # width of bond energy barrier [nm]
+    dx = dx0, # width of bond energy barrier [nm]
     )
 
 if print_calculations:
@@ -113,7 +118,7 @@ if run_test:
     randomwalk.run(rw)
     
 ##### draw bindings and forces from empirical distribution
-def draw_empirically(rw, N=1e8, nmax=1000):
+def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     self = rw.domains[1]
     N = int(N)
     ka = self.kbind
@@ -139,9 +144,12 @@ def draw_empirically(rw, N=1e8, nmax=1000):
     bind_times = 1e-9*np.random.gamma(bindings[ibind], scale=t)
     times[ibind] += bind_times
     
-    tfail = times[rw.fail[I]]
-    tsuccess = times[rw.success[I]]
-    return tfail, tsuccess, times, ibind
+    if success:
+        tfail = times[rw.fail[I]]
+        tsuccess = times[rw.success[I]]
+        return tfail, tsuccess
+    else:
+        return times[ibind]
 
 ##### load tau_off histogram from source and create fake data
 def tauoff_wei():
@@ -211,7 +219,7 @@ if plot_distribution:
     
     plt.figure("hist")
     fake = tauoff_wei()
-    tfail, tsuccess, _, _ = draw_empirically(rw, N=3e8, nmax=len(fake))
+    tfail, tsuccess = draw_empirically(rw, N=3e8, nmax=len(fake))
     a, b = -6.5, 3 # log10 of plot interval
     bins = np.logspace(a, b, 40)
     plt.hist(tsuccess, bins=bins, color="green", alpha=0.6, rwidth=0.9, label="Translocated", zorder=50)
@@ -225,21 +233,80 @@ if plot_distribution:
     plt.legend()
     
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
-_, _, times, ibind = draw_empirically(rw, N=2e8) #, nmax=523)
-times = times[ibind]
-bins = np.logspace(-3, 2., 35)
-tt = np.logspace(-3, 2., 100)
-hist, _ = np.histogram(times, bins=bins)
-cfd = np.cumsum(hist)/float(np.sum(hist))
-t = 0.5*(bins[:-1] + bins[1:])
-tm = times.mean()
-plt.semilogx(tt, 1. - np.exp(-tt/tm))
-plt.semilogx(t, cfd, "v", color="C0")
+@fields.cache("wei_koff_1", default=dict(params, dx=1.))
+def fit_koff(**params):
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=False)
+    times = draw_empirically(rw, N=3e8, nmax=523, success=False)
+    bins = np.logspace(-3., 2., 35)
+    hist, _ = np.histogram(times, bins=bins)
+    cfd = np.cumsum(hist)/float(np.sum(hist))
+    t = 0.5*(bins[:-1] + bins[1:])
+    tmean = times.mean()
+    toff = NLS(t, cfd, t0=tmean)
+    koff = 1./toff
+    return dict(t=t, cfd=cfd, toff=toff, tmean=tmean, koff=koff)
 
-#plt.hist(times, bins=bins, cumulative=True, 
-#         normed=1, histtype="step")
+###### reproduce cumulative tauoff plot with fits and different bV
+voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
+colors = ["k", "r", "b", "g"][::-1]
+zrecs = [.90, .95, .99]
+N = 10000
+newparams = dict(N=N, dp=30., geop=dict(dp=30.))
+
+if plot_cdf:
+    plt.figure("bV_tauoff")
+    for i, v in enumerate(voltages):
+        data = fit_koff(bV=v, zreceptor=.95, dx=3., **newparams)
+        tt = np.logspace(-3., 2., 100)
+        
+        lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i],
+                             label="%d mV" % (1000*abs(v)))
+        plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color())
+        print "koff", data.koff
+    plt.legend()
     
+###### read koff-bV dependence from wei data
+koff0 = np.array([])
+coeff = np.array([])
+for i in range(1, 6):
+    data = np.genfromtxt("koff%d.csv" %i, delimiter=",")
+    x = data[:, 0]*1e-3
+    y = np.log(data[:, 1])
+    a = (np.diff(y)/np.diff(x))[0]
+    b = y[0] - a*x[0]
+    coeff = np.append(coeff, a)
+    koff0 = np.append(koff0, np.exp(b))
+    #xx = np.linspace(0, 400, 50)
+    #plt.semilogy(x, np.exp(y), "o")
+    #plt.semilogy(xx, np.exp(a*xx + b))
+print "coeff %.3g +- %.3g" % (coeff.mean(), coeff.std())
+print "koff0 %.3g +- %.3g" % (koff0.mean(), koff0.std())
+
+def regression(bV, koff):
+    "find coefficients in relationship koff = koff0 * exp(a*bV)"
+    X = np.column_stack([bV, np.ones(len(bV))])
+    y = np.log(koff)
+    a, b = tuple(np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y)))
+    return a, np.exp(b)
+
+voltages = [-0.2, -0.25, -0.3, -0.35]
+zrecs = [.90, .95, .99]
+dxs = [1., 3., 5.]
+for dx in dxs:
+    print "dx", dx    
+    koff0 = np.array([])
+    coeff = np.array([])
+    for z in zrecs:
+        for v, koff in nanopores.collect(voltages):
+            data = fit_koff(bV=v, zreceptor=z, dx=dx, **newparams)
+            koff.new = data.koff
+        c, k = regression(np.abs(voltages), koff)
+        coeff = np.append(coeff, c)
+        koff0 = np.append(koff0, k)
+    print "coeff %.3g +- %.3g" % (coeff.mean(), coeff.std())
+    print "koff0 %.3g +- %.3g" % (koff0.mean(), koff0.std())
+
+
 ###### recreate voltage-dependent plot of tauoff
 if voltage_dependence:
     voltages = [-0.2, -0.25, -0.3, -0.35]

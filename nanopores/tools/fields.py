@@ -415,6 +415,9 @@ class NpyFile(object):
 
     def __iter__(self):
         return iter(self.load())
+    
+    def __len__(self):
+        return len(self.load())
 
     def __getitem__(self, key):
         return self.load()[key]
@@ -493,7 +496,7 @@ automatic caching decorator
 
 use like:
 @cache("name", default=default_params)
-def calculate(params):
+def calculate(**params):
     return results
 
 => calculate(**params) gives cached results if they exist
@@ -518,11 +521,11 @@ class CacheBase(object):
         self.overwrite = overwrite
 
     def __call__(self, f):
-        def wrapper(*args, **params):
+        def wrapper(**params):
             params = Params(self.default, **params)
 
             if self.overwrite or not self._exists(params):
-                out = f(params, *args)
+                out = f(**params)
                 self._save(out, params)
 
             return self._load(params)
@@ -539,7 +542,10 @@ class cache(CacheBase):
         update()
 
     def _load(self, params):
-        return get_entry(self.name, "result", **params)
+        result = get_entry(self.name, "result", **params)
+        if isinstance(result, dict):
+            result = Params(result)
+        return result
 
 "caching discrete dolfin functions"
 import dolfin
