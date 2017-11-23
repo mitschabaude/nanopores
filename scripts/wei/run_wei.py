@@ -291,7 +291,7 @@ def regression(bV, koff):
 
 voltages = [-0.2, -0.25, -0.3, -0.35]
 zrecs = [.90, .95, .99]
-dxs = [1., 3., 5.]
+dxs = [1., 3., 5., 6.]
 for dx in dxs:
     print "dx", dx    
     koff0 = np.array([])
