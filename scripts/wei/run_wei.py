@@ -43,14 +43,15 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
-plot_cdf = False
+plot_cdf = True
 voltage_dependence = False
+determine_delta = True
 
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
-dx = 1.
+dx = 5.5
 
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
@@ -194,6 +195,21 @@ def tauoff_wei():
     print len(fake), "events loaded from experimental data."
     return fake
 
+###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
+@fields.cache("wei_koff_2", default=dict(params, dx=1.))
+def fit_koff(**params):
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=False)
+    times = draw_empirically(rw, N=4e8, nmax=523, success=False)
+    bins = np.logspace(np.log10(min(times)), np.log10(max(times)), 35)
+    #bins = np.logspace(-3., 2., 35)
+    hist, _ = np.histogram(times, bins=bins)
+    cfd = np.cumsum(hist)/float(np.sum(hist))
+    t = 0.5*(bins[:-1] + bins[1:])
+    tmean = times.mean()
+    toff = NLS(t, cfd, t0=tmean)
+    koff = 1./toff
+    return dict(t=t, cfd=cfd, toff=toff, tmean=tmean, koff=koff)
+
 ##### run rw in collect mode and draw bindings from empirical distributions
 if plot_distribution:
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
@@ -231,20 +247,6 @@ if plot_distribution:
     plt.xlabel(r"$\tau$ off [s]")
     plt.ylim(ymin=1.)
     plt.legend()
-    
-###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-@fields.cache("wei_koff_1", default=dict(params, dx=1.))
-def fit_koff(**params):
-    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=False)
-    times = draw_empirically(rw, N=3e8, nmax=523, success=False)
-    bins = np.logspace(-3., 2., 35)
-    hist, _ = np.histogram(times, bins=bins)
-    cfd = np.cumsum(hist)/float(np.sum(hist))
-    t = 0.5*(bins[:-1] + bins[1:])
-    tmean = times.mean()
-    toff = NLS(t, cfd, t0=tmean)
-    koff = 1./toff
-    return dict(t=t, cfd=cfd, toff=toff, tmean=tmean, koff=koff)
 
 ###### reproduce cumulative tauoff plot with fits and different bV
 voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
@@ -256,7 +258,7 @@ newparams = dict(N=N, dp=30., geop=dict(dp=30.))
 if plot_cdf:
     plt.figure("bV_tauoff")
     for i, v in enumerate(voltages):
-        data = fit_koff(bV=v, zreceptor=.95, dx=3., **newparams)
+        data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
         tt = np.logspace(-3., 2., 100)
         
         lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i],
@@ -265,35 +267,36 @@ if plot_cdf:
         print "koff", data.koff
     plt.legend()
     
-###### read koff-bV dependence from wei data
-koff0 = np.array([])
-coeff = np.array([])
-for i in range(1, 6):
-    data = np.genfromtxt("koff%d.csv" %i, delimiter=",")
-    x = data[:, 0]*1e-3
-    y = np.log(data[:, 1])
-    a = (np.diff(y)/np.diff(x))[0]
-    b = y[0] - a*x[0]
-    coeff = np.append(coeff, a)
-    koff0 = np.append(koff0, np.exp(b))
-    #xx = np.linspace(0, 400, 50)
-    #plt.semilogy(x, np.exp(y), "o")
-    #plt.semilogy(xx, np.exp(a*xx + b))
-print "coeff %.3g +- %.3g" % (coeff.mean(), coeff.std())
-print "koff0 %.3g +- %.3g" % (koff0.mean(), koff0.std())
-
+###### regression to quantify bV-koff relationship
 def regression(bV, koff):
     "find coefficients in relationship koff = koff0 * exp(a*bV)"
     X = np.column_stack([bV, np.ones(len(bV))])
     y = np.log(koff)
     a, b = tuple(np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y)))
     return a, np.exp(b)
+    
+###### read koff-bV dependence from wei data
+koff0 = np.array([])
+coeff = np.array([])
+for i in range(1, 6):
+    data = np.genfromtxt("koff%d.csv" %i, delimiter=",")
+    voltages = data[:, 0]*1e-3
+    koff = data[:, 1]
+    
+    c, k = regression(np.abs(voltages), koff)
+    coeff = np.append(coeff, c)
+    koff0 = np.append(koff0, k)
 
-voltages = [-0.2, -0.25, -0.3, -0.35]
-zrecs = [.90, .95, .99]
-dxs = [1., 3., 5., 6.]
-for dx in dxs:
-    print "dx", dx    
+cdxall_exp = coeff
+cdx_exp = coeff.mean()
+vdx_exp = coeff.std()
+
+###### plt determination of bond rupture length from wei data and simulations
+if determine_delta:
+    voltages = [-0.2, -0.25, -0.3, -0.35]
+    zrecs = [.90, .95, .99]
+    dxtest = 5.
+    dx = dxtest
     koff0 = np.array([])
     coeff = np.array([])
     for z in zrecs:
@@ -303,9 +306,62 @@ for dx in dxs:
         c, k = regression(np.abs(voltages), koff)
         coeff = np.append(coeff, c)
         koff0 = np.append(koff0, k)
-    print "coeff %.3g +- %.3g" % (coeff.mean(), coeff.std())
-    print "koff0 %.3g +- %.3g" % (koff0.mean(), koff0.std())
-
+    
+    cdxtest_sim = coeff.mean()
+    
+    dx0 = cdx_exp / (cdxtest_sim / dxtest)
+    print "inferred dx:", dx0
+    
+    dxs = [2., 3., 4., 5., 5.5, 6., 7., 8., 9.]
+    cdx = []
+    cdxstd = []
+    cdxall = []
+    for dx in dxs:
+        #print "dx", dx    
+        koff0 = np.array([])
+        coeff = np.array([])
+        for z in zrecs:
+            for v, koff in nanopores.collect(voltages):
+                data = fit_koff(bV=v, zreceptor=z, dx=dx, **newparams)
+                koff.new = data.koff
+            c, k = regression(np.abs(voltages), koff)
+            coeff = np.append(coeff, c)
+            koff0 = np.append(koff0, k)
+        cdx.append(coeff.mean())
+        cdxall.append(coeff)
+        cdxstd.append(coeff.std())
+        #print "c*dx %.3g +- %.3g" % (coeff.mean(), coeff.std())
+        #print "koff0 %.3g +- %.3g" % (koff0.mean(), koff0.std())
+    def fplot(cdx, dx):
+        return cdx
+        
+    dx = np.array(dxs)
+    cdx = np.array(cdx)
+    cdxall = np.array(cdxall)
+    cdxstd = np.array(cdxstd)
+    
+    dxx = np.linspace(dx[0], dx[-1], 100)
+    cdx_exp = np.ones(len(dxx))*cdx_exp
+    vdx_exp = np.ones(len(dxx))*vdx_exp
+    
+    plt.figure("delta")
+    plt.plot(dxx, fplot(cdx_exp, dxx), "-", label="Wei et al.")
+    for i in range(5):
+        plt.plot(dxx, np.ones(len(dxx))*cdxall_exp[i], "-", color="C0", alpha=0.5)
+    #plt.plot(dxx, fplot(cdx_exp - vdx_exp, dxx), "-", color="C1")
+    #plt.plot(dxx, fplot(cdx_exp + vdx_exp, dxx), "-", color="C1")
+    #plt.fill_between(dxx, fplot(cdx_exp - vdx_exp, dxx),
+    #                     fplot(cdx_exp + vdx_exp, dxx), alpha=0.5)
+    
+    #plt.plot(dx, fplot(cdx, dx), "o", label="Simulation")
+    plt.plot(dx, fplot(cdx, dx), "o", label="Simulation", color="C1")
+    for i in (0, 1, 2):
+        plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
+    #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
+    
+    plt.xlabel(r"Bond rupture length $\delta$ [nm]")
+    plt.ylabel(r"$\alpha$ [1/V]")
+    plt.legend(loc="upper left")
 
 ###### recreate voltage-dependent plot of tauoff
 if voltage_dependence:
