@@ -43,9 +43,9 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
-plot_cdf = True
-voltage_dependence = False
-determine_delta = True
+plot_cdf = False
+voltage_dependence = True
+determine_delta = False
 
 ##### constants
 rrec = 0.5 # receptor radius
@@ -198,7 +198,7 @@ def tauoff_wei():
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
 @fields.cache("wei_koff_2", default=dict(params, dx=1.))
 def fit_koff(**params):
-    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=False)
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True)
     times = draw_empirically(rw, N=4e8, nmax=523, success=False)
     bins = np.logspace(np.log10(min(times)), np.log10(max(times)), 35)
     #bins = np.logspace(-3., 2., 35)
@@ -261,11 +261,14 @@ if plot_cdf:
         data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
         tt = np.logspace(-3., 2., 100)
         
-        lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i],
-                             label="%d mV" % (1000*abs(v)))
-        plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color())
+        lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i])
+        plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color(),
+                     label="%d mV" % (1000*abs(v)))
         print "koff", data.koff
-    plt.legend()
+    plt.xlim(1e-4, 1e1)
+    plt.xlabel(r"$\tau$ off")
+    plt.ylabel("Cumulative probability")
+    plt.legend(frameon=False)
     
 ###### regression to quantify bV-koff relationship
 def regression(bV, koff):
@@ -274,6 +277,33 @@ def regression(bV, koff):
     y = np.log(koff)
     a, b = tuple(np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y)))
     return a, np.exp(b)
+
+###### recreate voltage-dependent plot of koff
+if voltage_dependence:
+    # get experimental data
+    plt.figure("koff")
+    data = np.genfromtxt("koff.csv", delimiter=",")
+    v = data[:, 0]
+    koff = data[:, 1]
+    c, k = regression(np.abs(v), koff)
+    plt.plot(v, koff, "vr", markersize=12, label="Wei et al.")
+    vv = np.linspace(0., 400., 10)
+    plt.plot(vv, k * np.exp(c*vv), "-r")
+    
+    v = np.array([-0., -0.5, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
+    z = 0.95
+    dx = 5.5
+    koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
+    v = np.abs(v)*1e3
+    c, k = regression(v[-4:], koff[-4:])
+    plt.plot(v, koff, "v", markersize=12, label="Simulation",
+             markerfacecolor=None, color="#990000")
+    plt.plot(vv, k * np.exp(c*vv), "-", color="#990000")
+
+    plt.yscale("log")
+    plt.xlabel("Voltage [mV]")
+    plt.ylabel("k off [1/s]")
+    plt.legend(frameon=False)
     
 ###### read koff-bV dependence from wei data
 koff0 = np.array([])
@@ -359,20 +389,13 @@ if determine_delta:
         plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
     #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
     
+    plt.annotate(r"$\delta$=5.5nm", (5.5, cdxall[4, 0] - 1.),
+                 xytext=(5.5 - .79, cdxall[4, 0] - 8.), color="C1",
+                 arrowprops=dict(arrowstyle="->", color="C1"))
+    
     plt.xlabel(r"Bond rupture length $\delta$ [nm]")
     plt.ylabel(r"$\alpha$ [1/V]")
-    plt.legend(loc="upper left")
-
-###### recreate voltage-dependent plot of tauoff
-if voltage_dependence:
-    voltages = [-0.2, -0.25, -0.3, -0.35]
-    zrecs = [.90, .95, .99]
-    N = 10000
-    params.update(N=N, dp=30., geop=dict(dp=30.))
-    for v in voltages:
-        for z in zrecs:
-            params.update(bV=v, zreceptor=z)
-            rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+    plt.legend(loc="upper left", frameon=False)
   
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", (4, 3), ending=".pdf")

@@ -11,8 +11,6 @@ def newton(f, x0=0., tol=1e-14):
     "solve f(x) = 0 with initial guess x = x0"
     df = grad(f)
     x = x0
-    #print f(x)
-    #print df(x)
     while np.abs(f(x)) > tol:
         x -= f(x)/df(x)
         print "|f(x)|", np.abs(f(x))
@@ -24,7 +22,7 @@ def minimize(F, x0=0., tol=1e-14):
     return newton(grad(F), x0=x0, tol=tol)
 
 def NLS(ti, yi, t0=0., tol=1e-14):
-    "nonlinear least squares to find parameter t so that F(xi, t) \approx yi"
+    "nonlinear least squares to fit exponential distribution with mean exp(x)"
     xi = np.log(ti)
     
     def f(x, xi, yi):
@@ -39,11 +37,28 @@ def NLS(ti, yi, t0=0., tol=1e-14):
         #print "|f(x)|", np.abs(df(x, xi, yi))
     return np.exp(x)
 
+def NLS_(F, xi, yi, x0=0., tol=1e-14):
+    "nonlinear least squares to find parameter x so that F(xi, x) \approx yi"
+    
+    def f(x, xi, yi):
+        return np.sum((F(xi, x) - yi)**2)
+    
+    # minimize f by solving df(x) = 0 with newton method
+    df = grad(f)
+    ddf = grad(df)
+    x = x0
+    while np.abs(df(x, xi, yi)) > tol:
+        x -= df(x, xi, yi)/ddf(x, xi, yi)
+        print "|df(x)|", np.abs(df(x, xi, yi))
+    return x
 
 if __name__ == "__main__":
     x = 0.1234
-    ti = np.logspace(-3, 3, 100)
-    xi = np.log(ti)
-    yi = 1. - np.exp(-np.exp(xi - x)) #+ 1e-3*np.random.randn(100)
+    xi = np.linspace(-3, 3, 100)
     
-    print NLS(ti, yi, 1.), np.exp(x)
+    def F(xi, x):
+        return 1. - np.exp(-np.exp(xi - x))
+        
+    yi = F(xi, x) + 1e-6*np.random.randn(100)
+    
+    print NLS_(F, xi, yi), x
