@@ -43,7 +43,7 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
-plot_cdf = False
+plot_cdf = True
 voltage_dependence = True
 determine_delta = False
 
@@ -290,7 +290,7 @@ if voltage_dependence:
     vv = np.linspace(0., 400., 10)
     plt.plot(vv, k * np.exp(c*vv), "-r")
     
-    v = np.array([-0., -0.5, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
+    v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
     z = 0.95
     dx = 5.5
     koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
