@@ -34,7 +34,8 @@ params = nanopores.user_params(
     initial = "sphere",
 
     # receptor params
-    tbind = 40e9, # = 1/kd = 1/(25e-3)s [ns]
+    tbind = 40e9, # from Lata, = 1/kd = 1/(25e-3)s [ns]
+    # tbind = 286e9, from Wei, = 1/kd = 1/(3.5e-3)s [ns]
     ka = 1.5e5,
     zreceptor = .95, # receptor location relative to pore length (1 = top)
 )
@@ -42,26 +43,32 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
-plot_distribution = False
-plot_cdf = True
-voltage_dependence = True
+plot_distribution = True
+plot_cdf = False
+voltage_dependence = False
 determine_delta = False
+fit_koff0 = False
 
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
 dx = 5.5
+kd = 25e-3
 
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
+    kd0 = params["kd"] if "kd" in params else kd
+    tbindfromkd = 1e9/kd0
+    tbind0 = params["tbind"] if "tbind" in params else tbindfromkd
     return dict(
     exclusion = False,
     walldist = 1.,
     #minsize = 0.01, # accuracy when performing reflection
 
     binding = True,
-    t = params["tbind"], # mean of exponentially distributed binding duration [ns]
+    t = tbind0, # mean of exponentially distributed binding duration [ns]
+    #t = 1e9/kd0,
     ka = params["ka"], # (bulk) association rate constant [1/Ms]
     ra = ra, # radius of the association zone [nm]
     bind_type = "zone",
@@ -196,10 +203,13 @@ def tauoff_wei():
     return fake
 
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-@fields.cache("wei_koff_2", default=dict(params, dx=1.))
-def fit_koff(**params):
+@fields.cache("wei_koff_2", default=dict(params, dx=5.5, N=10000, 
+              dp=30., geop=dict(dp=30.), nmax=523, NN=4e8))
+def fit_koff(nmax=523, NN=4e8, **params):
+    tbind = params.pop("tbind")
+    params["kd"] = 1e9/tbind
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True)
-    times = draw_empirically(rw, N=4e8, nmax=523, success=False)
+    times = draw_empirically(rw, N=NN, nmax=nmax, success=False)
     bins = np.logspace(np.log10(min(times)), np.log10(max(times)), 35)
     #bins = np.logspace(-3., 2., 35)
     hist, _ = np.histogram(times, bins=bins)
@@ -217,7 +227,7 @@ if plot_distribution:
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
     tt = np.linspace(0.25, 200., 100)
-    plt.figure("attempt_times")
+    plt.figure("attempt_times", figsize=(4,3))
     plt.hist(ta, bins=tt, normed=True, label="Simulations")
     ta0 = ta.mean()
     plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
@@ -228,24 +238,42 @@ if plot_distribution:
     plt.legend()
     
     forces = np.array([f for F in rw.binding_zone_forces for f in F])
-    plt.figure("force")
+    plt.figure("force", figsize=(4,3))
     plt.hist(1e12*forces, bins=200, normed=True)
     plt.xlabel("Force [pN]")
     plt.ylabel("Rel. frequency")
     
-    plt.figure("hist")
+    plt.figure("hist", figsize=(5,3))
+    NN = 3e8
     fake = tauoff_wei()
-    tfail, tsuccess = draw_empirically(rw, N=3e8, nmax=len(fake))
+    tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
     a, b = -6.5, 3 # log10 of plot interval
     bins = np.logspace(a, b, 40)
-    plt.hist(tsuccess, bins=bins, color="green", alpha=0.6, rwidth=0.9, label="Translocated", zorder=50)
-    plt.hist(tfail, bins=bins, color="red", alpha=0.6, rwidth=0.9, label="Did not translocate")
-    plt.hist(fake, bins=bins, histtype="step", color="orange", label="Wei et al.", zorder=100)
+    plt.hist(tsuccess, bins=bins, color="green",
+             alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Lata)", zorder=50)
+    plt.hist(tfail, bins=bins, color="red",
+             alpha=0.6, rwidth=0.9, label=r"Did not translocate ($k_d$: Lata)")
+    
+    # add histogram for kd fitted from wei
+    params2 = dict(params)
+    tbind = params2.pop("tbind")
+    params2["kd"] = 3.5e-3
+    rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
+    tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
+    plt.hist(tsuccess, bins=bins, color="green",  histtype="step", linestyle="--",
+             alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Wei)", zorder=200)
+    plt.hist(tfail, bins=bins, color="red",   histtype="step", linestyle="--",
+             alpha=0.6, rwidth=0.9, label=r"Did not translocate ($k_d$: Wei)")
+    plt.hist(fake, bins=bins, histtype="step",
+             color="orange", label="Experiments (Wei et al.)", zorder=100)
+    
+    
     plt.xscale("log")
     plt.yscale("log")
     plt.ylabel("Count")
     plt.xlabel(r"$\tau$ off [s]")
     plt.ylim(ymin=1.)
+    plt.xlim(xmax=1e4)
     plt.legend()
 
 ###### reproduce cumulative tauoff plot with fits and different bV
@@ -277,6 +305,33 @@ def regression(bV, koff):
     y = np.log(koff)
     a, b = tuple(np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, y)))
     return a, np.exp(b)
+
+######
+def koff0(kd, **params):
+    return fit_koff(name="wei_koff_3", bV=0., tbind=1e9/kd, **params).koff
+
+if fit_koff0:
+    plt.figure("koff0", figsize=(3.5, 3))
+    kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
+    ko = np.array([1e3*koff0(k*1e-3, NN=5e8, nmax=10000) for k in kd])
+    c = ko.mean()/kd.mean()
+    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*5.5)*nanopores.kT)
+    # F0 = 0.184 pN
+    plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
+    plt.plot(kd, ko, "oC1", label="Simulations")
+    plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}$ = C*$k_d$")
+    plt.plot(kd, kd, ":C2", label=r"$k_{off}$ = $k_d$")
+    plt.ylim(ymax=7)
+    #plt.xlim(2.9, 4.6)
+    #plt.fill_between(plt.xlim(), [4.5 - 0.6]*2, [4.5 + 0.6]*2, alpha=0.5, color="C1")
+    
+    #plt.xticks(kd)
+    #plt.yticks(kd)
+    #plt.xlim(plt.ylim())
+    #plt.axis("equal")
+    plt.xlabel(r"Bulk dissociation constant $k_d$ [10$^{-3}$/(Ms)]")
+    plt.ylabel(r"Observed $k_{off}$ [10$^{-3}$/(Ms)]")
+    plt.legend(frameon=False, loc="upper left")
 
 ###### recreate voltage-dependent plot of koff
 if voltage_dependence:
@@ -384,7 +439,7 @@ if determine_delta:
     #                     fplot(cdx_exp + vdx_exp, dxx), alpha=0.5)
     
     #plt.plot(dx, fplot(cdx, dx), "o", label="Simulation")
-    plt.plot(dx, fplot(cdx, dx), "o", label="Simulation", color="C1")
+    plt.plot(dx, fplot(cdx, dx), "o", label="Simulations", color="C1")
     for i in (0, 1, 2):
         plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
     #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
@@ -398,4 +453,4 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
   
 import folders
-nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", (4, 3), ending=".pdf")
+nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".pdf")

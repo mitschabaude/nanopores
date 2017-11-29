@@ -521,28 +521,30 @@ class CacheBase(object):
         self.overwrite = overwrite
 
     def __call__(self, f):
-        def wrapper(**params):
+        def wrapper(name=None, calc=True, **params):
+            if name is None:
+                name = self.name
             params = Params(self.default, **params)
-
-            if self.overwrite or not self._exists(params):
+            if calc and (
+                    self.overwrite or not self._exists(name, params)):
                 out = f(**params)
-                self._save(out, params)
+                self._save(name, out, params)
 
-            return self._load(params)
+            return self._load(name, params)
         return wrapper
 
-    def _exists(self, params):
-        return exists(self.name, **params)
+    def _exists(self, name, params):
+        return exists(name, **params)
 
 class cache(CacheBase):
     "default -- for cashing simple json-able output"
 
-    def _save(self, result, params):
-        save(self.name, params, result=result)
+    def _save(self, name, result, params):
+        save(name, params, result=result)
         update()
 
-    def _load(self, params):
-        result = get_entry(self.name, "result", **params)
+    def _load(self, name, params):
+        result = get_entry(name, "result", **params)
         if isinstance(result, dict):
             result = Params(result)
         return result
