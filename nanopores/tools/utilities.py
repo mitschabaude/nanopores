@@ -268,10 +268,13 @@ def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight", ending=".e
     if not DIR.endswith("/"): DIR = DIR + "/"
     assertdir(DIR)
     if len(plt.get_fignums()) == 1:
-        fig = plt.figure(plt.get_fignums()[0])
+        num = plt.get_fignums()[0]
+        fig = plt.figure(num)
+        label = fig.get_label()
+        label = "" if label=="" else "_"+label
         if size is not None:
             fig.set_size_inches(size)
-        fig.savefig(DIR + name + ending, bbox_inches=bbox_inches)
+        fig.savefig(DIR + name + label + ending, bbox_inches=bbox_inches)
         return
     for num in plt.get_fignums():
         fig = plt.figure(num)

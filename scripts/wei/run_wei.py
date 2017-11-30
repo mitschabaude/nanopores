@@ -1,6 +1,7 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
-import matplotlib.pyplot as  plt
+import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerTuple
 import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
@@ -208,7 +209,9 @@ def tauoff_wei():
 def fit_koff(nmax=523, NN=4e8, **params):
     tbind = params.pop("tbind")
     params["kd"] = 1e9/tbind
+    dx = params.pop("dx")
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True)
+    rw.domains[1].dx = dx
     times = draw_empirically(rw, N=NN, nmax=nmax, success=False)
     bins = np.logspace(np.log10(min(times)), np.log10(max(times)), 35)
     #bins = np.logspace(-3., 2., 35)
@@ -228,11 +231,11 @@ if plot_distribution:
     #tt = np.logspace(-.5, 2.5, 100)
     tt = np.linspace(0.25, 200., 100)
     plt.figure("attempt_times", figsize=(4,3))
-    plt.hist(ta, bins=tt, normed=True, label="Simulations")
+    plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
     ta0 = ta.mean()
     plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
     #plt.xscale("log")
-    plt.yscale("log")
+    #plt.yscale("log")
     plt.xlabel("Attempt time [ns]")
     plt.ylabel("Rel. frequency")
     plt.legend()
@@ -243,16 +246,17 @@ if plot_distribution:
     plt.xlabel("Force [pN]")
     plt.ylabel("Rel. frequency")
     
-    plt.figure("hist", figsize=(5,3))
+    plt.figure("hist", figsize=(4.5,3))
     NN = 3e8
     fake = tauoff_wei()
     tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
     a, b = -6.5, 3 # log10 of plot interval
     bins = np.logspace(a, b, 40)
-    plt.hist(tsuccess, bins=bins, color="green",
+    _, _, gptchs = plt.hist(tsuccess, bins=bins, color="green", log=True,
              alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Lata)", zorder=50)
-    plt.hist(tfail, bins=bins, color="red",
+    _, _, rptchs = plt.hist(tfail, bins=bins, color="red", log=True,
              alpha=0.6, rwidth=0.9, label=r"Did not translocate ($k_d$: Lata)")
+    handler_sim1 = (gptchs[0], rptchs[0])
     
     # add histogram for kd fitted from wei
     params2 = dict(params)
@@ -260,21 +264,31 @@ if plot_distribution:
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
-    plt.hist(tsuccess, bins=bins, color="green",  histtype="step", linestyle="--",
-             alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Wei)", zorder=200)
-    plt.hist(tfail, bins=bins, color="red",   histtype="step", linestyle="--",
-             alpha=0.6, rwidth=0.9, label=r"Did not translocate ($k_d$: Wei)")
-    plt.hist(fake, bins=bins, histtype="step",
-             color="orange", label="Experiments (Wei et al.)", zorder=100)
+    _, _, gptchs = plt.hist(tsuccess, bins=bins, color="green", log=True,
+                            histtype="step", linestyle="--", alpha=0.6,
+                            rwidth=0.9, label=r"Translocated ($k_d$: Wei)", zorder=200)
+    _, _, rptchs = plt.hist(tfail, bins=bins, color="red", log=True,
+                            histtype="step", linestyle="--", alpha=0.6,
+                            rwidth=0.9, label=r"Did not translocate ($k_d$: Wei)")
+    handler_sim2 = (gptchs[0], rptchs[0])
     
+    _, _, ptchs = plt.hist(fake, bins=bins, histtype="step", log=True,
+             color="orange", label="Experiments (Wei et al.)", zorder=100)
+    handler_exp = ptchs[0]
     
     plt.xscale("log")
-    plt.yscale("log")
+    #plt.yscale("log")
     plt.ylabel("Count")
     plt.xlabel(r"$\tau$ off [s]")
     plt.ylim(ymin=1.)
-    plt.xlim(xmax=1e4)
-    plt.legend()
+    #plt.xlim(xmax=1e4)
+    #plt.legend()
+    plt.legend([handler_exp, handler_sim1, handler_sim2],
+               ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)", r"Sim. ($k_d$ from Wei)"],
+    #plt.legend([handler_exp, handler_sim1],
+    #           ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)"],
+                handler_map={tuple: HandlerTuple(ndivide=None)})
+    #scatterpoints=1, numpoints=1, 
 
 ###### reproduce cumulative tauoff plot with fits and different bV
 voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
@@ -319,8 +333,8 @@ if fit_koff0:
     # F0 = 0.184 pN
     plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
     plt.plot(kd, ko, "oC1", label="Simulations")
-    plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}$ = C*$k_d$")
-    plt.plot(kd, kd, ":C2", label=r"$k_{off}$ = $k_d$")
+    plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}^{V=0}$ = C*$k_d$")
+    plt.plot(kd, kd, ":C2", label=r"$k_{off}^{V=0}$ = $k_d$")
     plt.ylim(ymax=7)
     #plt.xlim(2.9, 4.6)
     #plt.fill_between(plt.xlim(), [4.5 - 0.6]*2, [4.5 + 0.6]*2, alpha=0.5, color="C1")
@@ -330,35 +344,45 @@ if fit_koff0:
     #plt.xlim(plt.ylim())
     #plt.axis("equal")
     plt.xlabel(r"Bulk dissociation constant $k_d$ [10$^{-3}$/(Ms)]")
-    plt.ylabel(r"Observed $k_{off}$ [10$^{-3}$/(Ms)]")
+    plt.ylabel(r"Observed $k_{off}^{V=0}$ [10$^{-3}$/(Ms)]")
     plt.legend(frameon=False, loc="upper left")
 
 ###### recreate voltage-dependent plot of koff
 if voltage_dependence:
     # get experimental data
-    plt.figure("koff")
+    plt.figure("koff", figsize=(4, 3.5))
     data = np.genfromtxt("koff.csv", delimiter=",")
     v = data[:, 0]
     koff = data[:, 1]
-    c, k = regression(np.abs(v), koff)
-    plt.plot(v, koff, "vr", markersize=12, label="Wei et al.")
+    c0, k0 = regression(np.abs(v), koff)
+    plt.plot(v, koff, "sr", markersize=10, label="Experiments (Wei et al.)")
     vv = np.linspace(0., 400., 10)
-    plt.plot(vv, k * np.exp(c*vv), "-r")
+    plt.plot(vv, k0 * np.exp(c0*vv), "-r")
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
+    mv = np.abs(v)*1e3
     z = 0.95
-    dx = 5.5
+    dx = 5.6
     koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
-    v = np.abs(v)*1e3
-    c, k = regression(v[-4:], koff[-4:])
-    plt.plot(v, koff, "v", markersize=12, label="Simulation",
-             markerfacecolor=None, color="#990000")
-    plt.plot(vv, k * np.exp(c*vv), "-", color="#990000")
+    c1, k1 = regression(mv[-4:], koff[-4:])
+    plt.plot(mv, koff, "v", markersize=10, label=r"Sim. ($k_d$ from Lata)",
+             color="#990000")
+    plt.plot(vv, k1 * np.exp(c1*vv), "-", color="#990000")
+             
+    # and again with different kd
+    kd = 3.5e-3
+    koff1 = [fit_koff(bV=V, zreceptor=z, dx=dx,
+                     tbind=1e9/kd, **newparams).koff for V in v]
+    c2, k2 = regression(mv[-4:], koff1[-4:])
+    plt.plot(mv, koff1, "o", markersize=8, label=r"Sim. ($k_d$ from Wei)",
+             mfc="None", mec="#990000")
+    #plt.plot(vv, k2 * np.exp(c2*vv), ":", color="#990000")
 
     plt.yscale("log")
+    plt.ylim(ymax=.9e3)
     plt.xlabel("Voltage [mV]")
     plt.ylabel("k off [1/s]")
-    plt.legend(frameon=False)
+    plt.legend(frameon=False, loc="upper left")
     
 ###### read koff-bV dependence from wei data
 koff0 = np.array([])
@@ -452,5 +476,7 @@ if determine_delta:
     plt.ylabel(r"$\alpha$ [1/V]")
     plt.legend(loc="upper left", frameon=False)
   
+print plt.get_fignums()
+print plt.get_figlabels()
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".pdf")
