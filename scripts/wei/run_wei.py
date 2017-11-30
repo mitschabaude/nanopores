@@ -8,7 +8,9 @@ from nanopores.tools import fields
 fields.set_dir_mega()
 
 from nonlinear_least_squares import NLS
-# TODO: fit bond rupture length to wei data
+# TODO: to finish this off satisfactorily, it would be nice to infer a tau on
+# histogram from exponentially distributed arrivals at the pore entrance
+# according to diffusion theory
 
 params = nanopores.user_params(
     # general params
@@ -475,8 +477,6 @@ if determine_delta:
     plt.xlabel(r"Bond rupture length $\delta$ [nm]")
     plt.ylabel(r"$\alpha$ [1/V]")
     plt.legend(loc="upper left", frameon=False)
-  
-print plt.get_fignums()
-print plt.get_figlabels()
+
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".pdf")
