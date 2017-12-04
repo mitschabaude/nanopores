@@ -22,27 +22,32 @@ def lazy_import():
     from nanopores.geometries.alphahempoly import poly as alphahempoly
 
 def get_geo(geoname=None, **params):
-    lazy_import()
-    geoclass = geometries[geoname]()
     params["geoname"] = geoname
-    return geoclass.get_geo(**params)
+    geoclass = geometries[geoname](**params)
+    return geoclass.get_geo()
 
 def get_pore(geoname=None, **params):
-    lazy_import()
-    geoclass = geometries[geoname]()
     params["geoname"] = geoname
-    return geoclass.get_pore(**params)
+    geoclass = geometries[geoname](**params)
+    return geoclass.get_pore()
 
 class BasePore(object):
-
-    def get_geo(self, h=1., reconstruct=False, **params):
+    
+    default = dict(
+        dim = 2,
+        subs = None,
+    )
+    
+    def __init__(self, h=1., reconstruct=False, **params):
+        lazy_import()
         self.params = Params(self.default, **params)
         self.h = h
         self.reconstruct = reconstruct
+
+    def get_geo(self):
         return self.build()
 
-    def get_pore(self, **params):
-        self.params = Params(self.default, **params)
+    def get_pore(self):
         pore = self.pore()
         pore.build_nogeo()
         return pore
@@ -50,7 +55,7 @@ class BasePore(object):
 class PughPore(BasePore):
 
     @property
-    def default():
+    def default(self):
         return dict(pughpore.params,
         geoname = "pugh",
         diamPore = 6., # will override l0,.. if set
@@ -84,6 +89,72 @@ class PughPore(BasePore):
                 geo.curved = dict(moleculeb = molec.snap)
         elif params.dim == 1:
             geo = pughpore.get_geo1D(h, **params)
+        return geo
+    
+class PughPoreCyl(BasePore):
+    
+    default = dict(
+        # specify pore
+        l0 = 18., #22.5,
+        l1 = 14., #17.5,
+        l2 = 10., #12.5,
+        l3 = 6., #7.5,
+        l4 = 14., #17.5,
+        hpore = 46.,
+        h2 = 46.-35., # 11.
+        h1 = 46.-35.-2.5, # 8.5
+        h4 = 10.,
+        diamPore = 6., # will override l0,.. if set
+        diamDNA = 2.5, # will override l0,.. if diamPore set
+
+        dim = 2,
+        R = 20.,
+        H = 70.,
+        H0 = 60.,
+        R0 = None,
+        rMolecule = 2.0779, # molecular radius of protein trypsin
+        x0 = None,
+        lcMolecule = 0.2, # relative to global mesh size
+        lcCenter = 0.5,
+        hmem = 2.2,
+        zmem = -46./2. + 2.2/2.,
+        poreregion = True,
+        subs = None,
+    )
+        
+    def polygon(self):
+        "polygon of pore + membrane for plotting"
+        params = self.params
+        if params.diamPore is not None:
+            diamPore = params.diamPore # inner (effective) pore diameter
+            diamDNA = params.diamDNA # dna diameter of outer dna layers
+            l0 = diamPore + 6.*diamDNA
+            l1 = diamPore + 4.*diamDNA
+            l2 = diamPore + 2.*diamDNA
+            l3 = diamPore
+            l4 = l1
+            params.update(l0=l0, l1=l1, l2=l2, l3=l3, l4=l4)
+    
+        r = [0.5*params.l3, 0.5*params.l2, 0.5*params.l1, 0.5*params.l0,
+             0.5*params.l4]
+        ztop = params.hpore/2.
+        zbot = -ztop
+        z = [zbot, ztop - params.h2, ztop - params.h1, ztop, zbot + params.h4]
+        # indices: [(0,0), (0,1), (1,1), (1,2), ..., (4,4), (4,0)]
+        n = len(r)
+        return [(r[i / 2 % n], z[(i+1) / 2 % n]) for i in range(2*n)]
+    
+    def pore(self):
+        params = self.params
+        dna = self.polygon()
+        pore = MultiPore(**params)
+        pore.add_polygons(dna=dna)
+        pore.synonymes = dict(chargeddnab="dnab")
+        return pore
+    
+    def build(self):
+        pore = self.pore()
+        geo = pore.build(self.h, self.params.subs, self.reconstruct)
         return geo
 
 class AlphaHem(BasePore):
@@ -199,6 +270,7 @@ class WeiPore(BasePore):
 geometries = dict(
     wei = WeiPore,
     pugh = PughPore,
+    pughcyl = PughPoreCyl,
     alphahem = AlphaHem,
 )
 

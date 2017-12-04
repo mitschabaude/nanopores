@@ -92,6 +92,17 @@ class Polygon(object):
         x = min(I.keys(), key=lambda t: t[1])
         self.add(x, I[x])
         return x
+    
+    def add_intersection(self, side, t):
+        # replaces four functions above
+        # side in {"top", "bottom", "left", "right"}
+        axis = 0 if side in {"top", "bottom"} else 1
+        ext = min if side in {"bottom", "left"} else max
+        I = self.intersections(t, axis=axis)
+        if not I: return
+        x = ext(I.keys(), key=lambda t: t[1 - axis])
+        self.add(x, I[x])
+        return x
 
     def all_intersections(self, z, axis=1):
         I = self.intersections(z, axis)
@@ -221,6 +232,20 @@ class Polygon(object):
         pol.b = b
         pol.c = c
         pol.d = d
+        return pol
+    
+    def clip_from(self, side, a1, b1, c0):
+        # generalization of above two
+        # side in {"top", "bottom", "left", "right"}
+        # with naming logic as in cip_from_right
+        # (a1, b1 are clockwise, not ascending)
+        a = self.add_intersection(side, a1)
+        b = self.add_intersection(side, b1)
+        c = (c0, b1) if side in {"left", "right"} else (b1, c0)
+        d = (c0, a1) if side in {"left", "right"} else (a1, c0)
+        pol = Polygon(self.nrange(a, b, -1) + [c, d])
+        a, b, c, d = canonical_order(a, b, c, d)
+        pol.set_corners(a, b, c, d)
         return pol
 
     def cut_path(self, a, b):
@@ -621,32 +646,37 @@ class PolygonPore(object):
             self.polygons["poreregion_top"] = EmptySet()
             self.polygons["poreregion_bottom"] = EmptySet()
             return sections
-        if not "H0" in self.params:
+        if not "H0" in self.params or self.params.H0 is None:
             self.params["H0"] = 0.5*self.params.H + self.protein.zmax()[1]
-        if not "R0" in self.params:
+        if not "R0" in self.params or self.params.R0 is None:
             self.params["R0"] = self.protein.rmax()[0]
         H0 = self.params.H0
         R0 = self.params.R0
         H0top = H0bot = H0/2.
         #print self.protein.zmax()[1], H0top, self.params.H*0.5
 
-        section = sections[-1]
-        a = section.b
-        d = self.protein.top_intersection(R0)
-        upper = self.protein.nrange(d, section.c, -1) + [a]
-        b, c = (0, H0top), (R0, H0top)
-        nodes = [b, c] + upper
-        prtop = Polygon(nodes)
-        prtop.set_corners(a, b, c, d)
+        center = MultiPolygon(self.protein, self.membrane, *sections)
+        prtop = center.clip_from("top", R0, 0, H0top)
+        prbot = center.clip_from("bottom", 0, R0, -H0bot)
 
-        section = sections[0]
-        b = section.a
-        c = self.protein.bottom_intersection(R0)
-        lower = [b] + self.protein.nrange(section.d, c, -1)
-        a, d = (0, -H0bot), (R0, -H0bot)
-        nodes = lower + [d, a]
-        prbot = Polygon(nodes)
-        prbot.set_corners(a, b, c, d)
+        # OLD VERSION: doesn't work bc pore region and memb can overlap
+#        section = sections[-1]
+#        a = section.b
+#        d = self.protein.top_intersection(R0)
+#        upper = self.protein.nrange(d, section.c, -1) + [a]
+#        b, c = (0, H0top), (R0, H0top)
+#        nodes = [b, c] + upper
+#        prtop = Polygon(nodes)
+#        prtop.set_corners(a, b, c, d)
+#
+#        section = sections[0]
+#        b = section.a
+#        c = self.protein.bottom_intersection(R0)
+#        lower = [b] + self.protein.nrange(section.d, c, -1)
+#        a, d = (0, -H0bot), (R0, -H0bot)
+#        nodes = lower + [d, a]
+#        prbot = Polygon(nodes)
+#        prbot.set_corners(a, b, c, d)
 
         self.polygons["poreregion_top"] = prtop
         self.polygons["poreregion_bottom"] = prbot
@@ -820,6 +850,15 @@ class MultiPolygonPore(PolygonPore):
 
         return boundaries
 
+def canonical_order(*corners):
+    """return corners of enclosing rectangle in their canonical order 
+    (clockwise starting from bottom left).
+    can be used to simply reorder rectangle nodes."""
+    xmin = min(x[0] for x in corners)
+    xmax = max(x[0] for x in corners)
+    ymin = min(x[1] for x in corners)
+    ymax = max(x[1] for x in corners)
+    return (xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin)
 
 def join_nodes(polygons):
     return list(set([x for p in polygons for x in p.nodes]))

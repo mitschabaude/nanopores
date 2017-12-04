@@ -247,7 +247,7 @@ class RandomWalk(object):
 
         # load force and diffusivity fields
         F, D, divD = load_externals(**params)
-        self.F = self.ood_evaluation(F)
+        self.F = F #self.ood_evaluation(F)
         self.D = D #self.ood_evaluation(D)
         self.divD = divD #self.ood_evaluation(divD)
         self.phys = nanopores.Physics("pore_mol", **params)
@@ -581,7 +581,7 @@ class RandomWalk(object):
         "for matplotlib plotting"
         xz = self.x[:, [0,2]]
         #xz = self.rz
-        sizes = self.params.rMolecule*np.ones(self.N)
+        sizes = 2.*self.params.rMolecule*np.ones(self.N)
         colors = ["b"]*self.N
         coll = collections.EllipseCollection(sizes, sizes, np.zeros_like(sizes),
                    offsets=xz, units='x', facecolors=colors,

@@ -31,7 +31,6 @@ physp = nano.Params(
     posDTarget = True,
 ),
 solverp = nano.Params(
-    # TODO: add possibility of hybrid solve and PNP-only solve
     h = 1.,
     frac = 0.2,
     Nmax = 2e4,
@@ -160,13 +159,15 @@ def get_forces(setup, pnps):
     forces.update(pnps.evaluate(setup.phys.ForcesPNPS))
     return forces
 
-def prerefine(setup, visualize=False):
+def prerefine(setup, visualize=False, debug=False):
     geo, phys, p = setup.geo, setup.phys, setup.solverp
     dolfin.tic()
     if setup.geop.x0 is None:
         goal = phys.CurrentPB
     else:
         goal = lambda v: phys.CurrentPB(v) + phys.Fbare(v, phys.dim-1)
+    if debug:
+        plotter = Plotter(setup)
     pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal, cheapest=p.cheapest)
 
     for i in pb.adaptive_loop(p.Nmax, p.frac, verbose=True):
@@ -177,6 +178,10 @@ def prerefine(setup, visualize=False):
             if phys.dim==2:
                 dolfin.plot(geo.boundaries, key="b", title="adapted mesh",
                             scalarbar=False)
+        if debug:
+            u = pb.solution
+            plotter.plot(u, "pb")
+            #dolfin.interactive()
     print "CPU time (PB): %.3g s" %(dolfin.toc(),)
     return pb
 

@@ -5,11 +5,17 @@ pore (given by a set of nodes) and some additional parameters, like membrane
 thickness and position etc. In 3D there is the possibility of adding solid
 spheres at arbitrary positions; in 2D, half-spheres that lie on the
 central axis."""
+
 # TODO: Use the list of domains and boundaries, together with initial mesh
 # creation parameters and adaptivity parameters that apply to ALL pores,
 # to create an accurate string representation of the adapted mesh, which can
 # then easily be reused and only has to be saved once, e.g. for saved force
 # fields.
+
+# TODO: For 3D extension it should be easy to add "rotations" other than along
+# a circle, i.e. along an ellipse, square or arbitrary polygonal closed curve;
+# just add parameter affecting behaviour of Pore.CylSurfaces.
+
 import nanopores.py4gmsh as gmsh
 import nanopores.geometries.curved as curved
 from nanopores.geo2xml import geofile2geo, reconstructgeo
