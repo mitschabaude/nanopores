@@ -123,7 +123,6 @@ class PughPoreCyl(BasePore):
     )
         
     def polygon(self):
-        "polygon of pore + membrane for plotting"
         params = self.params
         if params.diamPore is not None:
             diamPore = params.diamPore # inner (effective) pore diameter

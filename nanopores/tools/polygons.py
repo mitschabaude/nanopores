@@ -47,13 +47,13 @@ class Polygon(object):
         if newpath or not hasattr(self, "path"):
             self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
         #return np.array([self.path.contains_point(t) for t in x])
-        return self.path.contains_points(x, radius=radius)
+        return self.path.contains_points(x, radius=2.*radius)
 
     def inside_single(self, x, radius=0., newpath=False):
         x = np.array([np.sqrt(x[0]**2 + x[1]**2), x[2]])
         if newpath or not hasattr(self, "path"):
             self.path = mpath.Path(np.array(self.nodes[::-1]), closed=True)
-        return self.path.contains_point(x, radius=radius)
+        return self.path.contains_point(x, radius=2.*radius)
         #return self.path.contains_points(np.array([x]), radius=radius)[0]
         
     def inside_winding(self, r, z):
@@ -422,6 +422,14 @@ class MultiPolygon(Polygon):
             for p in self.polygons:
                 p.cut_from_left(r)
             self.__init__(*self.polygons)
+            
+class Rectangle(Polygon):
+    
+    def __init__(self, x, y):
+        "pass intervals for both dimension"
+        nodes = [(x[0], y[0]), (x[0], y[1]), (x[1], y[1]), (x[1], y[0])]
+        Polygon.__init__(self, nodes)
+        self.set_corners(*nodes)
 
 class Ball(object):
 

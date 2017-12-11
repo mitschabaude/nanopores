@@ -1,5 +1,9 @@
 # (c) 2017 Gregor Mitscha-Baude
 "random walk of many particles in cylindrical pore"
+# TODO: bug: walldist = 2 works like what would be expected for = 1
+# have hardcoded *2 in .contains_point
+# => properly investigate matplotlib.path.contains_point
+# and make code transparent
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -15,7 +19,7 @@ from nanopores.models import nanopore
 from nanopores.tools.poreplots import streamlines
 from nanopores.tools import fields
 
-dolfin.parameters["allow_extrapolation"] = False #True
+dolfin.parameters["allow_extrapolation"] = True #False #TODO:
 
 params = nanopores.user_params(
     # general params
@@ -32,7 +36,7 @@ params = nanopores.user_params(
     # random walk params
     N = 100, # number of (simultaneous) random walks
     dt = 10., # time step [ns]
-    walldist = 2., # in multiples of radius, should be >= 1
+    walldist = 1., # in multiples of radius, should be >= 1
     margtop = 40.,
     margbot = 20.,
     initial = "disc",  # oder "sphere"
@@ -42,7 +46,7 @@ params = nanopores.user_params(
 # and/or be reflected after collision
 domain_params = dict(
     cyl = False, # determines whether rz or xyz coordinates are passed to .inside
-    walldist = 1.5, # multiple of radius that determines what counts as collision
+    walldist = 1., # multiple of radius that determines what counts as collision
 
     exclusion = True,
     minsize = 0.01, # accuracy when performing reflection
@@ -131,8 +135,8 @@ class Domain(object):
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
             elif self.bind_type == "zone":
-                # TODO: only Ball!!!
-                rzone = self.rbind - self.domain.r
+                rzone = self.rbind - self.domain.r if isinstance(
+                        self.domain, Ball) else self.rbind
                 # determine particles in binding zone
                 attempt = self.domain.inside(X, radius=rzone)
                 iattempt = rw.i[rw.alive][attempt]
@@ -158,6 +162,7 @@ class Domain(object):
                 unbind = ~self.domain.inside(X_can_not_bind, radius=rzone)
                 iunbind = rw.i[rw.alive][~can_bind][unbind]
                 rw.can_bind[iunbind] = True
+                
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
@@ -335,7 +340,9 @@ class RandomWalk(object):
         dom.initialize_binding_zone(self)
 
     def add_wall_binding(self, **params):
-        self.domains[0].__dict__.update(params, binding=True)
+        dom = self.domains[0]
+        dom.__dict__.update(params, binding=True)
+        dom.initialize_binding_zone(self)
         
     def set_stopping_criteria(self, success=None, fail=None):
         if success is not None:
@@ -584,7 +591,7 @@ class RandomWalk(object):
         sizes = 2.*self.params.rMolecule*np.ones(self.N)
         colors = ["b"]*self.N
         coll = collections.EllipseCollection(sizes, sizes, np.zeros_like(sizes),
-                   offsets=xz, units='x', facecolors=colors,
+                   offsets=xz, units="xy", facecolors=colors,
                    transOffset=ax.transData, alpha=0.7)
         return coll
 
@@ -714,12 +721,13 @@ def get_results(name, params, setup=setup_default, calc=True):
         data = load_results(name, **params)
     return data
 
-def reconstruct_rw(data, params, setup=setup_default, finalize=True):
+def reconstruct_rw(data, params, setup=setup_default, finalize=True,
+                   **setup_args):
     """if positions were recorded, the complete random walk instance
     can IN PRINCIPLE be reconstructed and restarted.
     this is a simple first attempt."""
     # TODO: recreate rw.rz, rw.t, rw.can_bind    
-    rw = setup(params)
+    rw = setup(params, **setup_args)
     rw.__dict__.update(
         times = data.times - data.bind_times,
         success = data.success,
@@ -741,9 +749,12 @@ def reconstruct_rw(data, params, setup=setup_default, finalize=True):
         rw.finalize()
     return rw
     
-def get_rw(name, params, setup=setup_default, calc=True, finalize=True):
+def get_rw(name, params, setup=setup_default, calc=True, finalize=True,
+           **setup_args):
+    # setup_args are only relevant to reconstructed rw
+    # everything that influences data have to be in params
     data = get_results(name, params, setup, calc)
-    return reconstruct_rw(data, params, setup, finalize)
+    return reconstruct_rw(data, params, setup, finalize, **setup_args)
 
 def video(rw, cyl=False, **aniparams):
     R = rw.params.R
