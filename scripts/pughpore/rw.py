@@ -169,9 +169,10 @@ def NLS2(ti, yi, t10=1., t20=100., w0=0.5, tol=1e-14):
         
     return theta[0], np.exp(theta[1]), np.exp(theta[2])
 
-def NLS_general(F, xi, yi, p0=1., tol=1e-14):
+def NLS_general(F, xi, yi, p0=1., tol=1e-12):
     "nonlinear least squares to fit arbitrary f with any number of parameters"
-    # F = F(x, p), p0 MUST match len(p), take array of x    
+    # F = F(x, p), p0 MUST match len(p), F takes array of x    
+    # F must be compatible with tangent module
     def f(p, xi, yi):
         return np.sum((F(xi, p) - yi)**2)
     
@@ -193,6 +194,47 @@ def NLS_general(F, xi, yi, p0=1., tol=1e-14):
         
     return tuple(p)
 
+def NLS_bruteforce(F, xi, yi, p, width=1., N=100):
+    # make p 1d array
+    p = np.atleast_1d(p)
+    # create parameter range
+    # TODO: this currently only applies to len(p)==2
+    x = np.logspace(-width, width, N)
+    xx = np.column_stack((np.repeat(x[:, None], len(x), 0),
+                          np.tile(x[:, None], [len(x), 1])))
+    pp = p[None, :] * xx
+    
+    f = np.sum((F(xi[None, :], pp) - yi)**2, 1)
+    i = np.argmin(f)
+    print "minimum:", f[i]
+    print "parameters:", pp[i, :]
+    return tuple(pp[i, :])
+
+def NLS_annealing(F, xi, yi, p, sigma=5., N=100, n=10):
+    # sigma = initial (multiplicative) standard deviation
+    # N = size of population in one iteration
+    # n = number of iterations
+    print "initial", p
+    p = np.atleast_1d(p)
+    dim = len(p)
+    factor = 0.5 # to reduce sigma per iteration
+    # make initial sigma act like multiplication by sigma^(+-1)
+    sigma = np.log(sigma)*np.ones(dim)
+    
+    for k in range(n):
+        # create new population by adding multiplicative gaussian noise
+        P = p[None, :] * np.exp(np.random.randn(N, dim) * sigma[None, :])
+        # compute mean square loss on population
+        f = np.mean((F(xi[None, :], P) - yi)**2, 1)
+        # replace p by new best guess
+        p = P[np.argmin(f), :]
+        # update sigma
+        sigma *= factor
+        print "parameters:", p
+    print "minimum", min(f)
+        
+    return tuple(p)
+        
 def fit_gamma(ti):
     mu = ti.mean()
     sigma = ti.std()
@@ -221,20 +263,30 @@ def fit_gamma(ti):
 from scipy.special import iv
 class CompoundGamma(object):
     
-    def __init__(self, ti, Kfit=1., taufit=1.):
+    def __init__(self, ti):
         self.ti = ti
-        K, tau = self.fit(ti)
-        self.K = K*Kfit
-        self.tau = tau*taufit
+        self.K, self.tau = self.fit_brute(ti)
         
     def fit_todo(self, ti, n=40):
+        pass
+        
+    def fit_naive(self, ti):
+        return fit_gamma(ti)
+    
+    def fit_brute(self, ti, n=100):
+        # first guess to get orders of magnitude right
+        p = np.array(fit_gamma(ti))
+        # define problem # TODO:
+        #xi = np.sort(ti)[int(len(ti)/n/2)::int(len(ti)/n)]
+        #yi = np.arange(len(xi))/float(len(xi))
         bins = np.logspace(np.log10(min(ti)), np.log10(max(ti)), n)
         hist, _ = np.histogram(ti, bins=bins)
-        cfd = np.cumsum(hist)/float(np.sum(hist))
-        t = 0.5*(bins[:-1] + bins[1:])
-        
-    def fit(self, ti):
-        return fit_gamma(ti)
+        xi = 0.5*(bins[:-1] + bins[1:])
+        yi = np.cumsum(hist)/float(np.sum(hist))
+        # minimize
+        #K, tau = NLS_bruteforce(self.cfd_vec, xi, yi, p, width=1., N=100)
+        K, tau = NLS_annealing(self.cfd_vec, xi, yi, p, N=100, n=20)
+        return K, tau
     
     def pdf_direct(self, tt, N=50):
         a = self.K
@@ -262,14 +314,22 @@ class CompoundGamma(object):
             S += s*gamma(tt, k, scale=tau)
         return 1./np.expm1(a) * S
     
+    def cfd_vec(self, tt, p, N=50):
+        # cdf that takes parameter as vector input, for fitting
+        a = p[:, 0:1]
+        tau = p[:, 1:2]
+        gamma = sp.stats.gamma.cdf
+        S = np.ones((p.shape[0], tt.shape[1]))
+        s = np.ones((1, tt.shape[0]))
+        for k in range(1, N):
+            s = s*a/k
+            S = S + s*gamma(tt, k, scale=tau)
+        return 1./np.expm1(a) * S
+    
     def gammainc(self, tt, k,tau):
         # TODO: can not differentiate wrt k
         # implement fitting yourself
         #for j in range(k):
-        pass
-    
-    def cdf_log(self, tt, N=50):
-        # cdf with logarithmic argument, for fitting
         pass
         
 
@@ -287,6 +347,10 @@ if todo.plot_distribution:
     cfd = np.cumsum(hist)/float(np.sum(hist))
     t = 0.5*(bins[:-1] + bins[1:])
     
+    #n = 100
+    #t = np.sort(ta1)[int(len(ta1)/n/2)::int(len(ta1)/n)]
+    #cfd = np.arange(len(t))/float(len(t))
+    
     plt.figure("ta_cfd", figsize=(4,3))
     tt = np.logspace(np.log10(min(ta1)), np.log10(max(ta1)), 100)
     plt.semilogx(t, cfd, "v", label="Simulations")
@@ -302,12 +366,8 @@ if todo.plot_distribution:
     #K, _, tau = sp.stats.gamma.fit(ta1)
     K = (tmean/ta1.std())**2
     tau = tmean/K
-    Kfit = 1.55
-    taufit = 0.55
-    K *= Kfit
-    tau *= taufit
     #plt.semilogx(tt, sp.stats.gamma.cdf(tt, K, scale=tau), label="Simple Gamma fit")
-    gamma = CompoundGamma(ta1, Kfit, taufit)
+    gamma = CompoundGamma(ta1)
     plt.semilogx(tt, gamma.cdf(tt), label="Compound Gamma fit")
     
     # double exponential fit
@@ -317,23 +377,25 @@ if todo.plot_distribution:
     
     plt.xlabel("Attempt time [ns]")
     plt.ylabel("Cumulative frequency")
+    plt.xlim(xmin=1.)
     plt.legend()
     
     xlog = False
     plt.figure("ta_hist", figsize=(4,3))
     #tt = np.logspace(-1, 4., 20)
-    tt = np.linspace(0., 200., 30)
+    bins = np.linspace(0., 200., 30)
+    tt = np.linspace(0., 200., 300)
     plt.figure("ta_hist", figsize=(4,3))
-    plt.hist(ta1, bins=tt, normed=True, log=False, label="Simulations")
+    plt.hist(ta1, bins=bins, normed=True, log=False, label="Simulations")
     
-    tt0 = tt if xlog else 1.
+    #tt0 = tt if xlog else 1.
     #plt.plot(tt, tt0/tmean * np.exp(-tt/tmean),
     #         label="Simple exp. fit, mean=%.3gns" % tmean)
     #plt.plot(tt, tt0/toff * np.exp(-tt/toff),
     #         label="Exp. fit, mean=%.3gns" % toff)
-    dt = rw.dt
-    kk = np.arange(1000)
-    k0 = tmean/dt
+    #dt = rw.dt
+    #kk = np.arange(1000)
+    #k0 = tmean/dt
     
     #plt.plot(tt, sp.stats.gamma.pdf(tt, K, scale=tau),
     #         label="Simple Gamma fit")
