@@ -210,14 +210,14 @@ def NLS_bruteforce(F, xi, yi, p, width=1., N=100):
     print "parameters:", pp[i, :]
     return tuple(pp[i, :])
 
-def NLS_annealing(F, xi, yi, p, sigma=5., N=100, n=10):
-    # sigma = initial (multiplicative) standard deviation
+def NLS_annealing(F, xi, yi, p, N=100, n=10, sigma=5.,factor=0.5):
     # N = size of population in one iteration
     # n = number of iterations
+    # sigma = initial (multiplicative) standard deviation
+    # factor = factor to reduce sigma per iteration
     print "initial", p
     p = np.atleast_1d(p)
     dim = len(p)
-    factor = 0.5 # to reduce sigma per iteration
     # make initial sigma act like multiplication by sigma^(+-1)
     sigma = np.log(sigma)*np.ones(dim)
     
@@ -331,6 +331,68 @@ class CompoundGamma(object):
         # implement fitting yourself
         #for j in range(k):
         pass
+    
+class Compound2Gamma2(CompoundGamma):
+    "fit one or two compound^2 gammas with possibly cut off events"
+    
+    def __init__(self, ti, ta=None, n_gammas=1, cutoff=False, use_ta_model=True):
+        self.ti = ti
+        self.n_gammas = n_gammas
+        self.cutoff = cutoff
+        # fitting of gamma (bind time) parameters
+        if ta is None:
+            # fit parameters tau, na, ga = ka*taua directly
+            # deduce ka for any given choice of taua
+            pass
+        else:
+            if use_ta_model:
+                # first fit attempt times to get na, taua,
+                # then fit bind times for tau, ga and deduce ka = ga/taua
+                pass
+            else:
+                # just simulate gamma-poisson distributed bind-times by drawing
+                # poisson/exp random numbers in forward mode, creating an
+                # simulated cdf to be matched with the experimental one
+                pass
+        self.fit(ti)
+        
+    def fit(self, ti):
+        pass
+    
+    def pdf_direct(self, tt, N=50):
+        # g = ka * taua
+        # q = g / (1 + g)
+        # P(N>0) = (1 - np.exp(-qa))
+        # P(N=n) = np.exp(-a) q**n/n! * Sk
+        # Sk = sum_k>=1 1/k!(n+k-1)!/(k-1)! (1-q)**k a**k
+        # f(t)* = np.exp(-t)/P(N>0) sum_n>=1 t**(n-1)/(n-1)! P(N=n)
+        # F(t)* = 1/P(N>0) sum_n>=1 Gamma(n,t) P(N=n)
+        pass
+    
+    def cdf(self, tt, N=50):
+        pass
+    
+    def pn_vec(self, n, ka, taua=None, na=None):
+        # ka = association rate in binding zone
+        # taua, na = parameters of attempt time distribution, determined by
+        # simulations
+        if taua is None:
+            taua = self.taua
+        if na is None:
+            na = self.na
+        #n = np.arange()
+    
+    def cdf_vec(self, tt, p, N=50):
+        # cdf that takes parameter as vector input, for fitting
+        a = p[:, 0:1]
+        tau = p[:, 1:2]
+        gamma = sp.stats.gamma.cdf
+        S = np.ones((p.shape[0], tt.shape[1]))
+        s = np.ones((1, tt.shape[0]))
+        for k in range(1, N):
+            s = s*a/k
+            S = S + s*gamma(tt, k, scale=tau)
+        return 1./np.expm1(a) * S
         
 
 if todo.plot_distribution:
