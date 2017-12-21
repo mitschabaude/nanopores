@@ -7,39 +7,46 @@ Uses simulated annealing as generic parameter search (=fitting) procedure.
 Based on the general framework we implement complicated distributions such as
 the compound Gamma-Poisson-Gamma-Poisson distribution.
 
-Should enable the following usage:
+Example usage:
 
 > K = Poisson(a=None) # None means it has to be fitted from samples
 > T = Gamma(K=K, tau=2.0) # Providing a value means fixing the parameter
 > T.fit(samples) # fits a and therefore determines both K and T
-> k = K.sample(N=1000)
-> plt.hist(k, bins=20)
-> plt.plot(k, K.pdf(k))
-> plt.figure()
+>
 > t = np.linspace(0., 5., 100)
-> plt.hist(samples)
-> plt.plot(t, T.cdf(t))
+> plt.hist(samples, normed=True)
+> plt.plot(t, T.pdf(t))
 """
+
+# TODOs:
+# -) naive fitting to arrive at better initial guess
+# -) check what is missing for discrete RVs (i.e. fitting)
+#
+# Further ideas:
+# -) direct integration for more exact dfs when no. parameters is small
+# -) any other stuff leveraging analytical knowledge, e.g. moments
+# -) more advanced evolution search strategies that are more reliable
+# -) think about what is the common generalization of this and neural nets with
+#    backpropagation. strategies for backpropagation combined with sampling?
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
-"""TODO: provide generic/particular fitting methods like "cdf",
-"log_cdf", "moments", "maximum_likelihood", ..."""
-
-_empty = dict()
-    
 class RandomVariable(object):
     
     i = 0
     parameters = {}
+    derived_from = []
 
     def __init__(self, **params):
         self.i = RandomVariable.i
         RandomVariable.i += 1
         self.constants = dict(self.parameters)
         self.inputs = {}
-        self.fixed = dict.fromkeys(self.parameters.keys(), False)
+        self.fixed = dict.fromkeys(self.parameters.keys(), True)
+        self.is_derived_from = {k: (True if k in self.derived_from else False
+                                 ) for k in self.parameters}
         
         for name, X in params.items():
             if not name in self.parameters:
@@ -47,92 +54,127 @@ class RandomVariable(object):
             if isinstance(X, RandomVariable):
                 self.inputs[name] = X
                 self.constants.pop(name)
-                if X.is_fixed:
-                    self.fixed[name] = True
+                if not X.is_fixed:
+                    self.fixed[name] = False
             else:
                 if X is not None:
                     self.constants[name] = X
-                    self.fixed[name] = True
+                else:
+                    self.fixed[name] = False
                     
         self.is_fixed = all(self.fixed.values())
         self.population = self.missing()
         self.shape_pop = ()
+        
+    def __getattr__(self, attr):
+        return self.params()[attr]
     
     def params(self):
         return dict(self.constants, **self.inputs)
-    
-    # assuming determined parameters
-    def sample_params(self, shape):
-        params = {}
-        for Xname, X in self.inputs.items():
-            params[Xname] = X.sample(shape)
-        for xname, x in self.constants.items():
-            params[xname] = x
-        return params
-    
-    def sample(self, shape=None):
-        "generate sample of length N"
-        params = self.sample_params(shape)
-        return self.sample_(shape, **params)
-    
-    def pdf(self, x, N=1000, compute_std=True, log=False):
-        "probability density computed by taking means over input samples"
-        shape = [1]*x.ndim + [N]
-        params = self.sample_params(shape)
-        X = self.pdf_(x[..., None], **params)
-        if compute_std:
-            self._std = np.std(X, axis=-1)/np.sqrt(N)
-        m = np.mean(X, axis=-1)
-        if log:
-            m = x * m
-            self._std = x * self._std
-        return m
-    
-    def cdf(self, x, N=1000, compute_std=True):
-        "cdf computed by taking means over input samples"
-        shape = [1]*x.ndim + [N]
-        params = self.sample_params(shape)
-        X = self.cdf_(x[..., None], **params)
-        if compute_std:
-            self._std = np.std(X, axis=-1)/np.sqrt(N)
-        return np.mean(X, axis=-1)
-    
-    # versions of the same functions for many parameters at once
-    # accessing self.population for missing constants
-    # try to be general with x, population shape
-    def sample_params_vec(self, shape):
-        # assume mean will be over last dimension
-        shape_param = shape[:-1] + (1,)
-        params = {}
-        for Xname, X in self.inputs.items():
-            params[Xname] = X.sample_vec(shape)
-        for xname, x in self.constants.items():
-            if not xname in self.population:
-                params[xname] = x
+
+    def sample_params(self, shape, train=False):
+        params = {}            
+        for name, X in self.inputs.items():
+            if self.is_derived_from[name]:
+                params[name] = X.sample_params(shape, train)
             else:
-                params[xname] = np.reshape(self.population[xname], shape_param)
+                params[name] = X.sample(shape, train)
+        for name, x in self.constants.items():
+            if train and name in self.population:
+                params[name] = self.population[name].reshape(shape[:-1] + (1,))
+            else:
+                params[name] = x
         return params
     
-    def sample_vec(self, shape=None):
-        params = self.sample_params_vec(shape)
+    def sample(self, shape=None, train=False):
+        "generate sample of length N"
+        params = self.sample_params(shape, train)
         return self.sample_(shape, **params)
 
-    def pdf_vec(self, x, N=1000, log=False):
-        shape_sample = (1,)*x.ndim + self.shape_pop + (N,)
-        shape_x = x.shape + (1,)*(len(self.shape_pop) + 1)
-        params = self.sample_params_vec(shape_sample)
-        X = self.pdf_(x.reshape(shape_x), **params)
-        m = np.mean(X, axis=-1)
-        if log:
-            m = x.reshape(x.shape + (1,)*len(self.shape_pop)) * m
-        return m
+    def pdf(self, x, N=1000, train=False, log=False, compute_std=False):
+        "probability density computed by taking means over input samples"
+        shape_p = self.shape_pop if train else ()
+        shape = (1,)*x.ndim + shape_p + (N,)
+        x = x.reshape(x.shape + (1,)*(len(shape_p) + 1))
+        params = self.sample_params(shape, train)
+        
+        X = self.pdf_(x, **params)
+        factor = x[..., 0] if log else 1. 
+        if compute_std:
+            self._std = factor * np.std(X, axis=-1)/np.sqrt(N)
+        return factor * np.mean(X, axis=-1)
     
-    def cdf_vec(self, x, N=1000):
-        shape_sample = (1,)*x.ndim + self.shape_pop + (N,)
-        shape_x = x.shape + (1,)*(len(self.shape_pop) + 1)
-        params = self.sample_params_vec(shape_sample)
-        X = self.cdf_(x.reshape(shape_x), **params)
+    def cdf(self, x, N=1000, train=False, compute_std=False):
+        "cdf computed by taking means over input samples"
+        shape_p = self.shape_pop if train else ()
+        shape = (1,)*x.ndim + shape_p + (N,)
+        x = x.reshape(x.shape + (1,)*(len(shape_p) + 1))
+        params = self.sample_params(shape, train)
+        
+        X = self.cdf_(x, **params)
+        if compute_std:
+            self._std = np.std(X, axis=-1)/np.sqrt(N)
         return np.mean(X, axis=-1)
+    
+    def fit(self, sample, method="cdf", **fit_params):
+        fit_function = getattr(self, "fit_" + method)
+        return fit_function(sample, **fit_params)
+        
+    def fit_cdf(self, sample, log=False, N=100, **anneal_params):
+        "optimize MSE on cdf with annealing."
+        xi = grid(sample, tail=0.005, log=log, N=50)
+        yi = empirical_cdf(xi, sample)[:, None]
+        def F(xi, yi):
+            fxi = self.cdf(xi, N=N, train=True)
+            return np.mean((fxi - yi)**2, 0)
+        return self.anneal(F, xi, yi, **anneal_params)
+    
+    def fit_pdf(self, sample, log=False, N=100, **anneal_params):
+        "optimize MSE on cdf with annealing."
+        xi = grid(sample, tail=0.005, log=log, N=50)
+        xi, yi = empirical_pdf(xi, sample, log=log)
+        yi = yi[:, None]
+        def F(xi, yi):
+            fxi = self.pdf(xi, N=N, train=True, log=log)
+            return np.mean((fxi - yi)**2, 0)
+        return self.anneal(F, xi, yi, **anneal_params)
+        
+    def anneal(self, F, xi, yi, n_pop=100, n_it=20, sigma=5., factor=0.5,
+               verbose=True):
+        "minimize loss of yi = F(xi; p) wrt p with simulated annealing"
+        # n_pop = size of population in one iteration
+        # n_it = number of iterations
+        # sigma = initial (multiplicative) standard deviation
+        # factor = factor to reduce sigma per iteration
+        if verbose:
+            t = self.recursive_missing()
+            print "   ".join(map(lambda t: "%s%d" % t[::2], t))
+            print " ".join(map(lambda t: "%.2f" % t[1], t))
+        for k in range(n_it):
+            # create new population by adding multiplicative gaussian noise
+            self.spawn_population_lognormal(n_pop=n_pop, sigma=sigma)
+            # compute loss
+            f = F(xi, yi)
+            # replace p by new best guess
+            self.update_from_population(np.argmin(f))
+            # update sigma
+            sigma *= factor
+            # print params
+            if verbose:
+                print " ".join(map(lambda t: "%.2g" % t[1],
+                                   self.recursive_missing()))
+        if verbose:
+            print "minimum", min(f)
+        return self.recursive_missing()
+    
+    def fit_naive(self, sample):
+        params = self.fit_(sample)
+        update = {k: params[k] for k in params if k not in self.fixed[k]}
+        self.update(update)
+        for k in self.inputs:
+            if k in update:
+                sample = np.array([update[k]])
+                self.inputs[k].fit_naive(sample)
     
     def missing(self):
         return {k: v for k, v in self.constants.items() if not self.fixed[k]}
@@ -187,11 +229,6 @@ class RandomVariable(object):
     #def pdf_(self, t, K, tau):
     #    return stats.gamma.pdf(t, K, scale=tau)
     
-    def cdf_(self, x, **params):
-        # TODO: make this work
-        sample = self.sample_((1000,), **params)
-        return empirical_cdf(x, sample)
-    
     def __repr__(self):
         name = type(self).__name__
         params = self.constants.items() + self.inputs.items()
@@ -222,63 +259,6 @@ class RandomVariable(object):
     def print_params(self):
         print ", ".join([
                 "%s=%s (%d)" % item for item in self.recursive_params()])
-    
-    def fit(self, sample, method="cdf", **fit_params):
-        fit_function = getattr(self, "fit_" + method)
-        return fit_function(sample, **fit_params)
-        
-    def fit_cdf(self, sample, log=False, N=100, **anneal_params):
-        "optimize MSE on cdf with annealing."
-        xi = grid(sample, tail=0.005, log=log, N=50)
-        yi = empirical_cdf(xi, sample)[:, None]
-        def F(xi, yi):
-            return np.mean((self.cdf_vec(xi, N=N) - yi)**2, 0)
-        return self.anneal(F, xi, yi, **anneal_params)
-    
-    def fit_pdf(self, sample, log=False, N=100, **anneal_params):
-        "optimize MSE on cdf with annealing."
-        xi = grid(sample, tail=0.005, log=log, N=50)
-        xi, yi = empirical_pdf(xi, sample, log=log)
-        yi = yi[:, None]
-        def F(xi, yi):
-            return np.mean((self.pdf_vec(xi, N=N, log=log) - yi)**2, 0)
-        return self.anneal(F, xi, yi, **anneal_params)
-        
-    def anneal(self, F, xi, yi, n_pop=100, n_it=20, sigma=5., factor=0.5,
-               verbose=True):
-        "minimize loss of yi = F(xi; p) wrt p with simulated annealing"
-        # n_pop = size of population in one iteration
-        # n_it = number of iterations
-        # sigma = initial (multiplicative) standard deviation
-        # factor = factor to reduce sigma per iteration
-        if verbose:
-            t = self.recursive_missing()
-            print "   ".join(map(lambda t: "%s%d" % t[::2], t))
-            print " ".join(map(lambda t: "%.2f" % t[1], t))
-        for k in range(n_it):
-            # create new population by adding multiplicative gaussian noise
-            self.spawn_population_lognormal(n_pop=n_pop, sigma=sigma)
-            # compute loss
-            f = F(xi, yi)
-            # replace p by new best guess
-            self.update_from_population(np.argmin(f))
-            # update sigma
-            sigma *= factor
-            # print params
-            if verbose:
-                print " ".join(map(lambda t: "%.2g" % t[1],
-                                   self.recursive_missing()))
-        print "minimum", min(f)
-        return self.recursive_missing()
-    
-    def fit_naive(self, sample):
-        params = self.fit_(sample)
-        update = {k: params[k] for k in params if k not in self.fixed[k]}
-        self.update(update)
-        for k in self.inputs:
-            if k in update:
-                sample = np.array([update[k]])
-                self.inputs[k].fit_naive(sample)
     
     def plot_cdf(self, x, *args, **kwargs):
         fx = self.cdf(x, N=1000, compute_std=True)
@@ -325,7 +305,10 @@ def empirical_pdf(x, data, log=False):
     mass = np.dot(np.diff(np.log(x)), p) if log else np.dot(np.diff(x), p)
     x = .5*(x[1:] + x[:-1])
     return x, p/mass
-    #return np.array([p[max(0, i-1) : min(n, i+1)].mean() for i in range(n+1)])
+
+def empirical_cdf_vec(x, data):
+    # x and data just have to be broadcastable, sampling dimension is last
+    return np.mean(data <= x, axis=-1)
     
 def smooth(a, k=3):
     a = np.array(a)
@@ -348,7 +331,47 @@ def grid(data, N=100, tail=0.01, log=False):
     else:
         return np.linspace(xmin, xmax, N)
 
-                      
+####### commonly used RVs #########
+        
+class Empirical(RandomVariable):
+    
+    def __init__(self, data):
+        self.data = data
+        RandomVariable.__init__(self)
+    
+    def sample_(self, shape):
+        return np.random.choice(self.data, size=shape)
+    
+    def cdf_(self, x):
+        return empirical_cdf(x, self.data)
+
+class Bernoulli(RandomVariable):
+    parameters = dict(p=.5)
+    
+    def sample_(self, shape, p):
+        return stats.bernoulli.rvs(p, size=shape)
+        
+#class Categorical(RandomVariable):
+#    """generalization of Bernoulli variable, output is integer 0,...,n-1 with
+#    resp. probability p_0,...,p_n-1. n is no parameter, but fixed at
+#    instantiation by the length of the probabilities vector."""
+#    
+#    # TODO: maybe have to initialize .parameters
+#    def __init__(self, *p):
+#        self.n = len(p)
+#        keys = ["p%d" % i for i in range(self.n)]
+#        params = dict(zip(keys, p))
+#        RandomVariable.__init__(self, **params)
+#        
+#    def prob(self, pdict):
+#        "return sorted and normalized probabilities from dict"
+#        p = np.array([x for _, x in sorted(pdict.items())])
+#        return p/np.sum(p, axis=0)[None, ...]
+#        
+#    # FIXME: does not work for vector-valued probabilities
+#    def sample_(self, shape, **p):
+#        return np.random.choice(self.n, size=shape, p=self.prob(p))
+                     
 class Poisson(RandomVariable):
     parameters = dict(a=1.)
     
@@ -367,7 +390,7 @@ def broadcast_mask(M):
     return tuple(i if d > 1 else colon for d, i in zip(M.shape, M.nonzero()))
     
 class ZeroTruncatedPoisson(RandomVariable):
-    "more efficient generation compared to Poisson with condition"
+    "Poisson conditioned on K > 0"
     parameters = dict(a=1.)
     
     def sample_(self, shape, a):
@@ -427,8 +450,37 @@ class ZeroTruncatedPoisson(RandomVariable):
     # TODO:    
 #    def fit_(self, data):
 #        a0 = np.mean(data)
-#        # solve a0 = a/(1-exp(a)) for a
+#        # solve a0 = a/(1-exp(-a)) for a
 #        return dict(a=a)
+
+class Exponential(RandomVariable):
+    parameters = dict(tau=1.)
+    
+    def sample_(self, shape, tau):
+        return np.random.exponential(scale=tau, size=shape)
+    
+    def pdf_(self, t, tau):
+        return stats.expon.pdf(t, scale=tau)
+    
+    def cdf_(self, t, tau):
+        return stats.expon.cdf(t, scale=tau)
+    
+    def fit_(self, data):
+        return dict(tau=data.mean())  
+    
+class LeftTruncatedExponential(RandomVariable):
+    parameters = dict(tau=1., tmin=0.1)
+    
+    def sample_(self, shape, tau, tmin):
+        umax = np.exp(-tmin/tau)
+        u = umax * np.random.random(size=shape)
+        return -tau * np.log(u)
+    
+    def pdf_(self, t, tau, tmin):
+        return np.exp(-(t-tmin)/tau)/tau * (1.*(t > tmin))
+    
+    def cdf_(self, t, tau, tmin):
+        return 1. - np.exp(-np.maximum(t - tmin, 0.)/tau)
     
 class Gamma(RandomVariable):
     parameters = dict(K=1, tau=1.)
@@ -446,55 +498,70 @@ class Gamma(RandomVariable):
         K, _, tau = stats.gamma.fit(data)
         return dict(K=K, tau=tau)
     
+####### RVs derived from others #########
+        
 class ScalarMultiple(RandomVariable):
-    "implement t*X where X is a RandomVariable and t>0"
+    "implement t*X where X is a RandomVariable and t > 0"
     parameters = dict(t=1., X=1.)
+    derived_from = ["X"]
         
     def sample_(self, shape, t, X):
-        return t*X
+        x = self.inputs["X"].sample_(shape, **X)
+        return t*x
+        
+    def pdf_(self, x, t, X):
+        return self.inputs["X"].pdf_(x/t, **X)/t
     
+    def cdf_(self, x, t, X):
+        return self.inputs["X"].cdf_(x/t, **X)
+
     def __repr__(self):
         return "%.2g*%s" % (self.constants["t"], repr(self.inputs["X"]))
     
-    # TODO: currently can not fit ScalarMultiples because there is no cdf/pdf
-#        
-#    def sample(self, shape=None):
-#        "generate sample of length N"
-#        return self.t*self.X.sample(shape)
-#        
-#    def pdf(self, x, N=1000, compute_std=True):
-#        "probability density computed by taking means over input samples"
-#        t = self.t
-#        mean = self.X.pdf(x/t, N=N, compute_std=compute_std)/t
-#        if compute_std:
-#            self._std = self.X._std
-#        return mean
-#    
-#    def cdf(self, x, N=1000, compute_std=True):
-#        "probability density computed by taking means over input samples"
-#        t = self.t
-#        mean = self.X.cdf(x/t, N=N, compute_std=compute_std)
-#        if compute_std:
-#            self._std = self.X._std
-#        return mean
-#    
-#    def sample_vec(self, shape=None):
-#        return self.t*self.X.sample_vec(shape)
-#    
-#    def cdf_vec(self, x, N=1000):
-#        t = self.t
-#        return self.X.cdf_vec(x/t, N=N)
+class OneOf(RandomVariable):
+    """RV is one of X, Y where X is w times more likely than Y.
+    In other words, [X, Y][i] where i ~ Bernoulli(1/(1+w))"""
+    # fitting is biased to X being more likely, to get a unique order
+    parameters = dict(X=1., Y=1., w=5.)
+    derived_from = ["X", "Y"]
+    
+    def sample_(self, shape, X, Y, w):
+        x = self.X.sample_(shape, **X)
+        y = self.Y.sample_(shape, **Y)
+        chose_y = np.bool_(stats.bernoulli.rvs(1./(1. + w), size=shape))
+        x[chose_y] = y[chose_y]
+        return x
+    
+    def pdf_(self, x, X, Y, w):
+        p = 1./(1. + w)
+        return (1. - p)*self.X.pdf_(x, **X) + p*self.Y.pdf_(x, **Y)
+    
+    def cdf_(self, x, X, Y, w):
+        p = 1./(1. + w)
+        return (1. - p)*self.X.cdf_(x, **X) + p*self.Y.cdf_(x, **Y)
+    
+def DoubleExponential(tau1=1., tau2=1., w=None):
+    #w = p/(1.-p) if p is not None else None
+    X = Exponential(tau=tau1)
+    Y = Exponential(tau=tau2)
+    return OneOf(X=X, Y=Y, w=w)
 
+def LeftTruncatedDoubleExponential(tau1=1., tau2=1., w=None, tmin=0.5):
+    #w = p/(1.-p) if p is not None else None
+    X = LeftTruncatedExponential(tau=tau1, tmin=tmin)
+    Y = LeftTruncatedExponential(tau=tau2, tmin=tmin)
+    return OneOf(X=X, Y=Y, w=w)
     
 if __name__ == "__main__":
     example1 = True
+    example2 = True
     
     if example1: # example with stacked Gamma-Poisson-Distributions
         # construct target distribution
         K = ZeroTruncatedPoisson(a=20.) # Assigning a constant means fixing the parameter
-        Ta = Gamma(K=K, tau=.005) # An RV as parameter generates a compound distr.
-        N = ZeroTruncatedPoisson(a=1e-3*Ta) # RVs can be multiplied by scalar
-        T = Gamma(K=N, tau=1e-3)
+        Ta = Gamma(K=K, tau=0.005) # An RV as parameter generates a compound distr.
+        N = ZeroTruncatedPoisson(a=100.*Ta) # RVs can be multiplied by scalar
+        T = 1e-3*Gamma(K=N)
         # get samples
         sample1 = Ta.sample(1000)
         sample = T.sample(1000)
@@ -503,7 +570,8 @@ if __name__ == "__main__":
         K = ZeroTruncatedPoisson(a=None) # None means it will be fitted
         Ta = Gamma(K=K, tau=None)
         N = ZeroTruncatedPoisson(a=None*Ta)
-        T = Gamma(K=N, tau=None)
+        N.a.constants["t"] = 50. # intiial guess t=1. would not work
+        T = None*Gamma(K=N)
         
         # fitting methods
         method = "pdf" # or "cdf"; pdf seems to be more robust
@@ -514,10 +582,45 @@ if __name__ == "__main__":
         Ta.fix()
         T.fit(sample, method=method, log=log)
         
+        # alternatively, simply treat Ta as coming from a fixed empirical dist.
+        Ta_alt = Empirical(sample1)
+        N_alt = ZeroTruncatedPoisson(a=None*Ta_alt)
+        T_alt = None*Gamma(K=N_alt)
+        T_alt.fit(sample, method=method, log=log)
+        
+        # alternatively, just fit an Exponential
+        T_exp = None*Exponential()
+        T_exp.fit(sample, method=method, log=log)
+        
         # plot fitted cdf vs. empirical cdf from sample
+        tt = grid(sample, 100, 0.005, log=True)
         plt.figure("cdf")
         Ta.compare_cdfs(sample1, log=True)
         T.compare_cdfs(sample, log=True)
+        T_alt.plot_cdf(tt, ":k")
+        T_exp.plot_cdf(tt, "--b")
         plt.figure("pdf")
         Ta.compare_pdfs(sample1, log=True)
         T.compare_pdfs(sample, log=True)
+        T_alt.plot_pdf(tt, ":k", log=True)
+        T_exp.plot_pdf(tt, "--b", log=True)
+        
+        print "\nT", T
+        print "\nT_alt", T_alt
+        print "\nT_exp", T_exp
+        
+    if example2: # combinations of Exponential variables
+        tmin = 0.005
+        sample = LeftTruncatedDoubleExponential(
+                     tau1=0.01, tau2=1., w=1., tmin=tmin).sample(10000)
+        
+        T = LeftTruncatedDoubleExponential(
+                     tau1=None, tau2=None, w=None, tmin=tmin)
+        
+        T.fit(sample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+        plt.figure("cdf")
+        T.compare_cdfs(sample, log=True)
+        plt.figure("pdf")
+        T.compare_pdfs(sample, log=True)
+        
+        print T
