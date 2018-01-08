@@ -120,18 +120,18 @@ class RandomVariable(object):
         fit_function = getattr(self, "fit_" + method)
         return fit_function(sample, **fit_params)
         
-    def fit_cdf(self, sample, log=False, N=100, **anneal_params):
+    def fit_cdf(self, sample, log=False, N=100, Ngrid=50, **anneal_params):
         "optimize MSE on cdf with annealing."
-        xi = grid(sample, tail=0.005, log=log, N=50)
+        xi = grid(sample, tail=0.005, log=log, N=Ngrid)
         yi = empirical_cdf(xi, sample)[:, None]
         def F(xi, yi):
             fxi = self.cdf(xi, N=N, train=True)
             return np.mean((fxi - yi)**2, 0)
         return self.anneal(F, xi, yi, **anneal_params)
     
-    def fit_pdf(self, sample, log=False, N=100, **anneal_params):
+    def fit_pdf(self, sample, log=False, N=100, Ngrid=50, **anneal_params):
         "optimize MSE on cdf with annealing."
-        xi = grid(sample, tail=0.005, log=log, N=50)
+        xi = grid(sample, tail=0.005, log=log, N=Ngrid)
         xi, yi = empirical_pdf(xi, sample, log=log)
         yi = yi[:, None]
         def F(xi, yi):

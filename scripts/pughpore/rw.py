@@ -9,7 +9,7 @@ import dolfin
 import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools.polygons import Rectangle
-from nanopores.tools import fields
+from nanopores.tools import fields, statistics
 fields.set_dir_mega()
 
 params = nanopores.user_params(
@@ -62,7 +62,8 @@ todo = nanopores.user_params(
     plot_dolfin = False,
     plot_streamlines = False,
     video = False,
-    plot_distribution = True,
+    plot_distribution = False,
+    fit_experiments = True,
 )
 
 ########### SETUP ###########
@@ -472,6 +473,69 @@ if todo.plot_distribution:
     plt.xlabel("Attempt time [ns]")
     plt.ylabel("Rel. frequency")
     plt.legend()
+    
+if todo.fit_experiments:
+    # get data
+    drop, tsample = fields.get("events_pugh_experiment", "drop", "t")
+    tsample = tsample.load()
+    log = True
+    cutoff = 0.1 # [ms], detection limit cutoff
+
+    # plot data with indication of two clusters    
+    sep = 2.
+    large = tsample >= sep
+    toosmall = tsample < cutoff
+    plt.figure("data_scatter", figsize=(4, 3))
+    plt.scatter(tsample[toosmall], drop[toosmall], color="r")
+    plt.scatter(tsample[~toosmall], drop[~toosmall])
+    #plt.scatter(tsample[~large & ~toosmall], drop[~large & ~toosmall])
+    #plt.scatter(tsample[large], drop[large], color="g")
+    plt.axvline(x=cutoff, color="r")
+    plt.xscale("log")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.ylabel(r"$A/I_0$ [%]")
+    
+    # cut off data at detection limit threshold
+    tsample = tsample[~toosmall]
+
+    # fit with different methods and compare
+    T = statistics.LeftTruncatedExponential(tau=None, tmin=cutoff)
+    T2 = statistics.LeftTruncatedDoubleExponential(
+                 tau1=None, tau2=None, w=None, tmin=cutoff)
+    T.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+    T2.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+    
+    t = statistics.grid(tsample, 15, 0, log=log)
+    tt = statistics.grid(tsample, 100, 0, log=log)
+    ecdf = statistics.empirical_cdf(t, tsample)
+    t1 = statistics.grid(tsample, 15, 0, log=log)
+    tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
+    
+    plt.figure("data_fit_cdf", figsize=(4, 3))
+    plt.plot(t, ecdf, "o", label="Experiment (Pugh et al.)")
+    T.plot_cdf(tt, label="Truncated exp. fit")
+    T2.plot_cdf(tt, ":", label="Trunc. double exp. fit")
+    plt.xscale("log")
+    plt.ylabel("Cumulative probability")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.legend()
+    
+    print "CDF fit:", T2
+    
+    T.fit(tsample, method="pdf", log=True, sigma=2., factor=0.9, n_it=50)
+    T2.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+    
+    plt.figure("data_fit_pdf", figsize=(4, 3))
+    #plt.plot(tc, epdf, "o")
+    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (Pugh et al.)")
+    #T.plot_pdf(tt, "C1", log=log, label="Truncated exp. fit")
+    T2.plot_pdf(tt, ":C2", log=log, label="Trunc. double exp. fit")
+    plt.xscale("log")
+    plt.ylabel("Rel. frequency")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.legend(loc="upper right")
+    
+    print "PDF fit:", T2
     
 
 import folders
