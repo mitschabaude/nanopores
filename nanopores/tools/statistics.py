@@ -261,20 +261,24 @@ class RandomVariable(object):
                 "%s=%s (%d)" % item for item in self.recursive_params()])
     
     def plot_cdf(self, x, *args, **kwargs):
-        fx = self.cdf(x, N=1000, compute_std=True)
-        itv = 2*self._std
+        std = True if not "std" in kwargs else kwargs.pop("std")
+        fx = self.cdf(x, N=1000, compute_std=std)
         line, = plt.plot(x, fx, *args, **kwargs)
-        plt.fill_between(x, fx - itv, fx + itv,
+        if std:
+            itv = 2*self._std
+            plt.fill_between(x, fx - itv, fx + itv,
                          color=line.get_color(), alpha=0.2)
         
     def plot_pdf(self, x, *args, **kwargs):
         log = False if not "log" in kwargs else kwargs.pop("log")
+        std = True if not "std" in kwargs else kwargs.pop("std")
         # plot at centers for compatibility with hist
         x = .5*(x[1:] + x[:-1])
-        fx = self.pdf(x, N=100, compute_std=True, log=log)
-        itv = 2*self._std
+        fx = self.pdf(x, N=100, compute_std=std, log=log)
         line, = plt.plot(x, fx, *args, **kwargs)
-        plt.fill_between(x, fx - itv, fx + itv,
+        if std:
+            itv = 2*self._std
+            plt.fill_between(x, fx - itv, fx + itv,
                          color=line.get_color(), alpha=0.2)
         
     def compare_cdfs(self, sample, log=True):

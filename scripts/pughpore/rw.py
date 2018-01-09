@@ -63,7 +63,8 @@ todo = nanopores.user_params(
     plot_streamlines = False,
     video = False,
     plot_distribution = False,
-    fit_experiments = True,
+    fit_experiments = False,
+    fit_long = False,
 )
 
 ########### SETUP ###########
@@ -479,6 +480,7 @@ if todo.fit_experiments:
     drop, tsample = fields.get("events_pugh_experiment", "drop", "t")
     tsample = tsample.load()
     log = True
+    std = False
     cutoff = 0.1 # [ms], detection limit cutoff
 
     # plot data with indication of two clusters    
@@ -513,8 +515,8 @@ if todo.fit_experiments:
     
     plt.figure("data_fit_cdf", figsize=(4, 3))
     plt.plot(t, ecdf, "o", label="Experiment (Pugh et al.)")
-    T.plot_cdf(tt, label="Truncated exp. fit")
-    T2.plot_cdf(tt, ":", label="Trunc. double exp. fit")
+    T.plot_cdf(tt, label="Truncated exp. fit", std=std)
+    T2.plot_cdf(tt, ":", label="Trunc. double exp. fit", std=std)
     plt.xscale("log")
     plt.ylabel("Cumulative probability")
     plt.xlabel(r"$\tau$ off [ms]")
@@ -529,7 +531,7 @@ if todo.fit_experiments:
     #plt.plot(tc, epdf, "o")
     plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (Pugh et al.)")
     #T.plot_pdf(tt, "C1", log=log, label="Truncated exp. fit")
-    T2.plot_pdf(tt, ":C2", log=log, label="Trunc. double exp. fit")
+    T2.plot_pdf(tt, ":C2", log=log, label="Trunc. double exp. fit", std=std)
     plt.xscale("log")
     plt.ylabel("Rel. frequency")
     plt.xlabel(r"$\tau$ off [ms]")
@@ -537,6 +539,70 @@ if todo.fit_experiments:
     
     print "PDF fit:", T2
     
+if todo.fit_long:
+    # now we focus only on the long-time cluster and fit that with different methods
+    drop, tsample = fields.get("events_pugh_experiment", "drop", "t")
+    tsample = tsample.load()
+    log = True
+    std = False
+    cutoff = 2. # [ms]
+    
+    sep = 2.
+    large = tsample >= sep
+    toosmall = tsample < cutoff
+    plt.figure("data_scatter_long", figsize=(4, 3))
+    plt.scatter(tsample[toosmall], drop[toosmall], color="r")
+    plt.scatter(tsample[~toosmall], drop[~toosmall])
+    #plt.scatter(tsample[~large & ~toosmall], drop[~large & ~toosmall])
+    #plt.scatter(tsample[large], drop[large], color="g")
+    plt.axvline(x=cutoff, color="r")
+    plt.xscale("log")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.ylabel(r"$A/I_0$ [%]")
+    
+    # cut off data at detection limit threshold
+    tsample = tsample[~toosmall]
 
+    # fit with different methods and compare
+    T = dict()
+    T["exp"] = statistics.Exponential(tau=None)
+    T["truncexp"] = statistics.LeftTruncatedExponential(tau=None, tmin=cutoff)
+    K = statistics.ZeroTruncatedPoisson(a=None)
+    T["compoundgamma"] = statistics.Gamma(tau=None, K=K)
+    
+    for k in T:
+        T[k].fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+    
+    t = statistics.grid(tsample, 15, 0, log=log)
+    tt = statistics.grid(tsample, 100, 0, log=log)
+    ecdf = statistics.empirical_cdf(t, tsample)
+    t1 = statistics.grid(tsample, 8, 0, log=log)
+    tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
+    
+    plt.figure("data_long_fit_cdf", figsize=(4, 3))
+    plt.plot(t, ecdf, "o", label="Experiment (Pugh et al.)")
+    
+    T["exp"].plot_cdf(tt, std=std, label="Exponential fit")
+    T["truncexp"].plot_cdf(tt, ":", std=std, label="Truncated exp. fit")
+    T["compoundgamma"].plot_cdf(tt, "--", std=std, label="Compound Gamma fit")
+    
+    plt.xscale("log")
+    plt.ylabel("Cumulative probability")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.legend()
+    
+    print "CDF fit:", T
+    
+    plt.figure("data_long_fit_pdf", figsize=(4, 3))
+    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (Pugh et al.)")
+    T["exp"].plot_pdf(tt, "C1", label="Exponential fit", log=log, std=std)
+    T["truncexp"].plot_pdf(tt, ":C2", label="Truncated exp. fit", std=std, log=log)
+    T["compoundgamma"].plot_pdf(tt, "--C3", label="Compound Gamma fit", std=std, log=log)
+    plt.xscale("log")
+    plt.ylabel("Rel. frequency")
+    plt.xlabel(r"$\tau$ off [ms]")
+    plt.legend(loc="best")
+
+    
 import folders
 nanopores.savefigs("rw_cyl", folders.FIGDIR + "/pugh", ending=".pdf")
