@@ -20,13 +20,23 @@ def plot_sliced(geo, **params):
         subsub[cell] = sub[int(iparent)]
     plot_params = dict(title="sliced geometry with subdomains",
                        elevate=-90., **params)
-    dolfin.plot(subsub, **plot_params)
+    #dolfin.plot(subsub, **plot_params)
+    return subsub
 
 geo1 = allpores.get_geo(geoname="wei", subs="solid", h=10., x0=[0.,0.,0.], dim=3)
-plot_sliced(geo1, scalarbar=False)
+domains1 = plot_sliced(geo1, scalarbar=False)
 print geo1
 
 geo2 = allpores.get_geo(geoname="alphahem", subs="solid", h=1., x0=[0.,0.,0.], dim=3)
-plot_sliced(geo2, scalarbar=False)
+domains2 = plot_sliced(geo2, scalarbar=False)
 
-dolfin.interactive()
+from nanopores.dirnames import DROPBOX
+file1 = dolfin.File(DROPBOX + "/geo_wei.pvd")
+file2 = dolfin.File(DROPBOX + "/geo_ahem.pvd")
+
+#file1 << geo1.mesh
+file1 << geo1.subdomains
+
+#file2 << geo2.mesh
+file2 << geo2.subdomains
+#dolfin.interactive()
