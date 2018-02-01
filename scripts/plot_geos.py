@@ -23,11 +23,25 @@ def plot_sliced(geo, **params):
     #dolfin.plot(subsub, **plot_params)
     return subsub
 
-geo1 = allpores.get_geo(geoname="wei", subs="solid", h=10., x0=[0.,0.,0.], dim=3)
+params = dict(geoname="wei", subs="solid", h=5., x0=[0.,0.,0.], dim=3, rMolecule=1.25)
+zreceptor = 0.95
+zprotein = 0.90
+rrec = 0.5
+distrec = 4. - params["rMolecule"] - rrec
+pore = allpores.get_pore(**params)
+ztop = pore.protein.zmax()[1]
+zbot = pore.protein.zmin()[1]
+zrec = zbot + rrec + (ztop - zbot - 2.*rrec)*zreceptor
+xrec = pore.radius_at(zrec) - distrec
+zprot = zbot + params["rMolecule"] + (ztop - zbot - 2.*params["rMolecule"])*zprotein
+params["receptor"] = [xrec, 0., zrec]
+params["rReceptor"] = rrec
+params["x0"] = [8., 3., zprot]
+geo1 = allpores.get_geo(**params)
 domains1 = plot_sliced(geo1, scalarbar=False)
 print geo1
 
-geo2 = allpores.get_geo(geoname="alphahem", subs="solid", h=1., x0=[0.,0.,0.], dim=3)
+geo2 = allpores.get_geo(geoname="alphahem", subs="solid", h=.5, x0=None, dim=3)
 domains2 = plot_sliced(geo2, scalarbar=False)
 
 from nanopores.dirnames import DROPBOX

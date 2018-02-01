@@ -628,24 +628,39 @@ if todo.fit_long_gamma:
     
     # cut off data at detection limit threshold
     tsample = tsample[~toosmall]
+    
+    # get empirical attempt time disribution
+    N = 10000
+    params0 = dict(params, N=N)
+    rw = randomwalk.get_rw(NAME, params0, setup=setup_rw)
+    ta = rw.attempt_times
+    ta1 = 1e-9*ta[ta > 0.]
+    Ta = statistics.Empirical(ta1)
+    
+    # get cb = 1/Vb
+    cb = 1./rw.domains[2].Vbind # [M]
 
     # fit with different methods and compare
     from collections import OrderedDict
     T = OrderedDict()
     error = OrderedDict()
-    a = [1e-3, 1e-1, 1., 3., 5., 10.]
-    I = range(len(a))
-    rvalues = ["00", "33", "66", "99", "bb", "ff"]
+    ka = [1e7, 1e8, 1e9, 5e9]
+    kastr = ["$10^7$", "$10^8$", "$10^9$", "$5\cdot 10^9$"]
+    kaformat = r"$k_a$ = %s/Ms"
+    I = range(len(ka))
+    rvalues = ["00", "66", "aa", "ff"]
     colors = ["#%s0000" % r_ for r_ in rvalues]
     for i in I:
-        K = statistics.ZeroTruncatedPoisson(a=a[i])
+        Ra = ka[i] * cb
+        K = statistics.ZeroTruncatedPoisson(a=Ra*Ta)
         T[i] = statistics.Gamma(tau=None, K=K)
     
     for i in T:
-        error[i] = T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+        error[i] = T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
     
     t = statistics.grid(tsample, 15, 0, log=log)
-    tt = statistics.grid(tsample, 100, 0, log=log)
+    tt = np.logspace(0., 2., 100)
+    #tt = statistics.grid(tsample, 100, 0, log=log)
     ecdf = statistics.empirical_cdf(t, tsample)
     #log = False
     t1 = statistics.grid(tsample, 8, 0, log=log)
@@ -654,25 +669,30 @@ if todo.fit_long_gamma:
     plt.figure("data_long_gammafit_cdf", figsize=(4, 3))
     ##########
     for i in T:
-        T[i].plot_cdf(tt, std=std, label="a = %.3g" % a[i], color=colors[i])
-    plt.plot(t, ecdf, "o", label="Experiment (> 2ms)")
+        #if i==0:
+        #    T[i].plot_cdf(tt, std=std, label=r"$k_a = 10^7$/Ms", color=colors[i])
+        #else:
+        T[i].plot_cdf(tt, std=std, label=kaformat % kastr[i], color=colors[i])
+    plt.plot(t, ecdf, "o", label="Experiment")
     plt.xscale("log")
     plt.ylabel("Cumulative probability")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend()
+    plt.xlim(xmin=0.5)
+    plt.legend(loc="upper left", frameon=False)
+    
     
     print "CDF fit:", T
     
     plt.figure("data_long_gammafit_pdf", figsize=(4, 3))
     #########
     for i in T:
-        T[i].plot_pdf(tt, label="a = %.3g" % a[i], std=std, log=log,
+        T[i].plot_pdf(tt, label=kaformat % kastr[i], std=std, log=log,
              color=colors[i])
-    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (> 2ms)")
+    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment")
     plt.xscale("log")
     plt.ylabel("Rel. frequency")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend(loc="best")
+    plt.legend(loc="upper left", frameon=False)
 
     
 import folders

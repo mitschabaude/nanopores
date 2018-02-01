@@ -274,7 +274,7 @@ class RandomVariable(object):
         std = True if not "std" in kwargs else kwargs.pop("std")
         # plot at centers for compatibility with hist
         x = .5*(x[1:] + x[:-1])
-        fx = self.pdf(x, N=100, compute_std=std, log=log)
+        fx = self.pdf(x, N=1000, compute_std=std, log=log)
         line, = plt.plot(x, fx, *args, **kwargs)
         if std:
             itv = 2*self._std
@@ -323,7 +323,7 @@ def smooth(a, k=3):
     b = [a[max(0, i + start) : min(N, i + end)].mean() for i in range(N)]
     return np.array(b)
 
-def grid(data, N=100, tail=0.01, log=False):
+def grid(data, N=100, tail=0.01, log=False, xmin=None, xmax=None):
     "regularly spaced evaluation nodes spanning data distribution"
     data = np.sort(data)
     n = data.size
@@ -501,6 +501,11 @@ class Gamma(RandomVariable):
     def fit_(self, data):
         K, _, tau = stats.gamma.fit(data)
         return dict(K=K, tau=tau)
+    
+class LeftTruncatedGamma(RandomVariable):
+    parameters = dict(K=1, tau=1., tmin=0.1)
+    
+    pass
     
 ####### RVs derived from others #########
         
