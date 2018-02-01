@@ -165,7 +165,7 @@ class RandomVariable(object):
                                    self.recursive_missing()))
         if verbose:
             print "minimum", min(f)
-        return self.recursive_missing()
+        return min(f) #self.recursive_missing()
     
     def fit_naive(self, sample):
         params = self.fit_(sample)
