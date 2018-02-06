@@ -64,8 +64,8 @@ todo = nanopores.user_params(
     video = False,
     plot_distribution = False,
     fit_experiments = False,
-    fit_long = False,
-    fit_long_gamma = True,
+    fit_long = True,
+    fit_long_gamma = False,
 )
 
 ########### SETUP ###########
@@ -574,11 +574,15 @@ if todo.fit_long:
     for k in T:
         T[k].fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
     
-    t = statistics.grid(tsample, 15, 0, log=log)
-    tt = statistics.grid(tsample, 100, 0, log=log)
+    t = np.logspace(-0.2, 2.3, 18)
+    tt = np.logspace(-0.2, 2.3, 100)
+    #t = statistics.grid(tsample, 15, 0, log=log)
+    #tt = statistics.grid(tsample, 100, 0, log=log)
     ecdf = statistics.empirical_cdf(t, tsample)
     #log = False
-    t1 = statistics.grid(tsample, 8, 0, log=log)
+    #t1 = statistics.grid(tsample, 8, 0, log=log)
+    t1 = np.logspace(np.log10(2.), 2.3, 10)
+    tt1 = np.logspace(np.log10(2.), 2.3, 100)
     tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
     
     plt.figure("data_long_fit_cdf", figsize=(4, 3))
@@ -591,19 +595,20 @@ if todo.fit_long:
     plt.xscale("log")
     plt.ylabel("Cumulative probability")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend()
+    plt.legend(frameon=False)
     
     print "CDF fit:", T
     
     plt.figure("data_long_fit_pdf", figsize=(4, 3))
     plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (> 2ms)")
-    T["exp"].plot_pdf(tt, "C1", label="Exponential fit", log=log, std=std)
-    T["truncexp"].plot_pdf(tt, ":C2", label="Truncated exp. fit", std=std, log=log)
+    #T["exp"].plot_pdf(tt1, "C1", label="Exponential fit", log=log, std=std)
+    T["truncexp"].plot_pdf(tt1, ":C2", label="Truncated exp. fit", std=std, log=log)
     #T["compoundgamma"].plot_pdf(tt, "--C3", label="Compound Gamma fit", std=std, log=log)
     plt.xscale("log")
+    plt.xlim(xmin=1.5)
     plt.ylabel("Rel. frequency")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend(loc="best")
+    plt.legend(loc="lower center")
 
 if todo.fit_long_gamma:
     # now we focus only on the long-time cluster and fit that with different methods
@@ -650,11 +655,15 @@ if todo.fit_long_gamma:
     I = range(len(ka))
     rvalues = ["00", "66", "aa", "ff"]
     colors = ["#%s0000" % r_ for r_ in rvalues]
+              
+    a_attempts = 4.1 # mean no. attempts for binding site length 8nm
+    tamean = ta1.mean()
+    p_binding_prob = OrderedDict()
     for i in I:
         Ra = ka[i] * cb
         K = statistics.ZeroTruncatedPoisson(a=Ra*Ta)
         T[i] = statistics.Gamma(tau=None, K=K)
-    
+        p_binding_prob[i] = tamean * Ra / a_attempts
     for i in T:
         error[i] = T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
     

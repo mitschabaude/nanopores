@@ -16,7 +16,7 @@ rD = 0.2
 
 # load translocation events without binding
 name = "events3_nobind_new"
-fields.set_dir_dropbox()
+fields.set_dir_mega()
 data = fields.get_fields(name)
 
 # take only events that translocated
