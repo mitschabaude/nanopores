@@ -1,11 +1,11 @@
 # (c) 2017 Gregor Mitscha-Baude
 """Generic framework to define, fit, sample, and plot statistical models;
-especially suited for complicated compound models, models who include complicated
+especially suited for compound models, models who include complicated
 machinery, and generally models that are not analytically tractable.
-Uses simulated annealing as generic parameter search (=fitting) procedure.
+Uses simulated annealing as generic parameter search (fitting) procedure.
 
-Based on the general framework we implement complicated distributions such as
-the compound Gamma-Poisson-Gamma-Poisson distribution.
+Based on the general framework we implement distributions such as
+the compound Gamma-Poisson and the truncated double exponential distribution.
 
 Example usage:
 
@@ -19,6 +19,7 @@ Example usage:
 """
 
 # TODOs:
+# -) implement magic methods for addition, multiplication, etc
 # -) naive fitting to arrive at better initial guess
 # -) check what is missing for discrete RVs (i.e. fitting)
 #
@@ -141,7 +142,7 @@ class RandomVariable(object):
         
     def anneal(self, F, xi, yi, n_pop=100, n_it=20, sigma=5., factor=0.5,
                verbose=True):
-        "minimize loss of yi = F(xi; p) wrt p with simulated annealing"
+        "minimize loss function F(xi, yi; p) wrt p with simulated annealing"
         # n_pop = size of population in one iteration
         # n_it = number of iterations
         # sigma = initial (multiplicative) standard deviation
@@ -235,13 +236,14 @@ class RandomVariable(object):
         params = ", ".join(["%s=%s" % item for item in params])
         return "%s(%s)" % (name, params)
     
-    def __mul__(self, t):
-        #assert np.isscalar(t)
-        return ScalarMultiple(t=t, X=self)
+    def __mul__(self, t): # t * self
+        if isinstance(t, RandomVariable):
+            return Product(X=self, Y=t)
+        else:
+            return ScalarMultiple(t=t, X=self)
     
-    def __rmul__(self, t):
-        #assert np.isscalar(t)
-        return ScalarMultiple(t=t, X=self)
+    def __rmul__(self, t): # self * t
+        return self.__mul__(t)
     
     def recursive_params(self):
         # returns items for nonuniqueness
@@ -336,6 +338,12 @@ def grid(data, N=100, tail=0.01, log=False, xmin=None, xmax=None):
         return np.linspace(xmin, xmax, N)
 
 ####### commonly used RVs #########
+        
+class Constant(RandomVariable):
+    parameters = dict(c=1.)
+    
+    def sample_(self, shape, c):
+        return np.full(shape, c)
         
 class Empirical(RandomVariable):
     
@@ -502,11 +510,6 @@ class Gamma(RandomVariable):
         K, _, tau = stats.gamma.fit(data)
         return dict(K=K, tau=tau)
     
-class LeftTruncatedGamma(RandomVariable):
-    parameters = dict(K=1, tau=1., tmin=0.1)
-    
-    pass
-    
 ####### RVs derived from others #########
         
 class ScalarMultiple(RandomVariable):
@@ -526,6 +529,30 @@ class ScalarMultiple(RandomVariable):
 
     def __repr__(self):
         return "%.2g*%s" % (self.constants["t"], repr(self.inputs["X"]))
+    
+class Product(RandomVariable):
+    "product of two RVs. can only sample."
+    parameters = dict(X=1., Y=1.)
+    derived_from = ["X", "Y"]
+    
+    def sample_(self, shape, X, Y):
+        x = self.X.sample_(shape, **X)
+        y = self.Y.sample_(shape, **Y)
+        return x * y
+
+class Function(RandomVariable):
+    "arbitrary, fixed function of one RV. can only sample."
+    parameters = dict(X=1.)
+    derived_from = ["X"]
+    
+    def __init__(self, f, X):
+        # f has to act point-wise on arrays of arbitrary shape
+        self.f = f
+        RandomVariable.__init__(self, X=X)
+    
+    def sample_(self, shape, X):
+        x = self.X.sample_(shape, **X)
+        return self.f(x)
     
 class OneOf(RandomVariable):
     """RV is one of X, Y where X is w times more likely than Y.
@@ -549,6 +576,25 @@ class OneOf(RandomVariable):
         p = 1./(1. + w)
         return (1. - p)*self.X.cdf_(x, **X) + p*self.Y.cdf_(x, **Y)
     
+class TruncateLeft(RandomVariable):
+    "RV conditioned on X > xmin"
+    parameters = dict(X=1., xmin=0.1)
+    derived_from = ["X"]
+    
+    def sample_(self, shape, X, xmin):
+        # TODO
+        pass
+    
+    def pdf_(self, x, X, xmin):
+        mass = (1. - self.X.cdf_(xmin, **X)) + 1e-10
+        return self.X.pdf_(x, **X) * (1.*(x > xmin))/mass
+    
+    def cdf_(self, x, X, xmin):
+        Fx = self.X.cdf_(x, **X)
+        Fxmin = self.X.cdf_(xmin, **X)
+        mass = (1. - Fxmin) + 1e-10
+        return np.maximum((Fx - Fxmin)/mass, 0.)
+    
 def DoubleExponential(tau1=1., tau2=1., w=None):
     #w = p/(1.-p) if p is not None else None
     X = Exponential(tau=tau1)
@@ -560,10 +606,22 @@ def LeftTruncatedDoubleExponential(tau1=1., tau2=1., w=None, tmin=0.5):
     X = LeftTruncatedExponential(tau=tau1, tmin=tmin)
     Y = LeftTruncatedExponential(tau=tau2, tmin=tmin)
     return OneOf(X=X, Y=Y, w=w)
+
+def LeftTruncatedGamma(K=1., tau=1., tmin=0.1):
+    X = Gamma(K=K, tau=tau)
+    return TruncateLeft(X=X, xmin=tmin)
+
+def LeftTruncatedDoubleGammaPoisson(a1=1., tau1=1., a2=1., tau2=1., tmin=0.1, w=None):
+    K1 = ZeroTruncatedPoisson(a=a1)
+    K2 = ZeroTruncatedPoisson(a=a2)
+    T1 = LeftTruncatedGamma(K=K1, tau=tau1, tmin=tmin)
+    T2 = LeftTruncatedGamma(K=K2, tau=tau2, tmin=tmin)
+    return OneOf(X=T1, Y=T2, w=w)
     
 if __name__ == "__main__":
-    example1 = True
-    example2 = True
+    example1 = False
+    example2 = False
+    example3 = True
     
     if example1: # example with stacked Gamma-Poisson-Distributions
         # construct target distribution
@@ -633,3 +691,20 @@ if __name__ == "__main__":
         T.compare_pdfs(sample, log=True)
         
         print T
+        
+    if example3: # Double Gamma example where variables are interlinked
+        sample = DoubleExponential(tau1=0.01, tau2=1., w=2.).sample(10000)
+        
+        a1 = Constant(c=None)
+        a2 = .005
+        w = Function(lambda x: x/a2, a1)
+        
+        K1 = ZeroTruncatedPoisson(a=a1)
+        K2 = ZeroTruncatedPoisson(a=a2)
+        T1 = Gamma(K=K1, tau=None)
+        T1.update(tau=0.0001)
+        T2 = Gamma(K=K2, tau=None)
+        T = OneOf(X=T1, Y=T2, w=w)
+        
+        T.fit(sample, log=True, sigma=2., factor=0.7, n_it=30)
+        T.compare_pdfs(sample, log=True)

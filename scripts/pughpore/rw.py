@@ -64,7 +64,8 @@ todo = nanopores.user_params(
     video = False,
     plot_distribution = False,
     fit_experiments = False,
-    fit_long = True,
+    fit_gamma = True,
+    fit_long = False,
     fit_long_gamma = False,
 )
 
@@ -648,12 +649,12 @@ if todo.fit_long_gamma:
     # fit with different methods and compare
     from collections import OrderedDict
     T = OrderedDict()
-    error = OrderedDict()
-    ka = [1e7, 1e8, 1e9, 5e9]
-    kastr = ["$10^7$", "$10^8$", "$10^9$", "$5\cdot 10^9$"]
+    ka = [1e7, 1e8, 1e9, 1e10]
+    kastr = ["$10^7$", "$10^8$", "$10^9$", "$10^{10}$"]
     kaformat = r"$k_a$ = %s/Ms"
     I = range(len(ka))
-    rvalues = ["00", "66", "aa", "ff"]
+    rvalues = ["66", "99", "cc", "ff"]
+    linestyles = ["-.", "--", ":", "-"]
     colors = ["#%s0000" % r_ for r_ in rvalues]
               
     a_attempts = 4.1 # mean no. attempts for binding site length 8nm
@@ -662,17 +663,35 @@ if todo.fit_long_gamma:
     for i in I:
         Ra = ka[i] * cb
         K = statistics.ZeroTruncatedPoisson(a=Ra*Ta)
-        T[i] = statistics.Gamma(tau=None, K=K)
+        T[i] = statistics.LeftTruncatedGamma(tau=None, K=K, tmin=cutoff)
         p_binding_prob[i] = tamean * Ra / a_attempts
     for i in T:
-        error[i] = T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
+        T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
+        
+    ka1 = np.logspace(3.8, 11.2, 20)
+    T1 = OrderedDict()
+    error = []
+    for ka_ in ka1:
+        Ra = ka_ * cb
+        K = statistics.ZeroTruncatedPoisson(a=Ra*Ta)
+        T1[ka_] = statistics.LeftTruncatedGamma(tau=None, K=K, tmin=cutoff)
+        err = T1[ka_].fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
+        error.append(err)
     
-    t = statistics.grid(tsample, 15, 0, log=log)
-    tt = np.logspace(0., 2., 100)
+    for ka_, err in zip(T1, error):
+        print T1[ka_].X.K.a.sample(10000).mean(),
+        print ("%.4g" % ka_),
+        print err
+    
+    t = np.logspace(-0.2, 2.3, 18)
+    tt = np.logspace(-0.2, 2.3, 100)
+    #t = statistics.grid(tsample, 15, 0, log=log)
     #tt = statistics.grid(tsample, 100, 0, log=log)
     ecdf = statistics.empirical_cdf(t, tsample)
     #log = False
-    t1 = statistics.grid(tsample, 8, 0, log=log)
+    #t1 = statistics.grid(tsample, 8, 0, log=log)
+    t1 = np.logspace(np.log10(2.), 2.3, 10)
+    tt1 = np.logspace(np.log10(2.), 2.3, 100)
     tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
     
     plt.figure("data_long_gammafit_cdf", figsize=(4, 3))
@@ -681,7 +700,8 @@ if todo.fit_long_gamma:
         #if i==0:
         #    T[i].plot_cdf(tt, std=std, label=r"$k_a = 10^7$/Ms", color=colors[i])
         #else:
-        T[i].plot_cdf(tt, std=std, label=kaformat % kastr[i], color=colors[i])
+        T[i].plot_cdf(tt, std=std, label=kaformat % kastr[i], 
+             color=colors[i], linestyle=linestyles[i])
     plt.plot(t, ecdf, "o", label="Experiment")
     plt.xscale("log")
     plt.ylabel("Cumulative probability")
@@ -696,12 +716,133 @@ if todo.fit_long_gamma:
     #########
     for i in T:
         T[i].plot_pdf(tt, label=kaformat % kastr[i], std=std, log=log,
-             color=colors[i])
+             color=colors[i], linestyle=linestyles[i])
     plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment")
     plt.xscale("log")
     plt.ylabel("Rel. frequency")
     plt.xlabel(r"$\tau$ off [ms]")
+    plt.xlim(xmin=0.1)
     plt.legend(loc="upper left", frameon=False)
+    
+    plt.figure("data_long_gammafit_error", figsize=(4, 3))
+    plt.semilogx(ka1, error, "o")
+    plt.xlabel(r"$k_a$ [M$^{-1}$s$^{-1}$]")
+    plt.ylabel("Fitting error")
+
+if todo.fit_gamma:
+    # now we focus only on the long-time cluster and fit that with different methods
+    drop, tsample = fields.get("events_pugh_experiment", "drop", "t")
+    tsample = tsample.load()
+    log = True
+    std = False
+    cutoff = 0.1 # [ms]
+
+    # cut off data at detection limit threshold    
+    toosmall = tsample < cutoff    
+    tsample = tsample[~toosmall]
+    
+    # get empirical attempt time disributions
+    N = 10000
+    params0 = dict(params, N=N, bind_everywhere=False)
+    rw1 = randomwalk.get_rw(NAME, params0, setup=setup_rw)
+    ta1 = 1e-9*rw1.attempt_times
+    Ta1 = statistics.Empirical(ta1[ta1 > 0.])
+    cb = 1./rw1.domains[2].Vbind # [M]
+    
+    params1 = dict(params, N=N, bind_everywhere=True)
+    rw2 = randomwalk.get_rw(NAME, params1, setup=setup_rw)
+    ta2 = 1e-9*rw2.attempt_times
+    Ta2 = statistics.Empirical(ta2[ta2 > 0.])
+
+    # fit with different methods and compare
+    from collections import OrderedDict
+    T = OrderedDict()
+    ka = [1e7, 1e8,1e9, 1e10]
+    #kastr = [("%.3g" % ka_) for ka_ in ka]
+    kastr = [r"$10^{%d}$" % (np.round(np.log10(ka_)),) for ka_ in ka]
+    #kastr = ["$10^6$", "$10^8$", "$10^9$", "$10^{10}$"]
+    kaformat = r"$k_a$ = %s/Ms"
+    I = range(len(ka))
+    rvalues = ["66", "99", "cc", "ff"]*4
+    linestyles = ["-.", "--", ":", "-"]*4
+    colors = ["#%s0000" % r_ for r_ in rvalues]
+              
+    a_attempts = 4.1 # mean no. attempts for binding site length 8nm
+    tamean = ta1.mean()
+    p_binding_prob = OrderedDict()
+    error = []
+    for i in I:
+        ka1 = ka[i]
+        Ra1 = ka1 * cb
+        a1 = Ra1 * Ta1
+        p1 = 1 - np.exp(-Ra1*ta1).mean()
+    
+        ka2 = statistics.Constant(c=None)
+        ka2.update(c=ka1/30.)
+        Ra2 = ka2 * cb
+        a2 = Ra2 * Ta2
+        p2 = Ra2 * ta2.mean() #statistics.Function(lambda a: 1 - np.exp(-a).mean(), a2)
+        w = (1./p1) * p2
+        
+        K1 = statistics.ZeroTruncatedPoisson(a=a1)
+        K2 = statistics.ZeroTruncatedPoisson(a=a2)
+        T1 = statistics.LeftTruncatedGamma(K=K1, tau=None, tmin=cutoff)
+        T2 = statistics.LeftTruncatedGamma(K=K2, tau=None, tmin=cutoff)
+        
+        T[i] = statistics.OneOf(X=T2, Y=T1, w=w)
+    for i in T:
+        err = T[i].fit(tsample, method="cdf", log=True, sigma=2., factor=0.8, n_it=40)
+        error.append(err)
+        
+#    ka1 = np.logspace(7., 12., 10)
+#    for ka_ in ka1:
+#        Ra = ka_ * cb
+#        K = statistics.ZeroTruncatedPoisson(a=Ra*Ta)
+#        Ti = statistics.LeftTruncatedGamma(tau=None, K=K, tmin=cutoff)
+#        err = Ti.fit(tsample, method="cdf", log=True, sigma=2., factor=0.6, n_it=20)
+#        error.append(err)
+    
+    t = statistics.grid(tsample, 15, 0, log=log)
+    tt = statistics.grid(tsample, 100, 0, log=log)
+    ecdf = statistics.empirical_cdf(t, tsample)
+    t1 = statistics.grid(tsample, 15, 0, log=log)
+    tt1 = tt
+    tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
+    
+    plt.figure("data_gammafit_cdf", figsize=(4, 3))
+    ##########
+    for i in T:
+        #if i==0:
+        #    T[i].plot_cdf(tt, std=std, label=r"$k_a = 10^7$/Ms", color=colors[i])
+        #else:
+        T[i].plot_cdf(tt, std=std, label=kaformat % kastr[i], 
+             color=colors[i], linestyle=linestyles[i])
+    plt.plot(t, ecdf, "o", label="Experiment")
+    plt.xscale("log")
+    plt.ylabel("Cumulative probability")
+    plt.xlabel(r"$\tau$ off [ms]")
+    #plt.xlim(xmin=0.5)
+    plt.legend(loc="lower right", frameon=False)
+    
+    
+    print "CDF fit:", T
+    
+    plt.figure("data_gammafit_pdf", figsize=(4, 3))
+    #########
+    for i in T:
+        T[i].plot_pdf(tt, label=kaformat % kastr[i], std=std, log=log,
+             color=colors[i], linestyle=linestyles[i])
+    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment")
+    plt.xscale("log")
+    plt.ylabel("Rel. frequency")
+    plt.xlabel(r"$\tau$ off [ms]")
+    #plt.xlim(xmin=0.1)
+    plt.legend(loc="upper right", frameon=False)
+    
+    plt.figure("data_gammafit_error", figsize=(4, 3))
+    plt.semilogx(ka, error, "o")
+    plt.xlabel(r"$k_a$")
+    plt.ylabel("Fitting error")
 
     
 import folders

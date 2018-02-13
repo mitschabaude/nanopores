@@ -6,7 +6,8 @@ HOME = os.path.expanduser("~")
 #FIGDIR = os.path.join(PAPERDIR, "figures", "")
 
 FIGDIR = os.path.join(HOME, "Dropbox", "nanopores", "figures")
-DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
+#DATADIR = os.path.join(HOME, "Dropbox", "nanopores", "fields")
 
 import nanopores.tools.fields as fields
-fields.set_dir(DATADIR)
+fields.set_dir_mega()
+#fields.set_dir(DATADIR)

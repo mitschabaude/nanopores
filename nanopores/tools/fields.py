@@ -60,6 +60,10 @@ def set_dir_mega():
 # user interface that wraps Header object
 def update():
     Header().update()
+    
+def get_params(name, index=None, **params):
+    _, params = Header().get_file_params(name, params, index)
+    return params
 
 def load_file(name, index=None, **params):
     return Header().load_file(name, params, index)
@@ -96,7 +100,22 @@ def save(name, params=None, **entries):
     _save(data, FILE)
 
 def get(name, *args, **params):
-    data = load_file(name, **params)
+    """main method to read from database.
+    
+    usage: either get the full file
+        
+    >>> data = get(name[, index][, **params])
+    
+    or get particular entries/fields
+        
+    >>> a, b, c = get(name[, index], "a", "b", "c"[, **params])
+    """
+    if len(args) > 0 and isinstance(args[0], int):
+        args = list(args)
+        index = args.pop(0)
+        data = load_file(name, index, **params)
+    else:
+        data = load_file(name, **params)
     if not args:
         return data
     values = []
@@ -168,6 +187,22 @@ def set_param(name, index, pname, pvalue):
 def set_params(name, index, **params):
     for k in params:
         set_param(name, index, k, params[k])
+        
+def diff(params0, name, index=None, **params):
+    "to find out why data is not compatible with params0, print conflicts"
+    h = get_params(name, index, **params)
+    keys = list(set(h.keys()) & set(params0.keys()))
+    return {k: (params0[k], h[k]) for k in keys if params0[k] != h[k]}
+
+def diffs(params0, name):
+    "get all diffs with data stored under name"
+    headers = Header().get_all(name)
+    diffs = []
+    for h in headers:
+        keys = list(set(h.keys()) & set(params0.keys()))
+        diff = {k: (params0[k], h[k]) for k in keys if params0[k] != h[k]}
+        diffs.append(diff)
+    return diffs
 
 def exists(name, **params):
     try:
@@ -195,6 +230,12 @@ class Header(object):
     def list_files(self):
         # TODO: could include global file names and sizes in list
         return self.header["_flist"]
+    
+    def get_all(self, name):
+        "return all headers for a given name"
+        if name not in self.header:
+            raise KeyError("Header: Name '%s' not found." %name)
+        return self.header[name]
 
     def get_file_params(self, name, params, index=None):
         "take first file compatible with params"

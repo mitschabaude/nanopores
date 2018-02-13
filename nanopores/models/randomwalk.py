@@ -511,6 +511,34 @@ class RandomWalk(object):
                 yield self.t
 
         self.finalize()
+        
+    def draw_bindings(self, idomain=None, **bind_params):
+        "(re-)draw bindings after running or loading rw"
+        # get either specified domain or unique binding domain
+        if idomain is None:
+            domains = [dom for dom in self.domains if dom.binding]
+            assert len(domains) == 1
+            domain = domains[0]
+        else:
+            domain = self.domains[idomain]
+            
+        domain.__dict__.update(bind_params)
+        
+        # draw number of bindings
+        if domain.bind_type == "zone":
+            domain.initialize_binding_zone(self)
+            ta = self.attempt_times
+            ka = domain.kbind
+            self.bindings = np.random.poisson(ka*ta)
+        else:
+            raise NotImplementedError("currently only for zone binding")
+            
+        # draw binding durations
+        t = self.t
+        if domain.use_force:
+            raise NotImplementedError("currently no force dependency")
+        self.bind_times = 1e-9*np.random.gamma(self.bindings, scale=t)
+        self.times = self.walk_times + self.bind_times
 
     def finalize(self):
         print "finished!"
@@ -523,6 +551,7 @@ class RandomWalk(object):
         print "mean # of bindings:", self.bindings.mean()
         print "mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell))
         print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
+        self.walk_times = np.copy(self.times)
         self.times += self.bind_times
         
         for domain in self.domains:
