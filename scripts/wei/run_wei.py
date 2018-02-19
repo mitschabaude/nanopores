@@ -46,9 +46,9 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
-voltage_dependence = False
+voltage_dependence = True
 determine_delta = False
 fit_koff0 = False
 
@@ -252,7 +252,7 @@ if plot_distribution:
     NN = 3e8
     fake = tauoff_wei()
     tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
-    a, b = -6.5, 3 # log10 of plot interval
+    a, b = -6.5, 2 # log10 of plot interval
     bins = np.logspace(a, b, 40)
     _, _, gptchs = plt.hist(tsuccess, bins=bins, color="green", log=True,
              alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Lata)", zorder=50)
@@ -275,7 +275,7 @@ if plot_distribution:
     handler_sim2 = (gptchs[0], rptchs[0])
     
     _, _, ptchs = plt.hist(fake, bins=bins, histtype="step", log=True,
-             color="orange", label="Experiments (Wei et al.)", zorder=100)
+             color="orange", label="Experiments", zorder=100)
     handler_exp = ptchs[0]
     
     plt.xscale("log")
@@ -286,10 +286,11 @@ if plot_distribution:
     #plt.xlim(xmax=1e4)
     #plt.legend()
     plt.legend([handler_exp, handler_sim1, handler_sim2],
-               ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)", r"Sim. ($k_d$ from Wei)"],
+               ["Experiments", r"Sim. ($k_d$ from Lata)", r"Sim. ($k_d$ from Wei)"],
     #plt.legend([handler_exp, handler_sim1],
     #           ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)"],
-                handler_map={tuple: HandlerTuple(ndivide=None)})
+                handler_map={tuple: HandlerTuple(ndivide=None)},
+                frameon=False)
     #scatterpoints=1, numpoints=1, 
 
 ###### reproduce cumulative tauoff plot with fits and different bV
@@ -352,12 +353,12 @@ if fit_koff0:
 ###### recreate voltage-dependent plot of koff
 if voltage_dependence:
     # get experimental data
-    plt.figure("koff", figsize=(4, 3.5))
+    plt.figure("koff", figsize=(3.6, 3))
     data = np.genfromtxt("koff.csv", delimiter=",")
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
-    plt.plot(v, koff, "sr", markersize=10, label="Experiments (Wei et al.)")
+    plt.plot(v, koff, "sr", markersize=8, label="Experiments")
     vv = np.linspace(0., 400., 10)
     plt.plot(vv, k0 * np.exp(c0*vv), "-r")
     
@@ -376,7 +377,7 @@ if voltage_dependence:
     koff1 = [fit_koff(bV=V, zreceptor=z, dx=dx,
                      tbind=1e9/kd, **newparams).koff for V in v]
     c2, k2 = regression(mv[-4:], koff1[-4:])
-    plt.plot(mv, koff1, "o", markersize=8, label=r"Sim. ($k_d$ from Wei)",
+    plt.plot(mv, koff1, "o", markersize=10, label=r"Sim. ($k_d$ from Wei)",
              mfc="None", mec="#990000")
     #plt.plot(vv, k2 * np.exp(c2*vv), ":", color="#990000")
 

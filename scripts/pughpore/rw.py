@@ -771,6 +771,16 @@ if todo.fit_gamma:
     tamean = ta1.mean()
     p_binding_prob = OrderedDict()
     error = []
+    
+    def P2(ra):
+        colon = slice(None)
+        n = ra.ndim
+        #tta = np.random.choice(ta2, size=1000)
+        tta = ta2
+        tmp = ra[(colon,)*n + (None,)] * tta[(None,)*n +  (colon,)]
+        tmp = np.exp(-tmp).mean(axis=n)
+        return 1. - tmp
+    
     for i in I:
         ka1 = ka[i]
         Ra1 = ka1 * cb
@@ -781,13 +791,17 @@ if todo.fit_gamma:
         ka2.update(c=ka1/30.)
         Ra2 = ka2 * cb
         a2 = Ra2 * Ta2
-        p2 = Ra2 * ta2.mean() #statistics.Function(lambda a: 1 - np.exp(-a).mean(), a2)
-        w = (1./p1) * p2
+        #p2 = Ra2 * ta2.mean()
+        p2 = statistics.Function(P2, Ra2)
+        w = (1./p1 - 1.) * p2
         
         K1 = statistics.ZeroTruncatedPoisson(a=a1)
         K2 = statistics.ZeroTruncatedPoisson(a=a2)
         T1 = statistics.LeftTruncatedGamma(K=K1, tau=None, tmin=cutoff)
         T2 = statistics.LeftTruncatedGamma(K=K2, tau=None, tmin=cutoff)
+        # initial guesses to bias fit
+        T1.X.update(tau=10.)
+        T2.X.update(tau=0.1)
         
         T[i] = statistics.OneOf(X=T2, Y=T1, w=w)
     for i in T:
