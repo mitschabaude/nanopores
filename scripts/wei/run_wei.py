@@ -47,8 +47,8 @@ NAME = "rw_wei_"
 print_calculations = False
 run_test = False
 plot_distribution = False
-plot_cdf = False
-voltage_dependence = True
+plot_cdf = True
+voltage_dependence = False
 determine_delta = False
 fit_koff0 = False
 
@@ -301,7 +301,7 @@ N = 10000
 newparams = dict(N=N, dp=30., geop=dict(dp=30.))
 
 if plot_cdf:
-    plt.figure("bV_tauoff")
+    plt.figure("bV_tauoff", figsize=(4, 3))
     for i, v in enumerate(voltages):
         data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
         tt = np.logspace(-3., 2., 100)
@@ -311,7 +311,7 @@ if plot_cdf:
                      label="%d mV" % (1000*abs(v)))
         print "koff", data.koff
     plt.xlim(1e-4, 1e1)
-    plt.xlabel(r"$\tau$ off")
+    plt.xlabel(r"$\tau$ off [s]")
     plt.ylabel("Cumulative probability")
     plt.legend(frameon=False)
     
@@ -328,7 +328,7 @@ def koff0(kd, **params):
     return fit_koff(name="wei_koff_3", bV=0., tbind=1e9/kd, **params).koff
 
 if fit_koff0:
-    plt.figure("koff0", figsize=(3.5, 3))
+    plt.figure("koff0", figsize=(4, 3))
     kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
     ko = np.array([1e3*koff0(k*1e-3, NN=5e8, nmax=10000) for k in kd])
     c = ko.mean()/kd.mean()
@@ -338,7 +338,7 @@ if fit_koff0:
     plt.plot(kd, ko, "oC1", label="Simulations")
     plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}^{V=0}$ = C*$k_d$")
     plt.plot(kd, kd, ":C2", label=r"$k_{off}^{V=0}$ = $k_d$")
-    plt.ylim(ymax=7)
+    plt.ylim(ymin=2.2, ymax=7.5)
     #plt.xlim(2.9, 4.6)
     #plt.fill_between(plt.xlim(), [4.5 - 0.6]*2, [4.5 + 0.6]*2, alpha=0.5, color="C1")
     
@@ -347,7 +347,7 @@ if fit_koff0:
     #plt.xlim(plt.ylim())
     #plt.axis("equal")
     plt.xlabel(r"Bulk dissociation constant $k_d$ [10$^{-3}$/(Ms)]")
-    plt.ylabel(r"Observed $k_{off}^{V=0}$ [10$^{-3}$/(Ms)]")
+    plt.ylabel(r"$k_{off}^{V=0}$ [10$^{-3}$/(Ms)]")
     plt.legend(frameon=False, loc="upper left")
 
 ###### recreate voltage-dependent plot of koff
@@ -456,7 +456,7 @@ if determine_delta:
     cdx_exp = np.ones(len(dxx))*cdx_exp
     vdx_exp = np.ones(len(dxx))*vdx_exp
     
-    plt.figure("delta")
+    plt.figure("delta", figsize=(4, 3))
     plt.plot(dxx, fplot(cdx_exp, dxx), "-", label="Wei et al.")
     for i in range(5):
         plt.plot(dxx, np.ones(len(dxx))*cdxall_exp[i], "-", color="C0", alpha=0.5)
