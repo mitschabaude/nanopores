@@ -1,6 +1,6 @@
 # (c) 2017 Gregor Mitscha-Baude
 """Generic framework to define, fit, sample, and plot statistical models;
-especially suited for compound models, models who include complicated
+especially suited for compound models, models which include complicated
 machinery, and generally models that are not analytically tractable.
 Uses simulated annealing as generic parameter search (fitting) procedure.
 
@@ -9,13 +9,15 @@ the compound Gamma-Poisson and the truncated double exponential distribution.
 
 Example usage:
 
-> K = Poisson(a=None) # None means it has to be fitted from samples
-> T = Gamma(K=K, tau=2.0) # Providing a value means fixing the parameter
-> T.fit(samples) # fits a and therefore determines both K and T
->
-> t = np.linspace(0., 5., 100)
-> plt.hist(samples, normed=True)
-> plt.plot(t, T.pdf(t))
+>>> import numpy as np
+>>> from statistics import Poisson, Gamma
+>>> sample = # ... insert code to load data sample ... #
+>>> K = Poisson(a=None) # None means the value will be fitted to data
+>>> T = Gamma(K=K, tau=2.0) # Providing a float means fixing the parameter
+>>> T.fit(sample) # fits all free parameters that T depends on, in this case a
+>>> t = np.linspace(0., 5., 100)
+>>> plt.hist(sample, normed=True)
+>>> plt.plot(t, T.pdf(t))
 """
 
 # TODOs:
@@ -33,6 +35,7 @@ Example usage:
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+from collections import OrderedDict
 
 class RandomVariable(object):
     
@@ -40,7 +43,7 @@ class RandomVariable(object):
     parameters = {}
     derived_from = []
 
-    def __init__(self, **params):
+    def __init__(self, *unnamed, **named):
         self.i = RandomVariable.i
         RandomVariable.i += 1
         self.constants = dict(self.parameters)
@@ -48,8 +51,22 @@ class RandomVariable(object):
         self.fixed = dict.fromkeys(self.parameters.keys(), True)
         self.is_derived_from = {k: (True if k in self.derived_from else False
                                  ) for k in self.parameters}
+    
+        # simple fallback mechanism if unnamed variables are passed
+        # (pick the first best parameter name which is not explicitly passed,
+        # following the convention that RV names are upper- and constants are
+        # lower-case)
+        X_names = (k for k in self.parameters if (not k in named) and k.isupper())
+        c_names = (k for k in self.parameters if (not k in named) and k.islower())
+        for X in unnamed:
+            if isinstance(X, RandomVariable):
+                name = X_names.next()
+                named[name] = X
+            else:
+                name = c_names.next()
+                named[name] = X
         
-        for name, X in params.items():
+        for name, X in named.items():
             if not name in self.parameters:
                 continue
             if isinstance(X, RandomVariable):
@@ -140,13 +157,15 @@ class RandomVariable(object):
             return np.mean((fxi - yi)**2, 0)
         return self.anneal(F, xi, yi, **anneal_params)
         
-    def anneal(self, F, xi, yi, n_pop=100, n_it=20, sigma=5., factor=0.5,
+    def anneal(self, F, xi, yi, n_pop=100, tol=1e-3, n_it=20, sigma=5., factor=0.5,
                verbose=True):
         "minimize loss function F(xi, yi; p) wrt p with simulated annealing"
         # n_pop = size of population in one iteration
         # n_it = number of iterations
         # sigma = initial (multiplicative) standard deviation
         # factor = factor to reduce sigma per iteration
+        # calculate number of iterations necessary to have sigma*factor**n <= tol
+        n_it = int(np.ceil((np.log(tol) - np.log(sigma))/np.log(factor)))
         if verbose:
             t = self.recursive_missing()
             print "   ".join(map(lambda t: "%s%d" % t[::2], t))
@@ -165,6 +184,7 @@ class RandomVariable(object):
                 print " ".join(map(lambda t: "%.2g" % t[1],
                                    self.recursive_missing()))
         if verbose:
+            print "stopped after %d iterations" % n_it
             print "minimum", min(f)
         return min(f) #self.recursive_missing()
     
@@ -315,15 +335,6 @@ def empirical_pdf(x, data, log=False):
 def empirical_cdf_vec(x, data):
     # x and data just have to be broadcastable, sampling dimension is last
     return np.mean(data <= x, axis=-1)
-    
-def smooth(a, k=3):
-    a = np.array(a)
-    # range of kernel
-    start = -(k // 2)
-    end = (k // 2) + (k % 2)
-    N = a.shape[0]
-    b = [a[max(0, i + start) : min(N, i + end)].mean() for i in range(N)]
-    return np.array(b)
 
 def grid(data, N=100, tail=0.01, log=False, xmin=None, xmax=None):
     "regularly spaced evaluation nodes spanning data distribution"
@@ -558,7 +569,7 @@ class OneOf(RandomVariable):
     """RV is one of X, Y where X is w times more likely than Y.
     In other words, [X, Y][i] where i ~ Bernoulli(1/(1+w))"""
     # fitting is biased to X being more likely, to get a unique order
-    parameters = dict(X=1., Y=1., w=5.)
+    parameters = OrderedDict([("X", 1.), ("Y", 1.), ("w", 5.)])
     derived_from = ["X", "Y"]
     
     def sample_(self, shape, X, Y, w):
@@ -619,9 +630,10 @@ def LeftTruncatedDoubleGammaPoisson(a1=1., tau1=1., a2=1., tau2=1., tmin=0.1, w=
     return OneOf(X=T1, Y=T2, w=w)
     
 if __name__ == "__main__":
+    # decide which example to run
     example1 = False
-    example2 = False
-    example3 = True
+    example2 = True
+    example3 = False
     
     if example1: # example with stacked Gamma-Poisson-Distributions
         # construct target distribution
@@ -641,8 +653,9 @@ if __name__ == "__main__":
         T = None*Gamma(K=N)
         
         # fitting methods
-        method = "pdf" # or "cdf"; pdf seems to be more robust
-        log = True # True should generally yield better fits
+        method = "pdf" # or "cdf"; pdf seems to be more robust for large data,
+               # cdf is obviously better for small data because it is smoother
+        log = True # True should yield better fits for exponential-type distributions
         
         # first fit Ta and fix parameters, then fit T
         Ta.fit(sample1, method=method, log=log)
@@ -684,7 +697,7 @@ if __name__ == "__main__":
         T = LeftTruncatedDoubleExponential(
                      tau1=None, tau2=None, w=None, tmin=tmin)
         
-        T.fit(sample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+        T.fit(sample, method="cdf", log=True, sigma=2., factor=0.6)
         plt.figure("cdf")
         T.compare_cdfs(sample, log=True)
         plt.figure("pdf")
@@ -706,5 +719,5 @@ if __name__ == "__main__":
         T2 = Gamma(K=K2, tau=None)
         T = OneOf(X=T1, Y=T2, w=w)
         
-        T.fit(sample, log=True, sigma=2., factor=0.7, n_it=30)
+        T.fit(sample, log=True, sigma=2., factor=0.7)
         T.compare_pdfs(sample, log=True)

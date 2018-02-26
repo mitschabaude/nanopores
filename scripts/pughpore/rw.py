@@ -60,11 +60,11 @@ params = nanopores.user_params(
 todo = nanopores.user_params(
     test_solver = False,
     plot_dolfin = False,
-    plot_streamlines = False,
+    plot_streamlines = True,
     video = False,
     plot_distribution = False,
-    fit_experiments = False,
-    fit_gamma = True,
+    fit_experiments = True,
+    fit_gamma = False,
     fit_long = False,
     fit_long_gamma = False,
 )
@@ -522,12 +522,12 @@ if todo.fit_experiments:
     plt.xscale("log")
     plt.ylabel("Cumulative probability")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend()
+    plt.legend(frameon=False)
     
     print "CDF fit:", T2
     
-    T.fit(tsample, method="pdf", log=True, sigma=2., factor=0.9, n_it=50)
-    T2.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
+    #T.fit(tsample, method="pdf", log=True, sigma=2., factor=0.9, n_it=50)
+    #T2.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
     
     plt.figure("data_fit_pdf", figsize=(4, 3))
     #plt.plot(tc, epdf, "o")
@@ -537,9 +537,9 @@ if todo.fit_experiments:
     plt.xscale("log")
     plt.ylabel("Rel. frequency")
     plt.xlabel(r"$\tau$ off [ms]")
-    plt.legend(loc="upper right")
+    plt.legend(loc="upper right", frameon=False)
     
-    print "PDF fit:", T2
+    #print "PDF fit:", T2
     
 if todo.fit_long:
     # now we focus only on the long-time cluster and fit that with different methods
@@ -777,7 +777,7 @@ if todo.fit_gamma:
         n = ra.ndim
         #tta = np.random.choice(ta2, size=1000)
         tta = ta2
-        tmp = ra[(colon,)*n + (None,)] * tta[(None,)*n +  (colon,)]
+        tmp = ra[(colon,)*n + (None,)] * tta[(None,)*n + (colon,)]
         tmp = np.exp(-tmp).mean(axis=n)
         return 1. - tmp
     
