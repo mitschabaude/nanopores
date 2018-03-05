@@ -60,7 +60,7 @@ params = nanopores.user_params(
 todo = nanopores.user_params(
     test_solver = False,
     plot_dolfin = False,
-    plot_streamlines = True,
+    plot_streamlines = False,
     video = False,
     plot_distribution = False,
     fit_experiments = True,
@@ -516,7 +516,7 @@ if todo.fit_experiments:
     tc, epdf = statistics.empirical_pdf(t1, tsample, log=log)
     
     plt.figure("data_fit_cdf", figsize=(4, 3))
-    plt.plot(t, ecdf, "o", label="Experiment (Pugh et al.)")
+    plt.plot(t, ecdf, "o", label="Experiment")
     T.plot_cdf(tt, label="Truncated exp. fit", std=std)
     T2.plot_cdf(tt, ":", label="Trunc. double exp. fit", std=std)
     plt.xscale("log")
@@ -531,7 +531,7 @@ if todo.fit_experiments:
     
     plt.figure("data_fit_pdf", figsize=(4, 3))
     #plt.plot(tc, epdf, "o")
-    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (Pugh et al.)")
+    plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment")
     #T.plot_pdf(tt, "C1", log=log, label="Truncated exp. fit")
     T2.plot_pdf(tt, ":C2", log=log, label="Trunc. double exp. fit", std=std)
     plt.xscale("log")
@@ -649,8 +649,8 @@ if todo.fit_long_gamma:
     # fit with different methods and compare
     from collections import OrderedDict
     T = OrderedDict()
-    ka = [1e7, 1e8, 1e9, 1e10]
-    kastr = ["$10^7$", "$10^8$", "$10^9$", "$10^{10}$"]
+    ka = [1e6,1e7, 1e8, 1e9]
+    kastr = [r"$10^{%d}$" % (np.round(np.log10(ka_)),) for ka_ in ka]
     kaformat = r"$k_a$ = %s/Ms"
     I = range(len(ka))
     rvalues = ["66", "99", "cc", "ff"]
@@ -757,7 +757,7 @@ if todo.fit_gamma:
     # fit with different methods and compare
     from collections import OrderedDict
     T = OrderedDict()
-    ka = [1e7, 1e8,1e9, 1e10]
+    ka = [1e6,1e7,1e8,1e9]
     #kastr = [("%.3g" % ka_) for ka_ in ka]
     kastr = [r"$10^{%d}$" % (np.round(np.log10(ka_)),) for ka_ in ka]
     #kastr = ["$10^6$", "$10^8$", "$10^9$", "$10^{10}$"]
