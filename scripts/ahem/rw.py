@@ -209,11 +209,14 @@ if plot_rw_results:
     
     # FIGURE: surf charge vs. end prob, different bV
     plt.figure("surf_end_prob", figsize=(3, 4))
-    V = [0.5, 1.0] #[1e-5, 0.25, 0.5, 1.0]
+    V = [0.5, 1.0] #[1e-5, 0.25, 0.5, 1.0] # rho -0.3 + bV 1e-5, 0.1 doesnt converge
     Rho = [-0.3, -0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2]
     for v in V:
         P = [end_probability(Params(params, bV=v, ahemqs=rho,
                                     ahemuniformqs=True)) for rho in Rho]
+        print "Exit probs at %dmV" % (v*1000)
+        print P
+        print
         plt.plot(Rho, P, ":o", label="%dmV" % (v*1000))
     plt.xlabel(r"Surface charge [C/m$^2$]")
     plt.legend(frameon=False)
