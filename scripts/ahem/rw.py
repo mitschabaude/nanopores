@@ -14,12 +14,9 @@ from nanopores.models.nanopore import Iz, get_active_params
 from nanopores.tools import fields
 from nanopores import Params
 #fields.set_dir_dropbox()
-fields.set_dir(fields.HOME + "/code/nanopores/fields")
+fields.set_dir_mega()
+#fields.set_dir(fields.HOME + "/code/nanopores/fields")
 FIGDIR = nanopores.dirnames.DROPBOX_FIGDIR
-
-# TODO: Idee waere statt der ahem-validierung eine current trace abzubilden,
-# damit man sieht an welchem punkt in der pore das Nukkleotid registriert wird
-# oder eine echte current trace
 
 ########### PARAMETERS ###########
 # TODO: confirm rMolecule and Qmol !!!
@@ -41,11 +38,12 @@ params = nanopores.Params(
     ahemuniformqs = False,
     
     # random walk params
-    N = 10000, # number of (simultaneous) random walks
+    N = 100, # number of (simultaneous) random walks
     dt = 0.01, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
     zstart = 1.,
+    initial = "disc",  # oder "sphere"
     
     # binding params
     t_bind = 1000.,
@@ -61,8 +59,8 @@ NAME = "rw_exittime"
 
 ########### WHAT TO DO  ###########
 plot_streamlines = False
-run_test = True
-plot_rw_results = False
+run_test = False
+plot_rw_results = True
 do_calculations = True
 create_current_trace = False
 
@@ -98,7 +96,7 @@ if plot_streamlines:
 
 ########### RUN A TEST RANDOM WALK ###########
 if run_test:
-    rw = setup_default(Params(params, N=100, dt=0.1))
+    rw = setup_default(Params(params, N=100))
     #setup_rw()
     run(rw, NAME)
     #rw.save(NAME)
@@ -209,12 +207,16 @@ if plot_rw_results:
     plt.ylabel("")
     plt.legend(frameon=False, loc="upper left")
     
-    # FIGURE: surf charge vs. end prob
+    # FIGURE: surf charge vs. end prob, different bV
     plt.figure("surf_end_prob", figsize=(3, 4))
+    V = [0.5, 1.0] #[1e-5, 0.25, 0.5, 1.0]
     Rho = [-0.3, -0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2]
-    P = [end_probability(Params(params, ahemqs=rho, ahemuniformqs=True)) for rho in Rho]
-    plt.plot(Rho, P, ":o")
+    for v in V:
+        P = [end_probability(Params(params, bV=v, ahemqs=rho,
+                                    ahemuniformqs=True)) for rho in Rho]
+        plt.plot(Rho, P, ":o", label="%dmV" % (v*1000))
     plt.xlabel(r"Surface charge [C/m$^2$]")
+    plt.legend(frameon=False)
     
     # FIGURE: Different applied voltages
     plt.figure("bV", figsize=(5, 4))

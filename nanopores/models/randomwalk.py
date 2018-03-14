@@ -285,7 +285,7 @@ class RandomWalk(object):
         if self.params.initial == "sphere":
             return self.initial_half_sphere()
         else:
-            self.initial_disc()
+            return self.initial_disc()
         
     def initial_disc(self):
         rstart = self.params.rstart
