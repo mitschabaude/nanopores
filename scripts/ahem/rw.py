@@ -38,7 +38,7 @@ params = nanopores.Params(
     ahemuniformqs = False,
     
     # random walk params
-    N = 100, # number of (simultaneous) random walks
+    N = 10000, # number of (simultaneous) random walks
     dt = 0.01, # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     rstart = 1.,
@@ -61,7 +61,7 @@ NAME = "rw_exittime"
 plot_streamlines = False
 run_test = False
 plot_rw_results = True
-do_calculations = True
+do_calculations = False
 create_current_trace = False
 
 ########### SET UP RANDOM WALK  ###########
@@ -210,14 +210,15 @@ if plot_rw_results:
     # FIGURE: surf charge vs. end prob, different bV
     plt.figure("surf_end_prob", figsize=(3, 4))
     V = [0.5, 1.0] #[1e-5, 0.25, 0.5, 1.0] # rho -0.3 + bV 1e-5, 0.1 doesnt converge
-    Rho = [-0.3, -0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2]
+    Rho = [-0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2] # -0.3,
+    colors = dict(zip(V, ["C2", "C3"]))
     for v in V:
         P = [end_probability(Params(params, bV=v, ahemqs=rho,
                                     ahemuniformqs=True)) for rho in Rho]
         print "Exit probs at %dmV" % (v*1000)
         print P
         print
-        plt.plot(Rho, P, ":o", label="%dmV" % (v*1000))
+        plt.plot(Rho, P, ":o", color=colors[v], label="%dmV" % (v*1000))
     plt.xlabel(r"Surface charge [C/m$^2$]")
     plt.legend(frameon=False)
     
@@ -253,7 +254,7 @@ if plot_rw_results:
     xofftext = -2.7
     yofftext = -0.15
     htext = 0.0
-    color = "C4" #"#999999"
+    color = "#555555"
     plt.axvline(x=zstop, linestyle="--", color=color)
     plt.annotate("Recogni-\ntion site", (zstop, htext),
         xytext=(zstop + xofftext, htext + yofftext), color=color,
