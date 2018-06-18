@@ -51,7 +51,8 @@ def plot_experiment():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
     plt.plot(bmV, I, "sr", label="Experiment")
-    G = 1e-3*I[2]/(-0.04285)
+    #G = 1e-3*I[2]/(-0.04285) # -40
+    G = 1e-3*I[5]/(0.04285) # +40
     print "Conductivity experimental: %.4f nS" % (G,)
     return G
 
@@ -95,7 +96,8 @@ def compare_D_models(calc=True, **params):
         plt.plot(Vplot, I, "-", color=colors[i], label=model)
 
         # print conductivities
-        G[i] = 1e-3*I[V.index(-0.04)]/(-0.04)
+        #G[i] = 1e-3*I[V.index(-0.04)]/(-0.04) # -40
+        G[i] = 1e-3*I[V.index(0.04)]/(0.04) # +40
         print "Conductivity %s: %.4f nS" % (model, G[i])
 
     plt.xlabel("Voltage Bias [mV]")
@@ -108,15 +110,15 @@ def compare_D_models(calc=True, **params):
     y = -35
     plt.text(15, y, "Conductance ")
     y -= 30
-    plt.text(15, y, "overestimate (-40 mV):")
+    plt.text(15, y, "overestimate (+40 mV):")
     for i, g in enumerate(G):
         y -= 30
         change = int(100*(g/gexp - 1.))
         plt.text(15, y, "+%d%%" % change, color=colors[i])
 
 
-calc = True
-default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3)
+calc = False
+default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3, ahemqs=-0.1)
 
 # with constant D = 0.3*D0 in pore
 dd = None

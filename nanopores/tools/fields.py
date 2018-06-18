@@ -677,7 +677,7 @@ def remove_functions(name, index=None, **params):
         os.remove(path)
 
 # print information
-def show(string=None):
+def show(string=None, **params):
     h = Header().header
     h.pop("_flist")
     for key in h:
@@ -687,6 +687,8 @@ def show(string=None):
         lst = h[key]
         for i, dic in enumerate(lst):
             dic.pop("FILE")
+            if not _compatible(dic, params):
+                continue
             print "%d)" %(i+1,),
             print ", ".join(["%s=%s" %x for x in dic.items()])
 

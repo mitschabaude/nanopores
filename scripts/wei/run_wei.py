@@ -46,9 +46,9 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
-plot_distribution = False
-plot_cdf = True
-voltage_dependence = False
+plot_distribution = True
+plot_cdf = False
+voltage_dependence = True
 determine_delta = False
 fit_koff0 = False
 
@@ -58,6 +58,11 @@ distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
 dx = 5.5
 kd = 25e-3
+
+#### color code
+color_lata = "C0" #"#0066ff"
+color_wei = "#00cc00"
+color_exp = "red"
 
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
@@ -248,13 +253,13 @@ if plot_distribution:
     plt.xlabel("Force [pN]")
     plt.ylabel("Rel. frequency")
     
-    plt.figure("hist", figsize=(4.5,3))
+    plt.figure("hist_old", figsize=(4.5,3))
     NN = 3e8
     fake = tauoff_wei()
-    tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
+    tfail, tsuccess1 = draw_empirically(rw, N=NN, nmax=len(fake))
     a, b = -6.5, 2 # log10 of plot interval
     bins = np.logspace(a, b, 40)
-    _, _, gptchs = plt.hist(tsuccess, bins=bins, color="green", log=True,
+    _, _, gptchs = plt.hist(tsuccess1, bins=bins, color="green", log=True,
              alpha=0.6, rwidth=0.9, label=r"Translocated ($k_d$: Lata)", zorder=50)
     _, _, rptchs = plt.hist(tfail, bins=bins, color="red", log=True,
              alpha=0.6, rwidth=0.9, label=r"Did not translocate ($k_d$: Lata)")
@@ -265,8 +270,8 @@ if plot_distribution:
     tbind = params2.pop("tbind")
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
-    tfail, tsuccess = draw_empirically(rw, N=NN, nmax=len(fake))
-    _, _, gptchs = plt.hist(tsuccess, bins=bins, color="green", log=True,
+    tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
+    _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
                             histtype="step", linestyle="--", alpha=0.6,
                             rwidth=0.9, label=r"Translocated ($k_d$: Wei)", zorder=200)
     _, _, rptchs = plt.hist(tfail, bins=bins, color="red", log=True,
@@ -292,6 +297,28 @@ if plot_distribution:
                 handler_map={tuple: HandlerTuple(ndivide=None)},
                 frameon=False)
     #scatterpoints=1, numpoints=1, 
+    
+    # simpler hist with better color code and visibility
+    tsuccess_lata = tsuccess1#[tsuccess1 > 1e-4]
+    tsuccess_wei = tsuccess2#[tsuccess2 > 1e-4]
+    plt.figure("hist_all", figsize=(4.5,3))
+    plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
+             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_d$ from Lata)", zorder=50)
+    
+    plt.hist(tsuccess_wei, bins=bins, color=color_wei, log=True,
+             #histtype="step", linestyle="--", 
+             alpha=0.5, rwidth=0.9, label=r"Sim. ($k_d$ from Wei)", zorder=90)
+    plt.hist(fake, bins=bins, histtype="step", log=True,
+             linewidth=3,
+             color=color_exp, label="Experiment", zorder=100)
+    plt.xscale("log")
+    #plt.yscale("log")
+    plt.ylabel("Count")
+    plt.xlabel(r"$\tau$ off [s]")
+    plt.ylim(ymin=1.)
+    #plt.xlim(xmin=.3e-6, xmax=1e2)
+    #plt.xlim(xmin=0.2e-4, xmax=0.9e2)
+    plt.legend(loc="best", frameon=False)
 
 ###### reproduce cumulative tauoff plot with fits and different bV
 voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
@@ -358,9 +385,8 @@ if voltage_dependence:
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
-    plt.plot(v, koff, "sr", markersize=8, label="Experiments")
     vv = np.linspace(0., 400., 10)
-    plt.plot(vv, k0 * np.exp(c0*vv), "-r")
+    plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=2)
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
     mv = np.abs(v)*1e3
@@ -369,8 +395,8 @@ if voltage_dependence:
     koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
     c1, k1 = regression(mv[-4:], koff[-4:])
     plt.plot(mv, koff, "v", markersize=10, label=r"Sim. ($k_d$ from Lata)",
-             color="#990000")
-    plt.plot(vv, k1 * np.exp(c1*vv), "-", color="#990000")
+             color=color_lata)
+    plt.plot(vv, k1 * np.exp(c1*vv), "-", color=color_lata)
              
     # and again with different kd
     kd = 3.5e-3
@@ -378,8 +404,14 @@ if voltage_dependence:
                      tbind=1e9/kd, **newparams).koff for V in v]
     c2, k2 = regression(mv[-4:], koff1[-4:])
     plt.plot(mv, koff1, "o", markersize=10, label=r"Sim. ($k_d$ from Wei)",
-             mfc="None", mec="#990000")
+             color=color_wei)
+             #mfc="None", mec=color_wei)
     #plt.plot(vv, k2 * np.exp(c2*vv), ":", color="#990000")
+    
+    v = data[:, 0]
+    koff = data[:, 1]
+    plt.plot(v, koff, "s", mfc="None", mec=color_exp,
+             markersize=8, mew=3, label="Experiment")
 
     plt.yscale("log")
     plt.ylim(ymax=.9e3)
