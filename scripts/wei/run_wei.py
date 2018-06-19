@@ -46,7 +46,7 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
 voltage_dependence = True
 determine_delta = False
@@ -409,8 +409,8 @@ if voltage_dependence:
     #plt.plot(vv, k2 * np.exp(c2*vv), ":", color="#990000")
     
     v = data[:, 0]
-    koff = data[:, 1]
-    plt.plot(v, koff, "s", mfc="None", mec=color_exp,
+    koff2 = data[:, 1]
+    plt.plot(v, koff2, "s", mfc="None", mec=color_exp,
              markersize=8, mew=3, label="Experiment")
 
     plt.yscale("log")
@@ -418,6 +418,25 @@ if voltage_dependence:
     plt.xlabel("Voltage [mV]")
     plt.ylabel("k off [1/s]")
     plt.legend(frameon=False, loc="upper left")
+    
+    plt.figure("koff_simple", figsize=(2.7, 2.3))
+    plt.plot(mv, koff, "v", markersize=10, label=r"Simulation", color="C0")
+    plt.plot(v, koff2, "s", markersize=8, label=r"Experiment", color="red")
+    plt.xlabel("Voltage [mV]")
+    plt.ylabel("k off [1/s]")
+    plt.yscale("log")
+#    plt.tick_params(
+#        axis="both",          # changes apply to the x-axis
+#        which="both",      # both major and minor ticks are affected
+#        bottom=False,      # ticks along the bottom edge are off
+#        top=False,         # ticks along the top edge are off
+#        left=False,
+#        right=False,
+#        labelleft = False,
+#        labelbottom = False
+#        ) # labels along the bottom edge are off
+    plt.legend(frameon=False)
+    
     
 ###### read koff-bV dependence from wei data
 koff0 = np.array([])
