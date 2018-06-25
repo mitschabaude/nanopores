@@ -149,6 +149,7 @@ def compare_D_models_simple(calc=True, **params):
     #plt.ylim(-200, 200)
     gexp = plot_experiment_simple()
     plt.legend(loc="best", frameon=False)
+    plt.title("IV curve")
 
 calc = False
 default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3, ahemqs=-0.1)

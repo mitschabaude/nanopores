@@ -436,6 +436,7 @@ if voltage_dependence:
 #        labelbottom = False
 #        ) # labels along the bottom edge are off
     plt.legend(frameon=False)
+    plt.title("Reaction kinetics")
     
     
 ###### read koff-bV dependence from wei data
@@ -532,3 +533,4 @@ if determine_delta:
 
 import folders
 nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".pdf")
+#nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")

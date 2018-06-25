@@ -224,13 +224,15 @@ class RandomWalk(object):
 
     def __init__(self, pore, N=10, dt=1., walldist=2.,
                  margtop=20., margbot=10., xstart=None, zstart=None,
-                 rstart=None, record_positions=False, **params):
+                 rstart=None, record_positions=False, initial="sphere",
+                 **params):
         # dt is timestep in nanoseconds
         self.pore = pore
         self.params = pore.params
         self.params.update(params, margtop=margtop, margbot=margbot,
                            walldist=walldist, dt=dt,
-                           rstart=rstart, xstart=xstart, zstart=zstart)
+                           rstart=rstart, xstart=xstart, zstart=zstart,
+                           initial=initial)
         self.sim_params = params
 
         # initialize some parameters and create random walkers at entrance
