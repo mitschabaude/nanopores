@@ -35,10 +35,11 @@ else:
 #params=dict(avgbind1=1e7,avgbind2=1e5,P_bind1=2.e-2,P_bind2=8e-2,z0=hpore/2.+0.) # good if only real translocations count - no type 0 "ood"
 params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 b1 = []
-b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.-h1],[l1/2.,hpore/2.-h1],[l1/2.,hpore/2.]]]
+b2 = [[[l3/2.,-3.],[l3/2.,11.]]]
+outside=True
 
 for i in range(samples):
-	run(params,fieldsname,outcome,outside=True,b1,b2)
+	run(params,fieldsname,outcome,outside,b1,b2)
 	print '%i out of '%i+num 
 
 print 'field updates'
