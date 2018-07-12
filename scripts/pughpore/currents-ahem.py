@@ -4,6 +4,15 @@ import folders
 fields = folders.fields
 from nanopores.models.nanopore import IV
 from collections import OrderedDict
+from matplotlib import rcParams, rc
+rcParams.update({
+    "font.size" : 7,
+    "axes.titlesize" : 7,
+    "font.family" : "sans-serif",
+    "font.sans-serif" : ["Helvetica"],
+    "lines.linewidth" : 1,
+    "lines.markersize" : 5,
+})
 from matplotlib import pyplot as plt
 
 ddsimplerough = dict(name="Dalphahem", dim=2, Nmax=.1e5, h=1.,
@@ -43,9 +52,9 @@ def get_IV(calc=True, **params):
     plt.plot(bmV, I, "sr", label="Experiment")
     plt.legend(loc="best", frameon=False)
 
-def plot_grid():
-    plt.axvline(x=0, color="#999999", linestyle="-")
-    plt.axhline(y=0, color="#999999", linestyle="-")
+def plot_grid(color="#aaaaaa"):
+    plt.axvline(x=0, color=color, linestyle="-")
+    plt.axhline(y=0, color=color, linestyle="-")
 
 def plot_experiment():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
@@ -59,7 +68,7 @@ def plot_experiment():
 def plot_experiment_simple():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
-    plt.plot(bmV, I, "sr", markersize=8, label="Experiment")
+    plt.plot(bmV, I, "sr", label="Experiment")
     #G = 1e-3*I[2]/(-0.04285) # -40
     G = 1e-3*I[5]/(0.04285) # +40
     return G
@@ -86,22 +95,25 @@ def compare_D_models(calc=True, **params):
     V = [i/100. for i in range(-10, 11)]
     Vplot = 1e3*np.array(V)
     DD = OrderedDict([
-        ("Bulk D", None),
-        ("r-dependent D", ddsimplefine),
-        ("z-dependent D", ddprofile),
-        ("r- and z-dep. D", ddcoupled),
+        ("Bulk diff.", None),
+        ("r-dependent", ddsimplefine),
+        ("z-dependent", ddprofile),
+        ("r- and z-dep.", ddcoupled),
     ])
     colors = ["k", "b", "g", "c"]
+    #dashes = [[1000,1], [6,2], [6,1,1,1], [6,1,1,1,1,1]]
+    lines = ["--", "-", ":", "-."]
     plot_grid()
     G = [0]*len(DD)
     for i, model in enumerate(DD):
         params["diffusivity_data"] = DD[model]
         mod_params = dict(params)
-        if model == "Bulk D":
+        if model == "Bulk diff.":
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, "-", color=colors[i], label=model)
+        plt.plot(Vplot, I, "-", color=colors[i], linestyle=lines[i],
+                 label=model)
 
         # print conductivities
         #G[i] = 1e-3*I[V.index(-0.04)]/(-0.04) # -40
@@ -112,17 +124,20 @@ def compare_D_models(calc=True, **params):
     plt.ylabel("Current [pA]")
     plt.ylim(-100, 100)
     plt.ylim(-200, 200)
+    plt.xticks([-50, 0, 50])
+    plt.yticks([-100, 0, 100])
     gexp = plot_experiment()
-    plt.legend(loc="best", frameon=False)
+    plt.legend(loc="upper left", frameon=False)
 
+    x = 10
     y = -35
-    plt.text(15, y, "Conductance ")
-    y -= 30
-    plt.text(15, y, "overestimate (+40 mV):")
+    plt.text(x, y, "Overest. (+40 mV):")
+    #y -= 32
+    #plt.text(x, y, "")
     for i, g in enumerate(G):
-        y -= 30
+        y -= 36
         change = int(100*(g/gexp - 1.))
-        plt.text(15, y, "+%d%%" % change, color=colors[i])
+        plt.text(x, y, "+%d%%" % change, color=colors[i])
         
 def compare_D_models_simple(calc=True, **params):
     params["ahemuniformqs"] = False
@@ -143,11 +158,22 @@ def compare_D_models_simple(calc=True, **params):
         I = 1e12*np.array(results["J"])
         plt.plot(Vplot, I, "-", color=colors[i], label=model)
 
-    plt.xlabel("Voltage [mV]")
-    plt.ylabel("Current [pA]")
+    #plt.xlabel("Voltage [mV]")
+    #plt.ylabel("Current [pA]")
+    plt.xlabel("Voltage")
+    plt.ylabel("Current")
+    plt.tick_params(
+        axis="both",          # changes apply to the x-axis
+        which="both",      # both major and minor ticks are affected
+        bottom=False,      # ticks along the bottom edge are off
+        top=False,         # ticks along the top edge are off
+        left=False,
+        right=False,
+        labelleft=False,
+        labelbottom=False)
     #plt.ylim(-100, 100)
     #plt.ylim(-200, 200)
-    gexp = plot_experiment_simple()
+    plot_experiment_simple()
     plt.legend(loc="best", frameon=False)
     plt.title("IV curve")
 
@@ -175,10 +201,10 @@ get_IV(calc, **params)
 # comparison
 #plt.figure("finevscoarse")
 #fine_vs_coarse(False, **default)
-plt.figure("compareD", figsize=(5,3.7))
+plt.figure("compareD", figsize=(2.8, 2.1)) #, dpi=300)
 compare_D_models(calc, **default)
 
-plt.figure("compareD_simple", figsize=(2.7, 2.3))
+plt.figure("compareD_simple", figsize=(2., 1.8))
 compare_D_models_simple(calc, **default)
 
 from nanopores import savefigs

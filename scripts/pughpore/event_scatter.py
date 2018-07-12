@@ -12,10 +12,20 @@ plt.scatter(t_exp, A_exp, 4, color="r", label="Experiment")
 
 plt.ylim(ymax=51)
 plt.xlim(.5e-5, 3e2)
+
+ax = plt.gca()
+ax.invert_yaxis()
+ax.set_yticklabels([])
+ax.set_xticklabels([])
+ax.set_yticks([])
+ax.set_xticks([])
+
 plt.xscale("log")
-plt.xlabel(r"$\tau$ off [ms]")
-plt.ylabel(r"$A/I_0$ [%]")
-plt.gca().invert_yaxis()
+#plt.xlabel(r"$\tau$ off [ms]")
+#plt.ylabel(r"$A/I_0$ [%]")
+plt.xlabel("Dwell time")
+plt.ylabel("Amplitude")
+
 plt.legend(frameon=False, scatterpoints=3, loc=(0.01, 0.01))
 plt.title("Current events")
 

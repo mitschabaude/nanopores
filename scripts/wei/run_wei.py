@@ -422,19 +422,21 @@ if voltage_dependence:
     plt.figure("koff_simple", figsize=(2.7, 2.3))
     plt.plot(mv, koff, "v", markersize=10, label=r"Simulation", color="C0")
     plt.plot(v, koff2, "s", markersize=8, label=r"Experiment", color="red")
-    plt.xlabel("Voltage [mV]")
-    plt.ylabel("k off [1/s]")
     plt.yscale("log")
-#    plt.tick_params(
-#        axis="both",          # changes apply to the x-axis
-#        which="both",      # both major and minor ticks are affected
-#        bottom=False,      # ticks along the bottom edge are off
-#        top=False,         # ticks along the top edge are off
-#        left=False,
-#        right=False,
-#        labelleft = False,
-#        labelbottom = False
-#        ) # labels along the bottom edge are off
+    #plt.xlabel("Voltage [mV]")
+    #plt.ylabel("k off [1/s]")
+    plt.ylabel("Log(event rate)")
+    plt.xlabel("Voltage")
+
+    plt.tick_params(
+        axis="both",          # changes apply to the x-axis
+        which="both",      # both major and minor ticks are affected
+        bottom=False,      # ticks along the bottom edge are off
+        top=False,         # ticks along the top edge are off
+        left=False,
+        right=False,
+        labelleft=False,
+        labelbottom=False)
     plt.legend(frameon=False)
     plt.title("Reaction kinetics")
     

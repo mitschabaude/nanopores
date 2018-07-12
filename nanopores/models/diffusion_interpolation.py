@@ -212,11 +212,12 @@ def diffusivity_field_simple(setup, r, ddata_bulk, boundary="poresolidb"):
     return dict(dist=dist, D=D)
 
 from nanopores.models import pughpore as pugh
+from nanopores.models import nanopore
 from nanopores.tools.solvers import cache_forcefield
 from nanopores.tools.utilities import collect_dict
 from nanopores.models.diffusion import diffusivity
 
-@cache_forcefield("diffz_pugh",
+@cache_forcefield("pugh_diff2D",
     default=dict(dim=2, h=1., Nmax=1e5, diamPore=6., rMolecule=0.11, H=100.))
 def diff2D(X, **params):
     for x, result in collect_dict(X):
@@ -231,6 +232,59 @@ def diff_profile_z_pugh(a=-36., b=36., N=40, nproc=1, **params):
     return diff2D(X, nproc=nproc, **params)
 
 # REMARK: this could be the blueprint to a general "cache_functions" wrapper
+def cache_diffusivity(mode="coupled", **params):
+    #name = "D%s-%s" % (geoname, mode)
+    name = "Diffusivity"
+
+    if not fields.exists(name, **params):
+        if not "cheapest" in params:
+            params["cheapest"] = True
+        # setup = pugh.Setup(x0=None, **params)
+        setup = nanopore.Setup(x0=None, **params)
+        r = params["r"]
+        #diamPore = setup.geo.params.diamPore
+
+        if mode == "coupled":
+            # TODO: make general
+            data_z = fields.get_fields("pugh_diff2D", rMolecule=r)
+            data_r = diff_profile_plane(r)
+        elif mode == "simple":
+            data_z = None
+            data_r = diff_profile_plane(r)
+        elif mode == "profile":
+            data_z = fields.get_fields("pugh_diff2D", rMolecule=r)
+            #data_z = diff_profile_z_pugh(diamPore=diamPore)
+            data_r = diff_profile_trivial(r)
+        else:
+            raise NotImplementedError
+
+        functions = diffusivity_field(setup, r, ddata_z=data_z, ddata_r=data_r,
+                                      boundary="dnab", poreregion="poreregion")
+        params["mode"] = mode
+        fields.save_functions(name, params, **functions)
+        fields.update()
+
+    return name
+
+def get_diffusivity(**params):
+    cache_diffusivity(**params)
+    functions, mesh = fields.get_functions("Diffusivity", **params)
+    return functions, mesh
+
+def cache_pugh_diffusivity_old(**params):
+    "the function above applied to the pugh pore"
+    if not fields.exists("Dpugh", **params):
+        setup_params = dict(params)
+        r = setup_params.pop("r")
+        ddata_z = fields.get_fields("pugh_diff2D", rMolecule=r)
+        ddata_r = fields.get_fields("pugh_diff3D", rMolecule=r, bulkbc=True)
+        if not "cheapest" in setup_params:
+            setup_params["cheapest"] = True
+        setup = pugh.Setup(x0=None, **setup_params)
+        functions = diffusivity_field(setup, r, ddata_r, ddata_z)
+        fields.save_functions("Dpugh", params, **functions)
+        fields.update()
+
 def cache_pugh_diffusivity(geoname="pugh2", mode="coupled", **params):
     #name = "D%s-%s" % (geoname, mode)
     name = "D%s" %(geoname,)
@@ -261,20 +315,6 @@ def cache_pugh_diffusivity(geoname="pugh2", mode="coupled", **params):
 
     return name
 
-def cache_pugh_diffusivity_old(**params):
-    "the function above applied to the pugh pore"
-    if not fields.exists("Dpugh", **params):
-        setup_params = dict(params)
-        r = setup_params.pop("r")
-        ddata_z = fields.get_fields("pugh_diff2D", rMolecule=r)
-        ddata_r = fields.get_fields("pugh_diff3D", rMolecule=r, bulkbc=True)
-        if not "cheapest" in setup_params:
-            setup_params["cheapest"] = True
-        setup = pugh.Setup(x0=None, **setup_params)
-        functions = diffusivity_field(setup, r, ddata_r, ddata_z)
-        fields.save_functions("Dpugh", params, **functions)
-        fields.update()
-
 def get_pugh_diffusivity(**params):
     cache_pugh_diffusivity(**params)
     functions, mesh = fields.get_functions("Dpugh2", **params)
@@ -300,8 +340,10 @@ def get_pugh_diffusivity_alt(**params):
     return functions, mesh
 
 if __name__ == "__main__":
-    params = nanopores.user_params(dim=2, r=0.11, h=1., Nmax=1e5)
-    functions = get_pugh_diffusivity(**params)
+    params = nanopores.user_params(
+        geoname = "pughcyl",
+        dim=2, r=0.11, h=1., Nmax=1e4)
+    functions, mesh = get_diffusivity(**params)
     D = functions["D"]
     D = dolfin.as_matrix(np.diag([D[i] for i in range(params.dim)]))
     dolfin.plot(functions["D"][0], title="Dx")

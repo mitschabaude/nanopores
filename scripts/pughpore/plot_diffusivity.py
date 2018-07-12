@@ -28,8 +28,8 @@ f.update()
 data = f.get_fields("pugh_diff2D", rMolecule=0.11)
                     #rMolecule=2.0779)
 plot_D_data(data, "D")
-plt.show()
-exit()
+#plt.show()
+#exit()
 
 # points
 H = 50.

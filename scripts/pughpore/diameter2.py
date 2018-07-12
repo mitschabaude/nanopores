@@ -6,6 +6,8 @@ import nanopores
 import nanopores.models.pughpore as pugh
 from nanopores.models.diffusion_interpolation import (cache_pugh_diffusivity,
                                                       diff_profile_z_pugh)
+from nanopores.tools import fields
+fields.set_dir_mega()
 
 dparams = {2: dict(Nmax=1e5, dim=2, rMolecule=0.11, h=1.0),
            3: dict(Nmax=2e6, dim=3, rMolecule=0.11, h=2.0)}

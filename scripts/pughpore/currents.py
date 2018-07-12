@@ -1,5 +1,14 @@
 # (c) 2016 Gregor Mitscha-Baude
 import numpy as np
+from matplotlib import rcParams, rc
+rcParams.update({
+    "font.size" : 7,
+    "axes.titlesize" : 7,
+    "font.family" : "sans-serif",
+    "font.sans-serif" : ["Helvetica"],
+    "lines.linewidth" : 1,
+    "lines.markersize" : 5,
+})
 import matplotlib.pyplot as plt
 import nanopores.models.pughpore as pugh
 import folders
@@ -43,7 +52,7 @@ Rho = list(-Rho)[::-1] + [0.001] + list(Rho)
 
 colors = {True: "violet", False: "blue"}
 dnaqs = {3: -0.7353, 2: -0.7353}
-figsize = (4, 2.8)
+figsize = (1.73, 1.37)
 
 for dim in 2, 3:
     plt.figure("%dD" % dim, figsize=figsize)
@@ -51,33 +60,36 @@ for dim in 2, 3:
         result = Irho(Rho, nproc=2, calc=False,
                       diffusivity_data=data, **params[dim])
         #Rho = map(lambda x: -x, Rho)
-        J = [1e12*j for j in result["J"][::-1]]
-        label = "constant D in pore" if data is None else "position-dep. D"
-        plt.plot(Rho, J, "s-", label=label, color=colors[data is None])
+        J = [1e9*j for j in result["J"][::-1]]
+        label = "Simple diff." if data is None else "Pos.-dep. diff."
+        marker = "s" if data is None else "o"
+        plt.plot(Rho, J, marker, label=label, color=colors[data is None],
+                 markersize=4)
 
-    plt.plot([-1, 1], [2.29*1e3*0.1]*2, "--b", label="Pugh et al.")
-    plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1*1e3]*2,
-                     [(2.29 + 0.26)*0.1*1e3]*2, color="#ccccff")
+    plt.plot([-1, 1], [2.29*0.1]*2, "--g", label="Experiment")
+    plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1]*2,
+                     [(2.29 + 0.26)*0.1]*2, color="#ccffcc")
 
     plt.xlabel(r"DNA surface charge [q/nm$^2$]")
 
-    plt.axvline(x=dnaqs[dim], linestyle="--", color="#666666")
-    hann = 100
-    plt.annotate("est. surface charge", (dnaqs[dim], hann),
-             xytext=(dnaqs[dim] + 0.15, hann-20), color="#666666",
-             arrowprops=dict(arrowstyle="->", color="#666666"))
-    plt.ylabel("Current [pA]")
+    #plt.axvline(x=dnaqs[dim], linestyle="--", color="#666666")
+    #hann = 100
+    #plt.annotate("est. surface charge", (dnaqs[dim], hann),
+    #         xytext=(dnaqs[dim] + 0.15, hann-20), color="#666666",
+    #         arrowprops=dict(arrowstyle="->", color="#666666"))
+    plt.ylabel("Current [nA]")
 
     plt.xlim(-.82, .82)
-    plt.ylim(0, 1500)
-    plt.yticks([0, 500, 1000])
+    plt.ylim(0, 1.5)
+    #plt.yticks([0, 500, 1000])
+    plt.yticks([0, 0.5, 1], [0, 0.5, 1])
     plt.xticks([-0.5, 0, 0.5])
 
     #plt.title("influence of surf. charge on current (%dD)" %dim)
     if dim==2:
-        plt.legend(bbox_to_anchor=(.35, .6), loc="upper left") #, frameon=False)
+        plt.legend(loc="lower right") #, frameon=False)
     if dim==3:
-        plt.legend(bbox_to_anchor=(.35, .55), loc="upper left") #, frameon=False)
+        plt.legend(loc="lower right") #, frameon=False)
         #plt.legend(loc="center")
 
 pugh.nano.savefigs("Irho/", folders.FIGDIR, figsize)
