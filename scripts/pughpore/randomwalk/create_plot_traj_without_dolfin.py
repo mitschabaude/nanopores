@@ -233,9 +233,9 @@ def save_fig_traj():
 
 
     plt.tight_layout()
-    savefigs(name=figname,DIR='/home/bstadlbau/plots/')
-#    plt.show()
+    #savefigs(name=figname,DIR='/home/bstadlbau/plots/')
+    plt.show()
 #    print 'savefig: %s'%figname
-    plt.close("all")
+#    plt.close("all")
 
 save_fig_traj()

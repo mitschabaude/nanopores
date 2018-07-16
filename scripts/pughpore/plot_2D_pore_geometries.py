@@ -1,5 +1,14 @@
 # (c) 2018 Gregor Mitscha-Baude
 "plot simulated pores schematically with protein/receptors"
+from matplotlib import rcParams, rc
+rcParams.update({
+    "font.size" : 7,
+    "axes.titlesize" : 7,
+    "font.family" : "sans-serif",
+    "font.sans-serif" : ["Helvetica"],
+    "lines.linewidth" : 1,
+    "lines.markersize" : 5,
+})
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from nanopores import get_pore, savefigs
@@ -14,7 +23,7 @@ def add_ball(ax, x, y, r, **settings):
 
 ###############################################################
 
-plt.figure("ahem", figsize=(3, 3))
+plt.figure("ahem", figsize=(1.7, 1.7))
 pore = get_pore(geoname="alphahem", R=8, Htop=3.5, Hbot=12.5)
 rw = RandomWalk(pore)
 ax = rw.plot_pore()
@@ -24,27 +33,27 @@ plt.title("Protein pore")
 
 ###############################################################
 
-plt.figure("wei", figsize=(3, 3))
+plt.figure("wei", figsize=(1.7, 1.7))
 pore = get_pore(geoname="wei",
     R=100, Htop=120, Hbot=80)
 rw = RandomWalk(pore)
 
 rrec = 5
-zrec = rw.zbot + rrec + (rw.ztop - rw.zbot - 2.*rrec)*0.6
+zrec = rw.zbot + rrec + (rw.ztop - rw.zbot - 2.*rrec)*0.5
 xrec = pore.radius_at(zrec) - rrec - 1.
 crec = "red"
 
 rprot = 10
-zprot = rw.ztop + 30.
-xprot = -20.
+zprot = rw.ztop + 20.
+xprot = -10.
 cprot = "blue"
 
 ax = rw.plot_pore()
 add_ball(ax, xrec, zrec, rrec, facecolor=crec, linewidth=0)
 add_ball(ax, xprot, zprot, rprot, facecolor=cprot, linewidth=0)
 
-plt.text(xrec - 45., zrec - 18., "Receptor", fontdict=dict(color=crec))
-plt.text(xprot - 55., zprot + 10., "Protein", fontdict=dict(color=cprot))
+plt.text(xrec - 57., zrec - 22., "Receptor", fontdict=dict(color=crec))
+plt.text(xprot - 60., zprot + 14., "Protein", fontdict=dict(color=cprot))
 
 ax.get_xaxis().set_visible(False)
 ax.get_yaxis().set_visible(False)
@@ -52,19 +61,19 @@ plt.title("Solid-state pore")
 
 ###############################################################
 
-plt.figure("pugh", figsize=(3, 3))
+plt.figure("pugh", figsize=(1.7, 1.7))
 pore = get_pore(geoname="pughcyl",
    R=32, Htop=37, Hbot=27)
 rw = RandomWalk(pore)
 
 rprot = 3.
-zprot = rw.ztop + 5.
-xprot = -5.
+zprot = rw.ztop + 3.
+xprot = -3.
 cprot = "blue"
 
 ax = rw.plot_pore()
 add_ball(ax, xprot, zprot, rprot, facecolor=cprot, linewidth=0)
-plt.text(xprot - 18., zprot + 1., "Protein", fontdict=dict(color=cprot))
+plt.text(xprot - 20., zprot + 3., "Protein", fontdict=dict(color=cprot))
 
 ax.get_xaxis().set_visible(False)
 ax.get_yaxis().set_visible(False)

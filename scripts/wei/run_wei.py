@@ -1,5 +1,15 @@
+# -*- coding: utf-8 -*
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
+from matplotlib import rcParams, rc
+rcParams.update({
+    "font.size" : 7,
+    "axes.titlesize" : 7,
+    "font.family" : "sans-serif",
+    "font.sans-serif" : ["Helvetica"],
+    "lines.linewidth" : 1,
+    "lines.markersize" : 5,
+})
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 import nanopores
@@ -301,7 +311,7 @@ if plot_distribution:
     # simpler hist with better color code and visibility
     tsuccess_lata = tsuccess1#[tsuccess1 > 1e-4]
     tsuccess_wei = tsuccess2#[tsuccess2 > 1e-4]
-    plt.figure("hist_all", figsize=(4.5,3))
+    plt.figure("hist_all", figsize=(2.75, 1.83333333333))
     plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
              alpha=0.8, rwidth=0.9, label=r"Sim. ($k_d$ from Lata)", zorder=50)
     
@@ -309,13 +319,18 @@ if plot_distribution:
              #histtype="step", linestyle="--", 
              alpha=0.5, rwidth=0.9, label=r"Sim. ($k_d$ from Wei)", zorder=90)
     plt.hist(fake, bins=bins, histtype="step", log=True,
-             linewidth=3,
+             linewidth=1.75,
              color=color_exp, label="Experiment", zorder=100)
     plt.xscale("log")
     #plt.yscale("log")
     plt.ylabel("Count")
-    plt.xlabel(r"$\tau$ off [s]")
+    plt.xlabel(r"$\tau_\mathrm{off}$")
     plt.ylim(ymin=1.)
+    ax = plt.gca()
+    ax.set_xticks([1e-6, 1e-3, 1.])
+    ax.set_xticks([1e-5, 1e-4, 1e-2, 1e-2, 1e-1, 1e1, 1e2], minor=True)
+    ax.set_xticklabels([u"1µs", "1ms", "1s"])
+    ax.set_xticklabels([], minor=True)
     #plt.xlim(xmin=.3e-6, xmax=1e2)
     #plt.xlim(xmin=0.2e-4, xmax=0.9e2)
     plt.legend(loc="best", frameon=False)
@@ -380,13 +395,13 @@ if fit_koff0:
 ###### recreate voltage-dependent plot of koff
 if voltage_dependence:
     # get experimental data
-    plt.figure("koff", figsize=(3.6, 3))
+    plt.figure("koff", figsize=(2.2, 1.83333333))
     data = np.genfromtxt("koff.csv", delimiter=",")
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
     vv = np.linspace(0., 400., 10)
-    plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=2)
+    plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=1.75)
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
     mv = np.abs(v)*1e3
@@ -394,7 +409,7 @@ if voltage_dependence:
     dx = 5.6
     koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
     c1, k1 = regression(mv[-4:], koff[-4:])
-    plt.plot(mv, koff, "v", markersize=10, label=r"Sim. ($k_d$ from Lata)",
+    plt.plot(mv, koff, "v", markersize=7, label=r"Sim. ($k_d$ from Lata)",
              color=color_lata)
     plt.plot(vv, k1 * np.exp(c1*vv), "-", color=color_lata)
              
@@ -403,7 +418,7 @@ if voltage_dependence:
     koff1 = [fit_koff(bV=V, zreceptor=z, dx=dx,
                      tbind=1e9/kd, **newparams).koff for V in v]
     c2, k2 = regression(mv[-4:], koff1[-4:])
-    plt.plot(mv, koff1, "o", markersize=10, label=r"Sim. ($k_d$ from Wei)",
+    plt.plot(mv, koff1, "o", markersize=7, label=r"Sim. ($k_d$ from Wei)",
              color=color_wei)
              #mfc="None", mec=color_wei)
     #plt.plot(vv, k2 * np.exp(c2*vv), ":", color="#990000")
@@ -411,17 +426,17 @@ if voltage_dependence:
     v = data[:, 0]
     koff2 = data[:, 1]
     plt.plot(v, koff2, "s", mfc="None", mec=color_exp,
-             markersize=8, mew=3, label="Experiment")
+             markersize=6, mew=1.75, label="Experiment")
 
     plt.yscale("log")
     plt.ylim(ymax=.9e3)
     plt.xlabel("Voltage [mV]")
-    plt.ylabel("k off [1/s]")
+    plt.ylabel(r"$k_\mathrm{off}$ [1/s]")
     plt.legend(frameon=False, loc="upper left")
     
-    plt.figure("koff_simple", figsize=(2.7, 2.3))
-    plt.plot(mv, koff, "v", markersize=10, label=r"Simulation", color="C0")
-    plt.plot(v, koff2, "s", markersize=8, label=r"Experiment", color="red")
+    plt.figure("koff_simple", figsize=(1.7, 1.6))
+    plt.plot(mv, koff, "v", markersize=7, label=r"Simulation", color="C0")
+    plt.plot(v, koff2, "s", label=r"Experiment", color="red")
     plt.yscale("log")
     #plt.xlabel("Voltage [mV]")
     #plt.ylabel("k off [1/s]")

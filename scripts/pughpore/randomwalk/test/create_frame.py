@@ -13,10 +13,10 @@ import os
 import nanopores.tools.fields as f
 from scipy.signal import bessel, lfilter, filtfilt
 HOME = os.path.expanduser("~")
-PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
+PAPERDIR = os.path.join(HOME, "Dropbox", "nanopores")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
-f.set_dir(DATADIR)
+f.set_dir_mega()
 
 up = nano.Params(pughpore.params, k=3)
 hpore=up.hpore

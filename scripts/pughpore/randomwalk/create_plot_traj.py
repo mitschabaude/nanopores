@@ -14,7 +14,7 @@ HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
-f.set_dir(DATADIR)
+f.set_dir_mega()
 
 up = nano.Params(pughpore.params, k=3)
 hpore=up.hpore
@@ -28,10 +28,6 @@ hmem =      up.hmem
 h2 =        up.h2
 h1 =        up.h1
 h4 =        up.h4
-#fieldsname='events_onlyone_2'
-#params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
-#i=15
-#showtraj = True
 
 def save_fig_traj(params,fieldsname,i,showtraj):
     data=f.get_fields(fieldsname,**params)
@@ -140,3 +136,10 @@ def save_fig_traj(params,fieldsname,i,showtraj):
     plt.show()
     print 'savefig: %s'%figname
     plt.close("all")
+    
+fieldsname='events_onlyone_2'
+params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
+i=15
+showtraj = True
+    
+save_fig_traj(params,fieldsname,i,showtraj)

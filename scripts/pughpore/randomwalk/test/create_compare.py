@@ -2,7 +2,7 @@
 from matplotlib import gridspec
 import math
 import matplotlib
-import nanopores as nano
+import nanopores
 import nanopores.geometries.pughpore as pughpore
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
@@ -11,14 +11,14 @@ import os
 import sys
 import nanopores.tools.fields as f
 HOME = os.path.expanduser("~")
-PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
+PAPERDIR = os.path.join(HOME, "Dropbox", "nanopores")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
-f.set_dir(DATADIR)
+f.set_dir_mega()
 
 number=False
 
-geop = nano.Params(pughpore.params)
+geop = nanopores.Params(pughpore.params)
 hpore=geop.hpore
 fieldsname='eventsnew_onlyone_2_'
 params=dict(avgbind1=23e6,avgbind2=3e4,P_bind1=0.035,P_bind2=0*3e-1,z0=hpore/2.+0.)
@@ -113,6 +113,7 @@ else:
 #plt4.axes.get_yaxis().set_visible(False)
 
 
-plt.tight_layout()
-plt.show()
+#plt.tight_layout()
+#plt.show()
 #plt.savefig('events_onlyone_compare.pdf')
+nanopores.savefigs("rw/events", FIGDIR, ending=".pdf")

@@ -204,9 +204,9 @@ get_IV(calc, **params)
 plt.figure("compareD", figsize=(2.8, 2.1)) #, dpi=300)
 compare_D_models(calc, **default)
 
-plt.figure("compareD_simple", figsize=(2., 1.8))
+plt.figure("compareD_simple", figsize=(1.7, 1.6))
 compare_D_models_simple(calc, **default)
 
 from nanopores import savefigs
-savefigs("IV", folders.FIGDIR + "/ahem")
+savefigs("IV", folders.FIGDIR + "/ahem", ending=".pdf")
 #plt.show()

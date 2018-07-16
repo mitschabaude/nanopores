@@ -14,7 +14,7 @@ HOME = os.path.expanduser("~")
 PAPERDIR = os.path.join(HOME, "papers", "paper-howorka")
 FIGDIR = os.path.join(PAPERDIR, "figures", "")
 DATADIR = os.path.join(HOME,"Dropbox", "nanopores", "fields")
-f.set_dir(DATADIR)
+f.set_dir_mega()
 
 number=False
 
