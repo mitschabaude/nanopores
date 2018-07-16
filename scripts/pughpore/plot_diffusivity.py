@@ -25,7 +25,7 @@ def plot_D_data(data, label=None, num=None):
     ax.legend(loc="best")
 
 f.update()
-data = f.get_fields("pugh_diff2D", rMolecule=0.11)
+data = f.get_fields("pugh_diff2D_backup", rMolecule=0.11)
                     #rMolecule=2.0779)
 plot_D_data(data, "D")
 #plt.show()
@@ -80,5 +80,5 @@ ax_big.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
 ax_small.legend(bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
 ax_small.legend(loc="lower right")
 
-nanopores.savefigs("pugh_diffusivity", folders.FIGDIR)
+#nanopores.savefigs("pugh_diffusivity", folders.FIGDIR)
 plt.show()
