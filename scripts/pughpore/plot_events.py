@@ -29,7 +29,7 @@ long_bind_color = "C0"
 settings = dict(s=3., alpha=0.5, linewidth=0)
 s_experiment = dict(settings, facecolors="#888888", label="Experiment", zorder=0)
 s_success = dict(settings, facecolors="green", label="Translocation", zorder=2)
-s_fail = dict(settings, facecolors="red", label="No translocation", zorder=1)
+s_fail = dict(settings, facecolors="red", label="No transloc.", zorder=1)
 
 def format_ticks(ax):
     ax.set_xscale("log")
@@ -59,7 +59,8 @@ plt.scatter(t_exp, a_exp, **s_experiment)
 ax = plt.gca()
 format_ticks(ax)
 
-plt.legend(loc="lower left", scatterpoints=3)
+plt.legend(loc="lower left", scatterpoints=3, frameon=False,
+           borderaxespad=0.2, handletextpad=0.4)
 
 # encircle long bindings
 offset = ScaledTranslation(18, 27, ax.transScale)

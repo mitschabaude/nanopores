@@ -70,7 +70,7 @@ for dim in 2, 3:
     plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1]*2,
                      [(2.29 + 0.26)*0.1]*2, color="#ccffcc")
 
-    plt.xlabel(r"DNA surface charge [q/nm$^2$]")
+    plt.xlabel(r"DNA surface charge [$q$/nm$^2$]")
 
     #plt.axvline(x=dnaqs[dim], linestyle="--", color="#666666")
     #hann = 100
@@ -92,5 +92,5 @@ for dim in 2, 3:
         plt.legend(loc="lower right") #, frameon=False)
         #plt.legend(loc="center")
 
-pugh.nano.savefigs("Irho/", folders.FIGDIR, figsize)
-plt.show()
+pugh.nano.savefigs("Irho/", folders.FIGDIR, ending=".pdf")
+#plt.show()

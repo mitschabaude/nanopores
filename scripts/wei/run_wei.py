@@ -400,7 +400,7 @@ if voltage_dependence:
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
-    vv = np.linspace(0., 400., 10)
+    vv = np.linspace(0., 370., 10)
     plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=1.75)
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
