@@ -5,7 +5,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -26,7 +26,7 @@ fields.set_dir_mega()
 #### color code
 color_open = "C0" #"#0066ff"
 color_open_light = mcolor.to_rgb(color_open) + (0.3,)
-color_closed = "#00cc00"
+color_closed = "#66cc66"
 color_closed_light = mcolor.to_rgb(color_closed) + (0.3,)
 color_drop = "red"
 color_drop_light = mcolor.to_rgb(color_drop) + (0.3,)
@@ -176,7 +176,7 @@ for dim in 2, 3:
     plt.yticks([0, 0.5, 1], [0, 0.5, 1])
     plt.gca().set_yticks([.1,.2,.3,.4,.6,.7,.8,.9,1.1,1.2], minor=True)
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
-    plt.annotate(u"Protein ⌀", (2*2.0779, 1.15),
+    plt.annotate(u"Protein Ø", (2*2.0779, 1.15),
                  xytext=(2*2.0779 + 0.6, 1.15-.02), color="#666666",
                  arrowprops=dict(arrowstyle="->", color="#666666"))
     plt.text(4.5, .82, "W/o protein", color=color_open)
@@ -254,5 +254,5 @@ for dim in 2, 3:
 
 
 import folders
-pugh.nano.savefigs("new", folders.FIGDIR + "/Idiam2", ending=".pdf")
+pugh.nano.savefigs("new", folders.FIGDIR_HOWORKA + "/Idiam2", ending=".pdf")
 #plt.show()

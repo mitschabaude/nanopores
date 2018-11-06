@@ -6,7 +6,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -324,12 +324,12 @@ if plot_distribution:
     plt.xscale("log")
     #plt.yscale("log")
     plt.ylabel("Count")
-    plt.xlabel(r"$\tau_\mathrm{off}$")
+    plt.xlabel(r"$\tau_\mathrm{off}$ [ms]")
     plt.ylim(ymin=1.)
     ax = plt.gca()
     ax.set_xticks([1e-6, 1e-3, 1.])
     ax.set_xticks([1e-5, 1e-4, 1e-2, 1e-2, 1e-1, 1e1, 1e2], minor=True)
-    ax.set_xticklabels([u"1µs", "1ms", "1s"])
+    ax.set_xticklabels(["$\mathregular{10^{-3}}$", "1", "$\mathregular{10^3}$"])
     ax.set_xticklabels([], minor=True)
     #plt.xlim(xmin=.3e-6, xmax=1e2)
     #plt.xlim(xmin=0.2e-4, xmax=0.9e2)
@@ -435,12 +435,13 @@ if voltage_dependence:
     plt.legend(frameon=False, loc="upper left")
     
     plt.figure("koff_simple", figsize=(1.7, 1.6))
-    plt.plot(mv, koff, "v", markersize=7, label=r"Simulation", color="C0")
-    plt.plot(v, koff2, "s", label=r"Experiment", color="red")
+    plt.plot(mv, koff1, "o", markersize=7, label=r"Simulation", color=color_wei)
+    plt.plot(v, koff2, "s", markersize=6, mew=1.75,
+             label=r"Experiment", mec=color_exp, mfc="None")
     plt.yscale("log")
     #plt.xlabel("Voltage [mV]")
     #plt.ylabel("k off [1/s]")
-    plt.ylabel("Log(event rate)")
+    plt.ylabel(ur"$\log(k_\mathrm{off})$")
     plt.xlabel("Voltage")
 
     plt.tick_params(
@@ -549,5 +550,5 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
 
 import folders
-nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".pdf")
+nanopores.savefigs("tau_off2", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")

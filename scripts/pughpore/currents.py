@@ -1,11 +1,12 @@
 # (c) 2016 Gregor Mitscha-Baude
 import numpy as np
 from matplotlib import rcParams, rc
+import matplotlib.colors as mcolor
 rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -50,9 +51,12 @@ params = {2: dict(dim=2, diamPore=None, dnaqsdamp=0.5, h=1., Nmax=2e4, rDPore=0.
 Rho = np.linspace(.1, .8, 8)
 Rho = list(-Rho)[::-1] + [0.001] + list(Rho)
 
-colors = {True: "violet", False: "blue"}
+colors = {True: "#ffbbdd", False: "blue"}
 dnaqs = {3: -0.7353, 2: -0.7353}
 figsize = (1.73, 1.37)
+
+color_exp = "#66cc66"
+color_exp_light = mcolor.to_rgb(color_exp) + (0.3,)
 
 for dim in 2, 3:
     plt.figure("%dD" % dim, figsize=figsize)
@@ -66,9 +70,9 @@ for dim in 2, 3:
         plt.plot(Rho, J, marker, label=label, color=colors[data is None],
                  markersize=4)
 
-    plt.plot([-1, 1], [2.29*0.1]*2, "--g", label="Experiment")
+    plt.plot([-1, 1], [2.29*0.1]*2, "--", color=color_exp, label="Experiment")
     plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1]*2,
-                     [(2.29 + 0.26)*0.1]*2, color="#ccffcc")
+                     [(2.29 + 0.26)*0.1]*2, color=color_exp_light)
 
     plt.xlabel(r"DNA surface charge [$q$/nm$^2$]")
 
@@ -92,5 +96,5 @@ for dim in 2, 3:
         plt.legend(loc="lower right") #, frameon=False)
         #plt.legend(loc="center")
 
-pugh.nano.savefigs("Irho/", folders.FIGDIR, ending=".pdf")
+pugh.nano.savefigs("Irho/", folders.FIGDIR_HOWORKA, ending=".pdf")
 #plt.show()

@@ -5,7 +5,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -80,4 +80,4 @@ ax.get_yaxis().set_visible(False)
 plt.title("DNA origami pore")
 
 import folders
-savefigs("pore", folders.FIGDIR + "/fig1", ending=".eps")
+savefigs("pore", folders.FIGDIR_HOWORKA + "/fig1", ending=".pdf")

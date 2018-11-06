@@ -6,7 +6,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -22,7 +22,7 @@ fields.set_dir_mega()
 a_exp, t_exp = fields.get("events_pugh_experiment", "drop", "t")
 
 # colors and settings
-figsize = (2.6, 1.6)
+figsize = (2.6, 1.58)
 
 long_bind_color = "C0"
 
@@ -34,13 +34,13 @@ s_fail = dict(settings, facecolors="red", label="No transloc.", zorder=1)
 def format_ticks(ax):
     ax.set_xscale("log")
     #ax.set_xlabel(u'τ off [µs]')
-    ax.set_xlabel(ur"$\tau_\mathrm{off}$") # [ms]")
+    ax.set_xlabel(ur"$\tau_\mathrm{off}$ [ms]")
     ax.set_ylabel(r"$A/I_0$ [%]")
     
     ax.set_xlim([5e-5, 2e2])
     ax.set_xticks([1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2])
-    ax.set_xticklabels([ur"100ns", u"1µs", u"10µs", u"100µs",
-                        u"1ms", u"10ms", "100ms"])
+    #ax.set_xticklabels([ur"100ns", u"1µs", u"10µs", u"100µs",
+    #                    u"1ms", u"10ms", "100ms"])
     #xfmt = FormatStrFormatter("%g")
     #ax.xaxis.set_major_formatter(xfmt)
     
@@ -91,4 +91,5 @@ plt.scatter(t[success], a[success], **s_success)
 plt.scatter(t_exp, a_exp, **s_experiment)
 format_ticks(plt.gca())
 
+figdir = nanopores.dirnames.HOME + "/Dropbox/Paper Howorka/figures/"
 nanopores.savefigs("rw/events", figdir, ending=".pdf")

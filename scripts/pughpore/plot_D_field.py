@@ -4,7 +4,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -60,7 +60,7 @@ for y in range(Ny):
         U[y][x] = F(X[y][x], Y[y][x])
 
 fig, ax = plt.subplots(figsize=(1.73, 1.9)) #, dpi=300)
-pc = plt.pcolor(X, Y, U, cmap=plt.get_cmap("inferno"), vmin=0, vmax=1)
+pc = plt.pcolor(X, Y, U, cmap=plt.get_cmap("bone"), vmin=0, vmax=1)
 plot_polygon(ax, pughpolygon(diamPore=6., rmem=15))
 plt.xlim(-15, 15)
 plt.ylim(-25, 28)
@@ -80,6 +80,6 @@ cbaxes.yaxis.labelpad = -3.
 
 import os
 HOME = os.path.expanduser("~")
-FIGDIR = os.path.join(HOME, "Dropbox", "nanopores", "figures")
+FIGDIR = os.path.join(HOME, "Dropbox", "Paper Howorka", "figures")
 nanopores.savefigs("pugh/Dfield", FIGDIR)
 plt.show()

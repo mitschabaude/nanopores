@@ -264,7 +264,8 @@ def assertdir(DIR):
     if not os.path.exists(DIR):
         os.makedirs(DIR)
 
-def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight", ending=".eps"):
+def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight",
+             ending=".eps", **params):
     if not DIR.endswith("/"): DIR = DIR + "/"
     assertdir(DIR)
     if len(plt.get_fignums()) == 1:
@@ -274,7 +275,8 @@ def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight", ending=".e
         label = "" if label=="" else "_"+label
         if size is not None:
             fig.set_size_inches(size)
-        fig.savefig(DIR + name + label + ending, bbox_inches=bbox_inches)
+        fig.savefig(DIR + name + label + ending, bbox_inches=bbox_inches,
+                    **params)
         return
     for num in plt.get_fignums():
         fig = plt.figure(num)
@@ -282,7 +284,8 @@ def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight", ending=".e
         label = str(num) if label=="" else label
         if size is not None:
             fig.set_size_inches(size)
-        fig.savefig(DIR + name + "_" + label + ending, bbox_inches=bbox_inches)
+        fig.savefig(DIR + name + "_" + label + ending, bbox_inches=bbox_inches,
+                    **params)
 
 def saveplots(name="plot", meta=None, uid=False):
     # collect data from every open figure

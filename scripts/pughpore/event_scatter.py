@@ -5,7 +5,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -16,7 +16,7 @@ t_exp, A_exp = fields.get("events_pugh_experiment", "t", "drop")
 t_sim, A_sim = fields.get("eventsnew_both_1_", "t", "a")
 
 plt.figure("pugh", figsize=(1.7, 1.6))
-plt.scatter(t_sim, A_sim, s=3, alpha=0.5, linewidth=0, color="C0", zorder=100, label="Simulation")
+plt.scatter(t_sim, A_sim, s=3, alpha=0.5, linewidth=0, color="#00cc00", zorder=100, label="Simulation")
 plt.scatter(t_exp, A_exp, s=3, alpha=0.5, linewidth=0, color="r", label="Experiment")
 plt.xscale("log")
 plt.ylim(ymax=51)
@@ -38,4 +38,4 @@ plt.legend(frameon=False, scatterpoints=3, loc=(0.01, 0.01))
 plt.title("Current events")
 
 import folders
-savefigs("output", folders.FIGDIR + "/fig1", ending=".pdf")
+savefigs("output", folders.FIGDIR_HOWORKA + "/fig1", ending=".pdf")

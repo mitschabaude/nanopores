@@ -9,7 +9,7 @@ rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
     "font.family" : "sans-serif",
-    "font.sans-serif" : ["Helvetica"],
+    "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
@@ -146,7 +146,7 @@ def compare_D_models_simple(calc=True, **params):
     DD = OrderedDict([
         ("Simulation", ddcoupled),
     ])
-    colors = ["C0"]
+    colors = ["#00cc00"]
     plot_grid()
     G = [0]*len(DD)
     for i, model in enumerate(DD):
@@ -208,5 +208,5 @@ plt.figure("compareD_simple", figsize=(1.7, 1.6))
 compare_D_models_simple(calc, **default)
 
 from nanopores import savefigs
-savefigs("IV", folders.FIGDIR + "/ahem", ending=".pdf")
+savefigs("IV", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
 #plt.show()

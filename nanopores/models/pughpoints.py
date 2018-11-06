@@ -86,9 +86,9 @@ def plot_xz_grid(xyz):
     fig.set_size_inches(4, 4)
     plt.scatter(neg(xx) + xx, yy + yy)
 
-def plot_polygon(ax, polygon):
-    settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
-                    edgecolor="black")
+def plot_polygon(ax, polygon, **settings):
+    settings = dict(dict(closed=True, facecolor="#eeeeee", linewidth=1.,
+                    edgecolor="black"), **settings)
     polygon = np.array(polygon)
     polygon_m = np.column_stack([-polygon[:,0], polygon[:,1]])
 
