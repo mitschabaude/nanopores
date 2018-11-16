@@ -61,7 +61,7 @@ for y in range(Ny):
 
 fig, ax = plt.subplots(figsize=(1.73, 1.9)) #, dpi=300)
 pc = plt.pcolor(X, Y, U, cmap=plt.get_cmap("bone"), vmin=0, vmax=1)
-plot_polygon(ax, pughpolygon(diamPore=6., rmem=15))
+plot_polygon(ax, pughpolygon(diamPore=6., rmem=15), linewidth=0.2)
 plt.xlim(-15, 15)
 plt.ylim(-25, 28)
 ax.get_xaxis().set_visible(False)

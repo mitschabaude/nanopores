@@ -44,12 +44,15 @@ def get_IV(calc=True, **params):
 
     V = 1e3*np.array(results_uniform["x"])
     I = 1e12*np.array(results_uniform["J"])
-    plt.plot(V, I, "-g", label="Simulation (homog. charge)")
+    plt.plot(V, I, ":g", label="Simulation (homog. charge)")
 
     # experimental data from Bhattacharya2011
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
-    plt.plot(bmV, I, "sr", label="Experiment")
+    plt.plot(bmV, I, "sr", label="Experiment", markersize=3)
+    ax = plt.gca()
+    ax.get_yaxis().set_ticks_position('right')
+    ax.get_yaxis().set_label_position('right')
     plt.legend(loc="best", frameon=False)
 
 def plot_grid(color="#aaaaaa"):
@@ -183,7 +186,7 @@ default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3, ahemqs=-0.
 # with constant D = 0.3*D0 in pore
 dd = None
 params = dict(default, diffusivity_data=dd)
-plt.figure("rD03")
+plt.figure("rD03", figsize=(2.8, 2.1))
 get_IV(calc, **params)
 
 # with 'simple' D interpolation (only analytical near-plane model)

@@ -1,4 +1,14 @@
 # (c) 2017 Gregor Mitscha-Baude
+from matplotlib import rcParams, rc
+rcParams.update({
+    "font.size" : 7,
+    "axes.titlesize" : 7,
+    "font.family" : "sans-serif",
+    "font.sans-serif" : ["CMU Sans Serif"],
+    "lines.linewidth" : 1,
+    "lines.markersize" : 5,
+})
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
@@ -38,9 +48,9 @@ def mesh2triang(mesh):
 
 minus = lambda l: [[-x[0], x[1]] for x in l]
 
-def plot_polygon(p):
-    p.plot("-k")
-    Polygon(minus(p.nodes)).plot("-k")
+def plot_polygon(p, lw=1):
+    p.plot("-k", lw=lw)
+    Polygon(minus(p.nodes)).plot("-k", lw=lw)
 
 params = dict(
     h = 0.5,
@@ -65,7 +75,8 @@ def F(x, z):
         return f([-x, z])
 
 R, Htop, Hbot = 7, 2, 12
-fig, ax = plt.subplots(figsize=(8, 6), num="pot")
+fig = plt.figure(figsize=(2.8, 2.3))
+ax = plt.axes(xlim=(-R, R), ylim=(-Hbot, Htop))
 
 tr, vertex_values = mesh2triang(mesh)
 zz = 1000*vertex_values(f)
@@ -78,16 +89,19 @@ pc = plt.tripcolor(tr, zz, cmap=cm.bwr, vmin=-minmax, vmax=minmax)
 cb = plt.colorbar(pc)
 cb.ax.set_ylabel("Electric potential [mV]")
 #plot_polygon(ax, pugh.polygon(diamPore=6., rmem=13))
-plt.xlim(-R, R)
-plt.ylim(-Hbot, Htop)
+#plt.xlim(-R, R)
+#plt.ylim(-Hbot, Htop)
 
 p = get_pore()
-plot_polygon(p.protein)
-plot_polygon(p.membrane)
+plot_polygon(p.protein, lw=.5)
+plot_polygon(p.membrane, lw=.5)
 
-from folders import FIGDIR
+ax.get_xaxis().set_visible(False)
+ax.get_yaxis().set_visible(False)
+
+from folders import FIGDIR_HOWORKA
 from nanopores import savefigs
-savefigs("potential", FIGDIR + "/ahem", (6, 4.5))
+savefigs("potential", FIGDIR_HOWORKA + "/ahem", ending=".pdf")
 
 #dolfin.plot(v, backend="matplotlib", cmap=cm.viridis)
 plt.show()

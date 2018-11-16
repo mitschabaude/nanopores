@@ -56,6 +56,7 @@ params = nanopores.user_params(
 NAME = "rw_wei_"
 print_calculations = False
 run_test = False
+plot_attempt_time = True
 plot_distribution = False
 plot_cdf = False
 voltage_dependence = True
@@ -240,6 +241,23 @@ def fit_koff(nmax=523, NN=4e8, **params):
     koff = 1./toff
     return dict(t=t, cfd=cfd, toff=toff, tmean=tmean, koff=koff)
 
+if plot_attempt_time:
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+    ta = rw.attempt_times
+    ta = ta[ta > 0.]
+    #tt = np.logspace(-.5, 2.5, 100)
+    tt = np.linspace(0.25, 200., 100)
+    plt.figure("attempt_times", figsize=(2.2, 1.65))
+    plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
+    ta0 = ta.mean()
+    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean %.3gns" % ta0)
+    #plt.xscale("log")
+    #plt.yscale("log")
+    plt.xlabel("Attempt time [ns]")
+    plt.ylabel("Rel. frequency")
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.legend(handles[::-1], labels[::-1], frameon=False)
+
 ##### run rw in collect mode and draw bindings from empirical distributions
 if plot_distribution:
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
@@ -247,7 +265,7 @@ if plot_distribution:
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
     tt = np.linspace(0.25, 200., 100)
-    plt.figure("attempt_times", figsize=(4,3))
+    plt.figure("attempt_times", figsize=(4, 3))
     plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
     ta0 = ta.mean()
     plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
