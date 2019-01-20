@@ -632,8 +632,8 @@ def LeftTruncatedDoubleGammaPoisson(a1=1., tau1=1., a2=1., tau2=1., tmin=0.1, w=
 if __name__ == "__main__":
     # decide which example to run
     example1 = False
-    example2 = True
-    example3 = False
+    example2 = False
+    example3 = True
     
     if example1: # example with stacked Gamma-Poisson-Distributions
         # construct target distribution

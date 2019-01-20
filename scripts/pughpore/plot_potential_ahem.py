@@ -75,7 +75,7 @@ def F(x, z):
         return f([-x, z])
 
 R, Htop, Hbot = 7, 2, 12
-fig = plt.figure(figsize=(2.8, 2.3))
+fig = plt.figure(figsize=(2.6, 2.15))
 ax = plt.axes(xlim=(-R, R), ylim=(-Hbot, Htop))
 
 tr, vertex_values = mesh2triang(mesh)

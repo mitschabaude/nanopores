@@ -186,7 +186,7 @@ default = dict(geoname="alphahem", dim=2, h=1., Nmax=2e4, rDPore=0.3, ahemqs=-0.
 # with constant D = 0.3*D0 in pore
 dd = None
 params = dict(default, diffusivity_data=dd)
-plt.figure("rD03", figsize=(2.8, 2.1))
+plt.figure("rD03", figsize=(2.6, 2.))
 get_IV(calc, **params)
 
 # with 'simple' D interpolation (only analytical near-plane model)
