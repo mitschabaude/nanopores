@@ -93,7 +93,7 @@ if __name__ == "__main__":
     plt.plot(x, Dt, ".-", label=r"$D_t$")
     plt.plot(x, Dn, ".-", label=r"$D_n$")
     plt.legend(loc="lower right")
-#    plt.show()
+    plt.show()
 #
     data = diff_profile_z_ahem(**params)
     z = [x0[2] for x0 in data["x"]]
