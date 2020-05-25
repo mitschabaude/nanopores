@@ -123,8 +123,16 @@ def get_results(NAME, params, calc=True):
     return data
 
 ########### PLOT EVOLUTION OF EXIT PROBABILITY ###########
-endtime = 5e6
-def plot_evolution(params, color=None, label=None):
+def no_competitor_quantile(q):
+    return -np.log(q)/275. * 1e9 # [ns]
+
+q99 = no_competitor_quantile(.99)
+q50 = no_competitor_quantile(.50)
+endtime = 10e6
+vlinecolor1 = "#999999"
+vlinecolor2 = "#555555"
+def plot_evolution(params, color=None, label=None,
+                   vlines=False, vline_labels=False, xmax=endtime):
     data = get_results(NAME, params, calc=do_calculations)
     times = data.times
     success = data.success
@@ -138,9 +146,15 @@ def plot_evolution(params, color=None, label=None):
     plt.semilogx(t, p, color=color, label=label)
     plt.fill_between(t, p - errp, p + errp, alpha=0.2,
                      facecolor=color, linewidth=0)
+    
     plt.xlabel("Time [ns]")
     plt.ylabel("Exit probability")
-    plt.xlim(xmin=0.1, xmax=5e6)
+    plt.xlim(xmin=0.1, xmax=xmax)
+    
+    if vlines:        
+        plt.axvline(x=q99, linestyle=":", color=vlinecolor1, zorder=-100)
+        plt.axvline(x=q50, linestyle="-", color=vlinecolor2, zorder=-100)
+    
     print "last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
         t[-2]*1e-6, p[-2], errp[-2])
 
@@ -155,8 +169,9 @@ if plot_rw_results:
     plt.figure("positions", figsize=(5, 4))
     for i, z in enumerate(Z):
         label = r"$z_0 = %.1f$nm" if z < 10 else r"$z_0 = %d$nm"
-        plot_evolution(Params(params, zstart=z),
+        plot_evolution(Params(params, zstart=z), xmax=1e6,
                        label=label % z, color="C%d" % i)
+    plt.ylim(ymin=0.)
     plt.legend(frameon=False, loc="upper left")
     
     # FIGURE: Starting position vs. end probability
@@ -185,14 +200,20 @@ if plot_rw_results:
     
     # FIGURE: Different binding durations
     plt.figure("bind_times", figsize=(4.5, 4))
-    T = [0., 100., 10000., 1000000.]
-    labels = ["No binding", "100ns", u"10µs", "1ms"]
+    T = [0., 100., 10000.] #, 1000000.]
+    labels = ["No binding", "100ns", u"10µs"] #, "1ms"]
     for i, t in enumerate(T):
         #label = r"$\tau = %g$ns" % t if t > 0 else "No binding"
         plot_evolution(Params(params, t_bind=t),
-                       label=labels[i], color="C%d" % i)
+                       label=labels[i], color="C%d" % i,
+                       vlines=(i == 0))
+    htext = 0.25
+    plt.text(q99 * 1.2, htext, "1%\n",  color=vlinecolor1)
+    plt.text(q50 / 1.2, htext, "50%\n",  color=vlinecolor2, horizontalalignment='right')
+    plt.text(np.sqrt(q50 * q99), htext, "\nconflicts",  color=vlinecolor1, horizontalalignment='center')
     #plt.xlim(xmin=1.)
     #plt.ylim(ymin=0.4)
+    plt.ylim(ymin=0.)
     plt.legend(frameon=False, loc="upper left")#loc="lower right")
     
     # FIGURE: Different surface charges
@@ -202,8 +223,9 @@ if plot_rw_results:
     labels = ["None"] # ["No binding", "100ns", u"10µs", "1ms"]
     for i, rho in enumerate(Rho):
         label = r"$\rho$ = %.1f C/m$^2$" % rho if rho is not None else "None"
-        plot_evolution(Params(params, ahemqs=rho, ahemuniformqs=True),
+        plot_evolution(Params(params, ahemqs=rho, ahemuniformqs=True), xmax=1e6,
                        label=label, color="C%d" % i)
+    plt.ylim(ymin=0.)
     plt.ylabel("")
     plt.legend(frameon=False, loc="upper left")
     
@@ -228,7 +250,9 @@ if plot_rw_results:
     labels = ["None"] # ["No binding", "100ns", u"10µs", "1ms"]
     for i, v in enumerate(V):
         label = r"bV = %dmV" % (v*1000)
-        plot_evolution(Params(params, bV=v), label=label, color="C%d" % i)
+        plot_evolution(Params(params, bV=v), label=label, xmax=1e6,
+                       color="C%d" % i)
+    plt.ylim(ymin=0.)
     plt.legend(frameon=False, loc="upper left")
     
     # FIGURE: voltage vs. end prob
