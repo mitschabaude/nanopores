@@ -15,7 +15,7 @@ rcParams.update({
     "font.family" : "sans-serif",
     "font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
-    "lines.markersize" : 5,
+    "lines.markersize" : 4,
 })
 fields.set_dir_mega()
 
@@ -84,7 +84,7 @@ D_rz = [d*Dzz1/D_r[-1] for d in D_r]
 plt.plot(xlin, D_r, "-b", label="r-dependent")
 plt.plot(xlin, D_z, ":g", label="z-dependent")
 plt.plot(xlin, D_rz, "-.c", label=r"r- and z-dep.")
-plt.plot(x, Dzz, "or", label=r"Full sim.")
+plt.plot(x, Dzz, "og", label=r"LRNH")
 
 plt.xlim(0., R+0.05)
 plt.xticks([0, 0.5, 1.])
@@ -101,4 +101,4 @@ plt.legend(loc="lower right", frameon=False)
 plt.gcf().set_size_inches(2.1, 2.1)
 
 from nanopores import savefigs
-savefigs("Diff", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
+savefigs("Dr", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
