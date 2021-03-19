@@ -16,7 +16,8 @@ def rstokes(D):
 data = {
     "K+" : (0.152, 1.96),
     "Na+" : (0.116, 1.33),
-    "Cl-" : (0.167, 2.03)
+    "Cl-" : (0.167, 2.03),
+    "ion" : (0.11, 1.9)
 }
 
 if __name__ == "__main__":
@@ -29,4 +30,3 @@ if __name__ == "__main__":
         print s0 % (name, D, Ds)
         rs = rstokes(D)
         print s1 % (r, rs)
-

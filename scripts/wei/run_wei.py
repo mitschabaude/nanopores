@@ -49,17 +49,19 @@ params = nanopores.user_params(
     # receptor params
     tbind = 40e9, # from Lata, = 1/kd = 1/(25e-3)s [ns]
     # tbind = 286e9, from Wei, = 1/kd = 1/(3.5e-3)s [ns]
-    ka = 1.5e5,
+    ka = 1.5e5, # from Lata
+    # ka = 3.362e8 from Wei (complicated inferred)
+    # kon = 2.09e7 from Wei (simple taken)
     zreceptor = .95, # receptor location relative to pore length (1 = top)
 )
 ##### what to do
 NAME = "rw_wei_"
-print_calculations = False
+print_calculations = True
 run_test = False
-plot_attempt_time = True
+plot_attempt_time = False
 plot_distribution = False
 plot_cdf = False
-voltage_dependence = True
+voltage_dependence = False
 determine_delta = False
 fit_koff0 = False
 
@@ -111,20 +113,31 @@ if print_calculations:
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * params.rMolecule * 1e-9) # [m**2/s]
     r = 6e-9 # effective radius for proteins at pore entrance [m]
-    karr = 2.*phys.pi * r * D * cmol # arrival rate
-    b = c * kon / karr # bindings per event
+    karr = 2.*phys.pi * r * D * cmol # arrival rate [1/s]
+    b = c * kon / karr # bindings per event [1]
     
     print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
-    print "=> number of bindings per event: %.1f / %.1f = %.5f (= 1 - exp(-a*p) = prob of binding at least once)" % (ckon, karr, b)
+    print "=> number of bindings per event: %.1f / %.1f = %.5f" % (ckon, karr, b)
+    # (= 1 - exp(-a*p) = prob of binding at least once)
     
+    cb = 0.01 # receptor concentration in binding zone [M]
+    ta_ = 1.595e-9 # avg time spent in binding zone per event [s]
+
+    ka_ = b / (cb * ta_) # implied free-solution association rate constant
+    # = kon [1/Ms] * (c * V / ta) [1/s] * (1/karr) [s]
+    
+    print "Free solution association rate constant ka, inferred from tau on + simulations: %.4g" % ka_
+    # = 3.362e08 1/Ms
+    print "Simple uncorrected association rate constant in pore, from tau on: %.4g" % kon
+    print "Relative correction thanks to simulation: %.1f%%" % (ka_/kon * 100,)
     # solve b = 1 - exp(-ap); p = -log(1 - b)/a
-    a = 0.305
-    ap = -np.log(1 - b)
-    p = ap/a
-    print "=> a*p = -log(1 - %.5f) = %.5f" % (b, ap)
-    print
-    print "Average number of attempts: a = %.5f (from many simulations with dt=1, eps=0.1)" % a
-    print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
+    # a = 0.305
+    # ap = -np.log(1 - b)
+    # p = ap/a
+    # print "=> a*p = -log(1 - %.5f) = %.5f" % (b, ap)
+    # print
+    # print "Average number of attempts: a = %.5f (from many simulations with dt=1, eps=0.1)" % a
+    # print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
     #receptor_params["p"] = p
 
 def setup_rw(params):
@@ -149,6 +162,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     self = rw.domains[1]
     N = int(N)
     ka = self.kbind
+    print "multiplying attempt times with Ra = %.3g" % (self.kbind,)
     # draw indices of existing random walks
     I = np.random.randint(rw.N, size=(N,))
     times = (1e-9*rw.times)[I]
@@ -159,8 +173,12 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     ibind, = np.nonzero(bindings > 0)
     n0 = len(ibind)
     n = min(n0, nmax)
+    N_ = ibind[n]
     ibind = ibind[:n]
-    print "%d binding events drawn, %s used." % (n0, n)
+    print "%d binding events drawn, %s used, total events used %s." % (n0, n, N_)
+    I = I[:N_]
+    times = times[:N_]
+    bindings = bindings[:N_]
     
     f = np.array([f for F in rw.binding_zone_forces for f in F])
     F = np.random.choice(f, size=(n,))
@@ -298,6 +316,9 @@ if plot_distribution:
     tbind = params2.pop("tbind")
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
+    domain = rw.domains[1]
+    domain.ka = 2.09e7 # hack; change ka for second histogram
+    domain.initialize_binding_zone(rw)
     tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
     _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
                             histtype="step", linestyle="--", alpha=0.6,
@@ -568,5 +589,5 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
 
 import folders
-nanopores.savefigs("tau_off2", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
+nanopores.savefigs("tau_off3", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")

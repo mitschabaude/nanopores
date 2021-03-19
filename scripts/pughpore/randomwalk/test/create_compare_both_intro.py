@@ -70,7 +70,7 @@ for k in range(lendata):
 #    else:
 #        type0 = plt1.scatter([t[k]],[a[k]],color=color3,s=8)
 experiment = plt1.scatter(th,drop,color='#888888',s=8)
-plt.legend([experiment,type1,type2,type3],['experimental data','did not bind','short binding','long binding'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
+plt.legend([experiment,type1,type2,type3],['Experiment','Did not bind','Short binding','Long binding'],scatterpoints=4,loc=(0.01,0.01),frameon=False)
 xfmt=FormatStrFormatter('%g')
 plt1.set_xlim([.2*min(t),max(max(t),max(th))*2.])
 plt1.set_ylim([minperc,maxperc])

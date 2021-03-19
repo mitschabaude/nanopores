@@ -569,12 +569,12 @@ class RandomWalk(object):
             cchar = 1./Vbind # [M], receptor concentration at which all targets
             # are in binding zone, so that ka * cchar = kbind
             kbind = ka * cchar # binding zone assoc. rate [1/s]
-            ta = 1e-9*ta # mean attempt time := time in binding zone [s]
-            nbind = ta * kbind # mean no. bindings per event
+            ta_ = 1e-9*ta # mean attempt time := time in binding zone [s]
+            nbind = ta_ * kbind # mean no. bindings per event
             
-            keff = karr * ta * cchar * ka # = karr * nbind = bindings / Ms = 
+            keff = karr * ta_ * cchar * ka # = karr * nbind = bindings / Ms = 
             # effective association rate
-            frac = karr * ta / Vbind # fraction of time spent in binding zone
+            frac = karr * ta_ / Vbind # fraction of time spent in binding zone
             # in simulation, relative to bulk = keff / ka
             #print "karr", karr
             #print "ta", ta
@@ -962,4 +962,3 @@ if __name__ == "__main__":
     rw.add_domain(receptor, exclusion=True, walldist=1.,
                   binding=True, eps=1., t=1.5e6, p=0.14)
     run(rw, name="wei")
-
