@@ -477,7 +477,7 @@ def add_molecule(dom, lc):
                 #print j
                 circleb.append(ent)
     #print replace
-    for k in replace.keys():
+    for k in list(replace.keys()):
         for i, ent in enumerate(replace[k]):
             if ent in dom.entities[1]:
                 j = dom.entities[1].index(ent)
@@ -486,12 +486,12 @@ def add_molecule(dom, lc):
                 j = len(dom.entities[1]) - 1
                 #print j, ent
             replace[k][i] = j
-    for k, v in replace.items():
+    for k, v in list(replace.items()):
         if len(v)==1 and k==v[0]:
             replace.pop(k)
     #print replace
     old = set(replace.keys())
-    new = box.union(set(v) for v in replace.values())
+    new = box.union(set(v) for v in list(replace.values()))
     # replace edge indices in boundary
     left.indexsets[1] = left.indexsets[1] - old | new
 
@@ -520,7 +520,7 @@ def add_molecule(dom, lc):
     N = len(dom.gmsh_entities[1])
     circlearc = [N-2, N-1]
 
-    for k, v in replace.items():
+    for k, v in list(replace.items()):
         removed = False
         for j in list(v):
             #print "adding", j,"to replace"
@@ -631,7 +631,7 @@ if __name__ == "__main__":
     geo2D = get_geo_cyl(lc=1., **up)
     dolfin.plot(geo2D.subdomains, title="subdomains")
     dolfin.plot(geo2D.boundaries, title="boundaries")
-    print geo2D
+    print(geo2D)
 
     domain = get_domain(**up)
     membrane = domain.getsubdomain("membrane")
@@ -648,14 +648,14 @@ if __name__ == "__main__":
         dnalowerb = domain.getboundary("dnalowerb"),
         memb = domain.getboundary("memb"),
     )
-    print "COMPUTING SOLID"
+    print("COMPUTING SOLID")
     solidgeo = solid.create_geometry(lc=up.h)
-    print solidgeo
+    print(solidgeo)
 
-    print "COMPUTING DOMAIN"
+    print("COMPUTING DOMAIN")
     geo = get_geo(lc=up.h, **up)
-    print geo
-    print geo.params
+    print(geo)
+    print(geo.params)
 
     plot_sliced(geo, scalarbar=False)
     dolfin.plot(solidgeo.boundaries, title="boundaries", scalarbar=False)

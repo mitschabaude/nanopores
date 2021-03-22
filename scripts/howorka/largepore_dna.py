@@ -152,14 +152,14 @@ if __name__ == "__main__":
         dnalowerb = dnalowerb,
         memb = memb,
     )  
-    print "COMPUTING SOLID"
+    print("COMPUTING SOLID")
     solidgeo = solid.create_geometry(lc=2.)
-    print solidgeo
+    print(solidgeo)
     
-    print "COMPUTING DOMAIN"
+    print("COMPUTING DOMAIN")
     geo = domain.create_geometry(lc=2.)
-    print geo
-    print geo.params
+    print(geo)
+    print(geo.params)
     
     plot_sliced(geo)
     dolfin.plot(solidgeo.boundaries, title="boundaries")

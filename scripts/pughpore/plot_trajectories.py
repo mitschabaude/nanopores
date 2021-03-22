@@ -152,7 +152,7 @@ for m in 0, 1:
     plt.xticks([], [])
     ax.invert_yaxis()
     
-    scalebar = AnchoredSizeBar(ax.transData, 1, u"1µs", loc[m], 
+    scalebar = AnchoredSizeBar(ax.transData, 1, "1µs", loc[m], 
                    pad=0.2,
                    color="#999999",
                    frameon=False,

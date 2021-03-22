@@ -19,7 +19,7 @@ R, H = domain.params["R"], domain.params["H"]
 px = 2*R*np.random.random(N) - R
 py = 2*R*np.random.random(N) - R
 pz = H*np.random.random(N) - H/2.
-points = zip(px, py, pz)
+points = list(zip(px, py, pz))
 
 # prepare mesh containing points
 domain.write_gmsh_code(h)

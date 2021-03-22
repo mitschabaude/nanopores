@@ -36,7 +36,7 @@ bV0 = 0.01,
 meshgen_dict = generate_mesh(.9, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore_molecule", geo, **phys_params)
-print phys.charge
+print(phys.charge)
 
 plot(geo.mesh)
 #plot(geo.pwconst("initial_ions"))
@@ -87,7 +87,7 @@ I = pnps.get_functionals()["Javgbtm"]
 Ry = geo.params["Ry"]
 V = v([0.0, -Ry]) - v([0.0, Ry])
 
-for est in pnps.estimators.values():
+for est in list(pnps.estimators.values()):
     if refine: est.plot(rate=-0.5)
     #else: est.plot()
 
@@ -96,35 +96,35 @@ for est in pnps.estimators.values():
 #plot_on_sub(v, geo, "pore", expr=-grad(v), title="E")
 #interactive()
 
-print
-print "I (current through pore center):",I,"[pA]"
-print "V (transmembrane potential):",V,"[V]"
-print "conductance I/V:",I/V,"[pS]"
+print()
+print("I (current through pore center):",I,"[pA]")
+print("V (transmembrane potential):",V,"[V]")
+print("conductance I/V:",I/V,"[pS]")
 
 l1 = 10*nm
 cmdiff = cm([10*nm, -l1]) - cm([10*nm, l1])
-print "cm difference across membrane:",cmdiff,"[mol/m**3]"
+print("cm difference across membrane:",cmdiff,"[mol/m**3]")
 
-print "u(0) = ",u(0.,0.)
+print("u(0) = ",u(0.,0.))
 
 if geo.params["x0"] is None:
     r = geo.params["rMolecule"]
     R = geo.params["r0"]
     Fel0 = 1e12*phys_params["Qmol"]*(v([0.,z0-r])-v([0.,z0+r]))/(2.*r)
     Fdrag0 = 1e12*6*pi*eta*r*u([0.,z0])[1]*exp(2.*r/(R-r))
-    print "Fbare (theory) [pN]:", Fel0
-    print "Fdrag (theory) [pN]:", Fdrag0
-    print "F [pN]:", Fdrag0 + Fel0
+    print("Fbare (theory) [pN]:", Fel0)
+    print("Fdrag (theory) [pN]:", Fdrag0)
+    print("F [pN]:", Fdrag0 + Fel0)
 else:
     fs = pnps.get_functionals()
     Fdrag = fs["Fp1"] + fs["Fshear1"]
     Fel = fs["Fbarevol1"]
-    print "phys.Fbare [pN]:",1e12*assemble(phys.Fbare(v, 1))
-    print "Fbare [pN]:", Fel
-    print "Fdrag [pN]:", Fdrag
-    print "F [pN]:", Fdrag + Fel
+    print("phys.Fbare [pN]:",1e12*assemble(phys.Fbare(v, 1)))
+    print("Fbare [pN]:", Fel)
+    print("Fdrag [pN]:", Fdrag)
+    print("F [pN]:", Fdrag + Fel)
 
-print "hmin [nm]: ", geo.mesh.hmin()*1e9
+print("hmin [nm]: ", geo.mesh.hmin()*1e9)
 #plot(pnps.geo.mesh)
 #interactive()
 pb.estimators["err"].plot(rate=-1.)

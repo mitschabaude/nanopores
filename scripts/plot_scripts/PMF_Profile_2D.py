@@ -49,7 +49,7 @@ step = .5*nm
 
 for z in drange(Ry_, -Ry_, -step):
     z = round(z, ndigits)
-    print "\nz = ",z*1e9,"[nm]\n"
+    print("\nz = ",z*1e9,"[nm]\n")
     Z.append(z*1e9)
     x0 = [0, 0, z]
     meshgen_dict = generate_mesh(1.0, geo_name, x0 = x0, **params)
@@ -73,7 +73,7 @@ for z in drange(Ry_, -Ry_, -step):
     I0 = fs["Javgbtm"] if z>0 else fs["Javgtop"]
     I.append(I0)
     
-    print F
+    print(F)
     
 from numpy import isnan
 

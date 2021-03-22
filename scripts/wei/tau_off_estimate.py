@@ -33,7 +33,7 @@ while frac > 0.5:
     a, b = bins[1]*frac, bins[1]*2*frac
     sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
     fake = np.append(fake, sample)
-    print "frac", frac
+    print("frac", frac)
 
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
@@ -43,11 +43,11 @@ for i in range(1, N):
 # estimate b and tau parameters
 euler = 0.577215664901532
 theta = np.mean(np.log(fake)) - np.log(np.mean(fake))
-print "theta:", theta
+print("theta:", theta)
 b = theta/euler + 1.
-print "estimate b:", b
+print("estimate b:", b)
 b0 = b/np.expm1(b)*np.exp(b)
-print "mean number of bindings, given K>0:", b0
+print("mean number of bindings, given K>0:", b0)
 tau = np.mean(fake)/b0
-print "mean binding duration, exponential assumption:", np.mean(fake)
-print "mean binding duration, gamma assumption:", tau
+print("mean binding duration, exponential assumption:", np.mean(fake))
+print("mean binding duration, gamma assumption:", tau)

@@ -27,11 +27,11 @@ def calculateforce(clscale=6., subdomain=None):
 
     t = Timer("meshing")
     generate_mesh(clscale, "H_geo", **geo_params)
-    print "Mesh generation time:",t.stop()
+    print("Mesh generation time:",t.stop())
 
     t = Timer("reading geometry")
     geo = geo_from_name("H_geo")
-    print "Geo generation time:",t.stop()
+    print("Geo generation time:",t.stop())
 
     phys = Physics("pore_molecule", geo, **phys_params)
         

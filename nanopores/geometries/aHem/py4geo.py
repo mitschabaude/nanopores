@@ -1,9 +1,10 @@
 import numpy, math
-from params_geo import *
+from .params_geo import *
 import nanopores.py4gmsh.basic
 import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
 from warnings import warn
+import importlib
 
 def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     """
@@ -19,8 +20,8 @@ def get_geo(x0 = None, crosssections = True, exit_i = None, **params):
     |________|   *rotated around y-axis *
 
     """
-    reload(nanopores.py4gmsh.basic)
-    reload(nanopores.py4gmsh.extra)
+    importlib.reload(nanopores.py4gmsh.basic)
+    importlib.reload(nanopores.py4gmsh.extra)
     globals().update(params)
     params["synonymes"] = synonymes
 

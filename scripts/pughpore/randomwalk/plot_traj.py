@@ -4,7 +4,7 @@ try:
     fieldsname = sys.argv[2]
 except:
     fieldsname = 'rw_traj_test'
-print 'run RW'
+print('run RW')
 if int(num)!=0:
 	from run_traj import *
 else:
@@ -17,9 +17,9 @@ params=dict(avgbind1=1e7,avgbind2=3e4,P_bind1=5.e-3,P_bind2=8e-2,z0=hpore/2.+0.)
 
 for i in range(int(num)):
 	run(params,fieldsname)
-	print '%i out of '%i+num 
+	print('%i out of '%i+num) 
 
-print 'field updates'
+print('field updates')
 from create_plot_traj import *
 f.update()
 save_fig(params,fieldsname,0)

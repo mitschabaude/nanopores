@@ -56,23 +56,23 @@ for s, ent in zip(dic["esets"][1], dic["entities"][1]):
             i = edgeinds[j]
             replace[i].append(ent)
         if j >= len(edgeinds): # belongs to circle
-            print j
+            print(j)
             circleb.append(ent)
-for k in replace.keys():
+for k in list(replace.keys()):
     for i, ent in enumerate(replace[k]):
         if ent in dom.entities[1]:
             j = dom.entities[1].index(ent)
         else:
             dom.entities[1].append(ent)
             j = len(dom.entities[1]) - 1
-            print j, ent
+            print(j, ent)
         replace[k][i] = j
-for k, v in replace.items():
+for k, v in list(replace.items()):
     if len(v)==1 and k==v[0]:
         replace.pop(k)
-print replace
+print(replace)
 old = set(replace.keys())
-new = box.union(set(v) for v in replace.values())
+new = box.union(set(v) for v in list(replace.values()))
 # replace edge indices in boundary
 left.indexsets[1] = left.indexsets[1] - old | new
 
@@ -84,7 +84,7 @@ for i, ent in enumerate(circleb):
         dom.entities[1].append(ent)
         j = len(dom.entities[1]) - 1
     circleb[i] = j
-print "circle:", circleb
+print("circle:", circleb)
 
 # gmsh circle
 lcCirc = lcMolecule*lc
@@ -101,17 +101,17 @@ dom.gmsh_entities[1] += surfs
 N = len(dom.gmsh_entities[1])
 circlearc = [N-2, N-1]
 
-for k, v in replace.items():
+for k, v in list(replace.items()):
     removed = False
     for j in list(v):
-        print "adding", j,"to replace"
+        print("adding", j,"to replace")
         if j in circleb:
             replace[k].remove(j)
             removed = True
     if removed:
         replace[k].extend(circlearc)
         
-print replace
+print(replace)
 # add edge indices to molecule boundary
 mol.bdry().indexset = set(circleb + circlearc)
 mol.bdry().indexsets[1] = set(circleb + circlearc)
@@ -132,7 +132,7 @@ for sub in dom.subdomains + dom.boundarysubs:
                 orients[j] = -1
             else:
                 orients[j] = orients[i]
-            print sub.name, i, j, orients[j]
+            print(sub.name, i, j, orients[j])
 
 dom.entities_to_gmsh_merge(lc)
 # rebuild boundaries involving balls

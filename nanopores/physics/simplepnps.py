@@ -624,8 +624,8 @@ class SimpleLinearPBGO(GoalAdaptivePDE):
         def printv(*strgs):
             if verbose:
                 for strg in strgs:
-                    print strg,
-                print
+                    print(strg, end=' ')
+                print()
         refined = True
         i = 0
         printv("Number of cells:", self.geo.mesh.num_cells())

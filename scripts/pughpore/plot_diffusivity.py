@@ -9,7 +9,7 @@ import folders
 def zsorted(data, field):
     z = [x[2] for x in data["x"]]
     J = data[field]
-    I = sorted(range(len(z)), key=lambda k: z[k])
+    I = sorted(list(range(len(z))), key=lambda k: z[k])
     z1 = [z[i] for i in I]
     J1 = [J[i] for i in I]
     return z1, J1

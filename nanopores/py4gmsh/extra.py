@@ -35,7 +35,7 @@ objects with Gmsh.
 '''
 
 import numpy
-from basic import Point, Line, LineLoop, PlaneSurface, Comment, Circle, \
+from .basic import Point, Line, LineLoop, PlaneSurface, Comment, Circle, \
     CompoundLine, RuledSurface, Volume, PhysicalVolume, SurfaceLoop, Array, \
     Extrude, CompoundVolume
 

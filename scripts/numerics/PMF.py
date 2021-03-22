@@ -38,7 +38,7 @@ def PMF(F, a, b, N):
     dx = (b - a)/(N - 1.) * 1e-9 * 1e-12/(kB*T)
     forces = F(a, b, N)
     u = [0., 0., 0.]
-    f0 = forces.next()
+    f0 = next(forces)
     yield tuple(u), f0
     for f1 in forces:
         for i in (0, 1, 2):

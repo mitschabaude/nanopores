@@ -28,7 +28,7 @@ def get_geo(**params):
 
 
     # for now
-    for key, value in params.iteritems():
+    for key, value in params.items():
         if value is not None:
             warn("%s is not yet considered for mesh generation" %key)
     geofid = os.path.join(INSTALLDIR, "geometries","P_geo","mesh.geo")
@@ -42,5 +42,5 @@ def get_geo(**params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
+    print((get_geo()))
     print('\n - This is the sample code for the geo file')

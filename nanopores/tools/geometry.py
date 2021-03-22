@@ -10,6 +10,7 @@ import numpy as np
 
 from importlib import import_module
 import types
+import importlib
 
 __all__ = ["Geometry", "PhysicalBC", "geo_from_name", "geo_from_subdomains",
            "geo_from_xml", "geo_from_xml_threadsafe", "PointBC"]
@@ -59,7 +60,7 @@ class Geometry(object):
                  physical_domain=None, physical_boundary=None,
                  synonymes=None, params=None):
         if module:
-            exec 'from %s import *' %module.__name__ in globals(), locals()
+            exec('from %s import *' %module.__name__, globals(), locals())
 
         self.mesh = mesh
 
@@ -112,9 +113,9 @@ class Geometry(object):
         return self.mesh.topology().dim()
 
     def interprete(self, string):
-        if self.subdomains and self._physical_domain and self._physical_domain.has_key(string):
+        if self.subdomains and self._physical_domain and string in self._physical_domain:
             return (self.subdomains,self._physical_domain[string])
-        elif self.boundaries and self._physical_boundary and self._physical_boundary.has_key(string):
+        elif self.boundaries and self._physical_boundary and string in self._physical_boundary:
             return (self.boundaries,self._physical_boundary[string])
         else:
             dolfin_error(__name__+".py",
@@ -173,7 +174,7 @@ class Geometry(object):
             if homogenize:
                 value = {key: Constant(0.) for key in value}
             bcs = []
-            for key, val in value.items():
+            for key, val in list(value.items()):
                 if val is not None:
                     if isinstance(val, GenericFunction):
                         #print type(val)
@@ -243,7 +244,7 @@ class Geometry(object):
             return inner(_wrapf(value), v) * dx
 
     def pwconst(self, string, value=None, DG=True): #TODO: should also work as in docstring
-        if DG and self.dg.has_key(string):
+        if DG and string in self.dg:
             return self.dg[string]
         value = self._getvalue(string, value)
         dom2value = self._pwconst_lookup(self._dom2phys, value)
@@ -261,7 +262,7 @@ class Geometry(object):
         # compute has to be provided the first time the constant is requested
         if not name in self.constants:
             self.constants[name] = GeometricConstant(name, compute, self)
-            print "Computed %s." %(self.constants[name],)
+            print("Computed %s." %(self.constants[name],))
         return self.constants[name].function
 
 
@@ -302,16 +303,16 @@ class Geometry(object):
         self.subdomains = adaptmeshfunction(self.subdomains, mesh)
         self.boundaries = adaptmeshfunction(self.boundaries, mesh)
         # adapt functions and constants
-        for f in self.dg.values():
+        for f in list(self.dg.values()):
             adaptfunction(f, mesh, interpolate=True, assign=True)
 
         # if curved boundaries are defined, snap back those
         if hasattr(self, "curved"):
-            for boundary, snap in self.curved.items():
+            for boundary, snap in list(self.curved.items()):
                 #print "Adapting curved boundary '%s'." % boundary
                 self.snap_to_boundary(boundary, snap)
 
-        for const in self.constants.values():
+        for const in list(self.constants.values()):
             const.recompute()
             #print "Recomputed %s." %const
 
@@ -319,7 +320,7 @@ class Geometry(object):
             for name in self.volumes[meas]:
                 dmu = getattr(self, meas)(name)
                 vol = assemble(Constant(1.0)*dmu)
-                print "DEBUG New volume:", vol
+                print("DEBUG New volume:", vol)
                 self.volumes[meas][name].assign(vol)
         #print self.volumes
 
@@ -354,7 +355,7 @@ class Geometry(object):
                         self._physical_boundary]:
                 t = set()
                 for phys in syns[syn]:
-                    if dic.has_key(phys):
+                    if phys in dic:
                         t = t | set(dic[phys])
                     else:
                         t = None
@@ -454,8 +455,8 @@ class Geometry(object):
         dom2value = {}
         for i in dom2phys:
             for s in dom2phys[i]:
-                if value.has_key(s):
-                    if dom2value.has_key(i) and (not value[s] == dom2value[i]):
+                if s in value:
+                    if i in dom2value and (not value[s] == dom2value[i]):
                         dolfin_error(__name__+".py",
                             "create piecewise constant",
                             "The value on '%s' is ambigous, check %s" %(s,self.physics.__name__))
@@ -607,7 +608,7 @@ class PointBC(object):
             else:
                 pass
                 #print "not found:", p
-        print "Found %d of %d points." %(len(node_set), len(points))
+        print("Found %d of %d points." %(len(node_set), len(points)))
 
         self.bc_f.vector().set_local(bc_values)
         self.bc_f.vector().apply("insert") # TODO: what does this do?
@@ -676,14 +677,14 @@ def _wrapf(f):
 
 def _invert_dict(d):
     if isinstance(d,dict):
-        return {i:s for s,t in d.items() for i in t}
+        return {i:s for s,t in list(d.items()) for i in t}
 
 # TODO:
 def _invert_dict_nonunique(dom):
     d = {}
     for s in dom:
         for i in dom[s]:
-            if d.has_key(i):
+            if i in d:
                 d[i].append(s)
             else:
                 d[i] = [s]
@@ -716,7 +717,7 @@ def make_boundary(mesh, list, check_midpoint=False):
 # DEPRECATED: this is unnessecary, since the same could be accomplished by
 #             providing a SubDomain with its mark() function overwritten.
 def mark_domains_with_function(subdomains, physical_domain, flist, params):
-    j = len(physical_domain.values())
+    j = len(list(physical_domain.values()))
     for i,f in enumerate(flist):
         f(subdomains, i+j, **params)
         name = f.__name__.lower()
@@ -724,7 +725,7 @@ def mark_domains_with_function(subdomains, physical_domain, flist, params):
 
 def geo_from_subdomains(mesh, module, check_midpoint=False, **params):
     subd = import_module(module)
-    subd = reload(subd)
+    subd = importlib.reload(subd)
 
     (subdomains, physical_domain) = make_domain(mesh, subd.subdomain_list(**params), check_midpoint)
     (boundaries, physical_boundary) = make_boundary(mesh, subd.boundaries_list(**params), check_midpoint)

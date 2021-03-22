@@ -27,5 +27,5 @@ v = mu * q*E # (m/s) / N * N = m/s
 j = 2.*C0*v # 1/m**3 * m/s = 1/(m**2 s)
 J = q*j*A # C/s = A
 
-print "current:", J*1e12, "pA"
-print "conductance:", J/bV*1e9, "nS"
+print("current:", J*1e12, "pA")
+print("conductance:", J/bV*1e9, "nS")

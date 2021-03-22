@@ -20,6 +20,6 @@ data=f.get_fields(fieldsname,**params)
 t = np.array(data["t"])
 a= np.where(t>0.2)[0].shape[0]
 b= t.shape[0]
-print a
-print b
-print float(a)/float(b)
+print(a)
+print(b)
+print(float(a)/float(b))

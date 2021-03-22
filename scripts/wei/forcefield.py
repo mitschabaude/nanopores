@@ -62,6 +62,6 @@ if __name__ == "__main__":
         plt.plot(D[1], "D", interactive=True)
 
 for x in [0.,0.], [0.,1.]:
-    print "x", x
-    print "D", D(x)
-    print "F", F(x)
+    print("x", x)
+    print("D", D(x))
+    print("F", F(x))

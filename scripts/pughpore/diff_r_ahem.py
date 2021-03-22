@@ -39,9 +39,9 @@ def evaluation_points(N, **params):
 
 @cache_forcefield("diff_r_ahem")
 def diff_r_ahem(X, **params):
-    print 'POINTS: ' + repr(X)
+    print('POINTS: ' + repr(X))
     for x, result in collect_dict(X):
-        print 'NEXT POINT: ' + repr(x)
+        print('NEXT POINT: ' + repr(x))
         params["x0"] = x
         setup = nanopore.Setup(geoname="alphahem", dim=3, **params)
         D = diffusivity_tensor(setup)

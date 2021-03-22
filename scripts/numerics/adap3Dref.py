@@ -59,7 +59,7 @@ IllposedNonlinearSolver.newtondamp = 1.
 PNPSAxisym.tolnewton = 1e-4
 
 # solve 2D
-print "\n---- SOLVE 2D PROBLEM ----"
+print("\n---- SOLVE 2D PROBLEM ----")
 pb2D, pnps2D = adaptive_pbpnps(geo2D, phys2D, cyl=True, frac=frac, Nmax=Nmax2D, 
     Felref=Felref, Fdragref=Fdragref, Fpbref=ref, cheapest=cheapest)   
 #pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D,
@@ -155,27 +155,27 @@ PNPS.tolnewton = 1e-2
 #exit()
 
 # solve 3D
-print "\n---- SOLVE 3D PROBLEM ----"
+print("\n---- SOLVE 3D PROBLEM ----")
 #pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax, w0=w0,
 #    Felref=Felref, Fdragref=Fdragref, Fpbref=ref, cheapest=cheapest)
 pb = adaptive_pb(geo, phys, frac=frac, Nmax=Nmax, Fpbref=ref,
     mesh2D=mesh2D, cheapest=cheapest, ratio=ratio)
 
 pnps = PNPS(pb.geo, phys, v0=pb.solution, w0=w0)
-print "\nSolving PNPS."
+print("\nSolving PNPS.")
 dofs = pnps.dofs()
-print "  Degrees of freedom: %d" % dofs
+print("  Degrees of freedom: %d" % dofs)
 newton_iter = pnps.newton_solve()
-print "  Newton iterations:", newton_iter
+print("  Newton iterations:", newton_iter)
 fs = pnps.get_functionals()
 Fdrag = fs["Fp%d" %z] + fs["Fshear%d" %z]
 Fel = fs["Fbarevol%d" %z]
 F = Fdrag + Fel
-print "Fbare [pN]:", Fel
-print "Fdrag [pN]:", Fdrag
-print "F     [pN]:", F
+print("Fbare [pN]:", Fel)
+print("Fdrag [pN]:", Fdrag)
+print("F     [pN]:", F)
 
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 
 # 2D visualization
 #phi = pb.functions["primal"]

@@ -13,12 +13,12 @@ def collocation(N, order, a0, l, w, h, r):
 if __name__ == "__main__":
     N = 16
     A, W = collocation(N=N, order=2, a0=[0.,0.,0.], l=8., w=2., h=2., r=0.5)
-    print A.shape
-    print W.shape
-    print "First sample dopant positions: (N=%d)" %N
+    print(A.shape)
+    print(W.shape)
+    print("First sample dopant positions: (N=%d)" %N)
     for i in range(N):
-        print " #", i+1, " ", A[3*i:3*i+3, 0]
-    print "Weights:", W
+        print(" #", i+1, " ", A[3*i:3*i+3, 0])
+    print("Weights:", W)
         
 
 # finfet stuff
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     dops, weights = dopants(N, order)
     
     for i, sample in enumerate(dops):
-        print "Sample # %d:" %i
+        print("Sample # %d:" %i)
         for j, dop in enumerate(sample):
-            print "  dopant #%d: %s" %(j, dop)
+            print("  dopant #%d: %s" %(j, dop))
     
-    print "Weights:"
-    print weights
+    print("Weights:")
+    print(weights)

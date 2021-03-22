@@ -154,7 +154,7 @@ class Pore(PolygonPore):
         if self.dim == 1:
             return
         geo.curved = {}
-        for bname, ball in self.balls.items():
+        for bname, ball in list(self.balls.items()):
             if not isempty(ball):
                 name = bname + "b"
                 if self.dim == 2:
@@ -173,7 +173,7 @@ class Pore(PolygonPore):
         lcs = self.set_length_scales(h)
 
         # create volumes
-        for pname, p in self.domains.items():
+        for pname, p in list(self.domains.items()):
             gmsh.Comment("Creating %s subdomain." %pname)
             if isempty(p):
                 gmsh.NoPhysicalVolume(pname)
@@ -183,7 +183,7 @@ class Pore(PolygonPore):
             self.Volume(p, pname, lc)
 
         # add physical surfaces
-        for bname, bset in self.boundaries.items():
+        for bname, bset in list(self.boundaries.items()):
             self.PhysicalBoundary(bset, bname)
 
         gmsh.raw_code(["General.ExpertMode = 1;"])
@@ -196,7 +196,7 @@ class Pore(PolygonPore):
 
     def set_length_scales(self, h):
         lc = {p: h for p in self.polygons}
-        lc.update({p: h*b.lc for p, b in self.balls.items() if not isempty(b)})
+        lc.update({p: h*b.lc for p, b in list(self.balls.items()) if not isempty(b)})
         lc["molecule"] = h*self.params.lcMolecule
         for i in range(self.nsections):
             lc["pore%d" % i] = h*self.params.lcCenter
@@ -377,7 +377,7 @@ def maybe_reconstruct_geo(params=None):
     try:
         geo = reconstructgeo(name=name, params=dict(params))
     except EnvironmentError as e:
-        print e.message
+        print(e.message)
         geo = None
     return geo
 
@@ -417,8 +417,8 @@ if __name__ == "__main__":
     # ---
 
     geo = get_geo_multi(dict(dna=dnapolygon), **params)
-    print geo
-    print "params", geo.params
+    print(geo)
+    print("params", geo.params)
 
     geo.plot_subdomains()
     geo.plot_boundaries(interactive=True)

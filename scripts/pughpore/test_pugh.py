@@ -49,7 +49,7 @@ phys = nano.Physics("pore_mol", geo, **physp)
 solvers.set_sideBCs(phys, geop, physp)
 
 R, H = float(geo.params["R"]), float(geo.params["H"])
-print R, H
+print(R, H)
 mesh2D = nano.RectangleMesh([-R,-H/2.], [R, H/2.], int(8*R), int(4*H))
 
 #simplepnps.SimpleStokesProblem.method["kparams"].update(
@@ -78,7 +78,7 @@ pb = simplepnps.SimpleLinearPBGO(geo, phys, goal=goal,
 for i in pb.adaptive_loop(solverp.Nmax, solverp.frac):
     nano.plot_cross(pb.solution, mesh2D,title="pb potential", key="pb")
 
-print "CPU time (PB): %.3g s" %(dolfin.toc(),)
+print("CPU time (PB): %.3g s" %(dolfin.toc(),))
 #nano.plot1D(dict(pbx=pb.solution), (-R, R, 1001), axis="x",
 #            dim=3, axlabels=("x [nm]", "pb potential [V]"))
 #nano.plot1D(dict(pby=pb.solution), (-R, R, 1001), axis="y",
@@ -100,8 +100,8 @@ pnps = simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
            stokesiter=True, #v0=pb.solution, 
            tolnewton=solverp.tol, verbose=True, iterative=True)          
 
-print "Number of cells:", geo.mesh.num_cells()
-print "DOFs:", pnps.dofs()
+print("Number of cells:", geo.mesh.num_cells())
+print("DOFs:", pnps.dofs())
 
 # solve PNPS
 dolfin.tic()
@@ -116,12 +116,12 @@ for i in pnps.fixedpoint(ipnp=5):
     #dolfin.interactive()
     #u = pnps.functions["stokes"].sub(0)
     #nano.plot_cross_vector(u, mesh2D, title="u", key="uu")
-    print "v0 =", v([0., 0., -25.])
+    print("v0 =", v([0., 0., -25.]))
     
-print "CPU time (solve): %.3g s" %(dolfin.toc(),)
+print("CPU time (solve): %.3g s" %(dolfin.toc(),))
 
-print pnps.evaluate(phys.CurrentPNPS)
-print pnps.evaluate(phys.ForcesPNPS)
+print(pnps.evaluate(phys.CurrentPNPS))
+print(pnps.evaluate(phys.ForcesPNPS))
 
 # visualize
 v, cp, cm, u, p = pnps.solutions()

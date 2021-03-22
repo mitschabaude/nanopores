@@ -17,8 +17,8 @@ meshgen_dict = generate_mesh(0.5, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 #mesh = Mesh("/".join([DATADIR, geo_name, "mesh", "last_adapted_mesh.xml"]))
 #geo = geo_from_name(geo_name, mesh=mesh, **params)
-print "Number of cells:",geo.mesh.num_cells()
-print "hmin:", geo.mesh.hmin()
+print("Number of cells:",geo.mesh.num_cells())
+print("hmin:", geo.mesh.hmin())
 
 plot(geo.subdomains, title="geometry")
 

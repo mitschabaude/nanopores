@@ -56,8 +56,8 @@ diam = {2: [3.7, 3.8, 3.9, 4.0, 4.141, 4.4, 4.6,
         3: [4.18, 4.23, 4.3, 4.4,
             4.5, 4.6, 4.8, 5.2, 5.5, 6., 7., 7.501]}
 
-print "Grundstrom 2D cyl, 6nm:", Idiam([6.0], calc=False, **params[2])
-print "Grundstrom 3D, 6nm:", Idiam([6.0], calc=False, **params[3])
+print("Grundstrom 2D cyl, 6nm:", Idiam([6.0], calc=False, **params[2]))
+print("Grundstrom 3D, 6nm:", Idiam([6.0], calc=False, **params[3]))
 
 # semi-bad values: 4.17, 4.19, 4.21, 4.22, 4.25, 4.275, 4.7,
 # bad values: 4.19, 4.9, 4.995, 5.095,
@@ -72,8 +72,8 @@ for dim in 2, 3:
     result = Idiam(diam[dim], calc=calc,
                    nproc=4, **params[dim])
     d = result["x"]
-    print "diameters (%dD):" % dim, d
-    print "missing:", set(diam[dim]) - set(d)
+    print("diameters (%dD):" % dim, d)
+    print("missing:", set(diam[dim]) - set(d))
     if dim==2:
         d = [dd*2./sqrt(pi) for dd in d]
     n = len(d)

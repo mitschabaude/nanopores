@@ -62,7 +62,7 @@ plt.plot(P2, data2.p0, ".", label="Simulated (N=20000)", zorder=100)
 PP = np.linspace(0, 1, 500)
 plt.plot(PP, 1. - np.exp(-a*PP), label="Poisson (a = 0.3)")
 plt.plot(PP, pmod*(1. - np.exp(-a1*PP)), label="Mod. Poisson (a = 2.2)")
-print "pmod", pmod
+print("pmod", pmod)
 plt.xlabel(r"Binding probability $p$")
 plt.ylabel(r"$p_0$") #probability of >= 1 binding")
 plt.gca().add_patch(Rectangle((-0.01, -0.002), 0.07, 0.02, fc="none", ec="k"))
@@ -71,10 +71,10 @@ plt.legend(frameon=False)
 import folders
 nanopores.savefigs("binding_prob", folders.FIGDIR + "/wei", (4, 3))
 
-print "binding prob. inferred from simulations: p = %.6f" % p
+print("binding prob. inferred from simulations: p = %.6f" % p)
 ap = -np.log(1 - p0)
 p1 = ap/a
-print "binding prob. inferred from assumed Poisson distribution: p = %.6f" % p1
+print("binding prob. inferred from assumed Poisson distribution: p = %.6f" % p1)
 
 # plot mean, std, log of time
 plt.figure("time_stdmean")

@@ -40,7 +40,7 @@ def _update(dic, dic2): # conservative update
     
 def _globals(): # globals except hidden ones ("_"), modules and functions
     from types import ModuleType, FunctionType
-    return {key : var for key, var in globals().items() if not
+    return {key : var for key, var in list(globals().items()) if not
         (key.startswith("_") or isinstance(var, ModuleType) or isinstance(var, FunctionType))}
 
 def calculate(**params):
@@ -59,7 +59,7 @@ def calculate(**params):
     
     t = dolfin.Timer("meshing")
     geo = nanopores.geo_from_xml_threadsafe(geo_name, **params)
-    print "Mesh generation time:",t.stop()
+    print("Mesh generation time:",t.stop())
     
     #dolfin.plot(geo.submesh("solid"), interactive=True)
     phys = nanopores.Physics(phys_name, geo, **params)
@@ -69,7 +69,7 @@ def calculate(**params):
     if skip_stokes:
         pnps.solvers.pop("Stokes")
     pnps.solve()
-    print "Time to calculate F:",t.stop()
+    print("Time to calculate F:",t.stop())
     #pnps.visualize("fluid")
     
     (v, cp, cm, u, p) = pnps.solutions(deepcopy=True)
@@ -82,7 +82,7 @@ def calculate(**params):
     steadysurv = nanopores.LinearPDE(geo, nanopores.SurvivalProblem,
         phys, F=F, goodexit=goodexit, badexit=badexit)
     steadysurv.solve(verbose=False)
-    print "Time to solve SE problem:",t.stop()
+    print("Time to solve SE problem:",t.stop())
     #steadysurv.visualize("exittime")
     psteady = steadysurv.solution
     

@@ -16,7 +16,7 @@ geo_name = "W_2D_geo"
 geo_dict = import_vars("nanopores.%s.params_geo" %geo_name)
 physical_dict = import_vars("nanopores.physics.params_physical")
 default_dict = dict(geo_dict = geo_dict, physical_dict = physical_dict)
-print "Default parameters: \n", json.dumps(default_dict, indent=4, sort_keys=True)
+print("Default parameters: \n", json.dumps(default_dict, indent=4, sort_keys=True))
 nm = geo_dict["nm"]
 
 lsam = geo_dict["lsam"]
@@ -29,7 +29,7 @@ configs2b= [{"x0": None, "lsam": lsam, "r0": 11.5*nm -lsam,},
 
 configl = [geo_dict,]
 configl.extend(configs2b)
-defparams = dict((k, v) for d in configl for k, v in d.items())
+defparams = dict((k, v) for d in configl for k, v in list(d.items()))
 defparams.update({"name":geo_name, "R":250*nm, "bV":0.1,
                   "lowerblayer":True, "membraneblayer": False, })
 
@@ -58,12 +58,12 @@ module = "nanopores.%s.subdomains" %geo_name
 subd = import_module(module)
 t = Timer('Start')
 # for now only one one parameter is varying
-for (ps,pran) in vparams.items():
+for (ps,pran) in list(vparams.items()):
     ps_qoi = []
     aparams = defparams.copy()  # actual params for calculation
     for i in range(len(pran)):
-        print ("---\nLoop %s of %s \nparameter: %s = %r"
-               %(i+1,len(pran), ps,pran[i]))
+        print(("---\nLoop %s of %s \nparameter: %s = %r"
+               %(i+1,len(pran), ps,pran[i])))
         aparams.update({ps: pran[i]})
 
         pid = "e"
@@ -126,11 +126,11 @@ for (ps,pran) in vparams.items():
         rzvm = -Rz
         
         (vmeanp,vdiffp) = compvmean(rzvp, v, aparams["R"], 100)
-        print ("vmean @ %s" %rzvp), vmeanp, "    vdiff: ", vdiffp
+        print(("vmean @ %s" %rzvp), vmeanp, "    vdiff: ", vdiffp)
         (vmeanm,vdiffm) = compvmean(rzvm, v, aparams["R"], 100)
-        print ("vmean @ %s" %rzvm), vmeanm, "    vdiff: ", vdiffm
+        print(("vmean @ %s" %rzvm), vmeanm, "    vdiff: ", vdiffm)
         newbV = vmeanm - vmeanp
-        print "new biased Voltage @ %s :" %rzvm, newbV
+        print("new biased Voltage @ %s :" %rzvm, newbV)
         Rz_newbV.append([N, hmin, aparams["Rz"], newbV, rzvp])
             
     qoidict.update({"N_hmin_%s_%s" %(ps,qois) : ps_qoi})
@@ -141,12 +141,12 @@ t.stop()
 
 logdict.update(dict(
     vparams = vparams,
-    solvers = pnps.solvers.keys(),
+    solvers = list(pnps.solvers.keys()),
     geo_name = geo_name,
     comptime = t.value(),
     datetime = str(datetime.now()),
 ))
-print "total time: ", t.value()
+print("total time: ", t.value())
 
 
 '''
@@ -158,7 +158,7 @@ aparams1 = {"name":geo_name, "membraneblayer":False,
 }
 params1.update(aparams1)
 #print json.dumps(params1, indent=2, sort_keys=True)
-print "Rz: ", params1["Rz"]
+print("Rz: ", params1["Rz"])
 
 pid1 = "e1"
 mesh_dict1 = generate_mesh(0.5, geo_name, pid=pid1, **params1)
@@ -185,14 +185,14 @@ plot(von1, title="potential w electrodes")
 plot(v1, title="potential1 w bV %s" %newbV)
 f_vmeanp = Constant(vmeanp)
 diff = project(v1+f_vmeanp-von1, FunctionSpace(geo1.mesh, "CG",1))
-print "L2-norm of potential difference: ", norm(diff,"l2")
-print "H1-norm of potential difference: ", norm(diff,"h1")
-print "linf-norm of potential difference: ", norm(diff.vector(),"linf")
-print "new biased Voltage @ %s :" %rzvm, newbV
+print("L2-norm of potential difference: ", norm(diff,"l2"))
+print("H1-norm of potential difference: ", norm(diff,"h1"))
+print("linf-norm of potential difference: ", norm(diff.vector(),"linf"))
+print("new biased Voltage @ %s :" %rzvm, newbV)
 plot(diff, title="potential difference", interactive=True)
 
 logdict.update(dict(rzvm=rzvm, newbV=newbV))
-print json.dumps(logdict, indent=4, sort_keys=True)
+print(json.dumps(logdict, indent=4, sort_keys=True))
 
 logdict.update(_default = default_dict, _method=PNPProblem.method)
 logdir = os.path.join(DATADIR, geo_name, "log","")
@@ -202,8 +202,8 @@ if not os.path.exists(logdir):
     os.makedirs(logdir)
 with open(logdir + filestr, "w") as fobj:
     json.dump(logdict, fobj, indent=4, sort_keys = True, ensure_ascii=False)
-print "\n+++++\n\n", qoidict
-print "filestr = '%s'" %filestr
+print("\n+++++\n\n", qoidict)
+print("filestr = '%s'" %filestr)
 
 
 pnps.visualize("fluid")

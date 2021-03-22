@@ -4,6 +4,7 @@
 from collections import defaultdict
 from importlib import import_module
 import inspect
+import importlib
 
 __all__ = ["Physics"]
 
@@ -26,7 +27,7 @@ class Physics(object):
         else:
             name = "nanopores.physics."+name
             mod = import_module(name)
-        mod = reload(mod)
+        mod = importlib.reload(mod)
         #var = import_vars(name)
         vardic = vars(mod)
         var = {k: vardic[k] for k in vardic if not k.startswith("_")}
@@ -39,7 +40,7 @@ class Physics(object):
         self.base = defaultdict(lambda : None)
         self.functions = {}
         self.maps = {}
-        for k,v in var.items():
+        for k,v in list(var.items()):
             if typestr(v) is "function":
                 self.functions[k] = v
             elif typestr(v) is "dict":
@@ -73,13 +74,13 @@ class Physics(object):
             self.toadapt = self.base.pop("toadapt") if "toadapt" in self.base else []
 
     def precalculate(self, mod):
-        for fstr, f in self.functions.items():
+        for fstr, f in list(self.functions.items()):
             argnames = inspect.getargspec(f).args
             args = [self.base[k] for k in argnames]
             self.base[fstr] = f(*args)
             #setattr(mod, fstr, self.base[fstr])
 
-        for mstr, m in self.maps.items():
+        for mstr, m in list(self.maps.items()):
             for k in m:
                 if isinstance(m[k], str):
                     m[k] = self.base[m[k]]
@@ -153,7 +154,7 @@ class Physics(object):
         for dstr in ["base", "functions", "maps"]:
             d = getattr(self, dstr)
             output.append("%s (%d):" % (dstr, len(d)))
-            for item in d.items():
+            for item in list(d.items()):
                 output.append(s % item)
             output.append("")
         return "\n".join(output)

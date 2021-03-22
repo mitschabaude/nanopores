@@ -25,9 +25,9 @@ params = dict(
 @solvers.cache_forcefield("pugh_diff3D", {})
 def D_tensor(X, **params):
     x0 = X[0]
-    print
-    print
-    print "MOLECULE: ",x0
+    print()
+    print()
+    print("MOLECULE: ",x0)
     setup = pugh.Setup(x0=x0, **params)
     nano.plot_sliced(setup.geo)
     #dolfin.plot(setup.geo.subdomains, elevate=-45., key="subdomains")

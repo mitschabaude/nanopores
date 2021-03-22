@@ -6,34 +6,34 @@ __all__ = ["write_dict","read_dict"]
 
 def write_dict(data, filename):
     ''' write dict {key:array} in file '''
-    if not data.has_key("i"):
+    if "i" not in data:
         raise Exception("Data dict has no index column!")
     
     f = open(filename,"w")
     
     # write keys
     for key in data:
-        print >>f, key,
-    print >>f
+        print(key, end=' ', file=f)
+    print(file=f)
     
     # write array types
     for key in data:
-        print >>f, type(data[key][0]),
-    print >>f
+        print(type(data[key][0]), end=' ', file=f)
+    print(file=f)
     
     # write array lengths
     for key in data:
-        print >>f, data[key].shape[0],
-    print >>f
+        print(data[key].shape[0], end=' ', file=f)
+    print(file=f)
     
     # write actual data
     for i in data["i"]:
         for key in data:
             if data[key].shape[0] > i:
-                print >>f, data[key][i],
+                print(data[key][i], end=' ', file=f)
             else:
-                print >>f, "X",
-        print >>f
+                print("X", end=' ', file=f)
+        print(file=f)
     
     f.close()
     return filename
@@ -46,7 +46,7 @@ def read_dict(filename):
     length = [int(s) for s in f.next().strip().split(" ")]
     
     data = {k : zeros(l, dtype=d) for k, d, l in zip(key,dtype,length)}
-    cols = range(len(key))
+    cols = list(range(len(key)))
     index = key.index('i')
     N = length[index]
     

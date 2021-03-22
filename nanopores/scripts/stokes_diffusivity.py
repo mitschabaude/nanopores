@@ -25,8 +25,8 @@ if __name__ == "__main__":
 
     s0 = "%s\nD (measured): %s\nD (Stokes): %s"
     s1 = "r (measured): %s\nr (Stokes): %s\n"
-    for name, (r, D) in data.items():
+    for name, (r, D) in list(data.items()):
         Ds = Dstokes(r)
-        print s0 % (name, D, Ds)
+        print(s0 % (name, D, Ds))
         rs = rstokes(D)
-        print s1 % (r, rs)
+        print(s1 % (r, rs))

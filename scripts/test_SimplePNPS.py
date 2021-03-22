@@ -25,7 +25,7 @@ phys = Physics("pore", geo, **phys_params)
 
 plot(geo.subdomains)
 plot(geo.boundaries)
-print geo
+print(geo)
 
 if geo.parameter("x0") is None:
     exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
@@ -38,7 +38,7 @@ pnps.newtondamp = 1.
 pnps.maxcells = 5e4
 t = Timer("solve")
 pnps.solve(refinement=False)
-print "CPU time (solve): %s [s]" % (t.stop(),)
+print("CPU time (solve): %s [s]" % (t.stop(),))
 """
 tol = 1e-2
 damp = 1.

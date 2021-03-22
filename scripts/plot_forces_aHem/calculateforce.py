@@ -31,11 +31,11 @@ def calculateforce(clscale=10., subdomain=None):
 
     t = Timer("meshing")
     meshdict = generate_mesh(clscale, "aHem", **geo_params)
-    print "Mesh generation time:",t.stop()
+    print("Mesh generation time:",t.stop())
 
     t = Timer("reading geometry")
     geo = geo_from_xml("aHem")
-    print "Geo generation time:",t.stop()
+    print("Geo generation time:",t.stop())
 
     phys = Physics("pore_molecule", geo, **phys_params)
         
@@ -55,7 +55,7 @@ def calculateforce(clscale=10., subdomain=None):
     File("Fdrag.xml") << Fdrag
 
     for domain in ["pore", "poretop", "porecenter", "porebottom", "fluid_bulk_top", "fluid_bulk_bottom"]:
-        print "Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain))
+        print("Average F in %s:"%domain, assemble(F[2]*geo.dx(domain))/assemble(Constant(1.0)*geo.dx(domain)))
 
     return geo.mesh, v
     #VV = VectorFunctionSpace(geo.mesh, "CG", 1)

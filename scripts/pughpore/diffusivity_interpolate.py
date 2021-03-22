@@ -20,7 +20,7 @@ params = nanopores.user_params(
     Nmax = 1e5,
     r = 2.0779,
 )
-print "params", params
+print("params", params)
 
 if not f.exists("Dpugh", **params):
     # build 1D interpolations from data
@@ -140,14 +140,14 @@ pnps = pugh.simplepnps.PNPSFixedPointbV(geo, phys, ipicard=solverp.imax,
            stokesiter=dim3 and large, iterative=dim3,
            cyl=phys.cyl)
 
-print "Number of cells:", geo.mesh.num_cells()
+print("Number of cells:", geo.mesh.num_cells())
 for i in pnps.fixedpoint(ipnp=5):
     v, cp, cm, u, p = pnps.solutions()
     #plotter.plot(v, "potential")
     plotter.plot(cm, "cm")
 
 J = pnps.evaluate(phys.CurrentPNPS)["J"]
-print "open pore current:", J, "[A]"
+print("open pore current:", J, "[A]")
 
 plotter.plot(cp, title="cp")
 plotter.plot(cm, title="cm")

@@ -80,8 +80,8 @@ def calculate_forces(x0, pid="", clscale=10.0, refinement=True, maxcells=default
     meshfile = "/".join([DATADIR, geo_name, "mesh", "mesh%s.xml" %pid])
     geo = geo_from_name(geo_name, mesh=Mesh(meshfile), x0=x0, **params)
     phys = Physics("pore_molecule", geo, **phys_params)
-    print "CPU Time (mesh generation):",t.stop()
-    print "hmin:", geo.mesh.hmin()
+    print("CPU Time (mesh generation):",t.stop())
+    print("hmin:", geo.mesh.hmin())
     
     t = Timer('PB')
     goal = lambda v : phys.Fbare(v, 2) + phys.CurrentPB(v)
@@ -89,7 +89,7 @@ def calculate_forces(x0, pid="", clscale=10.0, refinement=True, maxcells=default
     pb.maxcells = maxcells
     pb.marking_fraction = 0.2
     pb.solve(refinement=refinement)
-    print "CPU Time (PB):",t.stop()
+    print("CPU Time (PB):",t.stop())
 
     t = Timer('PNPS')
     geo = pb.geo
@@ -99,13 +99,13 @@ def calculate_forces(x0, pid="", clscale=10.0, refinement=True, maxcells=default
     #pnps = PNPS(geo, phys)
     i = pnps.solve(visualize=False)
     while i==50:
-        print "\nRestarting Newton iteration!"
+        print("\nRestarting Newton iteration!")
         pnps.__init__(geo, phys)
         pnps.solvers["PNP"].newtondamp *= 0.8
         i = pnps.solve()
-    print "Newton iterations:",i
+    print("Newton iterations:",i)
 
-    print "CPU Time (PNPS):",t.stop()
+    print("CPU Time (PNPS):",t.stop())
     pnps.print_results()
     f = pnps.get_functionals()
     if any(math.isnan(f[s]) for s in f):
@@ -116,7 +116,7 @@ def calculate_forces(x0, pid="", clscale=10.0, refinement=True, maxcells=default
 def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default_maxcells2D):
     ''' calculate forces on molecule depending on midpoint '''
     nm = 1e-9 # by convention, nm == 1. in mesh generation script
-    x0 = map(lambda x:x*nm, x0)
+    x0 = [x*nm for x in x0]
     
     t = Timer("Mesh Generation")
     if new_mesh:
@@ -124,8 +124,8 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
     meshfile = "/".join([DATADIR, geo_name2D, "mesh", "mesh%s.xml" %pid])
     geo = geo_from_name(geo_name2D, mesh=Mesh(comm, meshfile), x0=x0, **params2D)
     phys = Physics("pore_molecule", geo, **phys_params)
-    print "CPU Time (mesh generation):",t.stop()
-    print "hmin:", geo.mesh.hmin()
+    print("CPU Time (mesh generation):",t.stop())
+    print("hmin:", geo.mesh.hmin())
     if refinement:
         t = Timer('PB')
         goal = lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)
@@ -133,7 +133,7 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
         pb.maxcells = maxcells
         pb.marking_fraction = 0.5
         pb.solve(refinement=refinement)
-        print "CPU Time (PB):",t.stop()
+        print("CPU Time (PB):",t.stop())
         t = Timer('PNPS')
         geo = pb.geo
         v0 = pb.solution
@@ -143,13 +143,13 @@ def calculate_forces2D(x0, pid="", clscale=.8, refinement=True, maxcells=default
         pnps = PNPSAxisym(geo, phys)
     i = pnps.solve(visualize=False)
     while i==50:
-        print "\nRestarting Newton iteration!"
+        print("\nRestarting Newton iteration!")
         pnps.__init__(geo, phys)
         pnps.solvers["PNP"].newtondamp *= 0.8
         i = pnps.solve()
-    print "Newton iterations:",i
+    print("Newton iterations:",i)
 
-    print "CPU Time (PNPS):",t.stop()
+    print("CPU Time (PNPS):",t.stop())
     pnps.print_results()
     #pnps.visualize()
     
@@ -203,10 +203,10 @@ if __name__ == "__main__":
     parser.add_argument('dim', default=3, type=int, help='Dimension')
     args, unknown = parser.parse_known_args()
     #print eval(args.x0), args.pid, args.clscale
-    print
-    print "dim =",args.dim
+    print()
+    print("dim =",args.dim)
     if args.dim==2:
-        print calculate_forces2D(eval(args.x0), args.pid, args.clscale)
+        print(calculate_forces2D(eval(args.x0), args.pid, args.clscale))
     elif args.dim==3:
-        print calculate_forces(eval(args.x0), args.pid, args.clscale)
+        print(calculate_forces(eval(args.x0), args.pid, args.clscale))
 

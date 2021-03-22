@@ -62,7 +62,7 @@ def plot_robustness(ax, fpdata, fplabels, fpcolors):
     
     myhandles = [plt.Rectangle((0, 0), 1, 1, fc=col) for col in fpcolors]
     #ax.legend([h[0] for h in handles.values()], handles.keys(),
-    ax.legend(myhandles, handles.keys(),
+    ax.legend(myhandles, list(handles.keys()),
         #bbox_to_anchor=(0.5, 1.05), loc="lower center", borderaxespad=0.,)
         bbox_to_anchor=(0., 1.5), loc="upper left", borderaxespad=0.,)
         #handler_map={mpatches.Circle:HandlerPatch(patch_func=make_legend_ellipse)})

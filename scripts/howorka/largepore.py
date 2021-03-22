@@ -102,15 +102,15 @@ if __name__ == "__main__":
     from dolfin import tic, toc
     tic()
     geo = solid.create_geometry(lc=2., merge=merge)
-    print "time:", toc()
-    print geo
+    print("time:", toc())
+    print(geo)
     
     #print dnaedgeb.indexset()
     solid.plot()    
 
     tic()
     geo = domain.create_geometry(lc=2., merge=merge)
-    print "time:", toc()
+    print("time:", toc())
     #domain.plot()
     #print geo
     

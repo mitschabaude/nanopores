@@ -13,6 +13,6 @@ import nanopores.tools.fields as fields
 fields.set_dir(DATADIR)
 fieldsname=sys.argv[1]
 if fields.exists(fieldsname):
-	a=raw_input('delete %s'%fieldsname+' ?')
+	a=input('delete %s'%fieldsname+' ?')
 	if a=='y' or a=='Y':
 		fields.remove(fieldsname)

@@ -155,8 +155,8 @@ def plot_evolution(params, color=None, label=None,
         plt.axvline(x=q99, linestyle=":", color=vlinecolor1, zorder=-100)
         plt.axvline(x=q50, linestyle="-", color=vlinecolor2, zorder=-100)
     
-    print "last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
-        t[-2]*1e-6, p[-2], errp[-2])
+    print("last time: %.5f ms\nend prob: %.3f\nstd. dev.: %.3f" % (
+        t[-2]*1e-6, p[-2], errp[-2]))
 
 def end_probability(params):
     data = get_results(NAME, params, calc=do_calculations)
@@ -201,7 +201,7 @@ if plot_rw_results:
     # FIGURE: Different binding durations
     plt.figure("bind_times", figsize=(4.5, 4))
     T = [0., 100., 10000.] #, 1000000.]
-    labels = ["No binding", "100ns", u"10µs"] #, "1ms"]
+    labels = ["No binding", "100ns", "10µs"] #, "1ms"]
     for i, t in enumerate(T):
         #label = r"$\tau = %g$ns" % t if t > 0 else "No binding"
         plot_evolution(Params(params, t_bind=t),
@@ -233,13 +233,13 @@ if plot_rw_results:
     plt.figure("surf_end_prob", figsize=(3, 4))
     V = [0.5, 1.0] #[1e-5, 0.25, 0.5, 1.0] # rho -0.3 + bV 1e-5, 0.1 doesnt converge
     Rho = [-0.2, -0.15, -0.1, -0.05, 0.0001, 0.025, 0.05, 0.1, 0.15, 0.2] # -0.3,
-    colors = dict(zip(V, ["C2", "C3"]))
+    colors = dict(list(zip(V, ["C2", "C3"])))
     for v in V:
         P = [end_probability(Params(params, bV=v, ahemqs=rho,
                                     ahemuniformqs=True)) for rho in Rho]
-        print "Exit probs at %dmV" % (v*1000)
-        print P
-        print
+        print("Exit probs at %dmV" % (v*1000))
+        print(P)
+        print()
         plt.plot(Rho, P, ":o", color=colors[v], label="%dmV" % (v*1000))
     plt.xlabel(r"Surface charge [C/m$^2$]")
     plt.legend(frameon=False)
@@ -374,7 +374,7 @@ if create_current_trace:
         plt.scatter([x[0]], [z[0]], c=startcolor, s=dotsize, label="Start")
         plt.plot([-rzstop, rzstop], [zstop, zstop], c=stopcolor,
                  label="Recognition site", linestyle="-", zorder=-50)
-        print "Start", x[0], z[0]
+        print("Start", x[0], z[0])
         ax = plt.gca()
         ax.set_axis_off() # <=> plt.axis("off")
         ax.get_xaxis().set_visible(False) # so that white space disappears!

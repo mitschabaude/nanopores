@@ -41,7 +41,7 @@ def friction(setup, visualize=False):
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
                             phys=phys, iterative=iterative, bcs=bcs)
     F = stokes.evaluate(phys.Fdrag)["Fdrag"]
-    print F
+    print(F)
     if visualize:
         stokes.visualize("fluid")
     gamma = abs(F[dim-1]/v0)
@@ -56,14 +56,14 @@ def diffusivity(setup, visualize=False):
 
     gamma = friction(setup, visualize=visualize)
     gamma0 = 6.*pi*eta*r*1e-9
-    print "gamma (simulation):", gamma
-    print "gamma (stokes law):", gamma0
-    print
+    print("gamma (simulation):", gamma)
+    print("gamma (stokes law):", gamma0)
+    print()
     D = kT/gamma
     D0 = kT/gamma0
-    print "D (simulation):", D
-    print "D (stokes law):", D0
-    print "Reducing factor due to confinement:", D/D0
+    print("D (simulation):", D)
+    print("D (stokes law):", D0)
+    print("Reducing factor due to confinement:", D/D0)
     return D/D0
 
 def friction_tensor(setup):
@@ -113,14 +113,14 @@ def diffusivity_tensor(setup):
     gamma = friction_tensor(setup)
 
     gamma0 = 6.*pi*eta*r*1e-9
-    print "gamma (simulation):\n", gamma
-    print "gamma (stokes law):", gamma0
-    print
+    print("gamma (simulation):\n", gamma)
+    print("gamma (stokes law):", gamma0)
+    print()
     D = kT*np.linalg.inv(gamma)
     D0 = kT/gamma0
-    print "D (simulation):\n", D
-    print "D (stokes law):", D0
-    print "Reducing factor due to confinement:\n", D/D0
+    print("D (simulation):\n", D)
+    print("D (stokes law):", D0)
+    print("Reducing factor due to confinement:\n", D/D0)
     return D/D0
 
 if __name__ == "__main__":

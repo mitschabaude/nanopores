@@ -1,15 +1,16 @@
 import numpy
-from params_geo import *
+from .params_geo import *
 import nanopores.py4gmsh.basic
 import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
+import importlib
 
 def get_geo(**params):
     """
     writes a 2d geo file for an axisymmetric geometry for particle in cylinder
     """
-    basic = reload(nanopores.py4gmsh.basic)
-    extra = reload(nanopores.py4gmsh.extra)
+    basic = importlib.reload(nanopores.py4gmsh.basic)
+    extra = importlib.reload(nanopores.py4gmsh.extra)
     globals().update(params)
     
     lcMolecule = r/10
@@ -66,5 +67,5 @@ def get_geo(**params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
+    print((get_geo()))
     print('\n - This is the sample code for the geo file')

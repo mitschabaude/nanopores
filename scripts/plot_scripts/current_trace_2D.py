@@ -34,7 +34,7 @@ ndigits = 9+4
 
 for z in drange(Ry_, -Ry_, -1*nm):
     z = round(z, ndigits)
-    print "\nz = ",z,"\n"
+    print("\nz = ",z,"\n")
     Z.append(z*1e9)
     x0 = [0, 0, z]
     meshgen_dict = generate_mesh(0.5, geo_name, x0 = x0, **params)

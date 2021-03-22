@@ -14,7 +14,7 @@ def random_dopant_positions(N, **params):
     ll = params["l"]
     T = lambda x : [x[0]*(w_core - 2*rr) + x_core + rr, x[1]*(ll - 2*rr) + rr,
                     x[2]*(h_core - 2*rr) + z_core + rr]
-    return map(T, x)
+    return list(map(T, x))
 
 N = 5 # number of impurity atoms in pore
 l = 10 # length of wire [nm]
@@ -32,8 +32,8 @@ geo_params = dict(l = l*1e-9, r_eff = r_eff*1e-9, lc = 10e-9)
 generate_mesh(clscale, geo_name, **geo_params)  # constructs the mesh
 mesh = get_mesh(geo_name)
 
-print "CPU Time (mesh generation):",t.stop()
-print "Number of cells:",mesh.num_cells()
+print("CPU Time (mesh generation):",t.stop())
+print("Number of cells:",mesh.num_cells())
 
 PB.adapt = PB.rebuild
 PB.maxcells = 5000000
@@ -44,7 +44,7 @@ PB.tolnewton = 1e-5
 u0 = Function(PBProblem.space(mesh))
     
 for k in range(Nsamples):
-    print "\n --- Sample %d of %d" %(k+1, Nsamples)
+    print("\n --- Sample %d of %d" %(k+1, Nsamples))
     
     # xi = list of dopant positions
     xi = random_dopant_positions(N, **geo_params)
@@ -55,7 +55,7 @@ for k in range(Nsamples):
     #pde = Poisson(geo, bV=-0.0, f=rho)
     
     pde.solve(refinement = False)
-    print "CPU Time (solving):",t.stop()
+    print("CPU Time (solving):",t.stop())
     
     (u,) = pde.solutions()
     u0.vector()[:] = u0.vector()[:] + u.vector()[:]/Nsamples
@@ -81,7 +81,7 @@ Jn = qq*mun*n*E
 j0 = Jp + Jn
 
 I = assemble(j0*dx)/l
-print "current: ", I
+print("current: ", I)
 
 #j1 = Constant(qq*E*ni/l)*(mup*exp(-(u0 - phiF)/UT) + mun*exp((u0 - phiF)/UT))
 #I1 = assemble(j1*dx)

@@ -1,5 +1,5 @@
 from nanopores import *
-from checksolve import check_solve
+from .checksolve import check_solve
 
 name3D = "H_cyl_geo"
 x0 = [0.0, 0.0, 0.0]

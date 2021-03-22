@@ -86,13 +86,13 @@ for i in range(k+1): # additional points
     X_points = np.append(X_points,XY[0])
     Y_points = np.append(Y_points,XY[1])
 
-for i in list(reversed(range(X_points.shape[0]))): # cut off other triangle
+for i in list(reversed(list(range(X_points.shape[0])))): # cut off other triangle
     if Y_points[i]>X_points[i]:
         X_points = np.delete(X_points,i)
         Y_points = np.delete(Y_points,i)
 
-print '# points in plane = %d\n# z-values =%d\n# totals points= %d'%(
-    X_points.shape[0],z.shape[0],X_points.shape[0]*z.shape[0])
+print('# points in plane = %d\n# z-values =%d\n# totals points= %d'%(
+    X_points.shape[0],z.shape[0],X_points.shape[0]*z.shape[0]))
 
 X, Y, Z = np.array([]), np.array([]), np.array([]) # concatenate all arrays
 for j in range(z.shape[0]):

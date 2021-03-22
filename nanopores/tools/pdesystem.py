@@ -30,14 +30,14 @@ class PDESystem(object):
     def solve(self, refinement=False, verbose=True, inside_loop=_pass):
 
         if verbose:
-            print "Number of cells:",self.geo.mesh.num_cells()
+            print("Number of cells:",self.geo.mesh.num_cells())
         if self.geo.mesh.num_cells() > self.maxcells:
             refinement = False
 
         for i in range(self.imax):
             if verbose:
-                print '\n- Loop ' +str(i+1) + ' of max.', self.imax
-                print "  Degrees of freedom: %d" % (sum(u.function_space().dim() for u in self.solutions()),)
+                print('\n- Loop ' +str(i+1) + ' of max.', self.imax)
+                print("  Degrees of freedom: %d" % (sum(u.function_space().dim() for u in self.solutions()),))
 
             self.single_solve() #inside_loop=inside_loop)
             if verbose:
@@ -50,22 +50,22 @@ class PDESystem(object):
                 (ind,err) = self.estimate()
                 self.save_estimate("est", err)
                 if verbose:
-                    print "Error estimate (H1):",err
+                    print("Error estimate (H1):",err)
                 refined = self.refine(ind)
                 if not refined:
                     if verbose:
-                        print 'Maximal number of cells reached',  \
-                               ' \n  ==> no more refinement \n'
+                        print('Maximal number of cells reached',  \
+                               ' \n  ==> no more refinement \n')
                     break
                 elif verbose:
-                    print "New total number of cells:",self.geo.mesh.num_cells()
+                    print("New total number of cells:",self.geo.mesh.num_cells())
             else:
                 break
 
     def save_estimate(self, string, err, N=None):
         if not hasattr(self, "estimators"):
             self.estimators = {}
-        if not self.estimators.has_key(string):
+        if string not in self.estimators:
             self.estimators[string] = Estimator(string)
         if N is None:
             N = self.geo.mesh.num_cells()
@@ -88,7 +88,7 @@ class PDESystem(object):
     estimate = estimate_zz #uniform
 
     def single_solve(self, **other):
-        for S in self.solvers.values(): S.solve()
+        for S in list(self.solvers.values()): S.solve()
 
     def refine(self, ind):
         mesh0 = self.geo.mesh
@@ -138,7 +138,7 @@ class PDESystem(object):
     def adapt(self, mesh):
         self.geo.adapt(mesh)
         
-        for name, S in self.solvers.items():
+        for name, S in list(self.solvers.items()):
             #print "Adapting %s." % name
             S.adapt(mesh)
 
@@ -146,10 +146,10 @@ class PDESystem(object):
         #    S.adapt(mesh)
 
         functions = tuple(self.functions.values())
-        for S in self.solvers.values():
+        for S in list(self.solvers.values()):
             S.replace(functions,functions)
 
-        for J in self.functionals.values():
+        for J in list(self.functionals.values()):
             if isinstance(J,list):
                 for j in J:
                     j.adapt(mesh)
@@ -165,7 +165,7 @@ class PDESystem(object):
         self.geo.rebuild(mesh)
         self.__init__(self.geo)
 
-        for Jstr,J in self.functionals.items():
+        for Jstr,J in list(self.functionals.items()):
             J.values = functionals[Jstr].values
 
     def visualize(self, subdomain=None):
@@ -191,7 +191,7 @@ class PDESystem(object):
         U = self.solutions()
         geo = self.geo
         for f in functionals:
-            self.functionals.update({key: Functional(F) for key, F in f(U, geo).items()})
+            self.functionals.update({key: Functional(F) for key, F in list(f(U, geo).items())})
 
     def print_functionals(self):
         Jdir = self.functionals
@@ -199,9 +199,9 @@ class PDESystem(object):
             J = Jdir[Jstr]
             if isinstance(J,list):
                 for ii in range(len(J)):
-                    print ("%s[%i]: " %(Jstr,ii)) + str(J[ii].evaluate())
+                    print(("%s[%i]: " %(Jstr,ii)) + str(J[ii].evaluate()))
             else:
-                print ("%s: " %Jstr) + str(J.evaluate())
+                print(("%s: " %Jstr) + str(J.evaluate()))
 
     def get_functional(self, Jstr):
         return self.functionals[Jstr].evaluate()
@@ -266,16 +266,16 @@ def newtonsolve(S, tol=1e-4, damp=1., imax=10, verbose=True, inside_loop=_pass):
         #plot(self.solution) # for debugging
         inside_loop()
         if verbose:
-            print '     Relative L2 Newton error:',S.relerror()
+            print('     Relative L2 Newton error:',S.relerror())
         if S.convergence(tol):
             if verbose:
-                print "     Break loop because tolerance %s was reached." %tol
+                print("     Break loop because tolerance %s was reached." %tol)
             converged = True
             break
     else:
-        if verbose: print "     Did not reach tolerance %s." %tol
+        if verbose: print("     Did not reach tolerance %s." %tol)
         converged = False
-    print "     Newton iterations:",i+1
+    print("     Newton iterations:",i+1)
         #print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
@@ -313,7 +313,7 @@ class NonlinearPDE(PDESystem):
         if not tol: tol = self.tolnewton
         if not damp: damp = self.newtondamp
         if not imax: imax = self.imax
-        S = self.solvers.values()[0]
+        S = list(self.solvers.values())[0]
         return newtonsolve(S, tol, damp, imax, verbose, lambda: inside_loop(self))
         
       
@@ -335,7 +335,7 @@ def solve_pde(Problem, geo=None, phys=None, refinement=False, imax = 20, maxcell
     t = Timer("solve")
     pde.solve(refinement=refinement, inside_loop=inside_loop)
     #pde.single_solve(inside_loop=inside_loop)
-    print "CPU time (solve): %s [s]" % (t.stop(),)
+    print("CPU time (solve): %s [s]" % (t.stop(),))
     
     if visualize:
         pde.visualize()
@@ -376,7 +376,7 @@ def solve_problem(problem, geo, imax = 20, maxcells=1e4,
         
     t = Timer("solve")
     pde.solve(**solve_params)
-    print "CPU time (solve): %s [s]" % (t.stop(),)
+    print("CPU time (solve): %s [s]" % (t.stop(),))
     
     if visualize:
         pde.visualize()

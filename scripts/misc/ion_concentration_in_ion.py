@@ -64,4 +64,4 @@ def number(ion="K+", phi=-0.1, c0=0.15):
 def net_charge(phi=-0.1, c0=0.15):
     return number("K+", phi, c0) - number("Cl-", phi, c0)
 
-print "charge [c] in one ion in 1M KCl at -50mV:", net_charge(-0.05, 1)
+print("charge [c] in one ion in 1M KCl at -50mV:", net_charge(-0.05, 1))

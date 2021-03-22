@@ -6,8 +6,9 @@ import numpy
 import nanopores.py4gmsh.basic
 import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
-from params_geo import *
+from .params_geo import *
 from warnings import warn
+import importlib
 
 def get_geo(x0 = None, **params):
     """
@@ -24,8 +25,8 @@ def get_geo(x0 = None, **params):
 
     """
 
-    reload(nanopores.py4gmsh.basic)
-    reload(nanopores.py4gmsh.extra)
+    importlib.reload(nanopores.py4gmsh.basic)
+    importlib.reload(nanopores.py4gmsh.extra)
     globals().update(params)
 
     # define additional geo variables
@@ -109,8 +110,8 @@ def get_geo(x0 = None, **params):
     insert_ind = 0
 
     Comment(' integrate crosssectional lines in fluid surface ')
-    z_CrossS = [X_Fluid_ctr[k][2] for k in reversed(range(len(X_Fluid_ctr)))]
-    e_CrossS = [Line(p_Fluid_ctr[k], p_SAM[len(p_SAM)-1-k]) for k in reversed(range(len(p_Fluid_ctr)))]
+    z_CrossS = [X_Fluid_ctr[k][2] for k in reversed(list(range(len(X_Fluid_ctr))))]
+    e_CrossS = [Line(p_Fluid_ctr[k], p_SAM[len(p_SAM)-1-k]) for k in reversed(list(range(len(p_Fluid_ctr))))]
 
     if x0 is not None and (x0[0]**2 + x0[1]**2 <= r1**2):
         geo_cs_list = ["top", "center top", "center bottom", "bottom"]
@@ -248,5 +249,5 @@ def get_geo(x0 = None, **params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
+    print((get_geo()))
     print('\n - This is the sample code for the geo file')

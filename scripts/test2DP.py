@@ -9,7 +9,7 @@ clscale = 1.
 meshgen_dict = generate_mesh(clscale, geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore_dna", geo, **phys_params)
-print phys.charge
+print(phys.charge)
 
 PNPSAxisym.newtondamp=1
 PNPSAxisym.imax=20
@@ -37,7 +37,7 @@ pnps.solve(refinement=False, print_functionals=True)
 #pnps.print_results()
 
 (v,cp,cm,u,p) = pnps.solutions(deepcopy=True)
-print "phys.Fbare [pN]:",1e12*assemble(phys.Fbare(v, 1))
+print("phys.Fbare [pN]:",1e12*assemble(phys.Fbare(v, 1)))
 pnps.visualize("fluid")
 
 adddict = dict(
@@ -47,15 +47,15 @@ adddict = dict(
 )
 qoi = [adddict["N"], adddict["hmin"], pnps.get_functionals()["Feff"]]
 
-print phys_params
-print qoi
+print(phys_params)
+print(qoi)
 #interactive()
 
 l0 = 50*nm
 r0 = 3*nm
 I = pnps.get_functionals()["Javgctr"]
 V = v([r0, -l0]) - v([r0, l0])
-print "I (current through pore center):",I,"[pA]"
-print "V (transmembrane potential):",V,"[V]"
-print "conductance I/V:",I/V,"[pS]"
-print
+print("I (current through pore center):",I,"[pA]")
+print("V (transmembrane potential):",V,"[V]")
+print("conductance I/V:",I/V,"[pS]")
+print()

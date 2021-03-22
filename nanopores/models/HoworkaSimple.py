@@ -95,7 +95,7 @@ def solve2D_fixedpoint_bVscheme(geo, phys, bVstep=0.025, **params):
         dolfin.plot(pnps.functions["poisson"], key="vfv")
         #dolfin.plot(pnps.functions["stokes"].sub(0), key="ufv")
         v = pnps.functions["poisson"]
-        print "v0 =", v([0., -10.])
+        print("v0 =", v([0., -10.]))
     return pnps.converged
     
 def solve2D_hybrid_PB(geo, phys, **params):

@@ -166,8 +166,8 @@ class Domain(object):
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
-            print "ERROR: x0 is in domain despite having been excluded before."
-            print "x0", x0, "x1", x1
+            print("ERROR: x0 is in domain despite having been excluded before.")
+            print("x0", x0, "x1", x1)
             #raise Exception
         if np.sum((x0 - x1)**2) < self.minsize**2:
             return x0
@@ -360,7 +360,7 @@ class RandomWalk(object):
                 return f(x)
             except RuntimeError:
                 if not self.was_ood:
-                    print "\nFirst particle out of domain:", x
+                    print("\nFirst particle out of domain:", x)
                     self.was_ood = True
                 return np.zeros(dim)
         return newf
@@ -543,16 +543,16 @@ class RandomWalk(object):
         self.times = self.walk_times + self.bind_times
 
     def finalize(self):
-        print "finished!"
-        print "mean # of attempts:", self.attempts.mean()
+        print("finished!")
+        print("mean # of attempts:", self.attempts.mean())
         tdwell = self.times.mean()
         tbind = self.bind_times.mean()
         ta = self.attempt_times.mean()
-        print "mean attempt time: %s ns (fraction of total time: %s)" % (
-                ta, ta/tdwell)
-        print "mean # of bindings:", self.bindings.mean()
-        print "mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell))
-        print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
+        print("mean attempt time: %s ns (fraction of total time: %s)" % (
+                ta, ta/tdwell))
+        print("mean # of bindings:", self.bindings.mean())
+        print("mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell)))
+        print("mean dwell time without binding: %.3f mus" % (1e-3*tdwell))
         self.walk_times = np.copy(self.times)
         self.times += self.bind_times
         
@@ -580,9 +580,9 @@ class RandomWalk(object):
             #print "ta", ta
             #print "Vbind", Vbind
             #print "kbind", kbind
-            print "nbind: %.3f (bindings per event)" % nbind
-            print "ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
-                    keff, ka, frac)
+            print("nbind: %.3f (bindings per event)" % nbind)
+            print("ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
+                    keff, ka, frac))
         
         if self.record_positions:
             for i in range(self.N):
@@ -727,7 +727,7 @@ def _load(a):
 def load_results(name, **params):
     data = fields.get_fields(name, **params) 
     data = nanopores.Params({k: _load(data[k]) for k in data})
-    print "Found %d simulated events." % len(data.times)
+    print("Found %d simulated events." % len(data.times))
     return data
 
 def get_results(name, params, setup=setup_default, calc=True):
@@ -877,9 +877,9 @@ def hist_poisson(rw, name="attempts", ran=None, n=10, pfit=True, mpfit=True, lin
     K = len(attempts)
     a0 = attempts[attempts >= 1].mean()
     a1 = poisson_from_positiveK(a0)
-    print "Mod. Poisson fit, mean of K>0:", a0
-    print "Inferred total mean:", a1
-    print "Standard Poisson fit, mean:", a
+    print("Mod. Poisson fit, mean of K>0:", a0)
+    print("Inferred total mean:", a1)
+    print("Standard Poisson fit, mean:", a)
     p1 = a/a1
     K1 = len(attempts[attempts > 0])/(1.-np.exp(-a1))
     
@@ -910,15 +910,15 @@ def hist_poisson(rw, name="attempts", ran=None, n=10, pfit=True, mpfit=True, lin
 def solve_newton(C, f, f1, x0=1., n=20):
     "solve f(x) == C"
     x = x0 # initial value
-    print "Newton iteration:"
+    print("Newton iteration:")
     for i in range(n):
         dx = -(f(x) - C)/f1(x)
         x = x + dx
         res = abs(f(x) - C)
-        print i, "Residual", res, "Value", x
+        print(i, "Residual", res, "Value", x)
         if res < 1e-12:
             break
-    print
+    print()
     return x
 
 def poisson_from_positiveK(mean):

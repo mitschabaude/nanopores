@@ -27,5 +27,5 @@ X = [[0.,0.,t] for t in ran]
 
 result = pugh.F_explicit(X, name="pugh_test", **params)
 
-print result
-print result["J"]
+print(result)
+print(result["J"])

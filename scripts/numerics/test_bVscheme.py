@@ -15,8 +15,8 @@ converged2 = H.solve2D_fixedpoint_bVscheme(geo, phys, imax=40, bVstep=bVstep, to
 converged1 = H.solve2D_hybrid(geo, phys, imax=10, tol=tol)
 converged3 = H.solve2D_hybrid_PB(geo, phys, imax=10, tol=tol)
 
-print
-print "fixed point converged:", converged0
-print "hybrid converged:", converged1
-print "fixed point with bV damping converged:", converged2
-print "hybrid with PB initial guess converged:", converged3
+print()
+print("fixed point converged:", converged0)
+print("hybrid converged:", converged1)
+print("fixed point with bV damping converged:", converged2)
+print("hybrid with PB initial guess converged:", converged3)

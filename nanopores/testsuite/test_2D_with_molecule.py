@@ -1,5 +1,5 @@
 from nanopores import *
-from checksolve import check_solve
+from .checksolve import check_solve
 
 geo_name = "H_geo"
 x0 = [0.0, 0.0, 0.0e-9]

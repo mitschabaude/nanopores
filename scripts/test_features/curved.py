@@ -30,7 +30,7 @@ geo = domain.create_geometry(lc=h)
 volC = hcross*R**2*pi
 areC = R**2*pi
 areCh = assemble(Constant(1.)*geo.dS("cross"))
-print "Area (approx):", areCh
+print("Area (approx):", areCh)
 
 # define cylinder
 cyl = Cylinder(R=R, L=2.*Rz)
@@ -61,7 +61,7 @@ for i in range(num_refinements):
         mesh.snap_boundary(cyl, False)
     """
     areCh = assemble(Constant(1.)*geo.dS("cross"))
-    print "Area (approx):", areCh
+    print("Area (approx):", areCh)
     #print "Error A:", abs(areCh - areC)
     
     # Plot mesh

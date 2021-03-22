@@ -52,7 +52,7 @@ PNPSAxisym.tolnewton = 1e-2
 
 pb = adaptive_pb(geo, phys, cyl=True, frac=.5, Nmax=Nmax, Fpbref=ref, cheapest=cheapest)
 
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 #print phys
 plot(geo.boundaries)
 #pb.visualize()

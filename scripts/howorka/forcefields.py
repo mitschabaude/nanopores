@@ -8,7 +8,7 @@ import dolfin
 import nanopores
 from nanopores.models import Howorka
 from nanopores.tools import fields
-import forcefield2D
+from . import forcefield2D
 
 # these params at least should be given to the force field computation
 default = dict(
@@ -50,9 +50,9 @@ def forcefieldS1_implicit(overwrite=False, **params):
 def forcefieldS1_explicit(overwrite=False, **params):
     # maybe interpolate and save force field
     if not overwrite and fields.exists(NAME, **params):
-        print "Existing force field interpolation found."
+        print("Existing force field interpolation found.")
     else:
-        print "Interpolating 3D force field."
+        print("Interpolating 3D force field.")
         interpolate_forcefieldS1_explicit(**params)
     
     # load force field
@@ -141,7 +141,7 @@ def data_to_S1(x, y, mesh, **values):
     #mesh = nanopores.RectangleMesh([0, -Ry], [Rx, Ry], Nx, Ny)
     
     functions = []
-    for F in values.values():    
+    for F in list(values.values()):    
         Fi = [None]*2
         for i in (0,1):
             intp = trid.nn_interpolator(F[:,i])
@@ -173,7 +173,7 @@ def lambda_to_S1(f, mesh, dim=1):
     return f1
     
 if __name__ == "__main__":
-    from plot_forcefield import porestreamlines, plt
+    from .plot_forcefield import porestreamlines, plt
     F = forcefieldS1(implicit=False, **default)
     Fimp = forcefieldS1(implicit=True, **default)
     porestreamlines(Howorka.polygon(), 6., 8., F=F) #, Fimp=Fimp)

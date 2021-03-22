@@ -35,9 +35,9 @@ Dt = Cp(x)
 def matrix(d):
     return [[d[0], 0., 0.], [0., d[1], 0.], [0., 0., d[2]]]
 
-data = dict(x=list(x), D=map(matrix, zip(Dn, Dt, Dt)))
+data = dict(x=list(x), D=list(map(matrix, list(zip(Dn, Dt, Dt)))))
 if not fields.exists("pugh_diff_bulk", rMolecule=r):
-    print "SAVING..."
+    print("SAVING...")
     fields.save_fields("pugh_diff_bulk", dict(rMolecule=r), **data)
     fields.update()
 

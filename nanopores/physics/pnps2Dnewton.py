@@ -209,19 +209,19 @@ class PNPSAxisymNewton(PNPS):
 
     def solve(self, refinement=False, visualize=False, save_mesh=False, print_functionals=False):
         if refinement and self.geo.mesh.num_cells() > self.maxcells:
-            print 'Initial mesh has more than maximal number of cells',  \
-                           ' \n  ==> no refinement \n'
+            print('Initial mesh has more than maximal number of cells',  \
+                           ' \n  ==> no refinement \n')
             refinement = False
         tt = 0
 
         for i in range(self.imax):
-            print '\n- Loop ' +str(i+1) + ' of max.', self.imax
+            print('\n- Loop ' +str(i+1) + ' of max.', self.imax)
             timer = Timer('Solving step '+str(i+1))
 
             if refinement:
                 newton_iter = self.newton_solve()
                 tt0 = timer.stop()
-                print "Newton iterations:", newton_iter
+                print("Newton iterations:", newton_iter)
 
             else:
                 self.single_solve()
@@ -233,13 +233,13 @@ class PNPSAxisymNewton(PNPS):
                 self.save_estimate("newton_cputime", nerror, N=tt)
                 #self.save_estimate("newton", norm(self.solvers["PNPS"].problem.u, "H10"), N=i)
                 if self.solvers["PNPS"].convergence(self.tolnewton):
-                    print 'linf Norm of Newton update:', \
+                    print('linf Norm of Newton update:', \
                         norm(self.solvers["PNPS"].problem.u.vector(),'linf'), \
-                        '<=', self.tolnewton ,' \n  ==> break loop \n'
+                        '<=', self.tolnewton ,' \n  ==> break loop \n')
                     break
 
-            print 'Relative H1 Newton error:',\
-                            self.solvers["PNPS"].relerror()
+            print('Relative H1 Newton error:',\
+                            self.solvers["PNPS"].relerror())
 
             #plot(sqrt(ind), title="sqrt(ind) "+str(i+1))
             #interactive()
@@ -256,17 +256,17 @@ class PNPSAxisymNewton(PNPS):
 
             if refinement:
                 (ind,err) = self.estimate()
-                print "Relative error estimate (H1):",err
+                print("Relative error estimate (H1):",err)
                 self.save_estimate("h1", err)
                 refined = self.refine(ind)
                 if not refined:
                     tt0 = timer.stop()
-                    print "Loop timing:", tt0
-                    print 'Maximal number of cells reached',  \
-                           ' \n  ==> no more refinement \n'
+                    print("Loop timing:", tt0)
+                    print('Maximal number of cells reached',  \
+                           ' \n  ==> no more refinement \n')
                     break
 
-            print "Loop timing:",timer.stop()
+            print("Loop timing:",timer.stop())
         end
 
 
@@ -288,7 +288,7 @@ class PNPSAxisymNewton(PNPS):
         Jdir = self.functionals
         for Jstr in sorted(self.functionals):
             J = Jdir[Jstr]
-            print ("%s: " %Jstr) + str(J.evaluate())
+            print(("%s: " %Jstr) + str(J.evaluate()))
 
     def print_results(self, names=None):
         if not names:

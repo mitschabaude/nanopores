@@ -47,7 +47,7 @@ physb = dict(circle = (1,))
 physd = dict(domain = (0,))
 geo = Geometry(mesh=submesh, boundaries=boundaries,
     subdomains=subdomains, physical_domain=physd, physical_boundary=physb)
-print geo
+print(geo)
 
 # Refine mesh
 for i in range(4):

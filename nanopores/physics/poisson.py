@@ -125,6 +125,6 @@ class Poisson(LinearPDE):
     def __init__(self, geo, **params):
         LinearPDE.__init__(self, geo, PoissonProblem, **params)
     def estimate(self):
-        return poisson_indicator(self.geo, self.functions.values()[0])
+        return poisson_indicator(self.geo, list(self.functions.values())[0])
 
 

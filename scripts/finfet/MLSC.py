@@ -29,20 +29,20 @@ def solve(geo, dops):
     pde.solve()
     t.stop()
     u = pde.solution
-    print "Loop time: %s s" %(toc(),)
+    print("Loop time: %s s" %(toc(),))
     return u
     
 def interpolate(h, order):
-    print "\nMeshing."
+    print("\nMeshing.")
     geo = finfet.create_geometry(lc=h)
-    print "Number of elements:", geo.mesh.num_cells()
-    print "Number of vertices:", geo.mesh.num_vertices()
+    print("Number of elements:", geo.mesh.num_cells())
+    print("Number of vertices:", geo.mesh.num_vertices())
     dopants_, weights = dopants(Ndop, order)
     Nsamples = len(dopants_)
     V = FunctionSpace(geo.mesh, "CG", 1)
     Iluh = Function(V)
     for i, (dops, weight) in enumerate(zip(dopants_, weights)):
-        print "\nSample %d of %d:\nDopants:\n" %(i+1, Nsamples), dops, "\n"
+        print("\nSample %d of %d:\nDopants:\n" %(i+1, Nsamples), dops, "\n")
         geo = finfet.recreate_geometry()
         u = solve(geo, dops)
         Iluh.vector()[:] += weight * u.vector()[:]
@@ -67,12 +67,12 @@ def hplot(name, h, err, xlab="", ylab="", hstr="h", rate=None, fit=True, fig=Tru
     legend(loc='best')
 
 # --- create interpolation for different h and orders ---
-orders = range(1, maxorder+1)
+orders = list(range(1, maxorder+1))
 samples = []
 interpolands = []
 
 for order in orders:
-    print "\n-- order = %s --" %order
+    print("\n-- order = %s --" %order)
     u, N = interpolate(h=h, order=order)
     samples.append(N)
     interpolands.append(u)

@@ -32,8 +32,8 @@ for amV in bmV:
     I.append(I_sol)  # [pA]
     # print I_guess, I_sol
 
-print "\nbmV = ", bmV
-print "I = ", I
+print("\nbmV = ", bmV)
+print("I = ", I)
 
 ### SIMULATION
 
@@ -84,7 +84,7 @@ else:
     # regroup
     Isim0 = Isim
     nx = len(bVsim)
-    ny = range(int(float(len(Isim0))/nx))
+    ny = list(range(int(float(len(Isim0))/nx)))
     Isim0p = [Isim0[slice(i*nx,(i+1)*nx)] for i in ny]
 
     plt.figure()
@@ -110,4 +110,4 @@ plt.legend(loc=0,)
 plt.grid('on')
 plt.show()
 
-print "\nTotal Time: ", dolfin.toc()
+print("\nTotal Time: ", dolfin.toc())

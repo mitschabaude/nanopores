@@ -1,9 +1,9 @@
 import sys
 if len(sys.argv)!=4:
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 if not (sys.argv[1]=='type' or sys.argv[1]=='traj' or sys.argv[1]=='both' or sys.argv[1]=='None'):
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 else:
     outcome=sys.argv[1]
@@ -11,13 +11,13 @@ try:
     samples=int(sys.argv[2])
     num = sys.argv[2]
 except:
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 fieldsname = sys.argv[3]
 if samples!=0:
     from run import *
     if fields.exists(fieldsname):
-        enter = raw_input("%s already exists! Continue? [y/n]}\n"%fieldsname)
+        enter = input("%s already exists! Continue? [y/n]}\n"%fieldsname)
         if enter != 'y':
             exit()
 else:
@@ -57,13 +57,13 @@ outside=True
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside,b1,b2)
-	print '%i out of '%i+num 
+	print('%i out of '%i+num) 
 try: fields.get_fields(fieldsname,**params)["b1"]
 except: fields.save_fields(fieldsname,params,b1=b1)
 try: fields.get_fields(fieldsname,**params)["b2"]
 except: fields.save_fields(fieldsname,params,b2=b2)
 
-print 'field updates'
+print('field updates')
 if outcome=='type' or outcome=='both':
     from create_plot_type import *
     f.update()

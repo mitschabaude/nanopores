@@ -3,6 +3,7 @@ from .params_geo import *
 import nanopores.py4gmsh.basic
 import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
+import importlib
 
 def polygonchain(*sequence):
     # creates polygon chain from sequence of direction vectors
@@ -46,8 +47,8 @@ def get_geo(**params):
     #INPUT: xi should be a list of 3-vectors of coordinates of
     #centers of balls to be placed inside silicon core.
     """
-    reload(nanopores.py4gmsh.basic)
-    reload(nanopores.py4gmsh.extra)
+    importlib.reload(nanopores.py4gmsh.basic)
+    importlib.reload(nanopores.py4gmsh.extra)
     
     # let **params overwrite params_geo
     globals().update(params)
@@ -104,5 +105,5 @@ def get_geo(**params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
+    print((get_geo()))
     print('\n - This is the sample code for the geo file')

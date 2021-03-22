@@ -57,8 +57,8 @@ u0 = geo.pwconst("c0", dict(bulkfluidtop = c0, default=0.))
 r0 = Howorka.params_geo.r0
 Across = r0**2 * dolfin.pi
 ctot = dolfin.assemble(u0*dolfin.Constant(Across)*geo.dx())
-print "Total concentration:", ctot, "molecules."
-print "Total concentration:", c0*(b-h)*dolfin.pi, "molecules."
+print("Total concentration:", ctot, "molecules.")
+print("Total concentration:", c0*(b-h)*dolfin.pi, "molecules.")
 
 #from forcefield import geo, phys, Fel, Fdrag, params
 def convect(geo, phys, F, u0, t=1e-9, log=False):
@@ -126,7 +126,7 @@ def gather_currents(name, rMol, DPore=1.):
     
     for results in force_profiles.Forces(name):
         qmols.append(results["Q"])
-        print "\nQ = ", results["Q"], "\n-------------"
+        print("\nQ = ", results["Q"], "\n-------------")
         
         for key in "F", "Fi", "Fi2":
             F = results[key]
@@ -139,13 +139,13 @@ def gather_currents(name, rMol, DPore=1.):
                 pde = steadystate(geo, phys, F, u0)
                 cbottom = pde.functionals["cbottom"].evaluate()
                 current = pde.functionals["J"].evaluate()
-                print "%s. current: %.3f 1/ms. release (steady): %.3f %%" % (key, current, cbottom)
+                print("%s. current: %.3f 1/ms. release (steady): %.3f %%" % (key, current, cbottom))
             else:
                 pde = convect(geo, phys, F, u0=u0, t=t, log=log)
                 cbottom = pde.functionals["cbottom"].value()
                 #current = avg(pde.functionals["J"].values)
                 current = pde.functionals["J"].value()
-                print "%s. current: %.3f 1/ms. release after %.1g s: %.3f %%" % (key, current, pde.time[-1], cbottom)
+                print("%s. current: %.3f 1/ms. release after %.1g s: %.3f %%" % (key, current, pde.time[-1], cbottom))
             #pde.plot_functionals("semilogx", ["c", "cbottom", "ctop"])
             currents[key].append(current)
             release[key].append(cbottom)

@@ -69,8 +69,8 @@ for dim in 3,:
     plt.figure("abs_%dD" % dim)
     result = Idiam(diam[dim], calc=calc, nproc=3, **params[dim])
     d = result["x"]
-    print "diameters (%dD):" % dim, d
-    print "missing:", set(diam[dim]) - set(d)
+    print("diameters (%dD):" % dim, d)
+    print("missing:", set(diam[dim]) - set(d))
 
     n = len(d)
     Jon = 1e12*np.array(result["Jon"])

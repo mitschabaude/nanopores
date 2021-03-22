@@ -50,7 +50,7 @@ class TransientLinearPDE(PDESystem):
     def change_dt(self, dt):
         self.dt = dt
         # needs problem.update_forms
-        for solver in self.solvers.values():
+        for solver in list(self.solvers.values()):
             solver.problem.update_forms(dt=dt)
             solver.assemble_A()
         
@@ -62,14 +62,14 @@ class TransientLinearPDE(PDESystem):
             self.timerange = timerange(t, self.dt)
     
         if verbose:
-            print "\n"
+            print("\n")
         # evolve system up to time t
         for t_ in self.timerange:
             self.time.append(t_)
             self.timestep(**params)
             if verbose:
-                print "\x1b[A","\r",
-                print "t = %s [s]" %t_
+                print("\x1b[A","\r", end=' ')
+                print("t = %s [s]" %t_)
             if record_functionals:
                 self.record_functionals()
             if visualize:
@@ -95,7 +95,7 @@ class TransientLinearPDE(PDESystem):
         dolfin.interactive()
         
     def record_functionals(self):
-        for J in self.functionals.values():
+        for J in list(self.functionals.values()):
             J.evaluate()
             
     def plot_functionals(self, plot="plot", functionals=None, title="", fig=None):
@@ -103,7 +103,7 @@ class TransientLinearPDE(PDESystem):
             fig = plt.figure()
         plt.figure(fig.number)
         if functionals is None:
-            functionals = self.functionals.keys()
+            functionals = list(self.functionals.keys())
         for Jstr in functionals:
             J = self.functionals[Jstr]
             getattr(plt, plot)(self.time, J.values, "-x", label=Jstr)

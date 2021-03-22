@@ -143,8 +143,8 @@ for dim in 2, 3:
     fig = plt.figure("abs_%dD" % dim, figsize=figsize1)
     result = Idiam(diam[dim], calc=calc, nproc=2, **params[dim])
     d = result["x"]
-    print "diameters (%dD):" % dim, d
-    print "missing:", set(diam[dim]) - set(d)
+    print("diameters (%dD):" % dim, d)
+    print("missing:", set(diam[dim]) - set(d))
     
     xlabel = {2: "Pore diameter [nm]", 3: "Channel width [nm]"}[dim]
 
@@ -176,7 +176,7 @@ for dim in 2, 3:
     plt.yticks([0, 0.5, 1], [0, 0.5, 1])
     plt.gca().set_yticks([.1,.2,.3,.4,.6,.7,.8,.9,1.1,1.2], minor=True)
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
-    plt.annotate(u"Protein Ø", (2*2.0779, 1.15),
+    plt.annotate("Protein Ø", (2*2.0779, 1.15),
                  xytext=(2*2.0779 + 0.6, 1.15-.02), color="#666666",
                  arrowprops=dict(arrowstyle="->", color="#666666"))
     plt.text(4.5, .82, "W/o protein", color=color_open)

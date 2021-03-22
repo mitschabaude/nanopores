@@ -61,8 +61,8 @@ P.plot(".k")
 from matplotlib import pyplot as plt
 plt.xlim(0, R + 5)
 
-print geo
-print geo.params
+print(geo)
+print(geo.params)
 
 geo.plot_subdomains()
 geo.plot_boundaries(interactive=True)

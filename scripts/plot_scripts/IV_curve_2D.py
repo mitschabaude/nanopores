@@ -56,7 +56,7 @@ PNPProblemAxisym.method["kparams"]["monitor_convergence"] = False
 IllposedNonlinearSolver.newtondamp = 1.0
 
 phys.bV = 0.05
-print phys.charge
+print(phys.charge)
 goal = (lambda v : phys.Fbare(v, 1) + phys.CurrentPB(v)) if geo_params["x0"] else (lambda v : phys.CurrentPB(v))
 pb = LinearPBAxisymGoalOriented(geo, phys, goal=goal)
 pb.maxcells = maxcells
@@ -74,7 +74,7 @@ F = []
 G = []
 for bVmV in V0:
     bV = bVmV*1e-3
-    print "\nbV = %.0f [mV]\n" % bVmV
+    print("\nbV = %.0f [mV]\n" % bVmV)
 
     phys.bV = bV
     pnps = PNPSAxisym(geo, phys)
@@ -90,16 +90,16 @@ for bVmV in V0:
     for j in Jcomponents:
         f_dict.update({j: 1e12*assemble(locals()[j])})
 
-    print json.dumps(f_dict, indent=4, sort_keys=True)
+    print(json.dumps(f_dict, indent=4, sort_keys=True))
 
     I_ = f_dict["Javgbtm"]
     I.append(I_)
     F.append(f_dict)
 
     V = (v([0.0, -10*nm]) - v([0.0, 10*nm]))
-    print "I (current through pore center):",I_,"[pA]"
-    print "V (transmembrane potential):",V,"[V]"
-    print "conductance I/V:",I_/bV,"[pS]"
+    print("I (current through pore center):",I_,"[pA]")
+    print("V (transmembrane potential):",V,"[V]")
+    print("conductance I/V:",I_/bV,"[pS]")
 
 # plot(geo.mesh)
 # plot(v)

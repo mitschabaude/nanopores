@@ -1,9 +1,9 @@
 import sys
 if len(sys.argv)!=4:
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 if not (sys.argv[1]=='type' or sys.argv[1]=='traj' or sys.argv[1]=='both'):
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 else:
     outcome=sys.argv[1]
@@ -11,7 +11,7 @@ try:
     samples=int(sys.argv[2])
     num = sys.argv[2]
 except:
-    print '[type,traj,both], samples (int), fieldsname'
+    print('[type,traj,both], samples (int), fieldsname')
     exit()
 fieldsname = sys.argv[3]
 if samples!=0:
@@ -39,9 +39,9 @@ b2 = [[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,hpore/2.
 
 for i in range(samples):
 	run(params,fieldsname,outcome,outside=True,b1,b2)
-	print '%i out of '%i+num 
+	print('%i out of '%i+num) 
 
-print 'field updates'
+print('field updates')
 if outcome=='type' or outcome=='both':
     from create_plot_type import *
     f.update()

@@ -50,7 +50,7 @@ s_longbind = dict(settings, facecolors=long_bind_color, label="Long binding", zo
 def format_ticks(ax):
     ax.set_xscale("log")
     #ax.set_xlabel(u'τ off [µs]')
-    ax.set_xlabel(ur"$\tau_\mathrm{off}$ [ms]")
+    ax.set_xlabel(r"$\tau_\mathrm{off}$ [ms]")
     ax.set_ylabel(r"$A/I_0$ [%]")
     
     ax.set_xlim([5e-5, 2e2])

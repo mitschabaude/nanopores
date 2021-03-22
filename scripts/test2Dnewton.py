@@ -9,7 +9,7 @@ meshgen_dict = generate_mesh(1., geo_name, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
 #mesh = Mesh("/".join([DATADIR, geo_name, "mesh", "last_adapted_mesh.xml"]))
 #geo = geo_from_name(geo_name, mesh=mesh, **geo_params)
-print "Number of cells:",geo.mesh.num_cells()
+print("Number of cells:",geo.mesh.num_cells())
 # plot(geo.indicator("solid"), title="geometry")
 # plot(geo.mesh, title="initial mesh")
 
@@ -32,12 +32,12 @@ pnps = PNPSAxisymNewton(geo, phys)
 #pnps = PNPSAxisym(geo, phys)
 
 pnps.solve(refinement=False, save_mesh=False, visualize=False)
-print phys
+print(phys)
 pnps.print_results()
 
 
-for est in pnps.estimators.values():
-    print "\n%s estimator:\n" %est.name, est[:]
+for est in list(pnps.estimators.values()):
+    print("\n%s estimator:\n" %est.name, est[:])
     est.newtonplot()
 
 # print "Convergence rates:\n",pnps.estimators["h1"].rates()
@@ -53,6 +53,6 @@ pnps.visualize()
 
 import resource
 reskB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-print "resource consumption [MB]: ", reskB/1024.
+print("resource consumption [MB]: ", reskB/1024.)
 
 showplots()

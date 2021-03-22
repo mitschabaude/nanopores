@@ -13,7 +13,7 @@ nanopores.add_params(
     plot = "bV",
     nproc = 4,
 )
-print PARAMS
+print(PARAMS)
 
 geo_params = dict(z0=None, rMolecule=rMolecule, Rx=Rx, Ry=Ry)
 geo, phys = Howorka.setup2D(**geo_params)
@@ -56,7 +56,7 @@ fig = plt.gcf()
 fig.set_size_inches(2.6, 2.2)
 
 # save to paper directory
-from folders import FIGDIR
+from .folders import FIGDIR
 #tikz_save(FIGDIR+"iv2.tex", figureheight='2.5in', figurewidth='2.6in')
 #plt.savefig(FIGDIR + "iv.eps", bbox_inches='tight')
 plt.show()

@@ -49,26 +49,26 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False,
     refined = True
     i = 0
 
-    print "Number of cells:", pb.geo.mesh.num_cells()
+    print("Number of cells:", pb.geo.mesh.num_cells())
     while refined:
         i += 1
-        print "\nSolving PB."
+        print("\nSolving PB.")
         pb.single_solve()
-        print "\nError estimation."
+        print("\nError estimation.")
         (ind, err) = pb.estimate()
-        print "\nMesh refinement."
+        print("\nMesh refinement.")
         refined = pb.refine(ind)
         if not refined:
-            print "Maximal number of cells reached."
+            print("Maximal number of cells reached.")
         else:
-            print "New total number of cells:", pb.geo.mesh.num_cells()
+            print("New total number of cells:", pb.geo.mesh.num_cells())
 
     pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=taylorhood)
-    print "\nSolving PNPS."
+    print("\nSolving PNPS.")
     dofs = pnps.dofs()
-    print "  Degrees of freedom: %d" % dofs
+    print("  Degrees of freedom: %d" % dofs)
     newton_iter = pnps.newton_solve()
-    print "  Newton iterations:", newton_iter
+    print("  Newton iterations:", newton_iter)
     return pb, pnps
 
 def pnps(geo, phys, cyl=False, taylorhood=False, stokesLU=True, **kwargs):
@@ -93,11 +93,11 @@ def pnps(geo, phys, cyl=False, taylorhood=False, stokesLU=True, **kwargs):
     PNPStokes = PNPSAxisym if cyl else PNPS
 
     pnps = PNPStokes(geo, phys, taylorhood=taylorhood)
-    print "\nSolving PNPS."
+    print("\nSolving PNPS.")
     dofs = pnps.dofs()
-    print "  Degrees of freedom: %d" % dofs
+    print("  Degrees of freedom: %d" % dofs)
     newton_iter = pnps.newton_solve()
-    print "  Newton iterations:", newton_iter
+    print("  Newton iterations:", newton_iter)
     return pnps
 
 #@solvers.cache_forcefield("howorka_nonzero_u")
@@ -141,7 +141,7 @@ def velocity_iteration(setup, imax=15):
     # iteratively update v
     v.append(np.array([0.]*dim))
     for i in range(imax):
-        print "\n--- Loop %d ---" %(i+1,)
+        print("\n--- Loop %d ---" %(i+1,))
         phys = Physics("howorka", geo, **setup.physp)
         phys.update(Qmol=phys.Qmol*phys.qq)
         phys.update(UMol=tuple(v[-1]))
@@ -151,13 +151,13 @@ def velocity_iteration(setup, imax=15):
         if dim==2: Force = [Force[1]]
 
         f.append(1e-12*np.array(Force))
-        print "f =", f
+        print("f =", f)
         dv0 = np.linalg.solve(gamma, f[-1])
         if dim==2: dv0 = np.array([0., float(dv0)])
         dv.append(dv0)
-        print "dv =", dv
+        print("dv =", dv)
         v.append(v[-1] + dv[-1])
-        print "v =", v
+        print("v =", v)
 
     #pde.visualize()
     v.pop(0)
@@ -204,7 +204,7 @@ def velo2force_3D(v, setup):
 def nonzero_velocities_2D(V, **params):
     setup = Howorka.Setup(**params)
     gamma = friction(setup)
-    print "friction gamma", gamma
+    print("friction gamma", gamma)
     # determine F(0), only once
     if not 0. in V:
         V.append(0.)
@@ -214,15 +214,15 @@ def nonzero_velocities_2D(V, **params):
     i0 = V.index(0.)
     F[i0] = velo2force_2D(0., setup)
     F0 = F[i0]
-    print "F(0)", F0
+    print("F(0)", F0)
 
     for i, v in enumerate(V):
         if not i == i0:
-            print "\n--- Velocity %d ---" %(i+1,)
+            print("\n--- Velocity %d ---" %(i+1,))
             F[i] = velo2force_2D(v, setup)
-            print "Velocity", v
-            print "Force (exact)", F[i]
-            print "Force (linear)", F0 - gamma*v
+            print("Velocity", v)
+            print("Force (exact)", F[i])
+            print("Force (linear)", F0 - gamma*v)
 
     return F, gamma, F0
 
@@ -284,7 +284,7 @@ if do_profile:
     Z = np.linspace(-R, R, 21)
     X = [[z,0.,0.] for z in Z]
     #X = [[0.,0.,0.]]
-    print velocities(X, nproc=7, name="howorka_velo3D_2", **params)
+    print(velocities(X, nproc=7, name="howorka_velo3D_2", **params))
 
 do_plot = False
 redo_plot = False
@@ -300,12 +300,12 @@ if do_plot:
     f, v, dv = nanopores.load_stuff("velocity_iteration")
 
     dim = params["dim"]
-    plt.semilogy(range(1, imax+1), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
+    plt.semilogy(list(range(1, imax+1)), 1e12*np.sqrt(np.sum(np.array(f)**2, 1)),
                  "s-", label="net force on molecule")
     plt.ylabel("force [pN]")
     plt.xlabel("# iterations")
     plt.xlim(xmin=1, xmax=imax)
-    plt.xticks(range(1,imax+1))
+    plt.xticks(list(range(1,imax+1)))
     plt.legend(loc="best")
     fig = plt.gcf()
     fig.set_size_inches((4,3))

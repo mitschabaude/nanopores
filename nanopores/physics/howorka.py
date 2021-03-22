@@ -97,7 +97,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
     if exactMqv:
         r = geo.parameter("rMolecule")/lscale
         vol = 4.*dolfin.pi/3.*r**3
-        print "Molqv: ", Qmol/vol
+        print("Molqv: ", Qmol/vol)
         return Qmol/vol if vol > 0. else 0.
         #return -327926363.681 #-305959545.378
     elif adaptMqv:
@@ -107,7 +107,7 @@ def Moleculeqv(geo, Qmol, exactMqv, adaptMqv, lscale): # Molecule volume charge 
             vol = dolfin.assemble(r*geo.dx("molecule"))
             return Qmol/vol if vol > 0. else 0.
         const = geo.constant("Moleculeqv", compute)
-        print "Molqv: ", geo.constants["Moleculeqv"].value
+        print("Molqv: ", geo.constants["Moleculeqv"].value)
         return const
     try:
         lscale = geo.parameter("nm")/nm

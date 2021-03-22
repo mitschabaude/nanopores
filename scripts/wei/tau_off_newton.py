@@ -13,12 +13,12 @@ def f1(x):
 
 def solve(C, n=20):
     x = 2.*C # initial value
-    print "Newton iteration:"
+    print("Newton iteration:")
     for i in range(n):
         dx = -(f(x) - C)/f1(x)
         x = x + dx
-        print i, "Residual", f(x) - C, "Value", x
-    print
+        print(i, "Residual", f(x) - C, "Value", x)
+    print()
     return x
 
 def get_parameters(mu, sigma):
@@ -59,7 +59,7 @@ while frac > 0.5: #int(counts[0]*frac) > 1:
     a, b = bins[1]*frac, bins[1]*2*frac
     sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
     fake = np.append(fake, sample)
-    print "frac", frac
+    print("frac", frac)
 
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
@@ -71,12 +71,12 @@ mu = np.mean(fake)
 sigma = np.std(fake)
 ap, lmbda = get_parameters(mu, sigma)
 
-print "mu, sigma =", mu, sigma
-print "mu^2/sigma^2 =", mu**2/sigma**2
-print "ap, lambda =", ap, lmbda
-print
-print "binding probability: %.3f (for a=2.2)" % (ap/2.2,)
-print "mean binding duration: %.3f s" % (1./lmbda,)
+print("mu, sigma =", mu, sigma)
+print("mu^2/sigma^2 =", mu**2/sigma**2)
+print("ap, lambda =", ap, lmbda)
+print()
+print("binding probability: %.3f (for a=2.2)" % (ap/2.2,))
+print("mean binding duration: %.3f s" % (1./lmbda,))
 
 #
 #

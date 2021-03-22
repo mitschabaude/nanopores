@@ -22,7 +22,7 @@ domain.synonymes = dict(
 )
 
 geo = domain.create_geometry(lc=.01)  
-print geo
+print(geo)
 
 # --- define physical parameters ---
 
@@ -32,7 +32,7 @@ phys_params = dict(
     #volcharge = -.01*qq/nm**3, # to account for \partial_{zz}\phi?
 )
 phys = Physics("electrolyte", geo, **phys_params)
-print geo
+print(geo)
 
 # --- solve pdes ---
 

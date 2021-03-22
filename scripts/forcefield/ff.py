@@ -25,5 +25,5 @@ X = pugh.tensorgrid(nz=30, nr=4)
 X = [[0., 0., t] for t in linspace(-27., 27., 20)]
 #result = pugh.F_explicit(X, nproc=2, **params)
 result = pugh.F_explicit([None], name="pugh_current_open", **params)
-print result
-print result["J"]
+print(result)
+print(result["J"])

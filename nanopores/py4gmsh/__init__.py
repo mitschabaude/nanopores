@@ -1,2 +1,2 @@
-from basic import *
-from extra import *
+from .basic import *
+from .extra import *

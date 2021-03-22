@@ -45,7 +45,7 @@ while int(counts[0]*frac) > 1:
     a, b = bins[1]*frac, bins[1]*2*frac
     sample = a*(b/a)**(np.random.rand(int(counts[0]*frac)))
     fake = np.append(fake, sample)
-    print "frac", frac
+    print("frac", frac)
 
 for i in range(1, N):
     a, b = bins[i], bins[i+1]
@@ -58,13 +58,13 @@ bind = data.bindings > 0
 times = 1e-9*data.times # data are in ns, we want s
 
 n = sum(counts)
-print "Found %d simulated binding events, have %d experimental binding events." % (sum(bind), n)
+print("Found %d simulated binding events, have %d experimental binding events." % (sum(bind), n))
 if sum(bind) > n:
     # only consider same number of bind_times
     i = np.flatnonzero(bind)[n-1] + 1
 else:
     i = len(times)
-print "Number of simulated events we use:", i
+print("Number of simulated events we use:", i)
 bind_times = times[:i][bind[:i]]
 fail_times = times[:i][data.fail[:i]]
 success_times = times[:i][data.success[:i]]

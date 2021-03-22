@@ -1,7 +1,7 @@
 # (c) 2016 Gregor Mitscha-Baude
 import dolfin
 import nanopores
-import colormaps as cm
+from . import colormaps as cm
 import matplotlib
 import matplotlib.ticker
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ def streamlines(polygon=None, patches=None, R=10., Htop=10., Hbot=10.,
 
     # interpolate on regular mesh symmetric w.r.t. center axis
     mesh2D = nanopores.RectangleMesh([-R-0.1,-Hbot-0.1], [R+0.1,Htop+0.1], Nx, Ny)
-    fields2 = nanopores.convert2D(mesh2D, *(fields.values()))
+    fields2 = nanopores.convert2D(mesh2D, *(list(fields.values())))
 
     # prepare polygon and copy to left half
     settings = dict(closed=True, facecolor="#eeeeee", linewidth=3.,
@@ -40,7 +40,7 @@ def streamlines(polygon=None, patches=None, R=10., Htop=10., Hbot=10.,
         #maxvalue = 10**int(np.log10(maxvalue))
 
     for i, F in enumerate(fields2):
-        Fstr = fields.keys()[i]
+        Fstr = list(fields.keys())[i]
         fig, ax = plt.subplots(num=Fstr, figsize=figsize)
 
         # fill array with function values

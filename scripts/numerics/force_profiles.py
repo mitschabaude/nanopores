@@ -169,7 +169,7 @@ if __name__ == "__main__":
     
     for odict in Forces(name):        
         F, Fi, Fi_better, alpha, beta, Q = tuple(odict.values())
-        print "Q %s, alpha %s" % (Q, alpha(0.))
+        print("Q %s, alpha %s" % (Q, alpha(0.)))
         plt.figure("alpha", figsize=(5,4))
         plot_function(alpha, label="Q = %.0fq"%Q)
         

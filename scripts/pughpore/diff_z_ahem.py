@@ -46,8 +46,8 @@ def Dr(z, rion=0.11):
 z = np.linspace(-12, 2, 100)
 
 poreRadii = [dist([0., zz]) for zz in z]
-print "max", max(poreRadii)
-print "min", min(poreRadii)
+print("max", max(poreRadii))
+print("min", min(poreRadii))
 
 zbottom = get_pore(geoname="alphahem").protein.zmin()[1]
 zNoskov = np.linspace(zbottom, 0, 100)

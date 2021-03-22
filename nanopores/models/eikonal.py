@@ -22,7 +22,7 @@ def distance_boundary_from_geo_OLD(geo, boundary="dnab"):
     solver.solve()
 
     # Stabilized Eikonal equation
-    print "max cell size:", mesh.hmax()
+    print("max cell size:", mesh.hmax())
     eps = Constant(mesh.hmax()/25.)
     #F = sqrt(inner(grad(y), grad(y)))*v*dx - f*v*dx + eps*inner(grad(y), grad(v))*dx
     # also works:
@@ -69,7 +69,7 @@ def distance_boundary_from_geo(geo, boundary="dnab",
         params["preconditioner"] = "hypre_euclid"
 
     while eps > 1e-4:
-        print "eps", eps, " ",
+        print("eps", eps, " ", end=' ')
         solver.solve()
         u.assign(u + du)
         eps *= epsfact

@@ -15,7 +15,7 @@ h = 2.
 field = f.get_fields("pughcenter", bulkcon=1e3, Qmol=8, h=h)
 z = [x[2] for x in field["x"]]
 J = [j*1e12 for j in field["J"]]
-I = sorted(range(len(z)), key=lambda k: z[k])
+I = sorted(list(range(len(z))), key=lambda k: z[k])
 z1 = [z[i] for i in I]
 J1 = [J[i] for i in I]
 from scipy.interpolate import interp1d

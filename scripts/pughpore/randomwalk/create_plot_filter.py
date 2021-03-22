@@ -63,8 +63,8 @@ def save_fig_filter(params,fieldsname,i):
     amp=data["a"][i]
     ftime=np.min(np.where(sig_ff>1e-10))-1
     ampf=abs(np.sum(sig_ff[:ftime]))/float(ftime)/curr*100
-    print 'without filter: %.1f' %amp
-    print 'with    filter: %.1f' %ampf
+    print('without filter: %.1f' %amp)
+    print('with    filter: %.1f' %ampf)
     tau_off=float(ftime)
     figname = fieldsname+'_filter_'+'%.8f'%(tau_off*1e-6)+'_%04d'%i+'_%.1e_%.1e_%.1e_%.1e'%(params["avgbind1"],params["avgbind2"],params["P_bind1"],params["P_bind2"])+str(params["z0"])
     af=[ampf]
@@ -101,7 +101,7 @@ def save_fig_filter(params,fieldsname,i):
 
     plt.tight_layout()
     nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/')
-    print 'savefig: %s'%figname
+    print('savefig: %s'%figname)
     plt.close("all")
 #    plt.show()
 

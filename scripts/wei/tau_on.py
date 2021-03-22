@@ -15,7 +15,7 @@ x = bins[:-1]
 N = len(x)
 # minimize norm(x - (beta + 0.55*np.arange(0, N)) w.r.t. beta
 beta = x.mean() - dx*(N-1)/2.
-print "beta", beta
+print("beta", beta)
 # beta is close to 0.016, which we take
 bins = 0.016 + dx*np.arange(0, N)
 bins = [0.] + list(bins)

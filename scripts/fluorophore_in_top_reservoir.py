@@ -19,13 +19,13 @@ N = 60 # number of points in every space direction
 def surfcharge(Qmol, bulkcon=10e-3, h=10e-3):
     return bulkcon*mol*Qmol*h/2
     
-print "surf charge",surfcharge(Qmol, bulkcon, ly/2)
+print("surf charge",surfcharge(Qmol, bulkcon, ly/2))
 if not __name__=="__main__":
     exit()
 
 # volume charge [C/m**3]
 volcharge0 = bulkcon*mol*Qmol
-print "volume charge [C/m**3]:",volcharge0
+print("volume charge [C/m**3]:",volcharge0)
 
 mesh = RectangleMesh(Point(0.,0.), Point(lx, ly), N, N)
 
@@ -92,8 +92,8 @@ phys = Physics(
 
 
 area = assemble(Expression("x[0]*2*pi")("+")*geo.dS("centerline"))    
-print "Total volume charge: %g [C]" %assemble(geo.pwconst("volcharge")*Expression("x[0]*2*pi")*geo.dx())
-print "Induced surface charge: %g [C/m**2]" %(assemble(volcharge0*Expression("x[0]*2*pi")*geo.dx("center"))/area/2,)
+print("Total volume charge: %g [C]" %assemble(geo.pwconst("volcharge")*Expression("x[0]*2*pi")*geo.dx()))
+print("Induced surface charge: %g [C/m**2]" %(assemble(volcharge0*Expression("x[0]*2*pi")*geo.dx("center"))/area/2,))
    
 PoissonProblemPureNeumannAxisym.method["iterative"] = False
 #V = PoissonProblemAxisym.space(mesh)
@@ -115,11 +115,11 @@ Cline = assemble((eps*grad(u)[1]*Expression("x[0]*2*pi"))("+")*geo.dS("centerlin
 h = 1e-1*mm
 Cpoint = phys.permittivity["fluid"]*(u([0.,ly/2+h]) - u([0.,ly/2-h]))/(2.*h)
 
-print "Electric field average over center line: %g [V/m]" %Eline
-print "Electric field at center point: %g [V/m]" %Epoint
+print("Electric field average over center line: %g [V/m]" %Eline)
+print("Electric field at center point: %g [V/m]" %Epoint)
 
-print "Equivalent surface charge, average over center line: %g [C/m**2]" %Cline
-print "Equivalent surface charge at center point: %g [C/m**2]" %Cpoint
+print("Equivalent surface charge, average over center line: %g [C/m**2]" %Cline)
+print("Equivalent surface charge at center point: %g [C/m**2]" %Cpoint)
 
 '''
 plot(-grad(u), title="E")

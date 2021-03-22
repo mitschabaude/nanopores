@@ -16,7 +16,7 @@ A=0
 for i in range(size):
     A+=(hbond[i-1][0]*hbond[i][1]-hbond[i][0]*hbond[i-1][1])
 A*=-0.5
-print A
+print(A)
 Cx=0
 Cy=0
 for i in range(size):

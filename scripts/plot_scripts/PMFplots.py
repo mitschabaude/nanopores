@@ -45,7 +45,7 @@ for file in files:
     # compute PMF in units of [kT]
     # TODO should depend on Z
     U = antider(F, -step*C) #/(kB*T))
-    U = map(lambda u : u - U[-1], U)
+    U = [u - U[-1] for u in U]
     #print U[::-1]
     
     figure(1)

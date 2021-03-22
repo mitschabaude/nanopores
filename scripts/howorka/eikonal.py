@@ -1,5 +1,5 @@
 from dolfin import *
-from forcefield2D import maybe_calculate
+from .forcefield2D import maybe_calculate
 from nanopores.models import Howorka
 import nanopores
 
@@ -32,14 +32,14 @@ def boundary_force(mesh=None, rMolecule=0.5, **params):
     solve(lhs(F1)==rhs(F1), y, bc)
     
     # Stabilized Eikonal equation
-    print "max cell size:", mesh.hmax()
+    print("max cell size:", mesh.hmax())
     eps = Constant(mesh.hmax()/25)
     F = sqrt(inner(grad(y), grad(y)))*v*dx - f*v*dx + eps*inner(grad(y), grad(v))*dx
     # also works:
     #F = inner(grad(y), grad(y))*v*dx - f*v*dx + eps*inner(grad(y), grad(v))*dx
     solve(F==0, y, bc)
     
-    print "Max distance:", y.vector().max()
+    print("Max distance:", y.vector().max())
     
     U = LinearPotential(rMol=rMolecule)
             

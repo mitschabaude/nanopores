@@ -11,7 +11,7 @@ geo_name = "W_3D_geo"
 geo_dict = import_vars("nanopores.%s.params_geo" %geo_name)
 physical_dict = import_vars("nanopores.physics.params_physical")
 default_dict = dict(geo_dict = geo_dict, physical_dict = physical_dict)
-print "Default parameters: \n", json.dumps(default_dict, indent=4, sort_keys=True)
+print("Default parameters: \n", json.dumps(default_dict, indent=4, sort_keys=True))
 nm = geo_dict["nm"]
 
 # no sam and no molecule causes a "found no facets..."
@@ -25,14 +25,14 @@ configs2b= [{"x0": None, "lsam": lsam, "r0": 11.5*nm -lsam,},
 
 configl = configs2b
 configl.append({"membraneblayer": False,"angle":20.0})
-defparams = dict((k, v) for d in configl for k, v in d.items())
+defparams = dict((k, v) for d in configl for k, v in list(d.items()))
 
 if mpiSize == 1:
     tmesh = Timer('Start')
     mesh_dict = generate_mesh(5.0, geo_name, **defparams)
     mesh = None #Mesh("%s/%s/mesh/mesh_bl_138k.xml" %(DATADIR,geo_name))
     tmesh.stop()
-    print "Mesh generation time: ", tmesh.value()
+    print("Mesh generation time: ", tmesh.value())
 geo = geo_from_name(geo_name, mesh=mesh, **defparams)
 plot(geo.boundaries, interactive=True)
 
@@ -43,8 +43,8 @@ PNPProblem.method["kparams"]["relative_tolerance"] = 1e-2
 PNPProblem.method["kparams"]["maximum_iterations"] = 1000
 StokesProblem.method["iterative"] = True
 
-print "hmin:", geo.mesh.hmin()
-print "number of cells:", geo.mesh.num_cells()
+print("hmin:", geo.mesh.hmin())
+print("number of cells:", geo.mesh.num_cells())
 
 PNPS.tolnewton = 1e-2
 PNPS.imax = 50
@@ -54,25 +54,25 @@ pnps = PNPS(geo,**defparams)
 pnps.solvers.pop("Stokes")
 pnps.solve(refinement=False, save_mesh=False, visualize=False, print_functionals=False)
 pnps.print_results()
-print "All Functionals are multiplied by", PNPS.Functional_mult
+print("All Functionals are multiplied by", PNPS.Functional_mult)
 
 t.stop()
-print "Time for solving: ", t.value()
+print("Time for solving: ", t.value())
 
 debye_length = 1.0/sqrt(2*physical_dict["cFarad"]*defparams["bulkcon"]/\
                         (physical_dict["rpermw"]*physical_dict["eperm"]*physical_dict["UT"]))
-print "Debye length: ", debye_length
-print defparams
+print("Debye length: ", debye_length)
+print(defparams)
 
 Jl = [pnps.get_functionals()[j] for j in ["Javgtop","Javgctr","Javgbtm"]]
 qdict = dict(
     hmin = geo.mesh.hmin(),
     N = geo.mesh.num_cells(),
-    solvers = pnps.solvers.keys(),
+    solvers = list(pnps.solvers.keys()),
     Jl = Jl,
     Jmax = max(Jl),
 )
-print qdict
+print(qdict)
 
 '''
 for est in pnps.estimators.values():

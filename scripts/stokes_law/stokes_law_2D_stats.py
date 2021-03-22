@@ -30,7 +30,7 @@ l0 = 200
 # ***
 # function that performs calculation for given confinement
 def stokeslaw(lx,ly):
-    print "lx = %.1f, ly = %.1f" %(lx,ly)
+    print("lx = %.1f, ly = %.1f" %(lx,ly))
     lx *= l
     ly *= l
     
@@ -40,8 +40,8 @@ def stokeslaw(lx,ly):
     geo = geo_from_name(name, r=r, l=ly*2, R=lx)
     
     #plot(geo.boundaries)
-    print "Number of elements: %d" %geo.mesh.num_cells()
-    print "hmin/r: %f" %(geo.mesh.hmin()/r,)
+    print("Number of elements: %d" %geo.mesh.num_cells())
+    print("hmin/r: %f" %(geo.mesh.hmin()/r,))
 
     # set up and solve pde model
     from nanopores import params_physical
@@ -64,8 +64,8 @@ def stokeslaw(lx,ly):
     Fd0 = 6*pi*eta*r*v0
     
     # return factor by which diffusion constant is reduced
-    print "D_red = %.4f" %(Fd0/Fd,)
-    print
+    print("D_red = %.4f" %(Fd0/Fd,))
+    print()
     #pde.visualize()
     return Fd0/Fd
     

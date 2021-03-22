@@ -75,7 +75,7 @@ class CoupledProblem(object):
         self.params = params
         mesh = geo.mesh
 
-        for name, Problem in problems.items():
+        for name, Problem in list(problems.items()):
             # get space
             V = _call(Problem.space, dict(params, mesh=mesh))
 
@@ -92,7 +92,7 @@ class CoupledProblem(object):
             params.update({"u" + name: u})
 
         # now we have all solutions in hand and can actually create the problems
-        for name, Problem in problems.items():
+        for name, Problem in list(problems.items()):
             u = self.solutions[name]
             uold = self.oldsolutions[name]
 
@@ -117,7 +117,7 @@ class CoupledProblem(object):
     def update_forms(self, **new_params):
         # useful to e.g. change timestep and reassemble matrices
         # this assumes that coupled parameters are *not* changed
-        for name, problem in self.problems.items():
+        for name, problem in list(self.problems.items()):
             problem.update_forms(**new_params)
 
 class CoupledSolver(PDESystem):
@@ -127,7 +127,7 @@ class CoupledSolver(PDESystem):
     def __init__(self, coupled, goals=[], **solverparams):
 
         self.solvers = OrderedDict()
-        for name, problem in coupled.problems.items():
+        for name, problem in list(coupled.problems.items()):
             if problem.is_linear:
                 # TODO: include method update for specific solvers?
                 solver = IllposedLinearSolver(problem)
@@ -158,10 +158,10 @@ class CoupledSolver(PDESystem):
 
         for i in range(1, I+1):
             if verbose:
-                print "\n-- Fixed-Point Loop %d of max. %d" % (i, I)
-            for name, solver in self.solvers.items():
+                print("\n-- Fixed-Point Loop %d of max. %d" % (i, I))
+            for name, solver in list(self.solvers.items()):
                 if verbose:
-                    print "    Solving %s." % name
+                    print("    Solving %s." % name)
                 t = dolfin.Timer(name)
                 if solver.is_linear:
                     solver.solve()
@@ -170,7 +170,7 @@ class CoupledSolver(PDESystem):
                     j, con = newtonsolve(solver, tol, damp, J, nverbose, lambda: inside_loop(self))
                     times[name] += t.stop()
                     if j==1 and con:
-                        print "- Break at iteration %d because Newton stopped changing." %i
+                        print("- Break at iteration %d because Newton stopped changing." %i)
                         break
             else:
                 inside_loop(self)
@@ -179,9 +179,9 @@ class CoupledSolver(PDESystem):
             break
         Tt = sum(times.values())
         if verbose:
-            print "\n CPU Time (solve): %.2f s" % Tt
+            print("\n CPU Time (solve): %.2f s" % Tt)
             for name in self.solvers:
-                print "  -) %s: %.2f s" %(name, times[name])
+                print("  -) %s: %.2f s" %(name, times[name]))
 
     def fixedpoint(self, tol=None, damp=None):
         if tol is None: tol = self.params["tolnewton"]
@@ -200,11 +200,11 @@ class CoupledSolver(PDESystem):
 
         for i in range(1, imax+1):
             if verbose:
-                print "\n-- Fixed-Point Loop %d of max. %d" % (i, imax)
+                print("\n-- Fixed-Point Loop %d of max. %d" % (i, imax))
             tloop = dolfin.Timer("loop")
-            for name, solver in self.solvers.items():
+            for name, solver in list(self.solvers.items()):
                 if verbose:
-                    print "    Solving %s." % name
+                    print("    Solving %s." % name)
                 t = dolfin.Timer(name)
                 if solver.is_linear:
                     solver.solve()
@@ -221,14 +221,14 @@ class CoupledSolver(PDESystem):
             # calculate the error
             errors = [(name, error(U[name], Uold[name])) for name in U]
             if verbose:
-                for item in errors: print "    error %s: %s" % item
+                for item in errors: print("    error %s: %s" % item)
             err = sum(err for _, err in errors)/len(errors)
 
             # check for stopping
             if err < tol:
                 self.converged = True
                 if verbose:
-                    print "- Break at iteration %d because err %.3g < tol %.3g" %(i, err, tol)
+                    print("- Break at iteration %d because err %.3g < tol %.3g" %(i, err, tol))
                 break
 
             self.save_estimate("err hybrid i", err, N=i)
@@ -239,9 +239,9 @@ class CoupledSolver(PDESystem):
 
         Tt = sum(times.values())
         if verbose:
-            print "\n CPU Time (solve): %.2f s" % Tt
+            print("\n CPU Time (solve): %.2f s" % Tt)
             for name in self.solvers:
-                print "  -) %s: %.2f s" %(name, times[name])
+                print("  -) %s: %.2f s" %(name, times[name]))
 
     def generic_fixedpoint(self, tol=None, damp=None):
         # does timing, errors, stopping, but relies on user to implement solve
@@ -257,7 +257,7 @@ class CoupledSolver(PDESystem):
 
         for i in range(1, imax+1):
             if verbose:
-                print "\n-- Fixed-Point Loop %d of max. %d" % (i, imax)
+                print("\n-- Fixed-Point Loop %d of max. %d" % (i, imax))
             tloop = dolfin.Timer("loop")
             # solve here
             yield i
@@ -267,14 +267,14 @@ class CoupledSolver(PDESystem):
             # calculate the error
             errors = [(name, error(U[name], Uold[name])) for name in U]
             if verbose:
-                for item in errors: print "    error %s: %s" % item
+                for item in errors: print("    error %s: %s" % item)
             err = sum(err for _, err in errors)/len(errors)
 
             # check for stopping
             if err < tol:
                 self.converged = True
                 if verbose:
-                    print "- Break at iteration %d because err %.3g < tol %.3g" %(i, err, tol)
+                    print("- Break at iteration %d because err %.3g < tol %.3g" %(i, err, tol))
                 break
 
             self.save_estimate("err hybrid i", err, N=i)
@@ -311,7 +311,7 @@ def plainfixedpoint(solvers, tol=TOL, ntol=TOL, imax=IMAX, inewton=1,
                         damp=1., verbose=True, nverbose=False):
     "minimal fixed point iteration on coupled solver."
     for i in range(1, imax+1):
-        for solver in solvers.values():
+        for solver in list(solvers.values()):
             if solver.is_linear:
                 solver.solve()
             else:

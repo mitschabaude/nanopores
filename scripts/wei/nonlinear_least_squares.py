@@ -13,7 +13,7 @@ def newton(f, x0=0., tol=1e-14):
     x = x0
     while np.abs(f(x)) > tol:
         x -= f(x)/df(x)
-        print "|f(x)|", np.abs(f(x))
+        print("|f(x)|", np.abs(f(x)))
     return x
 
 def minimize(F, x0=0., tol=1e-14):
@@ -49,7 +49,7 @@ def NLS_(F, xi, yi, x0=0., tol=1e-14):
     x = x0
     while np.abs(df(x, xi, yi)) > tol:
         x -= df(x, xi, yi)/ddf(x, xi, yi)
-        print "|df(x)|", np.abs(df(x, xi, yi))
+        print("|df(x)|", np.abs(df(x, xi, yi)))
     return x
 
 if __name__ == "__main__":
@@ -61,4 +61,4 @@ if __name__ == "__main__":
         
     yi = F(xi, x) + 1e-6*np.random.randn(100)
     
-    print NLS_(F, xi, yi), x
+    print(NLS_(F, xi, yi), x)

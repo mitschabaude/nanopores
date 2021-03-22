@@ -38,7 +38,7 @@ N = len(X)
 if fields.exists("force3D", **params):
     Xdone = fields.get_field("force3D", "x", **params)
     X = [x0 for x0 in X if x0 not in Xdone]
-    print "Existing force file found, %d/%d points remaining." % (len(X), N)
+    print("Existing force file found, %d/%d points remaining." % (len(X), N))
 Xfailed = []
 
 for x in X:
@@ -47,11 +47,11 @@ for x in X:
         F, Fel, Fdrag = Howorka.F_explicit3D([x0], **solver_params)
         fields.save_fields("force3D", params, x=[x], F=F, Fel=Fel, Fdrag=Fdrag)
     except RuntimeError:
-        print "RuntimeError occured, continuing without saving."
+        print("RuntimeError occured, continuing without saving.")
         Xfailed.append(x)
 
-print "failed:"       
-print Xfailed
-print "%d of %d force calculations failed." % (len(Xfailed), len(X))
+print("failed:")       
+print(Xfailed)
+print("%d of %d force calculations failed." % (len(Xfailed), len(X)))
 
 fields.update()

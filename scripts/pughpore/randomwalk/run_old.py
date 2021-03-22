@@ -167,18 +167,18 @@ def run(params=params):
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
         if abs(Z[-1])>30.:
-            print 'Traceback fehler????????????'
+            print('Traceback fehler????????????')
         J1=np.append(J1,J(Z[-1]))
         T =np.append(T,add)
         i+=1
         if not (Z[i]<=H/2. and Z[i]>=-H/2 and X[i] <=R/2 and X[i] >=-R/2 and Y[i] <=R/2 and Y[i] >=-R/2):
             break
     if i>=maxiter:
-        print 'randomwalk: more than 1e6 steps!'
+        print('randomwalk: more than 1e6 steps!')
     X=[list(X)]
     Y=[list(Y)]
     Z=[list(Z)]
     T=[list(T)]
     J1=[list(J1)]
-    print 'savefield'
+    print('savefield')
     fields.save_fields("randomwalk7",params,T=T,J=J1)

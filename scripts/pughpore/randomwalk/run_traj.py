@@ -1,4 +1,4 @@
-print 'start'
+print('start')
 from dolfin import *
 import sys
 from random import gauss, expovariate
@@ -11,7 +11,7 @@ from get_F import Force, Current
 from get_D import Dx, Dy, Dz, dxDx, dyDy, dzDz, dis
 import os
 from time import time as timer
-print 'passt'
+print('passt')
 
 
 HOME = os.path.expanduser("~")
@@ -189,7 +189,7 @@ def run(params,fieldsname):
         Y = np.append(Y,y_new)
         Z = np.append(Z,z_new)
         if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
-            print 'Out of domain!'
+            print('Out of domain!')
             ood = True
             X[-1]=0.
             Y[-1]=0.
@@ -199,12 +199,12 @@ def run(params,fieldsname):
             if add<=tau:
                 Jx = J1[-1]
             else:
-                print 'current at binding position is NaN!!!'
-                print 'current = %.1e A'%Jx
-                print 'X = %.8f'%X[-1]
-                print 'Y = %.8f'%Y[-1]
-                print 'Z = %.8f'%Z[-1]
-                print 'add = %.2f nanoseconds'%add
+                print('current at binding position is NaN!!!')
+                print('current = %.1e A'%Jx)
+                print('X = %.8f'%X[-1])
+                print('Y = %.8f'%Y[-1])
+                print('Z = %.8f'%Z[-1])
+                print('add = %.2f nanoseconds'%add)
                 exit()
         J1=np.append(J1,Jx)
         T =np.append(T,add)
@@ -212,7 +212,7 @@ def run(params,fieldsname):
         if not (Z[i]<=H/2. and Z[i]>=-H/2 and X[i] <=R/2 and X[i] >=-R/2 and Y[i] <=R/2 and Y[i] >=-R/2):
             break
     if i>=maxiter:
-        print 'randomwalk: more than 1e6 steps!'
+        print('randomwalk: more than 1e6 steps!')
 #    tau_off = np.sum(T)*1e-6
 #    curr = 7.523849e-10
 #    amp = (curr-np.inner(T*1e-6,J1)/tau_off)/curr*100.

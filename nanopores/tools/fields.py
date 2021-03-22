@@ -72,7 +72,7 @@ def get_fields(name, index=None, **params):
     return Header().get_fields(name, index, **params)
 
 def _sorted(data, key):
-    I = sorted(range(len(key)), key=lambda k: key[k])
+    I = sorted(list(range(len(key))), key=lambda k: key[k])
     return {k: [data[k][i] for i in I] for k in data}, [key[i] for i in I]
 
 def _subset(data, key, condition=None):
@@ -133,7 +133,7 @@ def get(name, *args, **params):
 def is_function_test(name, index=None, **params):
     FILE, params = Header().get_file_params(name, params, index)
     data = _load(FILE)
-    print "is function:", is_function(data)
+    print("is function:", is_function(data))
 
 def is_function(data):
     return all([string in data for string in ["functions", "ranks", "prefix", "empty"]])
@@ -280,7 +280,7 @@ class Header(object):
     def set_entries(self, name, params, **entries):
         FILE = self.get_file(name, params)
         f = _load(FILE)
-        for entry, value in entries.items():
+        for entry, value in list(entries.items()):
             f[entry] = value
         _save(f, FILE)
 
@@ -309,9 +309,9 @@ class Header(object):
                 n += 1
         self._write()
         if N>0:
-            print ("Found %d new files, merged %d of them into "
-               "existing files.") % (N, n)
-        else: print "Nothing to be updated."
+            print(("Found %d new files, merged %d of them into "
+               "existing files.") % (N, n))
+        else: print("Nothing to be updated.")
 
     def reread(self):
         "completely clear existing information and read again"
@@ -337,7 +337,7 @@ class Header(object):
         if FILE in self.header["_flist"]:
             self.header["_flist"].remove(FILE)
         path = os.path.join(DIR, FILE)
-        print "Removing %s" %path
+        print("Removing %s" %path)
         os.remove(path)
 
     def _delete_entry(self, name, params):
@@ -401,7 +401,7 @@ def _find_arrays(FILE):
 def _delete_arrays(FILE):
     for a in _find_arrays(FILE):
         fname = array_dir() + "/" + a + ".npy"
-        print "Removing %s." % fname
+        print("Removing %s." % fname)
         os.remove(fname)
         
 def _concat(a, b):
@@ -442,7 +442,7 @@ class NpyFile(object):
     
     def delete(self):
         fname = array_dir() + "/" + self.name + ".npy"
-        print "Removing %s." % fname
+        print("Removing %s." % fname)
         os.remove(fname)
         
     def extract(self):
@@ -601,7 +601,7 @@ def save_functions(name, params, **functions):
     PREFIX = name + _unique_id()
     FILE = PREFIX + SUFFIX
     data = dict(name=name, params=params, prefix=PREFIX)
-    keys = functions.keys()
+    keys = list(functions.keys())
     data["functions"] = keys
 
     # if no functions are given, only save metadata
@@ -612,8 +612,8 @@ def save_functions(name, params, **functions):
     data["empty"] = False
 
     # save mesh (we assume functions are defined on the same mesh!)
-    mesh = functions.values()[0].function_space().mesh()
-    for f in functions.values():
+    mesh = list(functions.values())[0].function_space().mesh()
+    for f in list(functions.values()):
         assert f.function_space().mesh().id() == mesh.id()
     MESHFILE = PREFIX + "_mesh.xml"
     _save_dolfin(mesh, MESHFILE)
@@ -673,7 +673,7 @@ def remove_functions(name, index=None, **params):
     h.remove(name, params, index)
     for f in files:
         path = os.path.join(DIR, f)
-        print "Removing %s" %path
+        print("Removing %s" %path)
         os.remove(path)
 
 # print information
@@ -683,14 +683,14 @@ def show(string=None, **params):
     for key in h:
         if string is not None and key != string:
             continue
-        print "\n%s" %key
+        print("\n%s" %key)
         lst = h[key]
         for i, dic in enumerate(lst):
             dic.pop("FILE")
             if not _compatible(dic, params):
                 continue
-            print "%d)" %(i+1,),
-            print ", ".join(["%s=%s" %x for x in dic.items()])
+            print("%d)" %(i+1,), end=' ')
+            print(", ".join(["%s=%s" %x for x in list(dic.items())]))
 
 def showfields(string=None):
     h = Header().header
@@ -698,19 +698,19 @@ def showfields(string=None):
     for key in h:
         if string is not None and key != string:
             continue
-        print "\n%s" %key
+        print("\n%s" %key)
         lst = h[key]
         for i, dic in enumerate(lst):
             FILE = dic.pop("FILE")
             content = _load(FILE)
             if not "fields" in content or not content["fields"]:
                 continue
-            n = len(content["fields"].values()[0])
-            print "-) %d field values, params:" %(n,),
-            print ", ".join(["%s=%s" %x for x in dic.items()])
+            n = len(list(content["fields"].values())[0])
+            print("-) %d field values, params:" %(n,), end=' ')
+            print(", ".join(["%s=%s" %x for x in list(dic.items())]))
 
 def shownames():
     h = Header().header
     h.pop("_flist")
     for key in h:
-        print key
+        print(key)

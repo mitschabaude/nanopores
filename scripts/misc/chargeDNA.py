@@ -15,4 +15,4 @@ ql = bpq/distbp # line charge
 qsCircle = ql/(2.*pi*rDNA) # circular model
 qsSquare = ql/(8.*rDNA) # square model
 
-print qsCircle, qsSquare
+print(qsCircle, qsSquare)

@@ -1,7 +1,7 @@
 import numpy
 import nanopores
 import matplotlib.pyplot as plt
-from selectivity import selectivity, default
+from .selectivity import selectivity, default
 
 Qs = [-1.,-3.]
 label = r"$Q = %.0f$"

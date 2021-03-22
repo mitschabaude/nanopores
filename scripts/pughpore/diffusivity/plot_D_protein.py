@@ -11,7 +11,7 @@ params = nanopores.user_params(dim=3, r=2.0779, h=1., Nmax=.5e6)
 functions = get_pugh_diffusivity_alt(**params)
 D = functions["D"]
 
-print D([0.,0.,0.])
+print(D([0.,0.,0.]))
 
 #D = dolfin.as_matrix(np.diag([D[i] for i in range(params.dim)]))
 plotter = Plotter()

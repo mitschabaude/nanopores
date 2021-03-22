@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 # (c) 2017 Gregor Mitscha-Baude
 # TODO: obtain rD from actual simulation
@@ -25,17 +25,17 @@ data.pop("b2")
 data, _ = fields._subset(data, data["ood"], lambda x: x==0)
 data, times = fields._sorted(data, data["t"])
 
-print "mean"
+print("mean")
 D = array(data["Dzavg"]).mean() * 1e-9
 F = -array(data["Fzavg"]).mean()
 v = D/kT * F # electrophoretic velocity
-print "D = ", D, "F = ", F, "v = ", v
+print("D = ", D, "F = ", F, "v = ", v)
 
-print "at x = (0,0,0)"
+print("at x = (0,0,0)")
 D = 6.8e-12
 F = 1.5e-11
 v = D/kT * F # electrophoretic velocity
-print "D = ", D, "F = ", F, "v = ", v
+print("D = ", D, "F = ", F, "v = ", v)
 
 def mean(lst):
     return sum(lst)/float(len(lst))
@@ -52,7 +52,7 @@ def maximum_likelihood(times, n=10):
     def fix(v):
         a = amean(v)
         factor = (sqrt((a-.5)**2  + T*Tinv*a*(1-a)) - (a-.5))/(1-a)
-        print a
+        print(a)
         #print factor
         return L/T * factor
 
@@ -61,15 +61,15 @@ def maximum_likelihood(times, n=10):
         v0 = v
         #print "i = %d: v = %s" % (i, v)
         v = fix(v)
-        print "i = %d: dv = %s" % (i, abs(v-v0))
+        print("i = %d: dv = %s" % (i, abs(v-v0)))
 
 
     D = v**2/2.*T - v*L + L**2/2.*Tinv
     return v, D
 
 v, D = maximum_likelihood(times)
-print "maximum likelihood"
-print "D = ", D, "F = ", v*kT/D, "v = ", v
+print("maximum likelihood")
+print("D = ", D, "F = ", v*kT/D, "v = ", v)
 
 # simple 1D model from Talaga2009
 def p(t, timescale=1.):
@@ -105,10 +105,10 @@ hist = plt.hist(times, bins=30, color="#aaaaff", linewidth=0.5,
 pt = pp(t, scale) * integrate_hist(hist) * scale
 plt.plot(t, pt, "-", color="g", linewidth=3, label="FPT model")
 plt.legend(loc="upper right", frameon=False)
-plt.xlabel(u"dwell time [µs]")
-plt.ylabel(u"rel. frequency")
+plt.xlabel("dwell time [µs]")
+plt.ylabel("rel. frequency")
 
-print "integral", integrate_hist(hist), "==", integrate(t, pt)
+print("integral", integrate_hist(hist), "==", integrate(t, pt))
 
 #plt.figure()
 #plt.hist(data["Fzavg"], bins=30, color="#aaaaff", linewidth=0.5)

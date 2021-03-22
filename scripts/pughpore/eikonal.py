@@ -14,7 +14,7 @@ def distance_boundary():
     h = up.h
     geo = pughpore.get_geo(h)
     y = distance_boundary_from_geo(geo)
-    print "Max distance:", y.vector().max()
+    print("Max distance:", y.vector().max())
 
     if not fields.exists("pugh_distance", h=h):
         fields.save_functions("pugh_distance", dict(h=h), y=y)
@@ -41,7 +41,7 @@ def distance_boundary_from_geo(geo):
     solver.solve()
 
     # Stabilized Eikonal equation
-    print "max cell size:", mesh.hmax()
+    print("max cell size:", mesh.hmax())
     eps = Constant(mesh.hmax()/25.)
     F = sqrt(inner(grad(y), grad(y)))*v*dx - f*v*dx + eps*inner(grad(y), grad(v))*dx
     # also works:

@@ -62,8 +62,8 @@ c0 = phys.bulkcon
 D = phys.DPore
 lscale = phys.lscale
 E0 = -lscale*bV/(2.*Rz)
-print "Diffusion constant in pore:",D
-print "Constant electric field:",E0
+print("Diffusion constant in pore:",D)
+print("Constant electric field:",E0)
 
 def cpPB(x):
     return c0*exp(-phi(x)/UT)

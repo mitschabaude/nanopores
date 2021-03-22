@@ -1,6 +1,6 @@
 import dolfin
 import nanopores
-import colormaps as cm
+from . import colormaps as cm
 import matplotlib
 import matplotlib.ticker
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
 
     # interpolate on regular mesh symmetric w.r.t. center axis
     mesh2D = nanopores.RectangleMesh([-rx-0.1,-ry-0.1], [rx+0.1,ry+0.1], Nx, Ny)
-    fields2 = nanopores.convert2D(mesh2D, *(fields.values()))
+    fields2 = nanopores.convert2D(mesh2D, *(list(fields.values())))
 
     # prepare polygon and copy to left half
     settings = dict(closed=True, facecolor="#eeeeee", linewidth=3.,
@@ -37,7 +37,7 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
         #maxvalue = 10**int(np.log10(maxvalue))
 
     for i, F in enumerate(fields2):
-        Fstr = fields.keys()[i]
+        Fstr = list(fields.keys())[i]
         fig, ax = plt.subplots(figsize=(5, 4.5), num=Fstr)
 
         # fill array with function values
@@ -78,8 +78,8 @@ def fmt(x, pos):
 
 if __name__ == "__main__":
     # do the plot with imported force field and polygon
-    from forcefield import F0, Fel0, Fdrag0, params, Howorka
-    print "parameters:", params
+    from .forcefield import F0, Fel0, Fdrag0, params, Howorka
+    print("parameters:", params)
 
     F, Fel, Fdrag = F0, Fel0, Fdrag0
     poly = Howorka.polygon()

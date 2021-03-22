@@ -19,7 +19,7 @@ ref = 6.08430894614e+14, #2.66339790473e+12
 adaptq = True,
 ratio = .01,
 )
-print PARAMS
+print(PARAMS)
 
 geo_params = dict(
 x0 = [0.,0.,z0],
@@ -92,7 +92,7 @@ PNPS.tolnewton = 1e-4
 PNPSAxisym.tolnewton = 1e-4
 
 # solve 2D
-print "\n---- SOLVE 2D PROBLEM ----"
+print("\n---- SOLVE 2D PROBLEM ----")
 pb2D = adaptive_pb(geo2D, phys2D, cyl=True, frac=.5, Nmax=Nmax2D,
     Fpbref=ref, cheapest=cheapest, ratio=ratio)
 mesh2D = geo2D.mesh
@@ -104,7 +104,7 @@ plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(r0, 0.))
 #plot1D({"phi (2D)": pb2D.solution}, (-Rz, Rz, 101), "y", dim=2, origin=(0., 0.))
 
 # solve 3D
-print "\n---- SOLVE 3D PROBLEM ----"
+print("\n---- SOLVE 3D PROBLEM ----")
 #pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax, 
 #    Felref=1.211487, Fdragref=-7.675373, Fpbref=6.523790e+14)
 
@@ -141,7 +141,7 @@ if minrr < 1e-3:
         oldcells.array()[:] = dgncells.array()
         plot(SubMesh(oldmesh, oldcells, 1))
 """
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 
 # 2D visualization
 phi = pb.functions["primal"]

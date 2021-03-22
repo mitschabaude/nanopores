@@ -50,7 +50,7 @@ def diffusivity(setup):
     stokes = nano.solve_pde(pnps.SimpleStokesProblem, geo=geo, cyl=cyl,
                             phys=phys, iterative=iterative, bcs=bcs)
     F = stokes.evaluate(phys.Fdrag)["Fdrag"]
-    print F
+    print(F)
 
     pi = phys.pi
     eta = phys.eta
@@ -58,14 +58,14 @@ def diffusivity(setup):
 
     gamma = abs(F[dim-1]/v0)
     gamma0 = 6.*pi*eta*r*1e-9
-    print "gamma (simulation):", gamma
-    print "gamma (stokes law):", gamma0
-    print
+    print("gamma (simulation):", gamma)
+    print("gamma (stokes law):", gamma0)
+    print()
     D = kT/gamma
     D0 = kT/gamma0
-    print "D (simulation):", D
-    print "D (stokes law):", D0
-    print "Reducing factor due to confinement:", D/D0
+    print("D (simulation):", D)
+    print("D (stokes law):", D0)
+    print("Reducing factor due to confinement:", D/D0)
     return D/D0
 
 def diffusivity_tensor(setup):
@@ -111,14 +111,14 @@ def diffusivity_tensor(setup):
     kT = phys.kT
 
     gamma0 = 6.*pi*eta*r*1e-9
-    print "gamma (simulation):\n", gamma
-    print "gamma (stokes law):", gamma0
-    print
+    print("gamma (simulation):\n", gamma)
+    print("gamma (stokes law):", gamma0)
+    print()
     D = kT*np.linalg.inv(gamma)
     D0 = kT/gamma0
-    print "D (simulation):\n", D
-    print "D (stokes law):", D0
-    print "Reducing factor due to confinement:\n", D/D0
+    print("D (simulation):\n", D)
+    print("D (stokes law):", D0)
+    print("Reducing factor due to confinement:\n", D/D0)
     return D/D0
 
 @solvers.cache_forcefield("pugh_diffusivity", default)
@@ -146,5 +146,5 @@ def calculate_diffusivity2D(X, **params):
 
 if __name__ == "__main__":
     up = nano.user_params(h=.1, H=8., R=4., Nmax=4e4)
-    print calculate_diffusivity2D([[0.,0.,0.]], cache=False, **up)
+    print(calculate_diffusivity2D([[0.,0.,0.]], cache=False, **up))
     #print calculate_diffusivity([[0.,0.,0.], [0.,0.,30.]], nproc=2)

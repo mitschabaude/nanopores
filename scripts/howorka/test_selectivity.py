@@ -13,7 +13,7 @@ nanopores.add_params(
 )
 
 # import force field, mesh etc.
-from forcefield import geo, phys, Fel, Fdrag, params
+from .forcefield import geo, phys, Fel, Fdrag, params
 
 # initial condition
 
@@ -30,7 +30,7 @@ u0 = geo.pwconst("c0", dict(bulkfluidtop = c0, default=0.))
 
 # total concentration
 ctot = dolfin.assemble(u0*dolfin.Expression("2*pi*x[0]")*geo.dx())
-print "Total concentration:", ctot, "molecules."
+print("Total concentration:", ctot, "molecules.")
 
 def convect(geo, phys, Fel, Fdrag, u0, t=1e-9, log=False):
     frac = 1./steps

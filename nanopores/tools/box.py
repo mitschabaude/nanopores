@@ -18,12 +18,13 @@ note: very naive implementation of union, suitable for a couple 100 boxes
 
 import sys
 import os
-from itertools import izip, product, combinations
+from itertools import product, combinations
 import nanopores.py4gmsh as py4gmsh
 import dolfin
+from functools import reduce
 
 def printnow(s):
-    print s,
+    print(s, end=' ')
     sys.stdout.flush()
 
 __all__ = ["BoxCollection", "Box", "Interval", "Log"]
@@ -88,7 +89,7 @@ class BoxCollection(object):
             odict = dict()
             for i in sub.indexset:
                 e = self.entities[d][i]
-                for f, o in izip(_facets(e), orients):
+                for f, o in zip(_facets(e), orients):
                     iface = self.entities[d-1].index(f)
                     #print odict
                     #print iset
@@ -132,7 +133,7 @@ class BoxCollection(object):
         facets = [self.entity_to_gmsh(f, dim-1, lc)
             for f in facets]
         orient = _orientations(dim-1)
-        loop = FacetLoop[dim-1]([o+s for o, s in izip(orient, facets)])
+        loop = FacetLoop[dim-1]([o+s for o, s in zip(orient, facets)])
         if gmshself:
             gmsh_e = Entity[dim](loop)
             self.gmsh_entities[dim][i] = gmsh_e
@@ -293,7 +294,7 @@ class BoxCollection(object):
                 return sub
 
     def addsubdomains(self, **subdomains):
-        for name, sub in subdomains.items():
+        for name, sub in list(subdomains.items()):
             self.addsubdomain(sub, name)
 
     def addboundary(self, sub, name):
@@ -314,7 +315,7 @@ class BoxCollection(object):
                 return sub
 
     def addboundaries(self, **boundaries):
-        for name, sub in boundaries.items():
+        for name, sub in list(boundaries.items()):
             self.addboundary(sub, name)
 
     def bdry(self):
@@ -397,7 +398,7 @@ class Box(BoxCollection):
         a, b = _sort(a, b)
         a = tuple(Float(x) for x in a)
         b = tuple(Float(x) for x in b)
-        self.intervals = zip(a, b)
+        self.intervals = list(zip(a, b))
         self.dim = len(a)
         self.a = a
         self.b = b
@@ -600,8 +601,8 @@ def intersection(seq):
     return reduce(lambda x, y: x & y, seq)
 
 def _sort(a, b):
-    a_ = tuple(map(min, izip(a,b)))
-    b_ = tuple(map(max, izip(a,b)))
+    a_ = tuple(map(min, zip(a,b)))
+    b_ = tuple(map(max, zip(a,b)))
     return a_, b_
 
 def _cmp(s, t, tol):
@@ -643,7 +644,7 @@ def multi_interval_union(intvs):
     # interval := tuple (a,b) with a <= b, a,b are Floats
     # in the case of a == b the interval will be ignored in the final output
     points = sorted(_unique([x for intv in intvs for x in intv]))
-    subs = zip(points[:-1], points[1:])
+    subs = list(zip(points[:-1], points[1:]))
     psets = [set() for i in points]
     ssets = [set() for i in subs]
     for i, intv in enumerate(intvs):
@@ -659,7 +660,7 @@ def multi_interval_union(intvs):
 def _map(f, seq):
     """ version of map() for function with multiple return values.
     instead of a list of tuples (like map), return a tuple of lists. """
-    return tuple(map(list, zip(*map(f, seq))))
+    return tuple(map(list, list(zip(*list(map(f, seq))))))
 
 def multi_box_union(boxes): #, facets=[]):
     " return union of boxes as collection of disjoint boxes "
@@ -672,10 +673,10 @@ def multi_box_union(boxes): #, facets=[]):
     assert all([dim == box.dim for box in boxes])
 
     # get list of disjoint intervals for every dimension
-    nodes, nsets, intvs, isets = _map(multi_interval_union, izip(*allboxes))
+    nodes, nsets, intvs, isets = _map(multi_interval_union, zip(*allboxes))
 
-    D = range(dim) # [0,...,dim-1]
-    D1 = range(dim+1) # [0,..,dim]
+    D = list(range(dim)) # [0,...,dim-1]
+    D1 = list(range(dim+1)) # [0,..,dim]
     entities = [[] for k in D1] # entity := d-tuple of tuples/floats <=> box
     esets = [[] for k in D1] # eset := {indices of the parent boxes of an entity}
     for box in allboxes:
@@ -689,7 +690,7 @@ def multi_box_union(boxes): #, facets=[]):
         for tup in combinations(D, k):
             k_entities = product(*[(intvs[i] if i in tup else nodes[i]) for i in D])
             k_esets1D = product(*[(isets[i] if i in tup else nsets[i]) for i in D])
-            for entity, eset1D in izip(k_entities, k_esets1D):
+            for entity, eset1D in zip(k_entities, k_esets1D):
                 eset = set.intersection(*eset1D)
                 if eset:
                     entities[k].append(entity)
@@ -785,7 +786,7 @@ def entities_to_gmsh(entities, indexsets, esets, lc=.5):
 
             # create facet loop with correct orientations
             #print facets
-            loop = FacetLoop[k-1]([o+s for o, s in izip(orient, facets)])
+            loop = FacetLoop[k-1]([o+s for o, s in zip(orient, facets)])
             #print
 
             # add entity
@@ -875,4 +876,4 @@ class Log(object):
         printnow(self.msg)
         dolfin.tic()
     def __exit__(self, *args):
-        print "%.2g s" %(dolfin.toc(),)
+        print("%.2g s" %(dolfin.toc(),))

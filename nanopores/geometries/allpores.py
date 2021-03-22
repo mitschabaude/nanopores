@@ -277,7 +277,7 @@ if __name__ == "__main__":
     lazy_import()
     params = any_params(geoname="wei", h=10.)
     geo = get_geo(**params)
-    print geo
+    print(geo)
     #print geo.mesh.coordinates()
     geo.plot_subdomains()
     geo.plot_boundaries(interactive=True)

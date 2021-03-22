@@ -137,8 +137,8 @@ def solve(setup, visualize=False):
     #v, cp, cm, u, p = pnps.solutions()
     #plotter.plot(cm, "cm", interactive=True)
 
-    print "Number of cells:", geo.mesh.num_cells()
-    print "DOFs:", pnps.dofs()
+    print("Number of cells:", geo.mesh.num_cells())
+    print("DOFs:", pnps.dofs())
     dolfin.tic()
     for i in pnps.fixedpoint(): #ipnp=6):
         if visualize:
@@ -151,7 +151,7 @@ def solve(setup, visualize=False):
             #dolfin.interactive()
             #nano.showplots()
             #plotter.plot_vector(u, "velocity")
-    print "CPU time (solve): %.3g s" %(dolfin.toc(),)
+    print("CPU time (solve): %.3g s" %(dolfin.toc(),))
     return pb, pnps
 
 def get_forces(setup, pnps):
@@ -182,7 +182,7 @@ def prerefine(setup, visualize=False, debug=False):
             u = pb.solution
             plotter.plot(u, "pb")
             #dolfin.interactive()
-    print "CPU time (PB): %.3g s" %(dolfin.toc(),)
+    print("CPU time (PB): %.3g s" %(dolfin.toc(),))
     return pb
 
 def set_D_from_data(phys, data):
@@ -344,7 +344,7 @@ if __name__ == "__main__":
         lcMolecule = 0.05,
     )
     #ddata = dict(name="Dalphahem", dim=2, Nmax=.4e5, h=1., ahemqsuniform=True, rMolecule=0.11)
-    print params
+    print(params)
     geop = dict(params)
     geop.pop("h")
     setup = Setup(geop=geop, **params)
@@ -353,15 +353,15 @@ if __name__ == "__main__":
     #visualize1D(geo, pnp)
     #nano.showplots()
 
-    print setup.geo.params
-    print setup.physp
-    print setup.solverp
+    print(setup.geo.params)
+    print(setup.physp)
+    print(setup.solverp)
     setup.geo.plot_subdomains()
     #exit()
     #print setup.phys.permittivity
     #dolfin.plot(setup.geo.pwconst("permittivity"), interactive=True)
     _, pnps = solve(setup, True)
-    print get_forces(setup, pnps)
+    print(get_forces(setup, pnps))
 
     plotter = Plotter(setup)
     v, cp, cm, u, p = pnps.solutions()

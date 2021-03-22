@@ -63,8 +63,8 @@ def save_fig_filter(params,fieldsname,i):
     amp=data["a"][i]
     ftime=np.min(np.where(sig_ff>1e-10))-1
     ampf=abs(np.sum(sig_ff[:ftime]))/float(ftime)/curr*100
-    print 'without filter: %.1f' %amp
-    print 'with    filter: %.1f' %ampf
+    print('without filter: %.1f' %amp)
+    print('with    filter: %.1f' %ampf)
     tau_off=float(ftime)
 
     plt.title('Current signal')

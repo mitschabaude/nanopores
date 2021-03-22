@@ -18,7 +18,7 @@ Ry = 8.,
 l0 = 9.,
 iterative = False,
 )
-print PARAMS
+print(PARAMS)
 
 geo_name = "H_geo"
 nm = 1e-9
@@ -43,8 +43,8 @@ geo = geo_from_name(geo_name, **geo_params)
 phys = Physics("pore", geo, **phys_params)
 
 plot(geo.boundaries)
-print "number of elements: ", geo.mesh.num_cells()
-print "number of vertices: ", geo.mesh.num_vertices()
+print("number of elements: ", geo.mesh.num_cells())
+print("number of vertices: ", geo.mesh.num_vertices())
 
 if geo.parameter("x0") is None:
     exec("from nanopores.geometries.%s.subdomains import synonymes" %geo_name)
@@ -58,18 +58,18 @@ else:
     ku = 2
     beta = .0
 
-print
-print "# solve with hybrid method"
+print()
+print("# solve with hybrid method")
 SimpleStokesProblem.method["reuse"] = False
 pnps = PNPSHybrid(geo, phys, cyl=True, beta=beta, damp=damp, ku=ku,
     inewton=1, ipicard=imax, tolnewton=tol, verbose=True, nverbose=True, iterative=iterative)
 t = Timer("solve")
 hybrid_solve(pnps)
-print "CPU time (solve): %s [s]" % (t.stop(),)
+print("CPU time (solve): %s [s]" % (t.stop(),))
 #pnps.visualize()
 
-print
-print "# solve with newton's method"
+print()
+print("# solve with newton's method")
 SimplePNPSProblem.method["iterative"] = iterative
 pnpsN = NonlinearPDE(geo, SimplePNPSProblem, phys=phys, cyl=True, beta=beta, ku=ku)
 pnpsN.imax = imax
@@ -77,7 +77,7 @@ pnpsN.newtondamp = damp
 pnpsN.tolnewton = tol
 t = Timer("solve")
 newton_solve(pnpsN)
-print "CPU time (solve): %s [s]" % (t.stop(),)
+print("CPU time (solve): %s [s]" % (t.stop(),))
 #pnps.visualize()
 
 v, cp, cm, u, p = pnps.solutions()

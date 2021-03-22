@@ -203,22 +203,22 @@ class PNPS(PDESystem):
 
     def solve(self, refinement=False, visualize=False, save_mesh=False, print_functionals=False):
         PNPSsc = 0  # solver calls to whole PNPS System
-        print "Number of cells:",self.geo.mesh.num_cells()
+        print("Number of cells:",self.geo.mesh.num_cells())
 
         if refinement and self.geo.mesh.num_cells() > self.maxcells:
-            print 'Initial mesh has more than maximal number of cells',  \
-                           ' \n  ==> no refinement \n'
+            print('Initial mesh has more than maximal number of cells',  \
+                           ' \n  ==> no refinement \n')
             refinement = False
         tt = 0
 
         for i in range(self.imax):
-            print '\n- Loop ' +str(i+1) + ' of max.', self.imax
+            print('\n- Loop ' +str(i+1) + ' of max.', self.imax)
             timer = Timer('Solving step '+str(i+1))
 
             if refinement:
                 newton_iter = self.newton_solve()
                 tt0 = timer.stop()
-                print "Newton iterations:", newton_iter
+                print("Newton iterations:", newton_iter)
 
             else:
                 #if self.solvers["Stokes"].problem.method["iterative"]==True and  \
@@ -229,7 +229,7 @@ class PNPS(PDESystem):
                     self.single_solve()
                     PNPSsc = PNPSsc + 1
 
-                print "Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
+                print("Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf'))
                 #plot(self.functions["Stokes"].sub(0))
 
                 tt0 = timer.stop()
@@ -240,9 +240,9 @@ class PNPS(PDESystem):
                 #self.save_estimate("fixedpoint", norm(self.solvers["PNP"].problem.u, "H10"), N=i)
                 # make sure there are at least two solver call to the PNPS system
                 if self.solvers["PNP"].convergence(self.tolnewton) and PNPSsc>1:
-                    print 'linf Norm of Newton update:', \
+                    print('linf Norm of Newton update:', \
                         norm(self.solvers["PNP"].problem.u.vector(),'linf'), \
-                        '<=', self.tolnewton ,' \n  ==> break loop \n'
+                        '<=', self.tolnewton ,' \n  ==> break loop \n')
                     break
 
             #print 'Relative l2 Newton error:',\
@@ -263,18 +263,18 @@ class PNPS(PDESystem):
 
             if refinement:
                 (ind,err) = self.estimate()
-                print "Relative error estimate (H1):",err
+                print("Relative error estimate (H1):",err)
                 self.save_estimate("h1", err)
                 refined = self.refine(ind)
                 if not refined:
                     tt0 = timer.stop()
-                    print "Loop timing:",tt0
-                    print 'Maximal number of cells reached',  \
-                           ' \n  ==> no more refinement \n'
+                    print("Loop timing:",tt0)
+                    print('Maximal number of cells reached',  \
+                           ' \n  ==> no more refinement \n')
                     break
-                print "New total number of cells:",self.geo.mesh.num_cells()
+                print("New total number of cells:",self.geo.mesh.num_cells())
 
-            print "Loop timing:",tt0
+            print("Loop timing:",tt0)
         return i+1
 
     def estimate(self):
@@ -288,7 +288,7 @@ class PNPS(PDESystem):
         for i in range(self.imax):
             #self.visualize()
             self.single_solve()
-            print "   Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf')
+            print("   Newton max error:", norm(self.solvers["PNP"].problem.u.vector(),'linf'))
             #print "Newton L2 Error:", self.solvers["PNP"].relerror()
             #plot(self.functions["Stokes"].sub(0))
             if self.solvers["PNP"].convergence(tol):
@@ -351,9 +351,9 @@ class PNPS(PDESystem):
             J = Jdir[Jstr]
             if isinstance(J,list):
                 for ii in range(len(J)):
-                    print ("%s[%i]: " %(Jstr,ii)) + str(J[ii].evaluate())
+                    print(("%s[%i]: " %(Jstr,ii)) + str(J[ii].evaluate()))
             else:
-                print ("%s: " %Jstr) + str(J.evaluate())
+                print(("%s: " %Jstr) + str(J.evaluate()))
 
     def print_results(self):
         self.print_functionals()
@@ -423,19 +423,19 @@ class PNPS(PDESystem):
         self.__init__(self.geo)
 
         # TODO: is this 'hack' acceptable?
-        newfunctions = {s:functions[s] for s,S in self.solvers.items()
+        newfunctions = {s:functions[s] for s,S in list(self.solvers.items())
                              if isinstance(S, IllposedNonlinearSolver)}
         oldfs = tuple(self.functions.values())
         self.functions.update(newfunctions)
         newfs = tuple(self.functions.values())
 
-        for s,S in self.solvers.items():
+        for s,S in list(self.solvers.items()):
             if isinstance(S, IllposedNonlinearSolver):
                 # ugly
                 S.problem.uold = self.functions[s]
             S.replace(oldfs,newfs)
 
-        for Jstr,J in self.functionals.items():
+        for Jstr,J in list(self.functionals.items()):
             J.replace(oldfs,newfs)
             J.values = functionals[Jstr].values
 
@@ -739,7 +739,7 @@ class LinearPB(LinearPDE):
 
     def estimate(self):
         c0 = self.geo.physics.bulkcon
-        u = self.functions.values()[0]
+        u = list(self.functions.values())[0]
         chi = self.geo.pwconst("ions", value={"ions":1.,"solid":0.})
         UT = self.geo.physics.UT
         f = Constant(-cFarad*2*c0/UT)*u*chi

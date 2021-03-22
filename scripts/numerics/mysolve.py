@@ -28,7 +28,7 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     z = phys.dim - 1
     
     bV = phys.bV
-    print "biased voltage:", bV
+    print("biased voltage:", bV)
     phys.bV = 0.
     goal = lambda v : phys.Fbare(v, z) # phys.Fbaresurf(v, z) # + 
     pb = LinearPB(geo, phys, goal=goal, ref=Fpbref)
@@ -41,14 +41,14 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
     refined = True
     i = 0
     
-    print "Number of cells:", pb.geo.mesh.num_cells()
+    print("Number of cells:", pb.geo.mesh.num_cells())
         
     while refined:
         i += 1
         if phys.dim == 3:
-            print "\nAssessing mesh quality."
+            print("\nAssessing mesh quality.")
             mesh_quality(pb.geo.mesh, ratio=ratio, geo=pb.geo, plothist=False)
-        print "\nSolving PB."
+        print("\nSolving PB.")
         # solve pb
         pb.single_solve()
         pb.print_functionals()
@@ -67,16 +67,16 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             for S in pnps.solvers.values():
                 S.replace(functions,functions)
         '''
-        print "Defining PNPS with Taylor-Hood elements."
+        print("Defining PNPS with Taylor-Hood elements.")
         pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=True)
 
-        print "\nSolving PNPS."
+        print("\nSolving PNPS.")
         dofs = pnps.dofs()
-        print "  Degrees of freedom: %d" % dofs
+        print("  Degrees of freedom: %d" % dofs)
         pnps.solve()
         #newton_iter = pnps.newton_solve()
         #print "  Newton iterations:", newton_iter
-        print
+        print()
         #if phys.dim == 3:
         #    pnps.visualize("pore")
 #        fs = pnps.get_functionals()
@@ -85,9 +85,9 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
 #        Fdrag = Fp + Fshear
 #        Fel = fs["Fbarevol%d" %z]
         F, Fel, Fdrag = pnps.zforces()
-        print "Fbare [pN]:", Fel
-        print "Fdrag [pN]:", Fdrag #, " = %s (Fp) + %s (Fshear)" %(Fp, Fshear)
-        print "F     [pN]:", F
+        print("Fbare [pN]:", Fel)
+        print("Fdrag [pN]:", Fdrag) #, " = %s (Fp) + %s (Fshear)" %(Fp, Fshear)
+        print("F     [pN]:", F)
         if Felref is not None:
             pb.save_estimate("Fdrag", abs((Fdrag-Fdragref)/Fdragref), N=dofs)
             pb.save_estimate("Fel", abs((Fel-Felref)/Felref), N=dofs)
@@ -95,14 +95,14 @@ def adaptive_pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, mesh2D=None, cheap
             Fref = Felref + Fdragref
             pb.save_estimate("F", abs((F-Fref)/Fref), N=dofs)
         
-        print "\nAdaptive refinement."
+        print("\nAdaptive refinement.")
         (ind, err) = pb.estimate()
         pb.save_estimate("Fpb est", err, N=dofs)
         refined = pb.refine(ind)
         if not refined:
-            print "Maximal number of cells reached."
+            print("Maximal number of cells reached.")
         else:
-            print "New total number of cells:", pb.geo.mesh.num_cells()
+            print("New total number of cells:", pb.geo.mesh.num_cells())
 
     return pb, pnps
     
@@ -123,13 +123,13 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
     refined = True
     i = 0
     
-    print "Number of cells:", pb.geo.mesh.num_cells()
+    print("Number of cells:", pb.geo.mesh.num_cells())
     while refined:
         i += 1
         if phys.dim == 3:
-            print "\nAssessing mesh quality."
+            print("\nAssessing mesh quality.")
             mesh_quality(pb.geo.mesh, ratio=ratio, geo=pb.geo, plothist=False)
-        print "\nSolving PB."
+        print("\nSolving PB.")
         # solve pb
         pb.single_solve()
         pb.print_functionals(name="Fbare")
@@ -148,14 +148,14 @@ def adaptive_pb(geo, phys, cyl=False, frac=0.5, Nmax=1e4, Fpbref=None,
                 origin=(r0, 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
             #     origin=(0., 0., 0.), axlabels=("z [nm]", "potential [V]"), newfig=False)
         
-        print "\nError estimation."
+        print("\nError estimation.")
         (ind, err) = pb.estimate()
-        print "\nMesh refinement."
+        print("\nMesh refinement.")
         refined = pb.refine(ind)
         if not refined:
-            print "Maximal number of cells reached."
+            print("Maximal number of cells reached.")
         else:
-            print "New total number of cells:", pb.geo.mesh.num_cells()
+            print("New total number of cells:", pb.geo.mesh.num_cells())
     return pb
     
 def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
@@ -174,32 +174,32 @@ def pbpnps(geo, phys, cyl=False, frac=0.5, Nmax=1e4, cheapest=False):
     refined = True
     i = 0
     
-    print "Number of cells:", pb.geo.mesh.num_cells()
+    print("Number of cells:", pb.geo.mesh.num_cells())
     while refined:
         i += 1
-        print "\nSolving PB."
+        print("\nSolving PB.")
         pb.single_solve()
-        print "\nError estimation."
+        print("\nError estimation.")
         (ind, err) = pb.estimate()
-        print "\nMesh refinement."
+        print("\nMesh refinement.")
         refined = pb.refine(ind)
         if not refined:
-            print "Maximal number of cells reached."
+            print("Maximal number of cells reached.")
         else:
-            print "New total number of cells:", pb.geo.mesh.num_cells()
+            print("New total number of cells:", pb.geo.mesh.num_cells())
             
     pnps = PNPStokes(pb.geo, phys, v0=pb.solution, taylorhood=True)
-    print "\nSolving PNPS."
+    print("\nSolving PNPS.")
     dofs = pnps.dofs()
-    print "  Degrees of freedom: %d" % dofs
+    print("  Degrees of freedom: %d" % dofs)
     newton_iter = pnps.newton_solve()
-    print "  Newton iterations:", newton_iter
+    print("  Newton iterations:", newton_iter)
     return pb, pnps
 
 def newton_solve(self, tol=None, damp=None, verbose=True):
     if tol is None: tol = self.tolnewton
     if damp is None: damp = self.newtondamp
-    S = self.solvers.values()[0]    
+    S = list(self.solvers.values())[0]    
     S.newtondamp = damp
     tcum = 0.
     Uold = self.solutions(deepcopy=True)
@@ -208,10 +208,10 @@ def newton_solve(self, tol=None, damp=None, verbose=True):
         tloop = Timer("loop")
         S.solve()
         if verbose:
-            print '     Relative L2 Newton error:',S.relerror()
+            print('     Relative L2 Newton error:',S.relerror())
         if S.convergence(tol):
             if verbose:
-                print "     Break loop because tolerance %s was reached." %tol
+                print("     Break loop because tolerance %s was reached." %tol)
             converged = True
             break
         # cumulative time 
@@ -224,9 +224,9 @@ def newton_solve(self, tol=None, damp=None, verbose=True):
         self.save_estimate("err newton time", err, N=tcum)
         continue
     else:
-        if verbose: print "     Did not reach tolerance %s." %tol
+        if verbose: print("     Did not reach tolerance %s." %tol)
         converged = False
-    print "     Newton iterations:",i+1
+    print("     Newton iterations:",i+1)
         #print '     Relative L2 Newton error:',S.relerror()
     return i+1, converged
     
@@ -241,9 +241,9 @@ def hybrid_solve(self, tol=None, damp=None):
 
             
 def geo_debug(geo):
-    print "Boundaries:"
+    print("Boundaries:")
     for i in geo._bou2phys:
-        print "%d: %s" %(i, str(geo._bou2phys[i]))
+        print("%d: %s" %(i, str(geo._bou2phys[i])))
         
     for subd in geo._physical_domain:
         submesh = geo.submesh(subd)
@@ -263,9 +263,9 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1, geo=None, plothist=True, plot_c
             dgncells[c] = 1
             ndeg += 1
     
-    print "%s degenerate cells of radius ratio < %s." % (ndeg, ratio)            
+    print("%s degenerate cells of radius ratio < %s." % (ndeg, ratio))            
     minrr = MeshQuality.radius_ratio_min_max(mesh)[0]
-    print "Minimal radius ratio of mesh:", minrr
+    print("Minimal radius ratio of mesh:", minrr)
     if plothist:
         from matplotlib import pyplot
         pyplot.figure()
@@ -306,7 +306,7 @@ def load_Fref():
     return load_dict(".", "Fref")
     
 def save_estimators(name, estimators):
-    save_stuff(name, {key: est.__dict__  for key, est in estimators.items()})
+    save_stuff(name, {key: est.__dict__  for key, est in list(estimators.items())})
 
 def load_estimators(name):
     def to_estimator(dic):

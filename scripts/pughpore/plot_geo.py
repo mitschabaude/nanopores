@@ -45,9 +45,9 @@ solid.addboundaries(
     dnalowerb = domain.getboundary("dnalowerb"),
     memb = domain.getboundary("memb"),
 )
-print "COMPUTING SOLID"
+print("COMPUTING SOLID")
 solidgeo = solid.create_geometry(lc=up.h)
-print solidgeo
+print(solidgeo)
 
 from nanopores.dirnames import DROPBOX
 file1 = dolfin.File(DROPBOX + "/geo_pugh.pvd")

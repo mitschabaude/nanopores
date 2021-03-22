@@ -108,8 +108,8 @@ if __name__ == "__main__":
         dolfin.interactive()
 
     if solve:
-        print "TRYING TO SOLVE"
+        print("TRYING TO SOLVE")
         ddata = dict(params, name="Dalphahem")
         setup = nanopore.Setup(diffusivity_data=ddata, **params)
         _, pnps = nanopore.solve(setup, True)
-        print nanopore.get_forces(setup, pnps)
+        print(nanopore.get_forces(setup, pnps))

@@ -201,7 +201,7 @@ class PNPSAxisym(PNPS):
         Jdir = self.functionals
         for Jstr in sorted(self.functionals):
             J = Jdir[Jstr]
-            print ("%s: " %Jstr) + str(J.evaluate())
+            print(("%s: " %Jstr) + str(J.evaluate()))
 
     def print_results(self, names=None):
         if not names:
@@ -413,7 +413,7 @@ class PoissonAxisym(LinearPDE):
     def __init__(self, geo, phys):
         LinearPDE.__init__(self, geo, PoissonProblemAxisym, phys=phys)
     def estimate(self):
-        return poisson_indicator(self.geo, self.functions.values()[0], cyl=True)
+        return poisson_indicator(self.geo, list(self.functions.values())[0], cyl=True)
 
 class LinearPBProblemAxisym(PoissonProblem):
 
@@ -443,7 +443,7 @@ class LinearPBAxisym(LinearPDE):
         LinearPDE.__init__(self, geo, LinearPBProblemAxisym, phys=phys)
 
     def estimate(self):
-        u = self.functions.values()[0]
+        u = list(self.functions.values())[0]
         ind,err = pb_indicator(self.geo, self.geo.physics, u, cyl=True)
         self.save_estimate("err", err)
         return ind, err

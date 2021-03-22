@@ -60,8 +60,8 @@ def function_from_lambda(f):
     return function_from_values(values)
 
 if __name__ == "__main__":
-    print "params:", params
-    print geo
+    print("params:", params)
+    print(geo)
     dolfin.plot(F)
     dolfin.plot(mesh)
     dolfin.interactive()

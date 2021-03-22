@@ -80,7 +80,7 @@ if fac==1.:
         plt1.add_patch(matplotlib.patches.Rectangle((avgbind2*10**(-k),0.),avgbind2*(10**(k)-10**(-k)),maxperc,facecolor=cmap(.4),alpha=.15))
     plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15,x=.76)
 else:
-    plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15,x=.76)
+    plt1.set_xlabel(r'$\tau_{off}$ [µs]',fontsize=15,x=.76)
 plt2=plt.subplot(gs[1,1])
 for k in range(lendata):
     if ood[k]==0:

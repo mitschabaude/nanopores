@@ -9,6 +9,7 @@ import nanopores.py4gmsh.basic
 import nanopores.py4gmsh.extra
 from nanopores.py4gmsh import *
 from warnings import warn
+import importlib
 
 def get_geo(**params):
     """
@@ -24,8 +25,8 @@ def get_geo(**params):
     |________|
 
     """
-    reload(nanopores.py4gmsh.basic)
-    reload(nanopores.py4gmsh.extra)
+    importlib.reload(nanopores.py4gmsh.basic)
+    importlib.reload(nanopores.py4gmsh.extra)
 
     # characteristic length / mesh size h updated from params_geo
     globals().update(params)
@@ -59,7 +60,7 @@ def get_geo(**params):
     insert_ind = 0
 
     Comment(' integrate crosssectional lines in fluid surface ')
-    z_CrossS = [X_Fluid_ctr[k][1] for k in reversed(range(len(X_Fluid_ctr)))]
+    z_CrossS = [X_Fluid_ctr[k][1] for k in reversed(list(range(len(X_Fluid_ctr))))]
     e_CrossS = [Line(p_Fluid[9], p_DNA[0])]
     e_CrossS.extend([Line(p_Fluid[k], p_DNA[k-1]) for k in range(8,5,-1)])
 
@@ -171,5 +172,5 @@ def get_geo(**params):
 
 # -----
 if __name__ == '__main__':
-    print(get_geo())
+    print((get_geo()))
     print('\n - This is the sample code for the geo file')

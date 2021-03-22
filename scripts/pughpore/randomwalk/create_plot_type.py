@@ -89,7 +89,7 @@ def save_fig_type(params,fieldsname):
 #            plt1.add_patch(matplotlib.patches.Rectangle((0.01,0.),0.99,maxperc,facecolor=cmap(.4),alpha=.15))
         plt1.set_xlabel(r'$\tau_{off}$ [ms]',fontsize=15)#,x=.76)
     else:
-        plt1.set_xlabel(ur'$\tau_{off}$ [µs]',fontsize=15)#,x=.76)
+        plt1.set_xlabel(r'$\tau_{off}$ [µs]',fontsize=15)#,x=.76)
     if plotlin:
         plt2=plt.subplot(gs[1,1])
         for k in range(lendata):
@@ -122,7 +122,7 @@ def save_fig_type(params,fieldsname):
         plt4.axes.get_yaxis().set_visible(False)
     else:
         plt4=plt.subplot(gs[0,0])
-        n, bins, patches = plt4.hist(map(lambda x: math.log10(x),np.array(t)),25,normed=1,color=color1,alpha=.5,align='mid')
+        n, bins, patches = plt4.hist([math.log10(x) for x in np.array(t)],25,normed=1,color=color1,alpha=.5,align='mid')
         plt4.set_xlim([math.log10(.2*min(t)),math.log10(max(t)*5.)])
         plt4.axes.get_xaxis().set_visible(False)
         plt4.axes.get_yaxis().set_visible(False)
@@ -130,5 +130,5 @@ def save_fig_type(params,fieldsname):
     plt.legend([type1,type0],['successful translocation','did not translocate'],scatterpoints=4,loc=(.6,0.50))
     plt.tight_layout()
     nano.savefigs(name=figname,DIR='/home/bstadlbau/plots/',pdf=True)
-    print 'savefig:'
-    print figname
+    print('savefig:')
+    print(figname)

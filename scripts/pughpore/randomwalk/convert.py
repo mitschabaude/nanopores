@@ -12,11 +12,11 @@ new=['events3_onlyone_%i_new' %i for i in [1,2,3,4,5]]
 hpore=46.
 params=dict(avgbind1=2e7,avgbind2=3e4,P_bind1=8.e-2,P_bind2=0*3e-1,z0=hpore/2.+0.)
 for i in range(5):
-    print i
+    print(i)
     data=fields.get_fields(old[i],**params)
     for k in range(len(data["X"])):
         if k%10==0:
-            print k
+            print(k)
         saveX=[np.array(data["X"][k])]
         saveY=[np.array(data["Y"][k])]
         saveZ=[np.array(data["Z"][k])]

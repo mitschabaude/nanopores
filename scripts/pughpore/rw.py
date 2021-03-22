@@ -167,7 +167,7 @@ def NLS2(ti, yi, t10=1., t20=100., w0=0.5, tol=1e-14):
     theta = np.array([w0, np.log(t10), np.log(t20)])
     dftheta = df(theta, xi, yi)
     while np.linalg.norm(dftheta) > tol:
-        print "|(grad f)(theta)|", np.linalg.norm(dftheta)
+        print("|(grad f)(theta)|", np.linalg.norm(dftheta))
         theta -= np.linalg.solve(Jf(theta, xi, yi), dftheta)
         dftheta = df(theta, xi, yi)
         
@@ -192,7 +192,7 @@ def NLS_general(F, xi, yi, p0=1., tol=1e-12):
     p = np.array(p0)
     dfp = df(p, xi, yi)
     while np.linalg.norm(dfp) > tol:
-        print "|grad f|", np.linalg.norm(dfp)
+        print("|grad f|", np.linalg.norm(dfp))
         p -= np.linalg.solve(Jf(p, xi, yi), dfp)
         dfp = df(p, xi, yi)
         
@@ -210,8 +210,8 @@ def NLS_bruteforce(F, xi, yi, p, width=1., N=100):
     
     f = np.sum((F(xi[None, :], pp) - yi)**2, 1)
     i = np.argmin(f)
-    print "minimum:", f[i]
-    print "parameters:", pp[i, :]
+    print("minimum:", f[i])
+    print("parameters:", pp[i, :])
     return tuple(pp[i, :])
 
 def NLS_annealing(F, xi, yi, p, N=100, n=10, sigma=5.,factor=0.5):
@@ -219,7 +219,7 @@ def NLS_annealing(F, xi, yi, p, N=100, n=10, sigma=5.,factor=0.5):
     # n = number of iterations
     # sigma = initial (multiplicative) standard deviation
     # factor = factor to reduce sigma per iteration
-    print "initial", p
+    print("initial", p)
     p = np.atleast_1d(p)
     dim = len(p)
     # make initial sigma act like multiplication by sigma^(+-1)
@@ -234,8 +234,8 @@ def NLS_annealing(F, xi, yi, p, N=100, n=10, sigma=5.,factor=0.5):
         p = P[np.argmin(f), :]
         # update sigma
         sigma *= factor
-        print "parameters:", p
-    print "minimum", min(f)
+        print("parameters:", p)
+    print("minimum", min(f))
         
     return tuple(p)
         
@@ -524,7 +524,7 @@ if todo.fit_experiments:
     plt.xlabel(r"$\tau$ off [ms]")
     plt.legend(frameon=False)
     
-    print "CDF fit:", T2
+    print("CDF fit:", T2)
     
     #T.fit(tsample, method="pdf", log=True, sigma=2., factor=0.9, n_it=50)
     #T2.fit(tsample, method="cdf", log=True, sigma=2., factor=0.9, n_it=50)
@@ -598,7 +598,7 @@ if todo.fit_long:
     plt.xlabel(r"$\tau$ off [ms]")
     plt.legend(frameon=False)
     
-    print "CDF fit:", T
+    print("CDF fit:", T)
     
     plt.figure("data_long_fit_pdf", figsize=(4, 3))
     plt.bar(tc, epdf, 0.8*np.diff(t1), alpha=0.5, label="Experiment (> 2ms)")
@@ -652,7 +652,7 @@ if todo.fit_long_gamma:
     ka = [1e6,1e7, 1e8, 1e9]
     kastr = [r"$10^{%d}$" % (np.round(np.log10(ka_)),) for ka_ in ka]
     kaformat = r"$k_a$ = %s/Ms"
-    I = range(len(ka))
+    I = list(range(len(ka)))
     rvalues = ["66", "99", "cc", "ff"]
     linestyles = ["-.", "--", ":", "-"]
     colors = ["#%s0000" % r_ for r_ in rvalues]
@@ -679,9 +679,9 @@ if todo.fit_long_gamma:
         error.append(err)
     
     for ka_, err in zip(T1, error):
-        print T1[ka_].X.K.a.sample(10000).mean(),
-        print ("%.4g" % ka_),
-        print err
+        print(T1[ka_].X.K.a.sample(10000).mean(), end=' ')
+        print(("%.4g" % ka_), end=' ')
+        print(err)
     
     t = np.logspace(-0.2, 2.3, 18)
     tt = np.logspace(-0.2, 2.3, 100)
@@ -710,7 +710,7 @@ if todo.fit_long_gamma:
     plt.legend(loc="upper left", frameon=False)
     
     
-    print "CDF fit:", T
+    print("CDF fit:", T)
     
     plt.figure("data_long_gammafit_pdf", figsize=(4, 3))
     #########
@@ -762,7 +762,7 @@ if todo.fit_gamma:
     kastr = [r"$10^{%d}$" % (np.round(np.log10(ka_)),) for ka_ in ka]
     #kastr = ["$10^6$", "$10^8$", "$10^9$", "$10^{10}$"]
     kaformat = r"$k_a$ = %s/Ms"
-    I = range(len(ka))
+    I = list(range(len(ka)))
     rvalues = ["66", "99", "cc", "ff"]*4
     linestyles = ["-.", "--", ":", "-"]*4
     colors = ["#%s0000" % r_ for r_ in rvalues]
@@ -839,7 +839,7 @@ if todo.fit_gamma:
     plt.legend(loc="lower right", frameon=False)
     
     
-    print "CDF fit:", T
+    print("CDF fit:", T)
     
     plt.figure("data_gammafit_pdf", figsize=(4, 3))
     #########

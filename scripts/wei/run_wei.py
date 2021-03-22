@@ -107,8 +107,8 @@ if print_calculations:
     cmol = c * 1e3 * phys.mol # concentration [1/m**3]
     ckon = c*kon
     
-    print "Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon)
-    print "Number of bindings per second: %.1f (inverse of mean tau_on)" % ckon # 3.8
+    print(("Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon)))
+    print(("Number of bindings per second: %.1f (inverse of mean tau_on)" % ckon)) # 3.8
     
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * params.rMolecule * 1e-9) # [m**2/s]
@@ -116,8 +116,8 @@ if print_calculations:
     karr = 2.*phys.pi * r * D * cmol # arrival rate [1/s]
     b = c * kon / karr # bindings per event [1]
     
-    print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
-    print "=> number of bindings per event: %.1f / %.1f = %.5f" % (ckon, karr, b)
+    print(("Number of events per second: %.1f (from Smoluchowski rate equation)" % karr))
+    print(("=> number of bindings per event: %.1f / %.1f = %.5f" % (ckon, karr, b)))
     # (= 1 - exp(-a*p) = prob of binding at least once)
     
     cb = 0.01 # receptor concentration in binding zone [M]
@@ -126,10 +126,10 @@ if print_calculations:
     ka_ = b / (cb * ta_) # implied free-solution association rate constant
     # = kon [1/Ms] * (c * V / ta) [1/s] * (1/karr) [s]
     
-    print "Free solution association rate constant ka, inferred from tau on + simulations: %.4g" % ka_
+    print(("Free solution association rate constant ka, inferred from tau on + simulations: %.4g" % ka_))
     # = 3.362e08 1/Ms
-    print "Simple uncorrected association rate constant in pore, from tau on: %.4g" % kon
-    print "Relative correction thanks to simulation: %.1f%%" % (ka_/kon * 100,)
+    print(("Simple uncorrected association rate constant in pore, from tau on: %.4g" % kon))
+    print(("Relative correction thanks to simulation: %.1f%%" % (ka_/kon * 100,)))
     # solve b = 1 - exp(-ap); p = -log(1 - b)/a
     # a = 0.305
     # ap = -np.log(1 - b)
@@ -147,7 +147,7 @@ def setup_rw(params):
     zrec = rw.zbot + rrec + (rw.ztop - rw.zbot - 2.*rrec)*params["zreceptor"]
     xrec = pore.radius_at(zrec) - distrec
     posrec = [xrec, 0., zrec]
-    print "Receptor position: %s" % posrec
+    print(("Receptor position: %s" % posrec))
     receptor = randomwalk.Ball(posrec, rrec) # ztop 46.5
     rw.add_domain(receptor, **receptor_params(params))
     return rw
@@ -162,7 +162,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     self = rw.domains[1]
     N = int(N)
     ka = self.kbind
-    print "multiplying attempt times with Ra = %.3g" % (self.kbind,)
+    print(("multiplying attempt times with Ra = %.3g" % (self.kbind,)))
     # draw indices of existing random walks
     I = np.random.randint(rw.N, size=(N,))
     times = (1e-9*rw.times)[I]
@@ -175,7 +175,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     n = min(n0, nmax)
     N_ = ibind[n]
     ibind = ibind[:n]
-    print "%d binding events drawn, %s used, total events used %s." % (n0, n, N_)
+    print(("%d binding events drawn, %s used, total events used %s." % (n0, n, N_)))
     I = I[:N_]
     times = times[:N_]
     bindings = bindings[:N_]
@@ -185,7 +185,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     dx = 1e-9*self.dx
     kT = rw.phys.kT
     t = self.t * np.exp(-F*dx/kT)
-    print "dwell time reduction by force:", np.mean(t)/self.t
+    print(("dwell time reduction by force:", np.mean(t)/self.t))
     bind_times = 1e-9*np.random.gamma(bindings[ibind], scale=t)
     times[ibind] += bind_times
     
@@ -236,7 +236,7 @@ def tauoff_wei():
         sample = a*(b/a)**(np.random.rand(counts[i]))
         fake = np.append(fake, sample)
         
-    print len(fake), "events loaded from experimental data."
+    print((len(fake), "events loaded from experimental data."))
     return fake
 
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
@@ -390,7 +390,7 @@ if plot_cdf:
         lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i])
         plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color(),
                      label="%d mV" % (1000*abs(v)))
-        print "koff", data.koff
+        print(("koff", data.koff))
     plt.xlim(1e-4, 1e1)
     plt.xlabel(r"$\tau$ off [s]")
     plt.ylabel("Cumulative probability")
@@ -413,7 +413,7 @@ if fit_koff0:
     kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
     ko = np.array([1e3*koff0(k*1e-3, NN=5e8, nmax=10000) for k in kd])
     c = ko.mean()/kd.mean()
-    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*5.5)*nanopores.kT)
+    print(("F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*5.5)*nanopores.kT)))
     # F0 = 0.184 pN
     plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
     plt.plot(kd, ko, "oC1", label="Simulations")
@@ -480,7 +480,7 @@ if voltage_dependence:
     plt.yscale("log")
     #plt.xlabel("Voltage [mV]")
     #plt.ylabel("k off [1/s]")
-    plt.ylabel(ur"$\log(k_\mathrm{off})$")
+    plt.ylabel(r"$\log(k_\mathrm{off})$")
     plt.xlabel("Voltage")
 
     plt.tick_params(
@@ -531,7 +531,7 @@ if determine_delta:
     cdxtest_sim = coeff.mean()
     
     dx0 = cdx_exp / (cdxtest_sim / dxtest)
-    print "inferred dx:", dx0
+    print(("inferred dx:", dx0))
     
     dxs = [2., 3., 4., 5., 5.5, 6., 7., 8., 9.]
     cdx = []

@@ -8,7 +8,7 @@ from math import sqrt, acos, sin
 #z = np.load('exit_z.npy')
 time = np.load('timer.npy')
 counter = np.load('counter.npy')
-print float(counter[0])/np.sum(counter)
+print(float(counter[0])/np.sum(counter))
 
 maxtime=5e6
 fineness = 1e4

@@ -25,7 +25,7 @@ class DraggableRectangle:
         if DraggableRectangle.lock is not None: return
         contains, attrd = self.rect.contains(event)
         if not contains: return
-        print('event contains', self.rect.center)
+        print(('event contains', self.rect.center))
         x0, y0 = self.rect.center
         self.press = x0, y0, event.xdata, event.ydata
         DraggableRectangle.lock = self

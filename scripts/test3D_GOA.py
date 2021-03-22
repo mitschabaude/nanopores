@@ -70,8 +70,8 @@ if geo_params["x0"] is None:
     geo.import_synonymes({"moleculeb":set()})
     geo.import_synonymes(synonymes)
 
-print "CPU Time (mesh generation):",t.stop()
-print "hmin:", geo.mesh.hmin()
+print("CPU Time (mesh generation):",t.stop())
+print("hmin:", geo.mesh.hmin())
 
 IllposedNonlinearSolver.newtondamp = 1.
 #IllposedLinearSolver.stab = 1e12
@@ -112,7 +112,7 @@ pb0.solve(refinement=True)
 
 geo = pb0.geo
 phys = Physics("pore_molecule", geo, **phys_params)
-print phys.charge
+print(phys.charge)
 
 goal = (lambda v : phys.Fbare(v, 2) + phys.CurrentPB(v)) if geo.parameter("x0") else (lambda v : phys.CurrentPB(v))
 pb = LinearPBGoalOriented(geo, phys, goal=goal)
@@ -120,7 +120,7 @@ pb.maxcells = 50e4
 pb.marking_fraction = 0.25
 pb.solve(refinement=True)
 
-print "CPU Time (PB with adaptivity):",t.stop()
+print("CPU Time (PB with adaptivity):",t.stop())
 try:
     pb.estimators["err"].plot(rate=-2./3.)
 except: pass
@@ -135,7 +135,7 @@ pnps = PNPS(geo, phys, v0=v0)
 #pnps = PNPS(geo, phys)
 pnps.solvers.pop("Stokes")
 pnps.solve(visualize=False, print_functionals=True)
-print "CPU Time (PNPS):",t.stop()
+print("CPU Time (PNPS):",t.stop())
 
 pnps.print_results()
 
@@ -151,17 +151,17 @@ l0 = 10*nm
 I = pnps.get_functionals()["Javgbtm"]
 V = v([0.0, 0.0, -l0]) - v([0.0, 0.0, l0])
 
-print "I (current through pore center):",I,"[pA]"
-print "V (transmembrane potential):",V,"[V]"
-print "conductance I/V:",I/V,"[pS]"
+print("I (current through pore center):",I,"[pA]")
+print("V (transmembrane potential):",V,"[V]")
+print("conductance I/V:",I/V,"[pS]")
 #print v0([0.0, 0.0, -l0]) - v0([0.0, 0.0, l0])
 #print v1([0.0, 0.0, -l0]) - v1([0.0, 0.0, l0])
 
 l1 = 10*nm
 cmdiff = cm([0*nm, 0., -l1]) - cm([0*nm, 0., l1])
-print "cm difference across membrane:",cmdiff,"[mol/m**3]"
+print("cm difference across membrane:",cmdiff,"[mol/m**3]")
 
-print "u(0) = ",u(0.,0.,0.)
+print("u(0) = ",u(0.,0.,0.))
 
 if geo.params["x0"] is None:
     r = geo.params["rMolecule"]
@@ -173,17 +173,17 @@ if geo.params["x0"] is None:
     else:
         Fel0 = 1e12*phys_params["Qmol"]*(v([0.,0.,z0-r])-v([0.,0.,z0+r]))/(2.*r)*phys.lscale
         Fdrag0 = 1e12*6*pi*eta*r*u([0.,0.,z0])[2]*exp(2.*r/(R-r))/phys.lscale
-    print "Fbare (theory) [pN]:", Fel0
-    print "Fdrag (theory) [pN]:", Fdrag0
-    print "F [pN]:", Fdrag0 + Fel0
+    print("Fbare (theory) [pN]:", Fel0)
+    print("Fdrag (theory) [pN]:", Fdrag0)
+    print("F [pN]:", Fdrag0 + Fel0)
 else:
     fs = pnps.get_functionals()
     Fdrag = fs["Fp2"] + fs["Fshear2"]
     Fel = fs["Fbarevol2"]
-    print "phys.Fbare [pN]:",1e12*phys.lscale**(-3)*assemble(phys.Fbare(v, 2))
-    print "Fbare [pN]:", Fel
-    print "Fdrag [pN]:", Fdrag
-    print "F [pN]:", Fdrag + Fel
+    print("phys.Fbare [pN]:",1e12*phys.lscale**(-3)*assemble(phys.Fbare(v, 2)))
+    print("Fbare [pN]:", Fel)
+    print("Fdrag [pN]:", Fdrag)
+    print("F [pN]:", Fdrag + Fel)
 
 
 #list_timings()

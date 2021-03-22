@@ -13,7 +13,7 @@ from itertools import product
 import nanopores
 from nanopores.tools import fields
 from nanopores.models import Howorka
-import forcefield2D
+from . import forcefield2D
 #from plot_forcefield import porestreamlines
 
 import matplotlib.pyplot as plt
@@ -21,7 +21,7 @@ import matplotlib.tri as mtri
 import matplotlib.delaunay as dln
 import matplotlib.ticker
 import matplotlib.patches as patches
-import colormaps as cm
+from . import colormaps as cm
 
 nanopores.add_params(
     eps = 0.1,
@@ -53,11 +53,11 @@ def porestreamlines(polygon=None, rx=10., ry=10., Nx=100, Ny=100,
     
     # determine uniform color range from fields (maybe round to nearest 10-power)
     if maxvalue is None:
-        maxvalue = max(dolfin.norm(F.vector(), "linf") for F in fields.values())
+        maxvalue = max(dolfin.norm(F.vector(), "linf") for F in list(fields.values()))
         #maxvalue = 10**int(np.log10(maxvalue))
     
     for i, F in enumerate(fields.values()):
-        Fstr = fields.keys()[i]
+        Fstr = list(fields.keys())[i]
         fig, ax = plt.subplots(figsize=(rx+1., ry), num=Fstr)        
         
         # fill array with function values

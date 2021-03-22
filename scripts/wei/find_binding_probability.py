@@ -60,7 +60,7 @@ def binding_prob(P, **params):
         receptorp["p"] = p
         rw.add_domain(receptor, **receptorp)
 
-        print "Start Random Walk with p = %s." % p
+        print("Start Random Walk with p = %s." % p)
         for t in rw.walk():
             pass
         
@@ -87,7 +87,7 @@ def binding_prob_from_data(rMolecule=1.25):
     rsam = 3 # estimated thickness of sam layer
     rPore = dp/2. - rsam - rMolecule
     #rPore = 6.
-    print "Effective pore radius:", rPore
+    print("Effective pore radius:", rPore)
 
     # calculate binding probability with data from (Wei 2012)
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
@@ -98,16 +98,16 @@ def binding_prob_from_data(rMolecule=1.25):
 
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * rMolecule * 1e-9) # [m**2/s]
-    print "D:", D
+    print("D:", D)
     r = rPore* 1e-9 # effective radius for proteins at pore entrance [m]
     karr = 2.*phys.pi * r * D * cmol # arrival rate
     p0 = ckon / karr # fraction of events that have binding
 
-    print "Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon)
-    print "Number of bindings per second: %.3f (inverse of tau_on)" % ckon
-    print "Number of arrivals per second: %.1f (from Smoluchowski rate equation)" % karr
-    print "=> fraction of arrivals where binding occurs: %.3f / %.1f = %.6f" % (ckon, karr, p0)
-    print "= p0 = prob. of binding at least once"
+    print("Average time between events (tau_on): %.2f s (from experimental data)" % (1./ckon))
+    print("Number of bindings per second: %.3f (inverse of tau_on)" % ckon)
+    print("Number of arrivals per second: %.1f (from Smoluchowski rate equation)" % karr)
+    print("=> fraction of arrivals where binding occurs: %.3f / %.1f = %.6f" % (ckon, karr, p0))
+    print("= p0 = prob. of binding at least once")
     return p0
 
 def invert_monotone(y, X, Y):
@@ -143,11 +143,11 @@ if __name__ == "__main__":
     p = invert_monotone(p0, P3, data3.p0)
     plt.plot([p], [p0], "ok", label="inferred p = %.4f" % p)
 
-    print "binding prob. inferred from simulations: p = %.6f" % p
+    print("binding prob. inferred from simulations: p = %.6f" % p)
     a = 0.3
     ap = -np.log(1 - p0)
     p1 = ap/a
-    print "binding prob. inferred from assumed Poisson distribution: p = %.6f" % p1
+    print("binding prob. inferred from assumed Poisson distribution: p = %.6f" % p1)
 
     plt.xlabel("p")
     plt.ylabel("probability of >= 1 binding")

@@ -61,7 +61,7 @@ def current(geo, phys, c, F):
     kT = dolfin.Constant(phys.kT)
     D = dolfin.Constant(Dtarget(phys.rTarget))
     FF = dolfin.as_vector([F])
-    print "v = %s" % (Dtarget(phys.rTarget)*F(0.)/phys.kT,)
+    print("v = %s" % (Dtarget(phys.rTarget)*F(0.)/phys.kT,))
     
     j = -D*grad(c) + D/kT*FF*c
     #dolfin.plot(j)
@@ -102,8 +102,8 @@ def gather_currents(name, c0):
             #if key=="F":
             #    force_profiles.plot_function(u, label="Q="+str(results["Q"]))
         
-        print "Q %s, J %s, Ji %s, Jib %s" % (
-        qmols[-1], currents["F"][-1], currents["Fi"][-1], currents["Fi2"][-1])
+        print("Q %s, J %s, Ji %s, Jib %s" % (
+        qmols[-1], currents["F"][-1], currents["Fi"][-1], currents["Fi2"][-1]))
         
     return qmols, currents
     

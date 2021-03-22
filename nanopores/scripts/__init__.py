@@ -20,5 +20,5 @@ paramN = valueN,
 where all the values are allowed to be either single values or lists of values.
 """
 
-from simulation2D import *
+from .simulation2D import *
 

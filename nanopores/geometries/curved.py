@@ -35,7 +35,7 @@ class Circle(SubDomain):
     def __init__(self, R, center=(0.,0.,0.), frac=0.75):
         SubDomain.__init__(self)
         self.R, self.c, self.frac = R, center, frac
-        print "DEBUG", self.c, self.R
+        print("DEBUG", self.c, self.R)
         
     def r(self, x):
         return sqrt((x[0] - self.c[0])**2 + (x[1] - self.c[-1])**2)

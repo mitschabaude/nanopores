@@ -83,7 +83,7 @@ y = array([ 1.43748472,  2.85920221,  3.34647272,  3.67373476,  3.84163926,    3
 #x = array([ 2., 5., 10., 20., 40.])
 #y = array([ 2.85920221,  3.84163926, 4.16848892, 4.267684, 4.318430])
 l = []
-ran = range(11)
+ran = list(range(11))
 for k in ran: l.append(plotSER(x, y, k, title="Successful exit rate from molecule"))
 figure()
 semilogy(ran, l, "s-")

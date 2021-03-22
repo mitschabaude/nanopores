@@ -18,7 +18,7 @@ def mpimap(f, input):
     n = len(input)
     
     # indices that our process will handle
-    I = range(rank, n, size)
+    I = list(range(rank, n, size))
     
     # map f on the local portion of input, store in result
     result = [None for i in range(n)]

@@ -83,8 +83,8 @@ E0 = -lscale*bV/(2.*Rz)
 eps = phys.permittivity["water"]
 eta = phys.eta
 
-print "Diffusion constant in pore:", D*1e9, "[nm**2/ns]"
-print "Constant electric field:", E0, "[V/m]"
+print("Diffusion constant in pore:", D*1e9, "[nm**2/ns]")
+print("Constant electric field:", E0, "[V/m]")
 def cpPB(x):
     return c0*exp(-phi(x)/UT)
 def cmPB(x):
@@ -107,7 +107,7 @@ class JmPB(Expression):
 # compute current
 r2pi = Expression("2*pi*x[0]")
 J_PB = assemble(Constant(cFarad*D/UT*E0*c0/lscale**2)*(exp(-phi/UT) + exp(phi/UT))*r2pi*dx)
-print "J (PB): %s [A]" % J_PB
+print("J (PB): %s [A]" % J_PB)
 
 
 # --- define physical parameters and customized BCs of 2D problem ---

@@ -141,5 +141,5 @@ def ahemqsmulti(geo, ahemqstotal, r2pi, invscale, dim, qq, ahemuniformqs, ahemqs
         else:
             qs0 = ahemqs
         qs = [qs0]*4
-    print "Calculated alphahem surface charges:", qs
+    print("Calculated alphahem surface charges:", qs)
     return qs

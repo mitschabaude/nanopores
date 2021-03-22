@@ -25,5 +25,5 @@ cache = user_param(cache=True)
 
 result = pugh.F_explicit([x0], name="pugh_vsc_test", cache=cache, **params)
 
-print result
-print result["J"]
+print(result)
+print(result["J"])

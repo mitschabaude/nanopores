@@ -9,6 +9,7 @@ import json
 import dolfin
 from nanopores.dirnames import DATADIR
 from nanopores.tools.protocol import unique_id
+from functools import reduce
 
 __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict", "plot_sliced",
            "crange", "plot1D", "showplots", "saveplots", "loadplots", "add_params",
@@ -173,7 +174,7 @@ def save_functions(name, mesh, meta=None, DIR=None, **functions):
     if not os.path.exists(DIR):
         os.makedirs(DIR)
     dolfin.File(DIR + name + "_mesh.xml") << mesh
-    for fname, f in functions.items():
+    for fname, f in list(functions.items()):
         assert f.function_space().mesh().id() == mesh.id()
         dolfin.File(DIR + name + "_" + fname + ".xml") << f
     with _open(name + "_meta", "functions", "w") as f:
@@ -242,7 +243,7 @@ def plot1D(functions, rng=(0.,1.,101), axis=None, dim=3, axlabels=("",""),
         plt.figure()
     #ax = fig.add_subplot(111)
     lines = []
-    for fstr, f in functions.items():
+    for fstr, f in list(functions.items()):
         y = np.array([f(list(t)) for t in z])
         lines.append(getattr(plt, plot)(x, y, style, label=fstr))
         plt.xlabel(axlabels[0])
@@ -290,7 +291,7 @@ def savefigs(name="fig", DIR="/tmp/", size=None, bbox_inches="tight",
 def saveplots(name="plot", meta=None, uid=False):
     # collect data from every open figure
     plots = []
-    figs = map(plt.figure, plt.get_fignums())
+    figs = list(map(plt.figure, plt.get_fignums()))
     for fig in figs:
         for ax in fig.axes:
             plot = dict(
@@ -384,7 +385,7 @@ def user_params(default=None, **params):
 
 def user_param(**params):
     "expect len(params) = 1"
-    return user_params(**params)[params.keys()[0]]
+    return user_params(**params)[list(params.keys())[0]]
 
 def any_params(**params):
     args = _argparse()
@@ -497,11 +498,11 @@ def collect_dict(iterator):
                 result[key].append(result.new[key])
 
 def print_dict_difference(first, second):
-    print "First w/o second:", {k: first[k] for k in first if not k in second or first[k]!=second[k]}
-    print "Second w/o first:", {k: second[k] for k in second if not k in first or first[k]!=second[k]}
+    print("First w/o second:", {k: first[k] for k in first if not k in second or first[k]!=second[k]})
+    print("Second w/o first:", {k: second[k] for k in second if not k in first or first[k]!=second[k]})
 
 def printnow(s):
-    print s,
+    print(s, end=' ')
     sys.stdout.flush()
 
 class Log(object):
@@ -511,4 +512,4 @@ class Log(object):
         printnow(self.msg)
         dolfin.tic()
     def __exit__(self, *args):
-        print "%.2g s" %(dolfin.toc(),)
+        print("%.2g s" %(dolfin.toc(),))

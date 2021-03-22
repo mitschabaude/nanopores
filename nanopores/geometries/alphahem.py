@@ -1,7 +1,7 @@
 # (c) 2017 Gregor Mitscha-Baude
-from alphahempoly import poly
-from cylpore import get_geo as get_geo_generic
-from cylpore import Pore
+from .alphahempoly import poly
+from .cylpore import get_geo as get_geo_generic
+from .cylpore import Pore
 
 default = dict(
     dim = 2,

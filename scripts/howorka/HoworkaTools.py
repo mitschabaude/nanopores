@@ -152,7 +152,7 @@ def function2values(u):
     return zz
 
 # uneven bounds changes the colormapping:
-print c0
+print(c0)
 contours = 10**numpy.arange(-8, numpy.log10(c0), 0.1)
 contours = numpy.concatenate((numpy.array([0.]), contours)) #numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.00]) # contour ranges
 #contours = numpy.array([0., 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1])

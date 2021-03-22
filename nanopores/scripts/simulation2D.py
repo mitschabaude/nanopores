@@ -44,7 +44,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
             iterkeys2.remove(key)
         iterkeys = iterkeys + iterkeys2
     else:
-        print "I'm ignoring your iterkeys."
+        print("I'm ignoring your iterkeys.")
         iterkeys = iterkeys2
 
     # create stamp of the input
@@ -74,7 +74,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
         pool.join()
     # map in serial
     else:
-        result = map(f, iterator)
+        result = list(map(f, iterator))
 
     return join_dicts(result), stamp
 
@@ -99,7 +99,7 @@ def join_dicts(lst):
     keys = []
     for dic in lst:
         if dic is not None:
-            keys = dic.keys()
+            keys = list(dic.keys())
             
     return {key:[dic[key] for dic in lst if dic is not None] for key in keys}
 
@@ -120,7 +120,7 @@ def post_iteration(result, stamp, showplot=False):
     input = join_dicts(combinations(input_params, iterkeys))
 
     # save iterated parameters and result to data file
-    N = len(result.values()[0])
+    N = len(list(result.values())[0])
     data = Data(savedir+"result"+uid+".dat", N=N, overwrite=True)
     data.data["status"][:] = 1
     for key in input:
@@ -150,7 +150,7 @@ def post_iteration(result, stamp, showplot=False):
     plots = {}
 
     # for every result column
-    for key, rescol in result.items():
+    for key, rescol in list(result.items()):
         i = 0
         # create new figure
         fig, ax = plt.subplots()
@@ -162,7 +162,7 @@ def post_iteration(result, stamp, showplot=False):
             i += 1
             y = rescol[chunk]
             # create fitting label using the fixed params
-            label = ", ".join("%s=%s" % t for t in pset.items())
+            label = ", ".join("%s=%s" % t for t in list(pset.items()))
             # add x,y to plot and label axis with keys
             #print x,y
             plot(x, y, '-x', label=label)
@@ -195,7 +195,7 @@ def simulate(name, nproc=1, outputs=None, plot=None,
         return
 
     stamp["script"] = name
-    print result, stamp
+    print(result, stamp)
     if hasattr(script, "post_calculate"):
         script.post_calculate(result, stamp)
     else:

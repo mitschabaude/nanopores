@@ -62,7 +62,7 @@ NAME = "adap2Duniform" if uniform else ("adap2Dcheap" if cheapest else "adap2D")
 #save_estimators(NAME, pb.estimators)
     
 
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 plot(geo.boundaries)
 #pnps.visualize("fluid")
 #interactive()

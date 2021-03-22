@@ -1,7 +1,7 @@
 from importlib import import_module
 from nanopores import *
 from nanopores.geometries.curved import Cylinder, Sphere, Circle
-from mysolve import pbpnps
+from .mysolve import pbpnps
 import nanopores.tools.solvers as solvers
 import dolfin
 

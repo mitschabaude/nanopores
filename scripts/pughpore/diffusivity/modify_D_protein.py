@@ -22,9 +22,9 @@ Dzz = smooth(smooth(Dzz_, 3), 5)
 def matrix(d):
     return [[d[0], 0., 0.], [0., d[1], 0.], [0., 0., d[2]]]
 
-data = dict(x=x, D=map(matrix, zip(Dxx, Dyy, Dzz)))
+data = dict(x=x, D=list(map(matrix, list(zip(Dxx, Dyy, Dzz)))))
 if not fields.exists("pugh_diff_pore", rMolecule=rMolecule):
-    print "SAVING..."
+    print("SAVING...")
     fields.save_fields("pugh_diff_pore", dict(rMolecule=rMolecule), **data)
     fields.update()
 

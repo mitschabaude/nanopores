@@ -59,10 +59,10 @@ r_h=np.array([])
 z_h=np.array([])
 
 #clock=np.zeros(5)
-Range = range(done,sims)
+Range = list(range(done,sims))
 start=time()
 for index in Range:
-    print str(index)+" out of "+str(sims)
+    print(str(index)+" out of "+str(sims))
     X=np.zeros(steps)
     Y=np.zeros(steps)
     Z=np.zeros(steps)
@@ -122,6 +122,6 @@ for index in Range:
 end=time()
 work=end-start
 workh=work/3600.
-print 'work = %.1f hours'%workh
-print newhbond
+print('work = %.1f hours'%workh)
+print(newhbond)
 from plot_probability import *

@@ -41,24 +41,24 @@ domain.addboundaries(
 from dolfin import tic, toc
 tic()
 geo = domain.create_geometry(lc=.5*lc, merge=True)
-print "Create geometry:", toc(), "s"
+print("Create geometry:", toc(), "s")
 # That was it!
 
-print "\nBoundaries:\n",geo._physical_boundary
-print "\nSubdomains:\n",geo._physical_domain
+print("\nBoundaries:\n",geo._physical_boundary)
+print("\nSubdomains:\n",geo._physical_domain)
 domain.plot()
-print
-print domain.indexsets
-print
+print()
+print(domain.indexsets)
+print()
 
 for i,en in enumerate(domain.entities[2]):
-    print i,":",en
+    print(i,":",en)
 for sub in domain.subdomains:
-    print sub.name, ":", sub.indexset
+    print(sub.name, ":", sub.indexset)
     
-print
+print()
 for i,en in enumerate(domain.entities[1]):
-    print i,":",en
+    print(i,":",en)
 for sub in domain.boundaries:
-    print sub.name, ":", sub.indexset
+    print(sub.name, ":", sub.indexset)
 

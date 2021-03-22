@@ -31,7 +31,7 @@ def harmonic_interpolation(setup, points=(), values=(),
     bcs = [bc]
 
     # Volume boundary conditions
-    for sub, f in subdomains.items():
+    for sub, f in list(subdomains.items()):
         bc = geo.VolumeBC(V, sub, f)
         bcs.append(bc)
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     R, H = pughpore.square2circle(domain.params["R"]), domain.params["H"]
     px = R*np.random.random(N)
     py = H*np.random.random(N) - H/2.
-    points = zip(px, py)
+    points = list(zip(px, py))
 
     # prepare mesh containing points
     domain.write_gmsh_code(h)

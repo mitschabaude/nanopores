@@ -119,29 +119,29 @@ def run(params,fieldsname,outcome,outside,b1,b2):
             Y = np.append(Y,y_new)
             Z = np.append(Z,z_new)
             if abs(Z[-1])>35. or abs(X[-1])>10. or abs(Y[-1])>10.:
-                print 'Out of domain!'
+                print('Out of domain!')
                 ood = True
                 if not outside or np.unique(J1).shape[0]==1:
                     should_restart = True
-                    print 'restart!'
+                    print('restart!')
                 break
             Jx=Current(X[-1],Y[-1],Z[-1])
             if math.isnan(Jx):
                 if add<=tau:
                     Jx = J1[-1]
                 else:
-                    print 'current at binding position is NaN!!!'
-                    print 'current = %.1e A'%Jx
-                    print 'X = %.8f'%X[-1]
-                    print 'Y = %.8f'%Y[-1]
-                    print 'Z = %.8f'%Z[-1]
-                    print 'add = %.2f nanoseconds'%add
+                    print('current at binding position is NaN!!!')
+                    print('current = %.1e A'%Jx)
+                    print('X = %.8f'%X[-1])
+                    print('Y = %.8f'%Y[-1])
+                    print('Z = %.8f'%Z[-1])
+                    print('add = %.2f nanoseconds'%add)
                     exit()
             J1=np.append(J1,Jx)
             T =np.append(T,add)
             i+=1
     if i>=maxiter:
-        print 'randomwalk: more than 1e6 steps!'
+        print('randomwalk: more than 1e6 steps!')
     fields.save_fields(fieldsname,params,Nc=[Nc])
     if outcome=='type' or outcome=='both':
         tau_off = np.sum(T)*1e-6

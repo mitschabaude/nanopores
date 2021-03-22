@@ -30,7 +30,7 @@ domain.synonymes = dict(
     pore = set()
 )
 geo = domain.create_geometry(lc=.01)  
-print geo
+print(geo)
 
 # --- define physical parameters ---
 
@@ -40,7 +40,7 @@ phys_params = dict(
     bV = -.1,
 )
 phys = Physics("pore", geo, **phys_params)
-print geo # this tests how the default synonymes in physics/pore are incorporated
+print(geo) # this tests how the default synonymes in physics/pore are incorporated
 
 # --- define and solve PDE ---
 

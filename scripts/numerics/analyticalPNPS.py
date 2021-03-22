@@ -18,7 +18,7 @@ damp = 1.,
 bulkcon = 300.,
 iterative = True,
 )
-print PARAMS
+print(PARAMS)
 
 # --- create 2D geometry ---
 Rz = 2. # [nm] length in z direction of channel part
@@ -50,13 +50,13 @@ domain2D.synonymes = dict(
 )
 
 geo2D = domain2D.create_geometry(lc=h2D)
-print "Number of cells (2D):", geo2D.mesh.num_cells()
+print("Number of cells (2D):", geo2D.mesh.num_cells())
 #domain2D.plot()
 
 # --- create 3D geometry by rotating ---
 domain3D = rotate_z(domain2D)
 geo3D = domain3D.create_geometry(lc=h3D)
-print "Number of cells (3D):", geo3D.mesh.num_cells()
+print("Number of cells (3D):", geo3D.mesh.num_cells())
 #domain3D.plot()
 
 # --- create geometry for 1D crossection ---
@@ -96,9 +96,9 @@ E0 = -lscale*bV/(2.*Rz)
 eps = phys.permittivity["water"]
 eta = phys.eta
 
-print "Diffusion constant in pore:", D*1e9, "[nm**2/ns]"
-print "Constant electric field:", E0*1e-9, "[V/nm]"
-print "Debye length:", phys.debye*1e9, "[nm]"
+print("Diffusion constant in pore:", D*1e9, "[nm**2/ns]")
+print("Constant electric field:", E0*1e-9, "[V/nm]")
+print("Debye length:", phys.debye*1e9, "[nm]")
 
 def cpPB(x):
     return c0*exp(-phi(x)/UT)
@@ -139,9 +139,9 @@ J_u = u_PB*(exp(-phi/UT) - exp(phi/UT))
 J_PB_el = assemble(Constant(cFarad*c0*E0/lscale**2)*J_el*r2pi*dx)
 J_PB_u = assemble(Constant(cFarad*c0*E0/lscale**2)*J_u*r2pi*dx)
 J_PB = J_PB_el + J_PB_u
-print "J (PB): %s [A]" % J_PB
-print "   J_el: %s [A]" % J_PB_el
-print "   J_u : %s [A]" % J_PB_u
+print("J (PB): %s [A]" % J_PB)
+print("   J_el: %s [A]" % J_PB_el)
+print("   J_u : %s [A]" % J_PB_u)
 
 # --- define physical parameters and customized BCs of 2D problem ---
 
@@ -209,8 +209,8 @@ def saveJ(self):
     i = len(self.functionals["Jvol"].values) + 1
     self.save_estimate("(Jsing_h - J)/J" + Dstr, abs((self.functionals["Jsurf"].evaluate()-J_PB)/J_PB), N=i)
     self.save_estimate(r"$|J_h - J|/J$" + Dstr, abs((self.functionals["Jvol"].evaluate()-J_PB)/J_PB), N=i)
-    print "     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB)
-    print "     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB)
+    print("     rel. error Jv:", abs((self.functionals["Jvol"].value()-J_PB)/J_PB))
+    print("     rel. error Js:", abs((self.functionals["Jsurf"].value()-J_PB)/J_PB))
 
 # --- set up PNP+Stokes problem ---
 

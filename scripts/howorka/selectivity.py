@@ -5,8 +5,8 @@ import nanopores
 import dolfin
 import matplotlib.pyplot as plt
 from nanopores.physics.convdiff import ConvectionDiffusion
-import forcefields
-from eikonal import boundary_force
+from . import forcefields
+from .eikonal import boundary_force
 
 p = nanopores.user_params(
     overwrite = False,
@@ -56,7 +56,7 @@ def calculate_selectivity(F, geo, phys, fluocon=1, t=1e0, steps=100, levels=1):
     # total concentration
     ctot = dolfin.assemble(u0*dolfin.Expression("2*pi*x[0]")*geo.dx())
     phys.ctot = ctot
-    print "Total concentration:", ctot, "molecules."
+    print("Total concentration:", ctot, "molecules.")
     
     # convect
     phys.F = F
@@ -115,7 +115,7 @@ def _diff(dic, keys):
 @cache("selectivity", default, overwrite=p.overwrite)
 def selectivity(params):
     # filter out selectivity params
-    sparams, fparams = _diff(params, sel_params.keys())
+    sparams, fparams = _diff(params, list(sel_params.keys()))
     bforce = sparams.pop("bforce")
     
     # get PNPS force

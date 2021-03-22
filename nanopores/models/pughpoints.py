@@ -5,6 +5,7 @@ import matplotlib.patches as patches
 
 from nanopores.geometries.pughpore import params as pugh_params
 from nanopores import Params
+from functools import reduce
 
 def grid_piecewise1D(nodes, h, N=100, ep=None):
     # compute number of grid points in each section
@@ -14,7 +15,7 @@ def grid_piecewise1D(nodes, h, N=100, ep=None):
     n = lengths/h
     n = np.round(n*N/sum(n))
     # compute each grid
-    intervals = zip(nodes[:-1], nodes[1:])
+    intervals = list(zip(nodes[:-1], nodes[1:]))
     k = len(lengths)
     grids = []
     # ep = endpoint preference = 0 or 1
@@ -139,9 +140,9 @@ def tensorgrid(nz=30, nr=5, plot=False, eps=5e-2, eps2=1e-1, buf=7.,
     xyz = tensor(xy, grids, rpore)
 
     if plot:
-        print "Created %d points in z direction." % (sum(len(g) for g in grids),)
-        print "Created %d points in xy direction." % (len(xy),)
-        print "Total number of points:", len(xyz)
+        print("Created %d points in z direction." % (sum(len(g) for g in grids),))
+        print("Created %d points in xy direction." % (len(xy),))
+        print("Total number of points:", len(xyz))
         #plot_1Dgrid(z, grids)
         plot_2Dgrid(xy)
         plot_xz_grid(xyz)

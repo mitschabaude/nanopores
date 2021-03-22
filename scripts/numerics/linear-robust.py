@@ -33,5 +33,5 @@ jsondata = tuple(d.tolist() for d in data)
 nanopores.save_stuff("robustness_fixedpoint", jsondata)
 
 for d in data:
-    print
-    print d
+    print()
+    print(d)

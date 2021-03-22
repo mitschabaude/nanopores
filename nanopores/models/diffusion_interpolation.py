@@ -64,14 +64,14 @@ def diff_profile_plane(r):
     Dn = np.array([Dn_plane(xx, r) for xx in x])
     Dt = Dt_plane(x, r)
 
-    data = dict(x=list(x), D=map(matrix, zip(Dn, Dt, Dt)))
+    data = dict(x=list(x), D=list(map(matrix, list(zip(Dn, Dt, Dt)))))
     return data
 
 def diff_profile_trivial(r):
     eps = 1e-8
     x = np.linspace(r+eps, r*16., 100)
     D = [1.]*len(x)
-    data = dict(x=list(x), D=map(matrix, zip(D, D, D)))
+    data = dict(x=list(x), D=list(map(matrix, list(zip(D, D, D)))))
     return data
 
 def diffusivity_field(setup, r, ddata_r=None, ddata_z=None,

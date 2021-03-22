@@ -39,7 +39,7 @@ params["rReceptor"] = rrec
 params["x0"] = [8., 3., zprot]
 geo1 = allpores.get_geo(**params)
 domains1 = plot_sliced(geo1, scalarbar=False)
-print geo1
+print(geo1)
 
 geo2 = allpores.get_geo(geoname="alphahem", subs="solid", h=.5, x0=None, dim=3)
 domains2 = plot_sliced(geo2, scalarbar=False)

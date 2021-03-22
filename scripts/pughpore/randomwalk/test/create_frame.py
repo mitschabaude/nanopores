@@ -82,7 +82,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J,curr=curr*1e12):
     plt.plot(X[:r],Z[:r],linewidth=2.,c='#0000ff')
     molecolor='#33ff99'
     molecule = plt.Circle((X[r-1], Z[r-1]),2.0779,color=molecolor)
-    mole2 = Line2D(range(1),range(1),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
+    mole2 = Line2D(list(range(1)),list(range(1)),color='white',marker='o',markerfacecolor=molecolor,markersize=20)
     longer = plt.scatter(X[bind1],Z[bind1],s=200,marker='h',c=color2,linewidth=0.)
     shorter = plt.scatter(X[bind2],Z[bind2],s=100,marker='h',c=color1,linewidth=0.)
     start = plt.scatter([X[0]],[Z[0]],s=400,marker='x',c=color3,linewidth=2.)
@@ -133,7 +133,7 @@ def save_frame(r,X=X,Z=Z,T=T,J=J,curr=curr*1e12):
     plt.tight_layout()
 #    plt.show()
     plt.savefig(figname)
-    print 'save: '+figname+' from %08d'%len
+    print('save: '+figname+' from %08d'%len)
     plt.close('all')
 
 #for r in [len]:

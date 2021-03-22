@@ -65,7 +65,7 @@ def plot_experiment():
     plt.plot(bmV, I, "sr", label="Experiment")
     #G = 1e-3*I[2]/(-0.04285) # -40
     G = 1e-3*I[5]/(0.04285) # +40
-    print "Conductivity experimental: %.4f nS" % (G,)
+    print("Conductivity experimental: %.4f nS" % (G,))
     return G
 
 def plot_experiment_simple():
@@ -121,7 +121,7 @@ def compare_D_models(calc=True, **params):
         # print conductivities
         #G[i] = 1e-3*I[V.index(-0.04)]/(-0.04) # -40
         G[i] = 1e-3*I[V.index(0.04)]/(0.04) # +40
-        print "Conductivity %s: %.4f nS" % (model, G[i])
+        print("Conductivity %s: %.4f nS" % (model, G[i]))
 
     plt.xlabel("Voltage [mV]")
     plt.ylabel("Current [pA]")

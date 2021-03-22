@@ -4,12 +4,12 @@ import numpy as np
 def solve(C, f, f1, x0=1., n=20):
     "solve f(x) == C"
     x = x0 # initial value
-    print "Newton iteration:"
+    print("Newton iteration:")
     for i in range(n):
         dx = -(f(x) - C)/f1(x)
         x = x + dx
-        print i, "Residual", f(x) - C, "Value", x
-    print
+        print(i, "Residual", f(x) - C, "Value", x)
+    print()
     return x
 
 def poisson_from_positiveK(mean):

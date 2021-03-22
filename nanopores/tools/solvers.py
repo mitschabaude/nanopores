@@ -45,8 +45,8 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1,
         Xdone = fields.get_field(name, "x", **save_params)
         X = [x0 for x0 in X if x0 not in Xdone]
         if len(X) > 0:
-            print "Existing force file found, %d/%d points remaining." % (
-                len(X), N)
+            print("Existing force file found, %d/%d points remaining." % (
+                len(X), N))
     iter_params = dict(x0=X)
 
     def run(x0=None):
@@ -55,8 +55,8 @@ def calculate_forcefield(name, X, calculate, params={}, default={}, nproc=1,
             #result = {k: [v] for k, v in result.items()}
             fields.save_fields(name, save_params, x=[x0], **result)
         except: # Exception, RuntimeError:
-            print "x = %s: Error occured, continuing without saving." %x0
-            print traceback.print_exc()
+            print("x = %s: Error occured, continuing without saving." %x0)
+            print(traceback.print_exc())
             result = None
         return result
 
@@ -90,10 +90,10 @@ class cache_forcefield(fields.CacheBase):
                 result = fields.get_fields(name, **load_params)
                 I = [result["x"].index(x) for x in X if x in result["x"]]
             except KeyError:
-                print "KeyError, returning nothing."
+                print("KeyError, returning nothing.")
                 result = {}
                 I = []
-            result = {key: [val[i] for i in I] for key, val in result.items()}
+            result = {key: [val[i] for i in I] for key, val in list(result.items())}
             return Params(result)
         return wrapper
 

@@ -40,7 +40,7 @@ except:
     Y = np.zeros(iter)
     for i in range(iter-1):
         if i%int(iter/100.)==0:
-            print '%.0f %%'%(100*float(i)/float(iter))
+            print('%.0f %%'%(100*float(i)/float(iter)))
         xi = gauss(0.,1.)
         Y[i+1]=Y[i]+sqrttau*fac*xi
     X = np.linspace(0.,len,iter)
@@ -66,7 +66,7 @@ except:
     j=1
     for i in range(1,X.shape[0]):
         if i%int(X.shape[0]/100.)==0 and i!=0:
-            print '%.0f %%'%(100*float(i)/float(X.shape[0]))
+            print('%.0f %%'%(100*float(i)/float(X.shape[0])))
         dist = np.min(np.absolute(L_-Y[i]))
         Li = np.where(abs(L_-Y[i])==dist)[0][0]
         if dist<=eps and np.sign(Y[i]-L_[Li])!=sig and ffa:
@@ -89,11 +89,11 @@ except:
     np.save('XA',XA)
     np.save('YA',YA)
 attemptrate = Exp[-1]
-print 'L = %.2e; eps = %.2e, D = %.2e'%(L,eps,D)
-print 'tau = %.3e'%tau
+print('L = %.2e; eps = %.2e, D = %.2e'%(L,eps,D))
+print('tau = %.3e'%tau)
 theo = 2*D/(L*eps)
-print 'analytic attempt rate = %.2e'%theo
-print 'numeric attemptrate   = %.3e'%attemptrate
+print('analytic attempt rate = %.2e'%theo)
+print('numeric attemptrate   = %.3e'%attemptrate)
 
 # plot stuff
 #for i in L_:

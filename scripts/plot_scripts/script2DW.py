@@ -47,7 +47,7 @@ elif config=="2b":
     geo_params = {"x0": None, "lsam": lsam, "r0": (11.5*nm -lsam)*r0factor,}
     phys_params = {"bulkcon":4e2, "SAMqs": -0.0, "SiNqs": -0.022, "bulkconduct": 4.9}
 else:
-    print "config %s is not a valid configuration" %config
+    print("config %s is not a valid configuration" %config)
     exit()
 
 l0 = geo_dict["lsin"]+geo_dict["lau"]+lsam
@@ -62,7 +62,7 @@ phys_params.update({"stokesdampPore":1.0, "rDPore": 1.0,})
 IV = numpy.genfromtxt(csvfile+".csv", delimiter=',')
 V0 = IV[:,0]
 I0 = IV[:,1]*1e3
-IV_dict = dict(zip(V0,I0))
+IV_dict = dict(list(zip(V0,I0)))
 
 PNPSAxisym.tolnewton = 1e-1
 PNPSAxisym.maxcells = maxcells
@@ -95,7 +95,7 @@ plot(geo.subdomains)
 N = geo.mesh.num_cells()
 hmin = geo.mesh.hmin()
 
-print phys.diffusion_factor
+print(phys.diffusion_factor)
 I = []
 F = []
 G = []
@@ -103,7 +103,7 @@ Gnaive = []
 Gexp = []
 for bVmV in V0:
     bV = bVmV*1e-3
-    print "\nbV = %.0f [mV]\n" % bVmV
+    print("\nbV = %.0f [mV]\n" % bVmV)
     phys.bV = bV if abs(bV) > 1e-7 else None
 
     phys.bV = bV
@@ -147,22 +147,22 @@ for bVmV in V0:
     I.append(I_)
 
     V = (v([0.0, -l0/2*1.5]) - v([0.0, l0/2*1.5]))
-    print "l0: ", l0*1e9, "[nm] ", "lsam: ", lsam*1e9, "[nm]", "r0factor: ", r0factor
-    print "naive current :", Jnaive, "[pA]"
-    print "current in experiment: ", IV_dict[bVmV], "[pA]"
-    print "I (current through pore center):", I_, "[pA]"
-    print "V (transmembrane potential):", V, "[V]"
-    print "bV: ", phys.bV, "[V]"
-    print "simulated resistance bV/I:", bV/I_*1e6, "[MOhm]"
-    print "experimental resistance :", 1./Gexp_ *1e6, "[MOhm]"
-    print "naive resistance:", 1./Gnaive_*1e6, "[MOhm]"
-    print "simulated conductance I/bV:", I_/bV*1e-3, "[nS]"
-    print "experimental conductance:", Gexp_ *1e-3, "[nS]"
-    print "naive conductance:", Gnaive_*1e-3, "[nS]"
+    print("l0: ", l0*1e9, "[nm] ", "lsam: ", lsam*1e9, "[nm]", "r0factor: ", r0factor)
+    print("naive current :", Jnaive, "[pA]")
+    print("current in experiment: ", IV_dict[bVmV], "[pA]")
+    print("I (current through pore center):", I_, "[pA]")
+    print("V (transmembrane potential):", V, "[V]")
+    print("bV: ", phys.bV, "[V]")
+    print("simulated resistance bV/I:", bV/I_*1e6, "[MOhm]")
+    print("experimental resistance :", 1./Gexp_ *1e6, "[MOhm]")
+    print("naive resistance:", 1./Gnaive_*1e6, "[MOhm]")
+    print("simulated conductance I/bV:", I_/bV*1e-3, "[nS]")
+    print("experimental conductance:", Gexp_ *1e-3, "[nS]")
+    print("naive conductance:", Gnaive_*1e-3, "[nS]")
     Gnaive.append(Gnaive_)
     G.append(I_/V)
 
-print json.dumps(F, indent=4, sort_keys=True)
+print(json.dumps(F, indent=4, sort_keys=True))
 
 plot(v)
 plot(cm-cp, title="cdiff")

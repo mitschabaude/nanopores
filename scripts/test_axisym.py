@@ -58,22 +58,22 @@ print
 """
 geo = domain.create_geometry(lc=lc)
 #plot(geo.mesh)
-print "\nBoundaries:\n",geo._physical_boundary
-print "\nSubdomains:\n",geo._physical_domain
+print("\nBoundaries:\n",geo._physical_boundary)
+print("\nSubdomains:\n",geo._physical_domain)
 domain.plot()
 
 for k in 0, 1, 2, 3:
-    print "\nEntities[%d]" %k
+    print("\nEntities[%d]" %k)
     for i, (en, st) in enumerate(zip(domain.entities[k], domain.esets[k])):
-        print i,":",en,":",st
+        print(i,":",en,":",st)
 
-print "\ndomain:", domain.indexset
+print("\ndomain:", domain.indexset)
 if hasattr(domain, "indexsets"):
-        print domain.indexsets  
+        print(domain.indexsets)  
 for sub in domain.subdomains + domain.boundaries:
-    print sub.name, ":", sub.indexset
+    print(sub.name, ":", sub.indexset)
     if isinstance(sub, Box):
-        print sub.indexsets
+        print(sub.indexsets)
         
         
 

@@ -24,7 +24,7 @@ lcMolecule = nm*0.05, #025,
 
 generate_mesh(h, geo_name, optimize=True, **geo_params)
 geo = geo_from_name(geo_name, **geo_params)
-print geo._bou2phys
+print(geo._bou2phys)
 #plot(geo.submesh("pore"))
 plot_sliced(geo)
 
@@ -58,7 +58,7 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1):
                 #    print '  ', v.point().str()
                 
     minrr = MeshQuality.radius_ratio_min_max(mesh)[0]
-    print "Minimal radius ratio of mesh:", minrr
+    print("Minimal radius ratio of mesh:", minrr)
     pyplot.figure()
     exec(MeshQuality.radius_ratio_matplotlib_histogram(mesh, 200), locals())
     # plot degenerate cells
@@ -79,7 +79,7 @@ def mesh_quality(mesh, oldmesh=None, ratio=1e-1):
     
 # mesh quality before refinement
 mesh = geo.mesh
-print "Number of cells:", mesh.num_cells()
+print("Number of cells:", mesh.num_cells())
 mesh_quality(mesh, ratio=ratio)
 #interactive()
 
@@ -90,13 +90,13 @@ for i in range(nref):
 
     # Refine mesh
     mesh = refine(mesh, markers)
-    print "Number of cells:", mesh.num_cells()
+    print("Number of cells:", mesh.num_cells())
     geo.adapt(mesh)
     mesh_quality(mesh, ratio=ratio)
     
     # snap curved boundaries
-    for boundary, snap in curved.items():
-        print "Adapting curved boundary '%s'." % boundary
+    for boundary, snap in list(curved.items()):
+        print("Adapting curved boundary '%s'." % boundary)
         geo.snap_to_boundary(boundary, snap)
     mesh_quality(mesh, ratio=ratio)
     
@@ -104,7 +104,7 @@ for i in range(nref):
     #print "Area (approx):", areCh
     #print "Error A:", abs(areCh - areC)
  
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 
 plot_sliced(geo)
 interactive()

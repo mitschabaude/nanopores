@@ -9,8 +9,8 @@ C = A | B
 C.create_geometry(lc=0.1)
 """
 import nanopores.py4gmsh as py4gmsh
-import box
-from box import (BoxCollection, Float, csgExpression, FacetLoop, Entity,
+from . import box
+from .box import (BoxCollection, Float, csgExpression, FacetLoop, Entity,
                 BoundaryCollection, union, set_tol)
 __all__ = ["Box", "Ball", "EmptySet"]
 
@@ -79,7 +79,7 @@ class BallCollection(BoxCollection):
             surfs, n = gmsh_ball_surfs(ball, lc)
             # add facets at the end of gmsh_entities[d-1]
             gfacets += surfs # works for lists!
-            indices = range(len(gfacets)-n, len(gfacets))
+            indices = list(range(len(gfacets)-n, len(gfacets)))
             # add indices and orientations to sub0.bdry() and ball.bdry()
             if sub0 is not None:
                 sub0.bdry().indexset |= set(indices)
@@ -244,5 +244,5 @@ if __name__ == "__main__":
     C.addballs(smallballs, "small", "smallb")
 
     C.create_geometry(lc=0.1)
-    print C.geo
+    print(C.geo)
     C.plot()

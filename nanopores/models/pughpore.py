@@ -149,15 +149,15 @@ def solve(setup, visualize=False):
                stokesiter=(it and solverp.stokesiter), iterative=it,
                cyl=phys.cyl)
 
-    print "Number of cells:", geo.mesh.num_cells()
-    print "DOFs:", pnps.dofs()
+    print("Number of cells:", geo.mesh.num_cells())
+    print("DOFs:", pnps.dofs())
     dolfin.tic()
     for i in pnps.fixedpoint(ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
             plotter.plot(v, "potential")
             #plotter.plot_vector(u, "velocity")
-    print "CPU time (solve): %.3g s" %(dolfin.toc(),)
+    print("CPU time (solve): %.3g s" %(dolfin.toc(),))
     return pb, pnps
 
 def get_forces(setup, pnps):
@@ -184,12 +184,12 @@ def prerefine(setup, visualize=False):
             if phys.dim==2:
                 dolfin.plot(geo.boundaries, key="b", title="adapted mesh",
                             scalarbar=False)
-    print "CPU time (PB): %.3g s" %(dolfin.toc(),)
+    print("CPU time (PB): %.3g s" %(dolfin.toc(),))
     return pb
 
 def set_D(setup):
     solverp = setup.solverp
-    print "Setting diffusivity data...",
+    print("Setting diffusivity data...", end=' ')
     if solverp.diffusivity_data is not None or solverp.diffusivity is not None:
         if solverp.diffusivity_data is None:
             solverp.diffusivity_data = dict(name=solverp.diffusivity)
@@ -198,13 +198,13 @@ def set_D(setup):
         #print setup.solverp.diffusivity_data
         if setup.geop.x0 is None:
             set_D_from_data(setup.phys, solverp.diffusivity_data)
-            print "without protein."
+            print("without protein.")
         else:
             #set_D_from_data(phys, solverp.diffusivity_data)
             set_D_with_protein(setup)
-            print "with protein."
+            print("with protein.")
     else:
-        print "None."
+        print("None.")
 
 
 def set_D_from_data(phys, data):
@@ -337,7 +337,7 @@ if __name__ == "__main__":
     #setup.geo.plot_boundaries()
 
     _, pnps = solve(setup, True)
-    print get_forces(setup, pnps)
+    print(get_forces(setup, pnps))
 
     plotter = Plotter(setup)
     v, cp, cm, u, p = pnps.solutions()

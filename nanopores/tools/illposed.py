@@ -77,7 +77,7 @@ class IllposedLinearSolver(object):
                 subksps[1].getPC().setType("hypre")
 
                 A = as_backend_type(A).mat()   # export to petsc4py
-                if not self.method.has_key("preconditioning_form"):
+                if "preconditioning_form" not in self.method:
                     ksp.setOperators(A)
                 else:
                     P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
@@ -99,7 +99,7 @@ class IllposedLinearSolver(object):
                 except KeyError:
                     pass
 
-                if self.method.has_key("preconditioning_form"):
+                if "preconditioning_form" in self.method:
                     P = assemble(self.method["preconditioning_form"], keep_diagonal=True)
                     for bc in self.problem.bcs:
                         bc.apply(P)
@@ -121,16 +121,16 @@ class IllposedLinearSolver(object):
         if isinstance(self.S, petsc4py.PETSc.KSP):
             l = as_backend_type(b).vec()
             (x, _) = self.S.getOperators()[0].getVecs()
-            print "Solving system iteratively with PETSc fieldsplit ..."
+            print("Solving system iteratively with PETSc fieldsplit ...")
             self.S.solve(l, x)
             u.vector().set_local(x.array.astype("float_"))
         elif isinstance(self.S, PETScKrylovSolver):
             i = self.S.solve(u.vector(),b)
             # print DEBUG
             if not "kparams" in self.method or i < self.method["kparams"]["maximum_iterations"]:
-                print "    PETSc Krylov solver converged in %d iterations." %i
+                print("    PETSc Krylov solver converged in %d iterations." %i)
             else:
-                print "    PETSc Krylov solver failed to converge in %d iterations." %i
+                print("    PETSc Krylov solver failed to converge in %d iterations." %i)
         else:
             #print "DEBUG: dim u", u.vector().array().shape
             #print "DEBUG: dim b", b.array().shape
@@ -164,7 +164,7 @@ class IllposedLinearSolver(object):
             self.problem.L = replace_function_in_form(self.problem.L,f,newfunctions[i])
 
     def print_method(self):
-        print self.method
+        print(self.method)
         info(self.S.parameters, True)
 
 # END of class
@@ -404,8 +404,8 @@ def adaptform_OLD(form,mesh,adapt_coefficients=False):
     # define new domain
     newdomain = mesh.ufl_domain()
     # adapt meshfunctions
-    newsubdata = form.subdomain_data().values()[0] # assuming single domain
-    for k,meshfunction in newsubdata.items():
+    newsubdata = list(form.subdomain_data().values())[0] # assuming single domain
+    for k,meshfunction in list(newsubdata.items()):
         newsubdata[k] = adaptmeshfunction(meshfunction,mesh)
 
     # replace domain, meshfunctions in integrals

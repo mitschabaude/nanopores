@@ -29,11 +29,11 @@ def save_fig(params,fieldsname):
     a2 = data["a2"]
     t0 = data["t0"]
     a0 = data["a0"]
-    print len(t1)
-    print len(t2)
+    print(len(t1))
+    print(len(t2))
     lendata=len(t1)+len(t2)
     for i in range(len(t1)):
-            if math.isnan(a1[i]): print 'a1: NaN %i'%i
+            if math.isnan(a1[i]): print('a1: NaN %i'%i)
     plt.figure(figsize=(6,4),dpi=80)
     plt.plot([3e-6,.7],[0.,0.],linewidth=2,color='lightgreen')
     plt.plot([1.,1e2],[0.,0.],linewidth=2,color='green')
@@ -55,5 +55,5 @@ def save_fig(params,fieldsname):
     #ax.text(1.,5.,lendata,fontsize=25)
     plt.tight_layout()
     nano.savefigs(name=figname,DIR='/home/lv70496/benjamin/plots/')
-    print 'savefig:'
-    print figname
+    print('savefig:')
+    print(figname)

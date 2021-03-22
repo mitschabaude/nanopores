@@ -48,7 +48,7 @@ def set_D_with_protein(setup):
     # first create (N,3,3) array from D0 (N,3)
     N = len(D0p)
     Da = np.zeros((N, dim, dim))
-    i3 = np.array(range(dim))
+    i3 = np.array(list(range(dim)))
 
     Da[:, i3, i3] = D0p
 
@@ -98,8 +98,8 @@ setup = pugh.Setup(x0=[0., 0., 10.], dim=2, h=1., Nmax=1e5,
 plotter = pugh.Plotter(setup)
 pugh.prerefine(setup, True)
 
-print "getting D"
+print("getting D")
 D = set_D_with_protein(setup)
-print "plotting"
+print("plotting")
 plotter.plot(D[0, 0], title="Dxx")
 dolfin.interactive()

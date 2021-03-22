@@ -13,6 +13,6 @@ DNAqsbox = charge / Abox
 DNAqscyl = charge / Acyl
 DNAqsinner = 3 * charge / Acylinner
 
-print "DNA charge (box): %.4f [q/nm^2]" % DNAqsbox
-print "DNA charge (cyl): %.4f [q/nm^2]" % DNAqscyl
-print "DNA charge (inner cyl): %.4f [q/nm^2]" % DNAqsinner
+print("DNA charge (box): %.4f [q/nm^2]" % DNAqsbox)
+print("DNA charge (cyl): %.4f [q/nm^2]" % DNAqscyl)
+print("DNA charge (inner cyl): %.4f [q/nm^2]" % DNAqsinner)

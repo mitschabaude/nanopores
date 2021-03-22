@@ -28,9 +28,9 @@ for subd in geo._physical_domain:
     #plot(submesh, title=("initial mesh on %s" %subd), wireframe=True, elevate=-3e1)
 interactive()
 '''
-print "Boundaries:"
+print("Boundaries:")
 for i in geo._bou2phys:
-    print "%d: %s" %(i, str(geo._bou2phys[i]))
+    print("%d: %s" %(i, str(geo._bou2phys[i])))
     
 for subd in geo._physical_domain:
     submesh = geo.submesh(subd)

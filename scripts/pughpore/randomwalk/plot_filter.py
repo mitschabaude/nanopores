@@ -22,7 +22,7 @@ samples=len(data["a"])
 from create_plot_filter import save_fig_filter
 #for i in [start]:
 for i in range(start,samples):
-    print '%i out of %i' %(i,samples)
+    print('%i out of %i' %(i,samples))
     save_fig_filter(params,fieldsname,i)
 
 fields.update()

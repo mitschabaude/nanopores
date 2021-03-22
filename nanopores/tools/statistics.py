@@ -48,7 +48,7 @@ class RandomVariable(object):
         RandomVariable.i += 1
         self.constants = dict(self.parameters)
         self.inputs = {}
-        self.fixed = dict.fromkeys(self.parameters.keys(), True)
+        self.fixed = dict.fromkeys(list(self.parameters.keys()), True)
         self.is_derived_from = {k: (True if k in self.derived_from else False
                                  ) for k in self.parameters}
     
@@ -60,13 +60,13 @@ class RandomVariable(object):
         c_names = (k for k in self.parameters if (not k in named) and k.islower())
         for X in unnamed:
             if isinstance(X, RandomVariable):
-                name = X_names.next()
+                name = next(X_names)
                 named[name] = X
             else:
-                name = c_names.next()
+                name = next(c_names)
                 named[name] = X
         
-        for name, X in named.items():
+        for name, X in list(named.items()):
             if not name in self.parameters:
                 continue
             if isinstance(X, RandomVariable):
@@ -92,12 +92,12 @@ class RandomVariable(object):
 
     def sample_params(self, shape, train=False):
         params = {}            
-        for name, X in self.inputs.items():
+        for name, X in list(self.inputs.items()):
             if self.is_derived_from[name]:
                 params[name] = X.sample_params(shape, train)
             else:
                 params[name] = X.sample(shape, train)
-        for name, x in self.constants.items():
+        for name, x in list(self.constants.items()):
             if train and name in self.population:
                 params[name] = self.population[name].reshape(shape[:-1] + (1,))
             else:
@@ -168,8 +168,8 @@ class RandomVariable(object):
         n_it = int(np.ceil((np.log(tol) - np.log(sigma))/np.log(factor)))
         if verbose:
             t = self.recursive_missing()
-            print "   ".join(map(lambda t: "%s%d" % t[::2], t))
-            print " ".join(map(lambda t: "%.2f" % t[1], t))
+            print("   ".join(["%s%d" % t[::2] for t in t]))
+            print(" ".join(["%.2f" % t[1] for t in t]))
         for k in range(n_it):
             # create new population by adding multiplicative gaussian noise
             self.spawn_population_lognormal(n_pop=n_pop, sigma=sigma)
@@ -181,11 +181,10 @@ class RandomVariable(object):
             sigma *= factor
             # print params
             if verbose:
-                print " ".join(map(lambda t: "%.2g" % t[1],
-                                   self.recursive_missing()))
+                print(" ".join(["%.2g" % t[1] for t in self.recursive_missing()]))
         if verbose:
-            print "stopped after %d iterations" % n_it
-            print "minimum", min(f)
+            print("stopped after %d iterations" % n_it)
+            print("minimum", min(f))
         return min(f) #self.recursive_missing()
     
     def fit_naive(self, sample):
@@ -198,12 +197,12 @@ class RandomVariable(object):
                 self.inputs[k].fit_naive(sample)
     
     def missing(self):
-        return {k: v for k, v in self.constants.items() if not self.fixed[k]}
+        return {k: v for k, v in list(self.constants.items()) if not self.fixed[k]}
     
     def fix(self):
-        self.fixed = dict.fromkeys(self.fixed.keys(), True)
+        self.fixed = dict.fromkeys(list(self.fixed.keys()), True)
         self.is_fixed = True
-        for X in self.inputs.values():
+        for X in list(self.inputs.values()):
             X.fix()
     
     def update(self, **params):
@@ -213,19 +212,19 @@ class RandomVariable(object):
                 
     def update_from_population(self, i):
         "set constants to i-th value of population"
-        self.update(**{k: v[i] for k, v in self.population.items()})
-        for X in self.inputs.values():
+        self.update(**{k: v[i] for k, v in list(self.population.items())})
+        for X in list(self.inputs.values()):
             if not X.is_fixed:
                 X.update_from_population(i)
                 
     def set_population(self, **params):
-        first = params.values()[0]
+        first = list(params.values())[0]
         if np.isscalar(first):
             self.shape_pop = ()
-            assert all(np.isscalar(p) for p in params.values())
+            assert all(np.isscalar(p) for p in list(params.values()))
         else:
             self.shape_pop = first.shape
-            assert all(p.shape == self.shape_pop for p in params.values())
+            assert all(p.shape == self.shape_pop for p in list(params.values()))
         missing = self.missing()
         self.population = {k: params[k] for k in params if k in missing}
                 
@@ -238,7 +237,7 @@ class RandomVariable(object):
         for k in self.missing():
             c = self.constants[k]
             self.population[k] = c * np.exp(np.random.randn(n_pop)*sigma)
-        for X in self.inputs.values():
+        for X in list(self.inputs.values()):
             if not X.is_fixed:
                 X.spawn_population_lognormal(n_pop, sigma)
     
@@ -252,7 +251,7 @@ class RandomVariable(object):
     
     def __repr__(self):
         name = type(self).__name__
-        params = self.constants.items() + self.inputs.items()
+        params = list(self.constants.items()) + list(self.inputs.items())
         params = ", ".join(["%s=%s" % item for item in params])
         return "%s(%s)" % (name, params)
     
@@ -267,20 +266,20 @@ class RandomVariable(object):
     
     def recursive_params(self):
         # returns items for nonuniqueness
-        params = [(k, v, self.i) for k, v in self.constants.items()]
-        for X in self.inputs.values():
+        params = [(k, v, self.i) for k, v in list(self.constants.items())]
+        for X in list(self.inputs.values()):
             params.extend(X.recursive_params())
         return params
     
     def recursive_missing(self):
-        params = [(k, v, self.i) for k, v in self.missing().items()]
-        for X in self.inputs.values():
+        params = [(k, v, self.i) for k, v in list(self.missing().items())]
+        for X in list(self.inputs.values()):
             params.extend(X.recursive_missing())
         return params
     
     def print_params(self):
-        print ", ".join([
-                "%s=%s (%d)" % item for item in self.recursive_params()])
+        print(", ".join([
+                "%s=%s (%d)" % item for item in self.recursive_params()]))
     
     def plot_cdf(self, x, *args, **kwargs):
         std = True if not "std" in kwargs else kwargs.pop("std")
@@ -685,9 +684,9 @@ if __name__ == "__main__":
         T_alt.plot_pdf(tt, ":k", log=True)
         T_exp.plot_pdf(tt, "--b", log=True)
         
-        print "\nT", T
-        print "\nT_alt", T_alt
-        print "\nT_exp", T_exp
+        print("\nT", T)
+        print("\nT_alt", T_alt)
+        print("\nT_exp", T_exp)
         
     if example2: # combinations of Exponential variables
         tmin = 0.005
@@ -703,7 +702,7 @@ if __name__ == "__main__":
         plt.figure("pdf")
         T.compare_pdfs(sample, log=True)
         
-        print T
+        print(T)
         
     if example3: # Double Gamma example where variables are interlinked
         sample = DoubleExponential(tau1=0.01, tau2=1., w=2.).sample(10000)

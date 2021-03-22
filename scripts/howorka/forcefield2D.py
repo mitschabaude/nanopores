@@ -43,16 +43,16 @@ def maybe_calculate(overwrite=False, **newparams):
     params.update(newparams)
 
     if not overwrite and fields.exists(NAME, **params):
-        print "Existing 2D force field found."
+        print("Existing 2D force field found.")
     else:
-        print "Calculating 2D force field."
+        print("Calculating 2D force field.")
         save_forcefield_implicit(**params)
         
     return load_forcefield_implicit(**params)
 
 if __name__ == "__main__":
     import dolfin
-    from plot_forcefield import porestreamlines
+    from .plot_forcefield import porestreamlines
     F, Fel, Fdrag, mesh, params = maybe_calculate(**params)
     dolfin.plot(mesh)
     porestreamlines(Howorka.polygon(), 6., 8., F=F)

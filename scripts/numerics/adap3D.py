@@ -164,7 +164,7 @@ PNPS.alwaysstokes = True
 #exit()
 
 # solve 3D
-print "\n---- SOLVE 3D PROBLEM ----"
+print("\n---- SOLVE 3D PROBLEM ----")
 frac = 1. if uniform else frac
 pb, pnps = adaptive_pbpnps(geo, phys, frac=frac, Nmax=Nmax,
     cheapest=cheapest, **ref)
@@ -190,7 +190,7 @@ print "Fbare [pN]:", Fel
 print "Fdrag [pN]:", Fdrag
 print "F     [pN]:", F
 """
-print "hmin [nm]: ", geo.mesh.hmin()/nm
+print("hmin [nm]: ", geo.mesh.hmin()/nm)
 
 # 2D visualization
 #phi = pb.functions["primal"]
