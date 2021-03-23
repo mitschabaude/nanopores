@@ -59,10 +59,11 @@ params = nanopores.user_params(
 )
 ##### what to do
 NAME = "rw_wei_"
-print_calculations = True
+print_calculations = False
+print_rw = False
 run_test = False
 plot_attempt_time = False
-plot_distribution = False
+plot_distribution = True
 plot_cdf = False
 voltage_dependence = False
 determine_delta = False
@@ -115,16 +116,21 @@ if print_calculations:
     
     # Smoluchowski rate equation gives number of arrivals at pore entrance per sec
     D = phys.kT / (6. * phys.pi * phys.eta * params.rMolecule * 1e-9) # [m**2/s]
-    r = 6e-9 # effective radius for proteins at pore entrance [m]
+    print('Dbulk', D)
+    r = 6e-9 # effective radius for proteins at pore entrance [m] # WHY??
+    r = ((params.dp - 6.)/2. - params.rMolecule)*1e-9 # should be good
     karr = 2.*phys.pi * r * D * cmol # arrival rate [1/s]
+    print('karr', karr)
     b = c * kon / karr # bindings per event [1]
     
     print(("Number of events per second: %.1f (from Smoluchowski rate equation)" % karr))
     print(("=> number of bindings per event: %.1f / %.1f = %.5f" % (ckon, karr, b)))
     # (= 1 - exp(-a*p) = prob of binding at least once)
     
+    # Vbind = 103 1/M
     cb = 0.01 # receptor concentration in binding zone [M]
     ta_ = 1.595e-9 # avg time spent in binding zone per event [s]
+    # avg no bindings = Ra * ta = (ka * cb) * ta
 
     ka_ = b / (cb * ta_) # implied free-solution association rate constant
     # = kon [1/Ms] * (c * V / ta) [1/s] * (1/karr) [s]
@@ -142,6 +148,7 @@ if print_calculations:
     # print "Average number of attempts: a = %.5f (from many simulations with dt=1, eps=0.1)" % a
     # print "=> binding probability p = a*p / a = %.5f / %.5f = %.5f" % (ap, a, p)
     #receptor_params["p"] = p
+    print('\n==============\n\n')
 
 def setup_rw(params):
     pore = nanopores.get_pore(**params)
@@ -155,10 +162,29 @@ def setup_rw(params):
     rw.add_domain(receptor, **receptor_params(params))
     return rw
 
+##### log stuff about rw
+if print_rw:
+    rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
+    print("rMolecule", params.rMolecule)
+    D = rw.phys.DTargetBulk
+    print("Dbulk", D)
+    rporeeff = (params.dp - 6.)/2. - params.rMolecule
+    print("rpore", rporeeff)
+    rporeeff *= 1e-9
+    # rporeeff = 6e-9 # WHY
+    cmol = 180e-9 * (1e3*rw.phys.mol)
+    karr = 2.*rw.phys.pi* rporeeff *D*cmol # events/s
+    print("karr", karr)
+    for domain in rw.domains:
+        if not domain.binding or not domain.bind_type == "zone":
+            continue
+        print("Vbind", domain.Vbind)
+    print('\n==============\n\n')
+
 ##### run test rw
 if run_test:
     rw = setup_rw(params)
-    randomwalk.run(rw)
+    #randomwalk.run(rw)
     
 ##### draw bindings and forces from empirical distribution
 def draw_empirically(rw, N=1e8, nmax=1000, success=True):
@@ -201,7 +227,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
 
 ##### load tau_off histogram from source and create fake data
 def tauoff_wei():
-    csvfile = "tau_off_wei.csv"
+    csvfile = path("tau_off_wei.csv")
     data = np.genfromtxt(csvfile, delimiter=",")
     bins = data[:, 0]
     counts = data[:, 1]
@@ -320,7 +346,7 @@ if plot_distribution:
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     domain = rw.domains[1]
-    domain.ka = 2.09e7 # hack; change ka for second histogram
+    domain.ka = 2.305e+08 #2.09e7 # hack; change ka for second histogram
     domain.initialize_binding_zone(rw)
     tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
     _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
@@ -355,11 +381,11 @@ if plot_distribution:
     tsuccess_wei = tsuccess2#[tsuccess2 > 1e-4]
     plt.figure("hist_all", figsize=(2.75, 1.83333333333))
     plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
-             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_d$ from Lata)", zorder=50)
+             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=50)
     
     plt.hist(tsuccess_wei, bins=bins, color=color_wei, log=True,
              #histtype="step", linestyle="--", 
-             alpha=0.5, rwidth=0.9, label=r"Sim. ($k_d$ from Wei)", zorder=90)
+             alpha=0.5, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=90)
     plt.hist(fake, bins=bins, histtype="step", log=True,
              linewidth=1.75,
              color=color_exp, label="Experiment", zorder=100)
@@ -438,7 +464,7 @@ if fit_koff0:
 if voltage_dependence:
     # get experimental data
     plt.figure("koff", figsize=(2.2, 1.83333333))
-    data = np.genfromtxt("koff.csv", delimiter=",")
+    data = np.genfromtxt(path("koff.csv"), delimiter=",")
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
@@ -592,5 +618,5 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
 
 import folders
-nanopores.savefigs("tau_off3", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
+nanopores.savefigs("tau_off4", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")
