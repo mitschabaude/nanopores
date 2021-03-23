@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
+import os.path
 from matplotlib import rcParams, rc
 rcParams.update({
     "font.size" : 7,
@@ -16,6 +17,8 @@ import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
 fields.set_dir_mega()
+
+path = lambda path: os.path.join(os.path.dirname(__file__), path)
 
 from nonlinear_least_squares import NLS
 # TODO: to finish this off satisfactorily, it would be nice to infer a tau on
@@ -500,7 +503,7 @@ if voltage_dependence:
 koff0 = np.array([])
 coeff = np.array([])
 for i in range(1, 6):
-    data = np.genfromtxt("koff%d.csv" %i, delimiter=",")
+    data = np.genfromtxt(path("koff{}.csv".format(i)), delimiter=",")
     voltages = data[:, 0]*1e-3
     koff = data[:, 1]
     
