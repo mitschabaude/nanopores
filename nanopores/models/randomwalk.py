@@ -576,13 +576,15 @@ class RandomWalk(object):
             # effective association rate
             frac = karr * ta_ / Vbind # fraction of time spent in binding zone
             # in simulation, relative to bulk = keff / ka
-            #print "karr", karr
-            #print "ta", ta
-            #print "Vbind", Vbind
+            print("Dbulk", Dbulk)
+            print("karr", karr)
+            #print("ta", ta)
+            #print("Vbind", Vbind)
             #print "kbind", kbind
-            print "nbind: %.3f (bindings per event)" % nbind
-            print "ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
-                    keff, ka, frac)
+            print("nbind: %.3f (bindings per event)" % nbind)
+            print("ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
+                    keff, ka, frac))
+        print('\n==============\n\n')
         
         if self.record_positions:
             for i in range(self.N):
