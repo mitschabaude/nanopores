@@ -70,7 +70,7 @@ def _header():
     name = 'python4gmsh'
     version = '0.1'
     years = '2013'
-    author = 'Nico Schlömer'
+    author = 'Nico Schloemer'
     author_email = 'nico.schloemer@gmail.com'
     website = 'https://github.com/nschloe/python4gmsh'
     header = ['// This file was created by %s v%s.' % (name, version),
@@ -251,7 +251,8 @@ def PhysicalSurface(surface, label, dim=3):
     '''
     global _PHYSSURF_ID, _PHYSSURF
     _PHYSSURF_ID += 1
-    if hasattr(surface, "__iter__"):
+    #if hasattr(surface, "__iter__"):
+    if not isinstance(surface, str):
         surface = "{%s}" % (",".join(surface),)
     _GMSH_CODE.append('%s(%s) = %s;' % (physsurf[dim], _PHYSSURF_ID, surface))
     _PHYSSURF[label] =  (_PHYSSURF_ID,)
@@ -300,7 +301,8 @@ def PhysicalVolume(volume, label, dim=3):
     '''
     global _PHYSVOL_ID, _PHYSVOL
     _PHYSVOL_ID += 1
-    if hasattr(volume, "__iter__"):
+    #if hasattr(volume, "__iter__"):
+    if not isinstance(volume, str):
         volume = "{%s}" % (",".join(volume),)
     _GMSH_CODE.append('%s(%s) = %s;' % (physvol[dim], _PHYSVOL_ID, volume))
     _PHYSVOL[label] =  (_PHYSVOL_ID,)
@@ -329,7 +331,8 @@ def PhysicalPoint(point, label):
     '''
     global _PHYSPOINT_ID, _PHYSPOINT
     _PHYSPOINT_ID += 1
-    if hasattr(point, "__iter__"):
+    #if hasattr(point, "__iter__"):
+    if not isinstance(point, str):
         point = "{%s}" % (",".join(point),)
     _GMSH_CODE.append('Physical Point(%s) = %s;' % (_PHYSPOINT_ID, point))
     _PHYSPOINT[label] =  (_PHYSPOINT_ID,)

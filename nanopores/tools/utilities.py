@@ -1,7 +1,7 @@
 ''' some utility functions for global use after importing * from nanopores '''
 
 from importlib import import_module
-import inspect, os, sys, glob
+import inspect, os, sys, glob, time
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import array
@@ -17,7 +17,7 @@ __all__ = ["import_vars", "get_mesh", "u_to_matlab", "plot_on_sub", "save_dict",
            "save_functions", "load_functions", "load_vector_functions", "load_mesh",
            "convert3D", "convert2D", "RectangleMesh", "savefigs", "Params",
            "user_params", "user_param", "dict_union", "union", "plot_sliced_mesh",
-           "smooth", "collect", "collect_dict", "assertdir", "any_params"]
+           "smooth", "collect", "collect_dict", "assertdir", "any_params", "tic", "toc"]
 
 def crange(a, b, N): # continuous range with step 1/N
     return [x/float(N) for x in range(a*N, b*N+1)]
@@ -505,11 +505,18 @@ def printnow(s):
     print(s, end=' ')
     sys.stdout.flush()
 
+tics = []
+def tic():
+    tics.append(time.time())
+def toc():
+    return time.time() - tics.pop()
+
 class Log(object):
     def __init__(self, msg):
         self.msg = msg
     def __enter__(self):
         printnow(self.msg)
-        dolfin.tic()
+        tic()
     def __exit__(self, *args):
-        print("%.2g s" %(dolfin.toc(),))
+        #print("")
+        print("%.2g s" %(toc(),))

@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 import nanopores
 import nanopores.models.randomwalk as randomwalk
+import nanopores.models.nanopore as nanopore_model
+from nanopores.models.nanopore import Iz
 from nanopores.tools import fields
 fields.set_dir_mega()
 
@@ -62,8 +64,9 @@ NAME = "rw_wei_"
 print_calculations = False
 print_rw = False
 run_test = False
+compute_current = True
 plot_attempt_time = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
 voltage_dependence = False
 determine_delta = False
@@ -184,7 +187,24 @@ if print_rw:
 ##### run test rw
 if run_test:
     rw = setup_rw(params)
-    #randomwalk.run(rw)
+    randomwalk.run(rw)
+
+##### compute current
+if compute_current:
+    rw = setup_rw(params)
+    # Z = np.array([(rw.zbot + rw.ztop)*.5])
+    # data = Iz(Z, name="current_wei_acs", calc=True, **params)
+    # print(data)
+    z = (rw.zbot + rw.ztop)*0.5
+    print('z', z)
+    params_ = dict(**params, x0=[0., 0., z])
+    setup = nanopore_model.Setup(**params_)
+    setup.geo.plot_subdomains()
+    setup.geo.plot_boundaries()
+    print('geo', setup.geo)
+    pb, pnps = nanopore_model.solve(setup, visualize=True)
+    result = pnps.evaluate(setup.phys.CurrentPNPSDetail)
+    print('result', result)
     
 ##### draw bindings and forces from empirical distribution
 def draw_empirically(rw, N=1e8, nmax=1000, success=True):

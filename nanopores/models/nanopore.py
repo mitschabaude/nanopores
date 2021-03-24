@@ -7,6 +7,7 @@ import nanopores as nano
 import nanopores.physics.simplepnps as simplepnps
 import nanopores.tools.solvers as solvers
 import nanopores.tools.fields as fields
+from nanopores.tools.utilities import tic, toc
 from nanopores.geometries.allpores import get_geo
 
 default = nano.Params(
@@ -139,7 +140,7 @@ def solve(setup, visualize=False):
 
     print("Number of cells:", geo.mesh.num_cells())
     print("DOFs:", pnps.dofs())
-    dolfin.tic()
+    tic()
     for i in pnps.fixedpoint(): #ipnp=6):
         if visualize:
             v, cp, cm, u, p = pnps.solutions()
@@ -151,7 +152,7 @@ def solve(setup, visualize=False):
             #dolfin.interactive()
             #nano.showplots()
             #plotter.plot_vector(u, "velocity")
-    print("CPU time (solve): %.3g s" %(dolfin.toc(),))
+    print("CPU time (solve): %.3g s" %(toc(),))
     return pb, pnps
 
 def get_forces(setup, pnps):
@@ -161,7 +162,7 @@ def get_forces(setup, pnps):
 
 def prerefine(setup, visualize=False, debug=False):
     geo, phys, p = setup.geo, setup.phys, setup.solverp
-    dolfin.tic()
+    tic()
     if setup.geop.x0 is None:
         goal = phys.CurrentPB
     else:
@@ -182,7 +183,7 @@ def prerefine(setup, visualize=False, debug=False):
             u = pb.solution
             plotter.plot(u, "pb")
             #dolfin.interactive()
-    print("CPU time (PB): %.3g s" %(dolfin.toc(),))
+    print("CPU time (PB): %.3g s" %(toc(),))
     return pb
 
 def set_D_from_data(phys, data):

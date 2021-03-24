@@ -27,6 +27,7 @@ def geofile2geo(code, meta, name=None, clscale=1.):
     with Log("executing gmsh..."):
         # save code to .geo file
         with open(inputfile, "w") as f:
+            #print('writing', code)
             f.write(code)
         # after writing the geo file, call gmsh
         gmsh_out = subprocess.call(["gmsh", "-3", "-v", "1",
@@ -48,6 +49,7 @@ def geofile2geo(code, meta, name=None, clscale=1.):
     pbou = meta.pop("physical_boundary")
     subdomains = dolfin.MeshFunction("size_t", mesh, xml_sub) if pdom else None
     boundaries = dolfin.MeshFunction("size_t", mesh, xml_bou) if pbou else None
+    print('boundaries',boundaries)
     geo = nanopores.Geometry(None, mesh, subdomains, boundaries, pdom, pbou)
     return geo
 

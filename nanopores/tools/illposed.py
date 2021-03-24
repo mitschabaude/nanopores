@@ -10,6 +10,9 @@ __all__ = ["IllposedLinearSolver", "adaptform", "adaptfunction","adaptspace",
     "IllposedNonlinearSolver",  "AdaptableNonlinearProblem",
     "AdaptableBC", "Functional", "assemble_scalar", "meshelement"]
 
+def dolfin_error(file, what, why):
+    print("Error in {}. Could not {}. Reason: {}".format(file, what, why))
+
 class IllposedLinearSolver(object):
     #stabilizer constant needed for correct calculations
     stab = 1e0 #TODO ???
@@ -266,7 +269,8 @@ class AdaptableNonlinearProblem(AdaptableLinearProblem):
 class AdaptableBC(DirichletBC):
     # TODO: implement AdaptableBC(V,g,SubDomain)
     def __init__(self, V, g, boundaries, i, method="topological"):
-        if not isinstance(boundaries,MeshFunctionSizet):
+        #if not isinstance(boundaries,MeshFunctionSizet):
+        if not isinstance(boundaries,dolfin.cpp.mesh.MeshFunctionSizet):
             dolfin_error("illposed.py",
                          "create AdaptableBC",
                          "Currently only implements BC defined by a MeshFunctionSizet")
