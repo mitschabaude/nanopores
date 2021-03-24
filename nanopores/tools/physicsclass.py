@@ -41,11 +41,11 @@ class Physics(object):
         self.functions = {}
         self.maps = {}
         for k,v in list(var.items()):
-            if typestr(v) is "function":
+            if typestr(v) == "function":
                 self.functions[k] = v
-            elif typestr(v) is "dict":
+            elif typestr(v) == "dict":
                 self.maps[k] = v
-            elif typestr(v) is "module":
+            elif typestr(v) == "module":
                 pass
             else:
                 self.base[k] = v
