@@ -490,6 +490,8 @@ class Geometry(object):
         plot(self.boundaries, **params)
 
 
+# UserExpression instead of Expression
+# solves recursion in newer fenics, but has other problems
 class Dict2Expression(Expression): #TODO: too slow... --> compiled expr??
     def __init__(self, dom2value, subdomains, **kwargs):
         self.subdomains = subdomains
