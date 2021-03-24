@@ -30,7 +30,7 @@ def geofile2geo(code, meta, name=None, clscale=1.):
             #print('writing', code)
             f.write(code)
         # after writing the geo file, call gmsh
-        gmsh_out = subprocess.call(["gmsh", "-3", "-v", "1",
+        gmsh_out = subprocess.call(["gmsh", "-3", "-v", "1", "-format", "msh2",
             "-clscale", "%f" %clscale, inputfile, "-o", outfile, "-optimize"])
 
         if gmsh_out != 0:
