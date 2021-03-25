@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*
 # (c) 2017 Gregor Mitscha-Baude
+import os.path
 import numpy as np
 from matplotlib import rcParams, rc
 rcParams.update({
@@ -16,6 +17,8 @@ import nanopores
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
 fields.set_dir_mega()
+
+path = lambda path: os.path.join(os.path.dirname(__file__), path)
 
 from nonlinear_least_squares import NLS
 # TODO: to finish this off satisfactorily, it would be nice to infer a tau on
@@ -198,7 +201,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
 
 ##### load tau_off histogram from source and create fake data
 def tauoff_wei():
-    csvfile = "tau_off_wei.csv"
+    csvfile = path("tau_off_wei.csv")
     data = np.genfromtxt(csvfile, delimiter=",")
     bins = data[:, 0]
     counts = data[:, 1]
@@ -435,7 +438,7 @@ if fit_koff0:
 if voltage_dependence:
     # get experimental data
     plt.figure("koff", figsize=(2.2, 1.83333333))
-    data = np.genfromtxt("koff.csv", delimiter=",")
+    data = np.genfromtxt(path("koff.csv"), delimiter=",")
     v = data[:, 0]
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
@@ -500,7 +503,7 @@ if voltage_dependence:
 koff0 = np.array([])
 coeff = np.array([])
 for i in range(1, 6):
-    data = np.genfromtxt("koff%d.csv" %i, delimiter=",")
+    data = np.genfromtxt(path("koff%d.csv" %i), delimiter=",")
     voltages = data[:, 0]*1e-3
     koff = data[:, 1]
     
