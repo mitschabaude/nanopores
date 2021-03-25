@@ -1,6 +1,5 @@
 # (c) 2017 Gregor Mitscha-Baude
 import numpy as np
-from tangent import grad
 
 def functional(xi, yi):
     def g(t):
@@ -9,6 +8,7 @@ def functional(xi, yi):
 
 def newton(f, x0=0., tol=1e-14):
     "solve f(x) = 0 with initial guess x = x0"
+    from tangent import grad
     df = grad(f)
     x = x0
     while np.abs(f(x)) > tol:
@@ -19,6 +19,7 @@ def newton(f, x0=0., tol=1e-14):
 def minimize(F, x0=0., tol=1e-14):
     "find local minimum of F near initial guess x=x0"
     # solve dF(x) = 0 with newton
+    from tangent import grad
     return newton(grad(F), x0=x0, tol=tol)
 
 def NLS(ti, yi, t0=0., tol=1e-14):
@@ -29,6 +30,7 @@ def NLS(ti, yi, t0=0., tol=1e-14):
         return np.sum((1. - np.exp(-np.exp(xi - x)) - yi)**2)
     
     # minimize f by solving df(x) = 0 with newton method
+    from tangent import grad
     df = grad(f)
     ddf = grad(df)
     x = np.log(t0)
@@ -44,6 +46,7 @@ def NLS_(F, xi, yi, x0=0., tol=1e-14):
         return np.sum((F(xi, x) - yi)**2)
     
     # minimize f by solving df(x) = 0 with newton method
+    from tangent import grad
     df = grad(f)
     ddf = grad(df)
     x = x0

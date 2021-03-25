@@ -11,7 +11,6 @@ from ..tools.protocol import Data, unique_id
 from ..tools.utilities import save_dict
 from ..tools.mpipool import mpimap
 from mpi4py import MPI
-from pathos.helpers import mp # mp = fork of multiprocessing package
 from ..dirnames import DATADIR
 import numpy, os
 #from .calculate_forces import calculate2D
@@ -68,6 +67,7 @@ def iterate_in_parallel(method, nproc=1, iterkeys=None, **params):
     #        (not necessarily, error can be catched and displayed by method)
     #        also it's not supposed to be appropriate for HPC architectures
     elif nproc>1:
+        from pathos.helpers import mp # mp = fork of multiprocessing package
         pool = mp.Pool(nproc)
         result = pool.map(f, iterator)
         pool.close()

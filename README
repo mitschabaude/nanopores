@@ -1,1 +1,9 @@
 Simulation of Nanopores.
+
+```sh
+sudo docker pull quay.io/fenicsproject/stable:2016.1.0
+
+sudo docker run -ti -v $(pwd):/home/fenics/shared --name fenics quay.io/fenicsproject/stable:2016.2.0
+
+sudo docker start -i fenics
+```

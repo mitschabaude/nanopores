@@ -23,4 +23,7 @@ ffc_form*.h
 # ignore numpy saves
 *.npy
 
-# ignore some folders
+# ignore docker stuff
+core
+
+.vscode
