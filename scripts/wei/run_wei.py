@@ -14,6 +14,8 @@ rcParams.update({
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 import nanopores
+import nanopores.models.nanopore as nanopore_model
+from nanopores.models.nanopore import Iz
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields
 fields.set_dir_mega()
@@ -29,24 +31,24 @@ params = nanopores.user_params(
     # general params
     geoname = "wei",
     dim = 2,
-    rMolecule = 1.25, # 6.
+    rMolecule = 3,
     h = 5.,
     Nmax = 1e5,
-    Qmol = 2., #15.,
+    Qmol = 0., # actually probably negative # 0 or -1
     bV = -0.2,
     dp = 26.,
     geop = dict(dp = 26.),
     posDTarget = True,
 
     # random walk params
-    N = 100000, # number of (simultaneous) random walks
-    dt = .5, # time step [ns]
-    walldist = 2., # in multiples of radius, should be >= 1
+    N = 2000, # number of (simultaneous) random walks
+    dt = 2., # time step [ns] # .5
+    walldist = 1.0, # in multiples of radius, should be >= 1
     margtop = 60.,
     margbot = 0.,
     #zstart = 46.5, # 46.5
     #xstart = 0., # 42.
-    rstart = 30,
+    rstart = 14,
     initial = "sphere",
 
     # receptor params
@@ -62,6 +64,7 @@ NAME = "rw_wei_"
 print_calculations = False
 print_rw = False
 run_test = False
+compute_current = False
 plot_attempt_time = False
 plot_distribution = True
 plot_cdf = False
@@ -71,7 +74,7 @@ fit_koff0 = False
 
 ##### constants
 rrec = 0.5 # receptor radius
-distrec = 4. - params.rMolecule - rrec # distance of rec. center from wall
+distrec = 2.75 #4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
 dx = 5.5
 kd = 25e-3
@@ -129,7 +132,7 @@ if print_calculations:
     
     # Vbind = 103 1/M
     cb = 0.01 # receptor concentration in binding zone [M]
-    ta_ = 1.595e-9 # avg time spent in binding zone per event [s]
+    ta_ = 23.5e-9 # 1.595e-9 # avg time spent in binding zone per event [s]
     # avg no bindings = Ra * ta = (ka * cb) * ta
 
     ka_ = b / (cb * ta_) # implied free-solution association rate constant
@@ -160,6 +163,19 @@ def setup_rw(params):
     print "Receptor position: %s" % posrec
     receptor = randomwalk.Ball(posrec, rrec) # ztop 46.5
     rw.add_domain(receptor, **receptor_params(params))
+
+    # # non-standard stopping
+    # def success(self, r, z):
+    #     return self.in_channel(r, z) & (z <= params.zstop)
+    
+    # def fail(self, r, z):
+    #     if self.t > Tmax:
+    #         return np.full(r.shape, True, dtype=bool)
+    #     toolong = (self.times[self.alive] + self.bind_times[self.alive]) > 5e6
+    #     toofar = r**2 + z**2 > Rmax**2
+    #     return toolong | toofar
+    
+    # rw.set_stopping_criteria(success, fail)
     return rw
 
 ##### log stuff about rw
@@ -184,7 +200,29 @@ if print_rw:
 ##### run test rw
 if run_test:
     rw = setup_rw(params)
-    #randomwalk.run(rw)
+    randomwalk.run(rw)
+
+##### compute current
+if compute_current:
+    #rw = setup_rw(params)
+    #pore = nanopores.get_pore(**params)
+    # Z = np.array([(rw.zbot + rw.ztop)*.5])
+    # data = Iz(Z, name="current_wei_acs", calc=True, **params)
+    # print(data)
+    #z = (rw.zbot + rw.ztop)*0.5
+    z = 41.8
+    print('z', z)
+    x0 = None if z is None else [0., 0., z]
+    params_ = dict(params, x0=x0, tol=1e-4, Nmax=1e5, bV=-0.2, rMolecule=3.1, Qmol=0)
+    #params_ = dict(params, x0=[0., 0., z])
+    setup = nanopore_model.Setup(**params_)
+    setup.geo.plot_subdomains()
+    setup.geo.plot_boundaries()
+    print params_
+    print 'geo', setup.geo
+    pb, pnps = nanopore_model.solve(setup, visualize=True)
+    result = pnps.evaluate(setup.phys.CurrentPNPSDetail)
+    print('result', result)
     
 ##### draw bindings and forces from empirical distribution
 def draw_empirically(rw, N=1e8, nmax=1000, success=True):
@@ -329,7 +367,7 @@ if plot_distribution:
     plt.ylabel("Rel. frequency")
     
     plt.figure("hist_old", figsize=(4.5,3))
-    NN = 3e8
+    NN = 1.5e8
     fake = tauoff_wei()
     tfail, tsuccess1 = draw_empirically(rw, N=NN, nmax=len(fake))
     a, b = -6.5, 2 # log10 of plot interval
@@ -346,7 +384,7 @@ if plot_distribution:
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     domain = rw.domains[1]
-    domain.ka = 2.305e+08 #2.09e7 # hack; change ka for second histogram
+    domain.ka = 4.694e+07 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
     domain.initialize_binding_zone(rw)
     tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
     _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
@@ -368,12 +406,12 @@ if plot_distribution:
     plt.ylim(ymin=1.)
     #plt.xlim(xmax=1e4)
     #plt.legend()
-    plt.legend([handler_exp, handler_sim1, handler_sim2],
-               ["Experiments", r"Sim. ($k_d$ from Lata)", r"Sim. ($k_d$ from Wei)"],
-    #plt.legend([handler_exp, handler_sim1],
-    #           ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)"],
-                handler_map={tuple: HandlerTuple(ndivide=None)},
-                frameon=False)
+    # plt.legend([handler_exp, handler_sim1, handler_sim2],
+    #            ["Experiments", r"Sim. ($k_d$ from Lata)", r"Sim. ($k_d$ from Wei)"],
+    # #plt.legend([handler_exp, handler_sim1],
+    # #           ["Experiments (Wei et al.)", r"Sim. ($k_d$ from Lata)"],
+    #             handler_map={tuple: HandlerTuple(ndivide=None)},
+    #             frameon=False)
     #scatterpoints=1, numpoints=1, 
     
     # simpler hist with better color code and visibility
@@ -618,5 +656,6 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
 
 import folders
-nanopores.savefigs("tau_off4", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
+nanopores.savefigs("tau_off4", folders.FIGDIR, ending=".pdf")
+#nanopores.savefigs("tau_off4", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")
