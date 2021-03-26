@@ -1,6 +1,6 @@
 # Simulation of Nanopores
 
-## Run with Fenics & Python2 inside docker
+### Run with fenics & python2 inside docker
 
 ```sh
 # once, in the project root (this folder)
@@ -12,8 +12,10 @@ sudo docker start -i fenics
 
 # in the container, to execute scripts
 cd shared
+export PYTHONPATH=.
+
+python <YOUR SCRIPT>
 
 # since the project root is shared, you can iterate on your scripts
 # from outside the container while running them from inside
 ```
-
