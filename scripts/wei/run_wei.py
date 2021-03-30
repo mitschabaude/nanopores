@@ -17,7 +17,7 @@ import nanopores
 import nanopores.models.nanopore as nanopore_model
 from nanopores.models.nanopore import Iz
 import nanopores.models.randomwalk as randomwalk
-from nanopores.tools import fields
+from nanopores.tools import fields, statistics
 fields.set_dir_mega()
 
 path = lambda path: os.path.join(os.path.dirname(__file__), path)
@@ -41,7 +41,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 2000, # number of (simultaneous) random walks
+    N = 70000, # number of (simultaneous) random walks
     dt = 2., # time step [ns] # .5
     walldist = 1.0, # in multiples of radius, should be >= 1
     margtop = 60.,
@@ -66,17 +66,17 @@ print_rw = False
 run_test = False
 compute_current = False
 plot_attempt_time = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
 voltage_dependence = False
 determine_delta = False
-fit_koff0 = False
+fit_koff0 = True
 
 ##### constants
 rrec = 0.5 # receptor radius
 distrec = 2.75 #4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
-dx = 5.5
+dx = 4.8
 kd = 25e-3
 
 #### color code
@@ -131,7 +131,16 @@ if print_calculations:
     # (= 1 - exp(-a*p) = prob of binding at least once)
     
     # Vbind = 103 1/M
+    Rbind = params.rMolecule + ra
+    sin70 = np.sin(70 * np.pi / 180)
+    hdist = distrec * sin70
+    hseg = ra + hdist # < Rbind = ra + rMolec in our case
+    Vbind = (np.pi / 3.) * hseg**2 * (3*Rbind - hseg)
+    #Vbind = 4./3.*np.pi*(Rbind**3 - params.rMolecule**3) # [nm**3]
+    Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
+    print('Vbind', Vbind)
     cb = 0.01 # receptor concentration in binding zone [M]
+    cb = 1./Vbind
     ta_ = 23.5e-9 # 1.595e-9 # avg time spent in binding zone per event [s]
     # avg no bindings = Ra * ta = (ka * cb) * ta
 
@@ -226,21 +235,30 @@ if compute_current:
     
 ##### draw bindings and forces from empirical distribution
 def draw_empirically(rw, N=1e8, nmax=1000, success=True):
-    self = rw.domains[1]
+    domain = rw.domains[1]
     N = int(N)
-    ka = self.kbind
-    print "multiplying attempt times with Ra = %.3g" % (self.kbind,)
+
+    Rbind = rw.params.rMolecule + domain.ra
+    sin70 = np.sin(70 * np.pi / 180)
+    hdist = distrec * sin70
+    hseg = domain.ra + hdist # < Rbind = ra + rMolec in our case
+    Vbind = (np.pi / 3.) * hseg**2 * (3*Rbind - hseg) # sphere segment volume
+    Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
+
+    Ra = 1e-9 * domain.ka / Vbind
+    #Ra = self.kbind
+    print "multiplying attempt times with Ra = %.3g" % (Ra,)
     # draw indices of existing random walks
     I = np.random.randint(rw.N, size=(N,))
     times = (1e-9*rw.times)[I]
     bindings = np.zeros(N, dtype=bool)
-    avgbindings = (ka*rw.attempt_times)[I]
+    avgbindings = (Ra*rw.attempt_times)[I]
     bindings[avgbindings > 0] = np.random.poisson(avgbindings[avgbindings > 0])
     del avgbindings
     ibind, = np.nonzero(bindings > 0)
     n0 = len(ibind)
     n = min(n0, nmax)
-    N_ = ibind[n]
+    N_ = ibind[n-1] + 1
     ibind = ibind[:n]
     print "%d binding events drawn, %s used, total events used %s." % (n0, n, N_)
     I = I[:N_]
@@ -249,10 +267,10 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     
     f = np.array([f for F in rw.binding_zone_forces for f in F])
     F = np.random.choice(f, size=(n,))
-    dx = 1e-9*self.dx
+    dx = 1e-9*domain.dx
     kT = rw.phys.kT
-    t = self.t * np.exp(-F*dx/kT)
-    print "dwell time reduction by force:", np.mean(t)/self.t
+    t = domain.t * np.exp(-F*dx/kT)
+    print "dwell time reduction by force:", np.mean(t)/domain.t
     bind_times = 1e-9*np.random.gamma(bindings[ibind], scale=t)
     times[ibind] += bind_times
     
@@ -307,9 +325,9 @@ def tauoff_wei():
     return fake
 
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-@fields.cache("wei_koff_2", default=dict(params, dx=5.5, N=10000, 
-              dp=30., geop=dict(dp=30.), nmax=523, NN=4e8))
-def fit_koff(nmax=523, NN=4e8, **params):
+@fields.cache("wei_koff_5", default=dict(params, dx=4.8, N=10000, 
+              dp=30., geop=dict(dp=30.), nmax=523, NN=1.5e8))
+def fit_koff(nmax=523, NN=1.5e8, **params):
     tbind = params.pop("tbind")
     params["kd"] = 1e9/tbind
     dx = params.pop("dx")
@@ -322,7 +340,12 @@ def fit_koff(nmax=523, NN=4e8, **params):
     cfd = np.cumsum(hist)/float(np.sum(hist))
     t = 0.5*(bins[:-1] + bins[1:])
     tmean = times.mean()
-    toff = NLS(t, cfd, t0=tmean)
+    #toff = NLS(t, cfd, t0=tmean)
+    T = statistics.Exponential(tau=None)
+    T.constants['tau'] = tmean
+    T.fit(times, method='cdf', log=True)
+    toff = T.tau
+
     koff = 1./toff
     return dict(t=t, cfd=cfd, toff=toff, tmean=tmean, koff=koff)
 
@@ -331,11 +354,11 @@ if plot_attempt_time:
     ta = rw.attempt_times
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
-    tt = np.linspace(0.25, 200., 100)
+    tt = np.linspace(0.25, 800., 100)
     plt.figure("attempt_times", figsize=(2.2, 1.65))
     plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
     ta0 = ta.mean()
-    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean %.3gns" % ta0)
+    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit,\nmean %.3gns" % ta0)
     #plt.xscale("log")
     #plt.yscale("log")
     plt.xlabel("Attempt time [ns]")
@@ -349,16 +372,16 @@ if plot_distribution:
     ta = rw.attempt_times
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
-    tt = np.linspace(0.25, 200., 100)
-    plt.figure("attempt_times", figsize=(4, 3))
-    plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
-    ta0 = ta.mean()
-    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
+    #tt = np.linspace(0.25, 600., 100)
+    #plt.figure("attempt_times", figsize=(4, 3))
+    #plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
+    #ta0 = ta.mean()
+    #plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit, mean=%.3gns" % ta0)
     #plt.xscale("log")
     #plt.yscale("log")
-    plt.xlabel("Attempt time [ns]")
-    plt.ylabel("Rel. frequency")
-    plt.legend()
+    #plt.xlabel("Attempt time [ns]")
+    #plt.ylabel("Rel. frequency")
+    #plt.legend()
     
     forces = np.array([f for F in rw.binding_zone_forces for f in F])
     plt.figure("force", figsize=(4,3))
@@ -384,7 +407,7 @@ if plot_distribution:
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     domain = rw.domains[1]
-    domain.ka = 4.694e+07 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
+    domain.ka = 1.004e+08 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
     domain.initialize_binding_zone(rw)
     tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
     _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
@@ -452,7 +475,7 @@ if plot_cdf:
     plt.figure("bV_tauoff", figsize=(4, 3))
     for i, v in enumerate(voltages):
         data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
-        tt = np.logspace(-3., 2., 100)
+        tt = np.logspace(np.log10(np.min(data.t)*.5), np.log10(np.max(data.t)*2), 100)
         
         lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i])
         plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color(),
@@ -473,14 +496,14 @@ def regression(bV, koff):
 
 ######
 def koff0(kd, **params):
-    return fit_koff(name="wei_koff_3", bV=0., tbind=1e9/kd, **params).koff
+    return fit_koff(name="wei_koff_5", bV=0., tbind=1e9/kd, **params).koff
 
 if fit_koff0:
     plt.figure("koff0", figsize=(4, 3))
     kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
-    ko = np.array([1e3*koff0(k*1e-3, NN=5e8, nmax=10000) for k in kd])
+    ko = np.array([1e3*koff0(k*1e-3, NN=2.5e8, nmax=10000) for k in kd])
     c = ko.mean()/kd.mean()
-    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*5.5)*nanopores.kT)
+    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*4.8)*nanopores.kT)
     # F0 = 0.184 pN
     plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
     plt.plot(kd, ko, "oC1", label="Simulations")
@@ -589,7 +612,7 @@ if determine_delta:
     coeff = np.array([])
     for z in zrecs:
         for v, koff in nanopores.collect(voltages):
-            data = fit_koff(bV=v, zreceptor=z, dx=dx, **newparams)
+            data = fit_koff(bV=v, zreceptor=z, dx=dx, NN=4e8, nmax=2000, **newparams)
             koff.new = data.koff
         c, k = regression(np.abs(voltages), koff)
         coeff = np.append(coeff, c)
@@ -600,7 +623,7 @@ if determine_delta:
     dx0 = cdx_exp / (cdxtest_sim / dxtest)
     print "inferred dx:", dx0
     
-    dxs = [2., 3., 4., 5., 5.5, 6., 7., 8., 9.]
+    dxs = [2., 3., 4., 4.5, 4.79, 5.1, 5.5, 6., 7.]
     cdx = []
     cdxstd = []
     cdxall = []
@@ -647,8 +670,8 @@ if determine_delta:
         plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
     #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
     
-    plt.annotate(r"$\delta$=5.5nm", (5.5, cdxall[4, 0] - 1.),
-                 xytext=(5.5 - .79, cdxall[4, 0] - 8.), color="C1",
+    plt.annotate(r"$\delta$=4.8nm", (4.8, cdxall[4, 0] - 1.),
+                 xytext=(4.8 + .0, cdxall[4, 0] - 8.), color="C1",
                  arrowprops=dict(arrowstyle="->", color="C1"))
     
     plt.xlabel(r"Bond rupture length $\delta$ [nm]")
