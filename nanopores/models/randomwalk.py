@@ -34,12 +34,12 @@ params = nanopores.user_params(
     x0 = None,
     
     # random walk params
-    N = 100, # number of (simultaneous) random walks
+    N = 1000, # number of (simultaneous) random walks
     dt = 10., # time step [ns]
     walldist = 1., # in multiples of radius, should be >= 1
     margtop = 40.,
     margbot = 20.,
-    initial = "disc",  # oder "sphere"
+    initial = "disc",  # oder "sphere" or "bottom-sphere" or "bottom-disc"
 )
 
 # domains are places where molecule can bind
@@ -286,19 +286,29 @@ class RandomWalk(object):
     def initial(self):
         if self.params.initial == "sphere":
             return self.initial_half_sphere()
+        if self.params.initial == "bottom-sphere":
+            return self.initial_half_sphere(True)
+        if self.params.initial == "bottom-disc":
+            return self.initial_disc(True)
         else:
             return self.initial_disc()
         
-    def initial_disc(self):
+    def initial_disc(self, bottom=False):
         rstart = self.params.rstart
         xstart = self.params.xstart
         zstart = self.params.zstart
         if rstart is None:
-            rstart = self.rtop - self.params.rMolecule*(self.params.walldist - 1.)
+            if bottom:
+                rstart = self.rbot - self.params.rMolecule*self.params.walldist
+            else:
+                rstart = self.rtop - self.params.rMolecule*self.params.walldist
         if xstart is None:
             xstart = 0.
         if zstart is None:
-            zstart = self.ztop
+            if bottom:
+                zstart = self.zbot
+            else:
+                zstart = self.ztop
         self.rstart = rstart
 
         # create uniform polar coordinates r, theta
@@ -311,22 +321,29 @@ class RandomWalk(object):
         x[:, 2] = zstart
         return x, np.sqrt(x[:, 0]**2 + x[:, 1]**2), x[:, 2]
     
-    def initial_half_sphere(self):
+    def initial_half_sphere(self, bottom=False):
         rstart = self.params.rstart
         xstart = self.params.xstart
         zstart = self.params.zstart
         if rstart is None:
-            rstart = 2.*self.pore.protein.radiustop()
+            if bottom:
+                rstart = 2.*self.rbot
+            else:
+                rstart = 2.*self.rtop
         if xstart is None:
             xstart = 0.
         if zstart is None:
-            zstart = self.ztop + self.params.rMolecule*self.params.walldist
+            if bottom:
+                zstart = self.zbot + self.params.rMolecule*self.params.walldist
+            else:
+                zstart = self.ztop + self.params.rMolecule*self.params.walldist
         self.rstart = rstart
             
         # draw 3D gaussian points, project to half-sphere and
         # only accept if above channel
         x = np.random.randn(self.N, 3)
-        x[:, 2] = np.abs(x[:, 2])
+        sign = -1 if bottom else 1
+        x[:, 2] = sign*np.abs(x[:, 2])
         R = np.sqrt(np.sum(x**2, 1))
         m = np.array([[xstart, 0., zstart]])
         x = m + rstart*x/R[:, None]
