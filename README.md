@@ -18,4 +18,8 @@ python <YOUR SCRIPT>
 
 # since the project root is shared, you can iterate on your scripts
 # from outside the container while running them from inside
+
+
+# sometimes you'll need a second shell in the running container:
+sudo docker exec -it -u fenics fenics /bin/bash
 ```
