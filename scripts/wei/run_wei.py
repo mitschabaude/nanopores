@@ -31,25 +31,25 @@ params = nanopores.user_params(
     # general params
     geoname = "wei",
     dim = 2,
-    rMolecule = 3,
+    rMolecule = 3, # from 101 kDa (protein A/G/L)
     h = 5.,
     Nmax = 1e5,
-    Qmol = 0., # actually probably negative # 0 or -1
+    Qmol = -50., # estimate ~ protein G x2 (according to weight)
     bV = -0.2,
     dp = 26.,
     geop = dict(dp = 26.),
     posDTarget = True,
 
     # random walk params
-    N = 70000, # number of (simultaneous) random walks
-    dt = 2., # time step [ns] # .5
+    N = 10000, # number of (simultaneous) random walks
+    dt = 1., # time step [ns] # .5
     walldist = 1.0, # in multiples of radius, should be >= 1
-    margtop = 60.,
-    margbot = 0.,
-    #zstart = 46.5, # 46.5
+    margtop = 20.,
+    margbot = 80.,
+    #zstart = -46.5, # 46.5
     #xstart = 0., # 42.
-    rstart = 14,
-    initial = "sphere",
+    #rstart = 30.,
+    initial = "bottom-disc",
 
     # receptor params
     tbind = 40e9, # from Lata, = 1/kd = 1/(25e-3)s [ns]
@@ -60,7 +60,7 @@ params = nanopores.user_params(
     zreceptor = .95, # receptor location relative to pore length (1 = top)
 )
 ##### what to do
-NAME = "rw_wei_"
+NAME = "rw_wei_reverse_"
 print_calculations = False
 print_rw = False
 run_test = False
@@ -76,8 +76,9 @@ fit_koff0 = True
 rrec = 0.5 # receptor radius
 distrec = 2.75 #4. - params.rMolecule - rrec # distance of rec. center from wall
 ra = distrec #params.rMolecule*(params.walldist - 1.) - rrec
-dx = 4.8
+dx = 0.55
 kd = 25e-3
+ka = 1.5e5
 
 #### color code
 color_lata = "C0" #"#0066ff"
@@ -87,6 +88,7 @@ color_exp = "red"
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
     kd0 = params["kd"] if "kd" in params else kd
+    ka0 = params["ka"] if "ka" in params else ka
     tbindfromkd = 1e9/kd0
     tbind0 = params["tbind"] if "tbind" in params else tbindfromkd
     return dict(
@@ -97,7 +99,7 @@ def receptor_params(params):
     binding = True,
     t = tbind0, # mean of exponentially distributed binding duration [ns]
     #t = 1e9/kd0,
-    ka = params["ka"], # (bulk) association rate constant [1/Ms]
+    ka = ka0, # (bulk) association rate constant [1/Ms]
     ra = ra, # radius of the association zone [nm]
     bind_type = "zone",
     collect_stats_mode = True,
@@ -173,18 +175,15 @@ def setup_rw(params):
     receptor = randomwalk.Ball(posrec, rrec) # ztop 46.5
     rw.add_domain(receptor, **receptor_params(params))
 
-    # # non-standard stopping
-    # def success(self, r, z):
-    #     return self.in_channel(r, z) & (z <= params.zstop)
-    
-    # def fail(self, r, z):
-    #     if self.t > Tmax:
-    #         return np.full(r.shape, True, dtype=bool)
-    #     toolong = (self.times[self.alive] + self.bind_times[self.alive]) > 5e6
-    #     toofar = r**2 + z**2 > Rmax**2
-    #     return toolong | toofar
-    
-    # rw.set_stopping_criteria(success, fail)
+    # reversed stopping
+    def success(self, r, z):
+        return (r**2 + (z - self.ztop)**2 > self.params.margtop**2) & (
+               self.above_channel(r, z))
+    def fail(self, r, z):
+        return (r**2 + (z - self.zbot)**2 > self.params.margbot**2) & (
+               self.below_channel(r, z))
+    rw.set_stopping_criteria(success, fail)
+
     return rw
 
 ##### log stuff about rw
@@ -208,7 +207,7 @@ if print_rw:
 
 ##### run test rw
 if run_test:
-    rw = setup_rw(params)
+    rw = setup_rw(dict(params, bV=0., dt=10., N=500))
     randomwalk.run(rw)
 
 ##### compute current
@@ -219,10 +218,10 @@ if compute_current:
     # data = Iz(Z, name="current_wei_acs", calc=True, **params)
     # print(data)
     #z = (rw.zbot + rw.ztop)*0.5
-    z = 41.8
+    z = 41.
     print('z', z)
     x0 = None if z is None else [0., 0., z]
-    params_ = dict(params, x0=x0, tol=1e-4, Nmax=1e5, bV=-0.2, rMolecule=3.1, Qmol=0)
+    params_ = dict(params, x0=x0, tol=1e-4, Nmax=2e5)
     #params_ = dict(params, x0=[0., 0., z])
     setup = nanopore_model.Setup(**params_)
     setup.geo.plot_subdomains()
@@ -234,7 +233,7 @@ if compute_current:
     print('result', result)
     
 ##### draw bindings and forces from empirical distribution
-def draw_empirically(rw, N=1e8, nmax=1000, success=True):
+def draw_empirically(rw, N=1e8, nmax=1000, success=True, determine_ka=False):
     domain = rw.domains[1]
     N = int(N)
 
@@ -245,14 +244,32 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     Vbind = (np.pi / 3.) * hseg**2 * (3*Rbind - hseg) # sphere segment volume
     Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
 
-    Ra = 1e-9 * domain.ka / Vbind
-    #Ra = self.kbind
-    print "multiplying attempt times with Ra = %.3g" % (Ra,)
+    ka = domain.ka
+    if determine_ka:
+        kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
+        c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
+        cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
+        print "Number of bindings per second: %.1f (inverse of mean tau_on)" % (c*kon,) # 3.8
+        # Smoluchowski rate equation
+        D = rw.phys.DTargetBulk
+        r = ((params.dp - 6.)/2. - params.rMolecule)*1e-9
+        if rw.params.initial == "bottom-disc":
+            r = (rw.rbot - rw.params.rMolecule)*1e-9
+        karr = 2.*rw.phys.pi * r * D * cmol # arrival rate [1/s]
+        kb = c * kon / karr # bindings per event [1]
+        print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
+        print "=> number of bindings per event: %.1f / %.1f = %.5f" % (c*kon, karr, kb)
+        ta = 1e-9*rw.attempt_times.mean()
+        ka = kb * Vbind / ta
+        print "determined ka", ka
+
+    Ra = ka / Vbind
+    print "multiplying attempt times with Ra * ns = %.3g" % (Ra*1e-9,)
     # draw indices of existing random walks
     I = np.random.randint(rw.N, size=(N,))
     times = (1e-9*rw.times)[I]
     bindings = np.zeros(N, dtype=bool)
-    avgbindings = (Ra*rw.attempt_times)[I]
+    avgbindings = (Ra*1e-9*rw.attempt_times)[I]
     bindings[avgbindings > 0] = np.random.poisson(avgbindings[avgbindings > 0])
     del avgbindings
     ibind, = np.nonzero(bindings > 0)
@@ -277,6 +294,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True):
     if success:
         tfail = times[rw.fail[I]]
         tsuccess = times[rw.success[I]]
+        print "success", len(tsuccess), "fail", len(tfail), "percentage success", len(tsuccess)*100./(1.*len(tsuccess) + len(tfail))
         return tfail, tsuccess
     else:
         return times[ibind]
@@ -325,14 +343,16 @@ def tauoff_wei():
     return fake
 
 ###### determine tauoff from fit to exponential cdf 1 - exp(t/tauoff)
-@fields.cache("wei_koff_5", default=dict(params, dx=4.8, N=10000, 
+@fields.cache("wei_koff_6", default=dict(params, dx=0.55, N=10000, 
               dp=30., geop=dict(dp=30.), nmax=523, NN=1.5e8))
 def fit_koff(nmax=523, NN=1.5e8, **params):
     tbind = params.pop("tbind")
     params["kd"] = 1e9/tbind
     dx = params.pop("dx")
+    ka = params.pop("ka")
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True)
     rw.domains[1].dx = dx
+    rw.domains[1].ka = ka
     times = draw_empirically(rw, N=NN, nmax=nmax, success=False)
     bins = np.logspace(np.log10(min(times)), np.log10(max(times)), 35)
     #bins = np.logspace(-3., 2., 35)
@@ -354,7 +374,7 @@ if plot_attempt_time:
     ta = rw.attempt_times
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
-    tt = np.linspace(0.25, 800., 100)
+    tt = np.linspace(0.25, 250., 100)
     plt.figure("attempt_times", figsize=(2.2, 1.65))
     plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
     ta0 = ta.mean()
@@ -407,9 +427,9 @@ if plot_distribution:
     params2["kd"] = 3.5e-3
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     domain = rw.domains[1]
-    domain.ka = 1.004e+08 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
+    #domain.ka = 1.004e+08 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
     domain.initialize_binding_zone(rw)
-    tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake))
+    tfail, tsuccess2 = draw_empirically(rw, N=NN, nmax=len(fake), determine_ka=True)
     _, _, gptchs = plt.hist(tsuccess2, bins=bins, color="green", log=True,
                             histtype="step", linestyle="--", alpha=0.6,
                             rwidth=0.9, label=r"Translocated ($k_d$: Wei)", zorder=200)
@@ -496,14 +516,14 @@ def regression(bV, koff):
 
 ######
 def koff0(kd, **params):
-    return fit_koff(name="wei_koff_5", bV=0., tbind=1e9/kd, **params).koff
+    return fit_koff(name="wei_koff_6", bV=0., tbind=1e9/kd, margbot=70., **params).koff
 
 if fit_koff0:
     plt.figure("koff0", figsize=(4, 3))
     kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
-    ko = np.array([1e3*koff0(k*1e-3, NN=2.5e8, nmax=10000) for k in kd])
+    ko = np.array([1e3*koff0(k*1e-3, ka=1e8, dx=0.55, NN=1e8, nmax=10000) for k in kd])
     c = ko.mean()/kd.mean()
-    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*4.8)*nanopores.kT)
+    print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*0.55)*nanopores.kT)
     # F0 = 0.184 pN
     plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
     plt.plot(kd, ko, "oC1", label="Simulations")
@@ -535,7 +555,7 @@ if voltage_dependence:
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
     mv = np.abs(v)*1e3
     z = 0.95
-    dx = 5.6
+    #dx = 0.55
     koff = [fit_koff(bV=V, zreceptor=z, dx=dx, **newparams).koff for V in v]
     c1, k1 = regression(mv[-4:], koff[-4:])
     plt.plot(mv, koff, "v", markersize=7, label=r"Sim. ($k_d$ from Lata)",
@@ -605,8 +625,8 @@ vdx_exp = coeff.std()
 ###### plt determination of bond rupture length from wei data and simulations
 if determine_delta:
     voltages = [-0.2, -0.25, -0.3, -0.35]
-    zrecs = [.90, .95, .99]
-    dxtest = 5.
+    zrecs = [.91, .93, .95, .97]
+    dxtest = 0.4
     dx = dxtest
     koff0 = np.array([])
     coeff = np.array([])
@@ -623,7 +643,7 @@ if determine_delta:
     dx0 = cdx_exp / (cdxtest_sim / dxtest)
     print "inferred dx:", dx0
     
-    dxs = [2., 3., 4., 4.5, 4.79, 5.1, 5.5, 6., 7.]
+    dxs = [0.4, 0.5, 0.525, 0.55, 0.575, 0.6, 0.7] #2., 3., 4., 4.5, 4.79, 5.1, 5.5, 6., 7.]
     cdx = []
     cdxstd = []
     cdxall = []
@@ -633,7 +653,7 @@ if determine_delta:
         coeff = np.array([])
         for z in zrecs:
             for v, koff in nanopores.collect(voltages):
-                data = fit_koff(bV=v, zreceptor=z, dx=dx, **newparams)
+                data = fit_koff(NN=1e8, ka=1e8, nmax=10000, bV=v, zreceptor=z, dx=dx, **newparams)
                 koff.new = data.koff
             c, k = regression(np.abs(voltages), koff)
             coeff = np.append(coeff, c)
@@ -666,12 +686,12 @@ if determine_delta:
     
     #plt.plot(dx, fplot(cdx, dx), "o", label="Simulation")
     plt.plot(dx, fplot(cdx, dx), "o", label="Simulations", color="C1")
-    for i in (0, 1, 2):
+    for i in range(cdxall.shape[1]):
         plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
     #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
     
-    plt.annotate(r"$\delta$=4.8nm", (4.8, cdxall[4, 0] - 1.),
-                 xytext=(4.8 + .0, cdxall[4, 0] - 8.), color="C1",
+    plt.annotate(r"$\delta$=0.55nm", (0.55, cdxall[4, 0] - 1.),
+                 xytext=(0.55 + .0, cdxall[4, 0] - 8.), color="C1",
                  arrowprops=dict(arrowstyle="->", color="C1"))
     
     plt.xlabel(r"Bond rupture length $\delta$ [nm]")
