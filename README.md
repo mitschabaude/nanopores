@@ -4,7 +4,7 @@
 
 ```sh
 # once, in the project root (this folder)
-sudo docker pull quay.io/fenicsproject/stable:2016.1.0
+sudo docker pull quay.io/fenicsproject/stable:2016.2.0
 sudo docker run -ti -v $(pwd):/home/fenics/shared --name fenics quay.io/fenicsproject/stable:2016.2.0
 
 # to restart
