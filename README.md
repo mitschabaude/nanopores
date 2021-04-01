@@ -10,6 +10,10 @@ sudo docker run -ti -v $(pwd):/home/fenics/shared --name fenics quay.io/fenicspr
 # to restart
 sudo docker start -i fenics
 
+# set up container
+sudo apt update
+sudo apt install gmsh # and paste more recent gmsh bin in this folder
+
 # in the container, to execute scripts
 cd shared
 export PYTHONPATH=.
