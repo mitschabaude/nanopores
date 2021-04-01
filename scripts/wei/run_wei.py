@@ -2,15 +2,18 @@
 # (c) 2017 Gregor Mitscha-Baude
 import os.path
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import rcParams, rc
 rcParams.update({
     "font.size" : 7,
     "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
+    #"font.family" : "sans-serif",
+    #"font.sans-serif" : ["CMU Sans Serif"],
     "lines.linewidth" : 1,
     "lines.markersize" : 5,
 })
+import matplotlib.font_manager
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 import nanopores
@@ -19,6 +22,7 @@ from nanopores.models.nanopore import Iz
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields, statistics
 fields.set_dir_mega()
+
 
 path = lambda path: os.path.join(os.path.dirname(__file__), path)
 
@@ -41,7 +45,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 10000, # number of (simultaneous) random walks
+    N = 20000, # number of (simultaneous) random walks
     dt = 1., # time step [ns] # .5
     walldist = 1.0, # in multiples of radius, should be >= 1
     margtop = 20.,
@@ -66,11 +70,11 @@ print_rw = False
 run_test = False
 compute_current = False
 plot_attempt_time = False
-plot_distribution = False
+plot_distribution = True
 plot_cdf = False
 voltage_dependence = False
 determine_delta = False
-fit_koff0 = True
+fit_koff0 = False
 
 ##### constants
 rrec = 0.5 # receptor radius
@@ -164,7 +168,9 @@ if print_calculations:
     #receptor_params["p"] = p
     print('\n==============\n\n')
 
-def setup_rw(params):
+def setup_rw(params, kd=None):
+    if kd:
+        params["kd"] = kd
     pore = nanopores.get_pore(**params)
     rw = randomwalk.RandomWalk(pore, **params)    
     
@@ -203,6 +209,8 @@ if print_rw:
         if not domain.binding or not domain.bind_type == "zone":
             continue
         print("Vbind", domain.Vbind)
+
+    print( "percentage no attempt", 1. * np.count_nonzero(rw.attempt_times == 0) / len(rw.attempt_times) )
     print('\n==============\n\n')
 
 ##### run test rw
@@ -278,6 +286,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True, determine_ka=False):
     N_ = ibind[n-1] + 1
     ibind = ibind[:n]
     print "%d binding events drawn, %s used, total events used %s." % (n0, n, N_)
+    print ("percentage no binding:", 1. - 1.*n / N_)
     I = I[:N_]
     times = times[:N_]
     bindings = bindings[:N_]
@@ -348,9 +357,16 @@ def tauoff_wei():
 def fit_koff(nmax=523, NN=1.5e8, **params):
     tbind = params.pop("tbind")
     params["kd"] = 1e9/tbind
+    params.pop("kd")
     dx = params.pop("dx")
     ka = params.pop("ka")
-    rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True)
+    try:
+        rw = randomwalk.get_rw(NAME, params, setup=setup_rw, calc=True, kd=1e9/tbind)
+    except Exception as e:
+        diffs = fields.diffs(params, NAME)
+        diffs = [d for d in diffs if not "bV" in d]
+        print diffs
+        raise e
     rw.domains[1].dx = dx
     rw.domains[1].ka = ka
     times = draw_empirically(rw, N=NN, nmax=nmax, success=False)
@@ -375,10 +391,10 @@ if plot_attempt_time:
     ta = ta[ta > 0.]
     #tt = np.logspace(-.5, 2.5, 100)
     tt = np.linspace(0.25, 250., 100)
-    plt.figure("attempt_times", figsize=(2.2, 1.65))
+    plt.figure("attempt_times", figsize=(2.5, 1.65))
     plt.hist(ta, bins=tt, normed=True, log=True, label="Simulations")
     ta0 = ta.mean()
-    plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit,\nmean %.3gns" % ta0)
+    #plt.plot(tt, 1./ta0 * np.exp(-tt/ta0), label="Exp. fit,\nmean %.3gns" % ta0)
     #plt.xscale("log")
     #plt.yscale("log")
     plt.xlabel("Attempt time [ns]")
@@ -424,7 +440,7 @@ if plot_distribution:
     # add histogram for kd fitted from wei
     params2 = dict(params)
     tbind = params2.pop("tbind")
-    params2["kd"] = 3.5e-3
+    params2["kd"] = 4.5e-3 #TODO
     rw = randomwalk.get_rw(NAME, params2, setup=setup_rw)
     domain = rw.domains[1]
     #domain.ka = 1.004e+08 # 2.305e+08 #2.09e7 # hack; change ka for second histogram
@@ -489,10 +505,10 @@ voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
 colors = ["k", "r", "b", "g"][::-1]
 zrecs = [.90, .95, .99]
 N = 10000
-newparams = dict(N=N, dp=30., geop=dict(dp=30.))
+newparams = dict(N=N, dp=30., geop=dict(dp=30.), margbot=70.)
 
 if plot_cdf:
-    plt.figure("bV_tauoff", figsize=(4, 3))
+    plt.figure("bV_tauoff", figsize=(2.5, 1.9))
     for i, v in enumerate(voltages):
         data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
         tt = np.logspace(np.log10(np.min(data.t)*.5), np.log10(np.max(data.t)*2), 100)
@@ -519,17 +535,17 @@ def koff0(kd, **params):
     return fit_koff(name="wei_koff_6", bV=0., tbind=1e9/kd, margbot=70., **params).koff
 
 if fit_koff0:
-    plt.figure("koff0", figsize=(4, 3))
-    kd = np.array([2., 3, 3.25, 3.5, 3.75, 4, 5.])
+    plt.figure("koff0", figsize=(2.5, 1.9))
+    kd = np.array([3., 4, 4.25, 4.5, 4.75, 5, 6.])
     ko = np.array([1e3*koff0(k*1e-3, ka=1e8, dx=0.55, NN=1e8, nmax=10000) for k in kd])
     c = ko.mean()/kd.mean()
     print "F0 = %.3f pN" % (1e12*np.log(c)/(1e-9*0.55)*nanopores.kT)
     # F0 = 0.184 pN
     plt.axhline(y=4.5, linestyle="-", color="C0", label="Wei et al.")
     plt.plot(kd, ko, "oC1", label="Simulations")
-    plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}^{V=0}$ = C*$k_d$")
-    plt.plot(kd, kd, ":C2", label=r"$k_{off}^{V=0}$ = $k_d$")
-    plt.ylim(ymin=2.2, ymax=7.5)
+    #plt.plot(kd, c*kd, ":C1", label=r"Fit to $k_{off}^{V=0}$ = C*$k_d$")
+    plt.plot(kd, kd, ":C1", label=r"$k_{off}^{V=0}$ = $k_d$")
+    plt.ylim(ymin=2.5, ymax=6.5)
     #plt.xlim(2.9, 4.6)
     #plt.fill_between(plt.xlim(), [4.5 - 0.6]*2, [4.5 + 0.6]*2, alpha=0.5, color="C1")
     
@@ -553,6 +569,7 @@ if voltage_dependence:
     plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=1.75)
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
+    #v = np.array([-0.2, -0.25, -0.3, -0.35])
     mv = np.abs(v)*1e3
     z = 0.95
     #dx = 0.55
@@ -563,7 +580,7 @@ if voltage_dependence:
     plt.plot(vv, k1 * np.exp(c1*vv), "-", color=color_lata)
              
     # and again with different kd
-    kd = 3.5e-3
+    kd = 4.5e-3
     koff1 = [fit_koff(bV=V, zreceptor=z, dx=dx,
                      tbind=1e9/kd, **newparams).koff for V in v]
     c2, k2 = regression(mv[-4:], koff1[-4:])
@@ -632,7 +649,7 @@ if determine_delta:
     coeff = np.array([])
     for z in zrecs:
         for v, koff in nanopores.collect(voltages):
-            data = fit_koff(bV=v, zreceptor=z, dx=dx, NN=4e8, nmax=2000, **newparams)
+            data = fit_koff(bV=v, zreceptor=z, dx=dx, NN=4e8, nmax=2000, **dict(newparams,  margbot=80.))
             koff.new = data.koff
         c, k = regression(np.abs(voltages), koff)
         coeff = np.append(coeff, c)
@@ -643,7 +660,7 @@ if determine_delta:
     dx0 = cdx_exp / (cdxtest_sim / dxtest)
     print "inferred dx:", dx0
     
-    dxs = [0.4, 0.5, 0.525, 0.55, 0.575, 0.6, 0.7] #2., 3., 4., 4.5, 4.79, 5.1, 5.5, 6., 7.]
+    dxs = [0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8] #2., 3., 4., 4.5, 4.79, 5.1, 5.5, 6., 7.]
     cdx = []
     cdxstd = []
     cdxall = []
@@ -653,7 +670,7 @@ if determine_delta:
         coeff = np.array([])
         for z in zrecs:
             for v, koff in nanopores.collect(voltages):
-                data = fit_koff(NN=1e8, ka=1e8, nmax=10000, bV=v, zreceptor=z, dx=dx, **newparams)
+                data = fit_koff(NN=1e8, ka=1e8, nmax=10000, bV=v, zreceptor=z, dx=dx, **dict(newparams,  margbot=80.))
                 koff.new = data.koff
             c, k = regression(np.abs(voltages), koff)
             coeff = np.append(coeff, c)
@@ -675,7 +692,7 @@ if determine_delta:
     cdx_exp = np.ones(len(dxx))*cdx_exp
     vdx_exp = np.ones(len(dxx))*vdx_exp
     
-    plt.figure("delta", figsize=(4, 3))
+    plt.figure("delta", figsize=(2.5, 1.9))
     plt.plot(dxx, fplot(cdx_exp, dxx), "-", label="Wei et al.")
     for i in range(5):
         plt.plot(dxx, np.ones(len(dxx))*cdxall_exp[i], "-", color="C0", alpha=0.5)
@@ -690,8 +707,8 @@ if determine_delta:
         plt.plot(dx, fplot(cdxall[:, i], dx), "o", color="C1", alpha=0.5)
     #plt.fill_between(dx, fplot(cdx - cdxstd, dx), fplot(cdx + cdxstd, dx), alpha=0.5)
     
-    plt.annotate(r"$\delta$=0.55nm", (0.55, cdxall[4, 0] - 1.),
-                 xytext=(0.55 + .0, cdxall[4, 0] - 8.), color="C1",
+    plt.annotate(r"$\delta$=0.55nm", (0.55, cdxall[3, 0] - .6),
+                 xytext=(0.55 - .03, cdxall[3, 0] - 5.), color="C1",
                  arrowprops=dict(arrowstyle="->", color="C1"))
     
     plt.xlabel(r"Bond rupture length $\delta$ [nm]")
