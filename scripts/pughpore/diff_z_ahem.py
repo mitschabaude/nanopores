@@ -75,7 +75,34 @@ ax = plt.gca()
 plt.legend(loc="lower right", frameon=False)
 plt.gcf().set_size_inches(3, 2.1)
 
+from folders import FIGDIR_CWD, path
+
+data = np.genfromtxt(path("./d-md-ahl-sodium.csv"), delimiter=",")
+z_md_sodium = data[:, 0]*0.1 + (-8.7)
+d_md_sodium = data[:, 1]
+
+def Drz(z, dz, rion=0.11):
+    rpore = dist([0., z])
+    dcenter = Dt_plane(rpore, rion)
+    RR = random_unit_radii(1000) * (rpore - rion)
+    return dz / dcenter * sum([Dt_plane(rpore - rr, rion) for rr in RR]) / len(RR)
+
+def random_unit_radii(N):
+    x = np.random.rand(int(N), 2)*2 - 1
+    r = np.sqrt(np.sum(x**2, 1))
+    return r[r < 1]
+
+i_lrnh = [i for i,t in enumerate(z1) if t > min(z_md_sodium) and t < max(z_md_sodium)]
+z_lrnh = [t for t in z1 if t > min(z_md_sodium) and t < max(z_md_sodium)]
+d_lrnh = [Dz[i] for i in i_lrnh]
+
+plt.figure()
+plt.plot(z_md_sodium, d_md_sodium, 'k-.')
+plt.plot(z_lrnh, d_lrnh, 'og')
+plt.plot(z_lrnh, [Drz(z, dz) for z, dz in zip(z_lrnh, d_lrnh)], 'ob')
+print(z_md_sodium)
+
+
 from nanopores import savefigs
-from folders import FIGDIR_HOWORKA
-savefigs("Dz", FIGDIR_HOWORKA + "/ahem", ending=".pdf")
+savefigs("Dz", FIGDIR_CWD + "/ahem", ending=".pdf")
 #print results

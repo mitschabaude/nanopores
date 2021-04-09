@@ -135,3 +135,16 @@ def Fdrag(geo, div, grad, eta, r2pi, invscale, dim, pscale):
             F_dict["Fdrag"].append(dolfin.assemble(Fdragvol))
         return F_dict
     return _force
+
+def AverageDiffusivity(geo, r2pi, dim, invscale, Dp, Dm, DTargetBulk):
+    def _avgdiff(U):
+        v, cp, cm, u, p = U
+
+        totalCp = dolfin.assemble(cp * r2pi*invscale(3)*geo.dx("pore"))
+        avgDp = dolfin.assemble(Dp[dim-1, dim-1] * cp * r2pi*invscale(3)*geo.dx("pore")) / totalCp
+
+        totalCm = dolfin.assemble(cm * r2pi*invscale(3)*geo.dx("pore"))
+        avgDm = dolfin.assemble(Dm[dim-1, dim-1] * cm * r2pi*invscale(3)*geo.dx("pore")) / totalCm
+
+        return dict(avgDp=avgDp/DTargetBulk, avgDm=avgDm/DTargetBulk, D0=DTargetBulk)
+    return _avgdiff

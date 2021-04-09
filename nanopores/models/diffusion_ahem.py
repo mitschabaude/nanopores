@@ -76,7 +76,7 @@ def diff2D(X, **params):
 
 def diff_profile_z_ahem(a=-10.3, b=0.05, N=20, **params):
     X = [[0., 0., z] for z in np.linspace(a, b, N)]
-    return diff2D(X, name="diffz-ahem", nproc=5, **params)
+    return diff2D(X, name="diffz-ahem", nproc=1, **params)
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt

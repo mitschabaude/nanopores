@@ -12,3 +12,7 @@ FIGDIR_HOWORKA = os.path.join(HOME, "Dropbox", "Paper Howorka", "figures")
 import nanopores.tools.fields as fields
 fields.set_dir_mega()
 #fields.set_dir(DATADIR)
+
+FIGDIR_CWD = "./tmp/figures"
+
+path = lambda path: os.path.join(os.path.dirname(__file__), path)

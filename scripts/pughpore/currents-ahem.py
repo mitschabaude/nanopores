@@ -211,5 +211,6 @@ plt.figure("compareD_simple", figsize=(1.7, 1.6))
 compare_D_models_simple(calc, **default)
 
 from nanopores import savefigs
-savefigs("IV", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
+#savefigs("IV", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
+savefigs("IV", "./tmp/figures" + "/ahem", ending=".pdf")
 #plt.show()

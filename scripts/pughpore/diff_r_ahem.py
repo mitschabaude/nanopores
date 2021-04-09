@@ -1,6 +1,7 @@
 # (c) 2019 Gregor Mitscha-Baude
 import folders
 import numpy as np
+import nanopores as nano
 from nanopores.geometries import get_pore
 from nanopores.models.diffusion import diffusivity_tensor
 from nanopores.models.diffusion_interpolation import Dt_plane
@@ -49,6 +50,10 @@ def diff_r_ahem(X, **params):
         result.new = dict(D=D)
     return result
 
+# phys = nano.Physics("pore_mol")
+# D00 = phys.kT/(6.*phys.pi*phys.eta*r*1e-9)
+# print(D00)
+
 X = evaluation_points(10, **params)
 data = diff_r_ahem(X, **params);
 
@@ -80,8 +85,12 @@ D_r = [Dt_plane(t, r) for t in xlin]
 D_z = [Dzz1 for t in xlin]
 D_rz = [d*Dzz1/D_r[-1] for d in D_r]
 
+MD = [(1. - np.exp(-(t - 0.22)/0.162)) for t in xlin]
+
 #plt.plot(xlin, D_r, "--k", label="Bulk diff.")
 plt.plot(xlin, D_r, "-b", label="r-dependent")
+plt.plot(xlin, MD, "--k", label=r"r-dep. (MD)")
+
 plt.plot(xlin, D_z, ":g", label="z-dependent")
 plt.plot(xlin, D_rz, "-.c", label=r"r- and z-dep.")
 plt.plot(x, Dzz, "og", label=r"LRNH")
@@ -101,4 +110,4 @@ plt.legend(loc="lower right", frameon=False)
 plt.gcf().set_size_inches(2.1, 2.1)
 
 from nanopores import savefigs
-savefigs("Dr", folders.FIGDIR_HOWORKA + "/ahem", ending=".pdf")
+savefigs("Dr", folders.FIGDIR_CWD + "/ahem", ending=".pdf")
