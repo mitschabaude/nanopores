@@ -6,3 +6,4 @@ from dirnames import *
 from geometries import get_geo, get_pore
 from scripts import * #simulation2D, simulate
 
+import plots

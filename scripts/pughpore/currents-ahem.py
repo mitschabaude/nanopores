@@ -3,17 +3,11 @@ import numpy as np
 import folders
 fields = folders.fields
 from nanopores.models.nanopore import IV
+import nanopores.plots as plots
+colors = plots.colors
 from collections import OrderedDict
-from matplotlib import rcParams, rc
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 5,
-})
 from matplotlib import pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 
 ddsimplerough = dict(name="Dalphahem", dim=2, Nmax=.1e5, h=1.,
              ahemqsuniform=True, rMolecule=0.11)
@@ -62,7 +56,7 @@ def plot_grid(color="#aaaaaa"):
 def plot_experiment():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
-    plt.plot(bmV, I, "sr", label="Experiment")
+    plt.plot(bmV, I, "s", color=colors.experiment, label="Experiment")
     #G = 1e-3*I[2]/(-0.04285) # -40
     G = 1e-3*I[5]/(0.04285) # +40
     print "Conductivity experimental: %.4f nS" % (G,)
@@ -71,7 +65,7 @@ def plot_experiment():
 def plot_experiment_simple():
     bmV =  [-100., -71.42857143, -42.85714286, -14.28571429, 14.28571429, 42.85714286, 71.42857143, 100.]
     I = [-83.339267043817102, -61.818625190008177, -39.496708569111611, -14.066625775593586, 14.6512949728476, 44.99789318249762, 76.122715987300211, 107.67609119161745]
-    plt.plot(bmV, I, "sr", label="Experiment")
+    plt.plot(bmV, I, "s", color=colors.experiment, label="Experiment")
     #G = 1e-3*I[2]/(-0.04285) # -40
     G = 1e-3*I[5]/(0.04285) # +40
     return G
@@ -103,9 +97,11 @@ def compare_D_models(calc=True, **params):
         ("z-dependent", ddprofile),
         ("r- and z-dep.", ddcoupled),
     ])
-    colors = ["k", "b", "g", "c"]
+    #colors = ["k", "b", "g", "c"]
+    colors_ = ["k", colors.darkintense, colors.medium, colors.lightmuted]
     #dashes = [[1000,1], [6,2], [6,1,1,1], [6,1,1,1,1,1]]
-    lines = ["--", "-", ":", "-."]
+    #lines = ["--", "-", ":", "-."]
+    lines = ["-", "-", "-", "-"]
     plot_grid()
     G = [0]*len(DD)
     for i, model in enumerate(DD):
@@ -115,7 +111,7 @@ def compare_D_models(calc=True, **params):
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, "-", color=colors[i], linestyle=lines[i],
+        plt.plot(Vplot, I, "-", color=colors_[i], linestyle=lines[i],
                  label=model)
 
         # print conductivities
@@ -127,8 +123,10 @@ def compare_D_models(calc=True, **params):
     plt.ylabel("Current [pA]")
     plt.ylim(-100, 100)
     plt.ylim(-200, 200)
-    plt.xticks([-50, 0, 50])
-    plt.yticks([-100, 0, 100])
+    plt.xticks([-100, 0, 100])
+    plt.yticks([-200, 0, 200])
+    plots.addMinorTicks()
+    plots.removeTopRightFrame()
     gexp = plot_experiment()
     plt.legend(loc="upper left", frameon=False)
 
@@ -140,7 +138,7 @@ def compare_D_models(calc=True, **params):
     for i, g in enumerate(G):
         y -= 36
         change = int(100*(g/gexp - 1.))
-        plt.text(x, y, "+%d%%" % change, color=colors[i])
+        plt.text(x, y, "+%d%%" % change, color=colors_[i])
         
 def compare_D_models_simple(calc=True, **params):
     params["ahemuniformqs"] = False
@@ -149,8 +147,8 @@ def compare_D_models_simple(calc=True, **params):
     DD = OrderedDict([
         ("Simulation", ddcoupled),
     ])
-    colors = ["#00cc00"]
-    plot_grid()
+    #colors = ["#00cc00"]
+    #plot_grid()
     G = [0]*len(DD)
     for i, model in enumerate(DD):
         params["diffusivity_data"] = DD[model]
@@ -159,23 +157,23 @@ def compare_D_models_simple(calc=True, **params):
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, "-", color=colors[i], label=model)
+        plt.plot(Vplot, I, "-", color=colors.simulation, label=model)
 
-    #plt.xlabel("Voltage [mV]")
-    #plt.ylabel("Current [pA]")
-    plt.xlabel("Voltage")
-    plt.ylabel("Current")
-    plt.tick_params(
-        axis="both",          # changes apply to the x-axis
-        which="both",      # both major and minor ticks are affected
-        bottom=False,      # ticks along the bottom edge are off
-        top=False,         # ticks along the top edge are off
-        left=False,
-        right=False,
-        labelleft=False,
-        labelbottom=False)
+    plt.xlabel("Voltage [mV]")
+    plt.ylabel("Current [pA]")
+    plt.yticks([-100, 0, 100])
+    # plt.tick_params(
+    #     axis="both",          # changes apply to the x-axis
+    #     which="both",      # both major and minor ticks are affected
+    #     bottom=False,      # ticks along the bottom edge are off
+    #     top=False,         # ticks along the top edge are off
+    #     left=False,
+    #     right=False,
+    #     labelleft=False,
+    #     labelbottom=False)
     #plt.ylim(-100, 100)
     #plt.ylim(-200, 200)
+    plots.removeTopRightFrame()
     plot_experiment_simple()
     plt.legend(loc="best", frameon=False)
     plt.title("IV curve")
