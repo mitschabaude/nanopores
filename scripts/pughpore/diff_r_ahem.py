@@ -8,16 +8,8 @@ from nanopores.models.diffusion_interpolation import Dt_plane
 from nanopores.tools import fields, collect_dict, plot_sliced
 from nanopores.tools.solvers import cache_forcefield
 from nanopores.models import nanopore
+import nanopores.plots as plots
 from matplotlib import pyplot as plt
-from matplotlib import rcParams
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 4,
-})
 fields.set_dir_mega()
 
 showSolid = False
@@ -88,12 +80,12 @@ D_rz = [d*Dzz1/D_r[-1] for d in D_r]
 MD = [(1. - np.exp(-(t - 0.22)/0.162)) for t in xlin]
 
 #plt.plot(xlin, D_r, "--k", label="Bulk diff.")
-plt.plot(xlin, D_r, "-b", label="r-dependent")
-plt.plot(xlin, MD, "--k", label=r"r-dep. (MD)")
+plt.plot(xlin, D_r, "-", label="r-dependent", color=plots.colors.darkintense)
+#plt.plot(xlin, MD, "--k", label=r"r-dep. (MD)")
 
-plt.plot(xlin, D_z, ":g", label="z-dependent")
-plt.plot(xlin, D_rz, "-.c", label=r"r- and z-dep.")
-plt.plot(x, Dzz, "og", label=r"LRNH")
+plt.plot(xlin, D_z, "-", label="z-dependent", color=plots.colors.medium)
+plt.plot(xlin, D_rz, "-", label=r"r- and z-dep.", color=plots.colors.lightmuted)
+plt.plot(x, Dzz, "o", label=r"LRNH", color=plots.colors.medium)
 
 plt.xlim(0., R+0.05)
 plt.xticks([0, 0.5, 1.])
@@ -101,13 +93,17 @@ plt.xticks([0, 0.5, 1.])
 plt.xlabel("Ion distance from pore wall [nm]")
 plt.ylabel("Rel. diffusivity")
 plt.ylim(0, 1)
+
 plt.axvline(x=0.11, linestyle="--", color="#666666")
 plt.annotate("Ion radius", (0.11, 0.94),
                  xytext=(0.25, 0.94-0.002), color="#666666",
                  arrowprops=dict(arrowstyle="->", color="#666666"))
-plt.yticks([i/10. for i in range(0, 11, 2)])
+#plt.yticks([i/10. for i in range(0, 11, 2)])
+plt.yticks([0, .5, 1])
+
+plots.removeTopRightFrame()
 plt.legend(loc="lower right", frameon=False)
-plt.gcf().set_size_inches(2.1, 2.1)
+plt.gcf().set_size_inches(2.7, 2.1)
 
 from nanopores import savefigs
 savefigs("Dr", folders.FIGDIR_CWD + "/ahem", ending=".pdf")

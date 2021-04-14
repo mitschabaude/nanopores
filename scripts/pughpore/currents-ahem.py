@@ -125,7 +125,7 @@ def compare_D_models(calc=True, **params):
     plt.ylim(-200, 200)
     plt.xticks([-100, 0, 100])
     plt.yticks([-200, 0, 200])
-    plots.addMinorTicks()
+    # plots.addMinorTicks()
     plots.removeTopRightFrame()
     gexp = plot_experiment()
     plt.legend(loc="upper left", frameon=False)
@@ -202,7 +202,7 @@ get_IV(calc, **params)
 # comparison
 #plt.figure("finevscoarse")
 #fine_vs_coarse(False, **default)
-plt.figure("compareD", figsize=(2.8, 2.1)) #, dpi=300)
+plt.figure("compareD", figsize=(2.7, 2.1)) #, dpi=300)
 compare_D_models(calc, **default)
 
 plt.figure("compareD_simple", figsize=(1.7, 1.6))

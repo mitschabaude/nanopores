@@ -34,8 +34,14 @@ class Colors:
   complement = '#c2b342'
   gold = '#c7a708'
   orange = '#cc9c43'
+  
+  pink = '#be40c7'
 
   simulation = medium
   experiment = rotateRed(simulation)
+
+  protein = muted
+  receptor = gold
+
 
 colors = Colors()

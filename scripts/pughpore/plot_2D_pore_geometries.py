@@ -1,21 +1,13 @@
 # (c) 2018 Gregor Mitscha-Baude
 "plot simulated pores schematically with protein/receptors"
-from matplotlib import rcParams, rc
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 5,
-})
+import nanopores.plots as plots
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from nanopores import get_pore, savefigs
 from nanopores.models.randomwalk import RandomWalk, Ball
 
-cprot = "#bd788a"
-crec = "#788abd"
+cprot = plots.colors.protein
+crec = plots.colors.receptor
 
 # for plotting proteins andreceptors
 ball_settings = dict(facecolor="#eeeeee", edgecolor="k", linewidth=1.)

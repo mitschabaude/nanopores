@@ -11,6 +11,7 @@ from nanopores.geometries.alphahem import default
 from nanopores.geometries.cylpore import Pore, get_geo
 from nanopores.models.diffusion_interpolation import Dt_plane
 from nanopores.models.diffusion_ahem import diff_profile_z_ahem, get_diffusivity
+import nanopores.plots as plots
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
 rcParams.update({
@@ -54,21 +55,25 @@ zNoskov = np.linspace(zbottom, 0, 100)
 
 r = params['rMolecule']
 Dr_ = [Dr(zz, r) for zz in z]
-plt.plot(z, Dr_, "-b", label="r-dependent")
+plt.plot(z, Dr_, "-", label="r-dependent", color=plots.colors.darkintense)
 
 Dfit_ = [Dfit(zz) for zz in zNoskov]
-plt.plot(zNoskov, Dfit_, "-", lw=1.5, color="orange", alpha=0.8, label="Noskov et al.")
+plt.plot(zNoskov, Dfit_, "-", lw=1.5, color=plots.colors.experiment, alpha=0.8, label="Noskov et al.")
 
 data = diff_profile_z_ahem(a=-12, b=2, N=100, **params)
 z1 = [x0[2] for x0 in data["x"]]
 Dz = data["D"]
 #plt.plot(z1, Dz, "-g", alpha=0.6)
-plt.plot(z1, Dz, "og", label="LRNH", zorder=-5)
+plt.plot(z1, Dz, "o", label="LRNH", zorder=-5, color=plots.colors.medium)
 
 plt.ylabel("Rel. diffusivity")
 plt.xlabel("Height of ion relative to pore top [nm]")
 plt.xlim(-12, 2)
 plt.ylim(0.5, 1.)
+plt.xticks([-10, -5, 0])
+plt.yticks([0.6, 0.8, 1.0])
+#plots.addMinorTicks()
+plots.removeTopRightFrame()
 ax = plt.gca()
 #ax.yaxis.tick_right()
 #ax.yaxis.set_label_position("right")
@@ -96,11 +101,11 @@ i_lrnh = [i for i,t in enumerate(z1) if t > min(z_md_sodium) and t < max(z_md_so
 z_lrnh = [t for t in z1 if t > min(z_md_sodium) and t < max(z_md_sodium)]
 d_lrnh = [Dz[i] for i in i_lrnh]
 
-plt.figure()
-plt.plot(z_md_sodium, d_md_sodium, 'k-.')
-plt.plot(z_lrnh, d_lrnh, 'og')
-plt.plot(z_lrnh, [Drz(z, dz) for z, dz in zip(z_lrnh, d_lrnh)], 'ob')
-print(z_md_sodium)
+# plt.figure()
+# plt.plot(z_md_sodium, d_md_sodium, 'k-.')
+# plt.plot(z_lrnh, d_lrnh, 'og')
+# plt.plot(z_lrnh, [Drz(z, dz) for z, dz in zip(z_lrnh, d_lrnh)], 'ob')
+# print(z_md_sodium)
 
 
 from nanopores import savefigs

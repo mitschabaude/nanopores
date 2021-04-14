@@ -47,5 +47,5 @@ for (let c in colors) {
 
 fs.writeFileSync('./tmp/figures/fig1/first_figure.svg', svg);
 exec(
-  'inkscape tmp/figures/fig1/first_figure.svg --export-pdf=first_figure.pdf'
+  'inkscape tmp/figures/fig1/first_figure.svg --export-pdf=./tmp/figures/fig1.pdf'
 );

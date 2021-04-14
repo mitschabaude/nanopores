@@ -716,6 +716,6 @@ if determine_delta:
     plt.legend(loc="upper left", frameon=False)
 
 import folders
-nanopores.savefigs("tau_off4", folders.FIGDIR, ending=".pdf")
+nanopores.savefigs("tau_off4", folders.FIGDIR + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off4", folders.FIGDIR_HOWORKA + "/wei", ending=".pdf")
 #nanopores.savefigs("tau_off2", folders.FIGDIR + "/wei", ending=".eps")
