@@ -98,7 +98,7 @@ def compare_D_models(calc=True, **params):
         ("r- and z-dep.", ddcoupled),
     ])
     #colors = ["k", "b", "g", "c"]
-    colors_ = ["k", colors.darkintense, colors.medium, colors.lightmuted]
+    colors_ = ["k", colors.pink, colors.darkintense, colors.muted]
     #dashes = [[1000,1], [6,2], [6,1,1,1], [6,1,1,1,1,1]]
     #lines = ["--", "-", ":", "-."]
     lines = ["-", "-", "-", "-"]

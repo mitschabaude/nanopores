@@ -2,17 +2,18 @@
 # (c) 2017 Gregor Mitscha-Baude
 import os.path
 import numpy as np
+import nanopores.plots as plots
 import matplotlib
 matplotlib.use('Agg')
-from matplotlib import rcParams, rc
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    #"font.family" : "sans-serif",
-    #"font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 5,
-})
+# from matplotlib import rcParams, rc
+# rcParams.update({
+#     "font.size" : 7,
+#     "axes.titlesize" : 7,
+#     #"font.family" : "sans-serif",
+#     #"font.sans-serif" : ["CMU Sans Serif"],
+#     "lines.linewidth" : 1,
+#     "lines.markersize" : 5,
+# })
 import matplotlib.font_manager
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
@@ -22,6 +23,8 @@ from nanopores.models.nanopore import Iz
 import nanopores.models.randomwalk as randomwalk
 from nanopores.tools import fields, statistics
 fields.set_dir_mega()
+
+colors = plots.colors
 
 
 path = lambda path: os.path.join(os.path.dirname(__file__), path)
@@ -502,7 +505,7 @@ if plot_distribution:
 
 ###### reproduce cumulative tauoff plot with fits and different bV
 voltages = [-0.2, -0.25, -0.3, -0.35][::-1]
-colors = ["k", "r", "b", "g"][::-1]
+colorsList = ["k", "r", "b", "g"][::-1]
 zrecs = [.90, .95, .99]
 N = 10000
 newparams = dict(N=N, dp=30., geop=dict(dp=30.), margbot=70.)
@@ -513,7 +516,7 @@ if plot_cdf:
         data = fit_koff(bV=v, zreceptor=.95, dx=dx, **newparams)
         tt = np.logspace(np.log10(np.min(data.t)*.5), np.log10(np.max(data.t)*2), 100)
         
-        lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colors[i])
+        lines = plt.semilogx(tt, 1. - np.exp(-tt/data.toff), color=colorsList[i])
         plt.semilogx(data.t, data.cfd, "v", color=lines[0].get_color(),
                      label="%d mV" % (1000*abs(v)))
         print "koff", data.koff
