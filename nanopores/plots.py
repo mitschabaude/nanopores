@@ -20,10 +20,10 @@ def removeTopRightFrame():
   ax.spines['top'].set_visible(False)
   ax.spines['right'].set_visible(False)
 
-class Colors:
-  rotateRed = lambda blue: "#" + blue[5:7] + blue[1:5]
-  rotateGreen = lambda blue: "#" + blue[3:7] + blue[1:3]
+rotateRed = lambda blue: "#" + blue[5:7] + blue[1:5]
+rotateGreen = lambda blue: "#" + blue[3:7] + blue[1:3]
 
+class Colors:
   muted = '#788abd'
   medium = '#3c59bd'
   intense = '#0224bd'
