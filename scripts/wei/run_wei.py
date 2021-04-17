@@ -72,10 +72,10 @@ print_calculations = False
 print_rw = False
 run_test = False
 run_test_outside = False
-compute_event_rate = False
+compute_event_rate = True
 compute_current = False
 plot_attempt_time = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
 voltage_dependence = False
 determine_delta = False
@@ -240,7 +240,7 @@ if run_test_outside:
     geop = dict(dp = 26., Hbot=1000, Htop=120, R=1000, Nmax=3e5)
     params_ = dict(params,
         dt=100.,
-        N=100, 
+        N=999, 
         margbot=900,
         initial="bottom-sphere",
         rstart=200.,
@@ -268,7 +268,8 @@ def compute_success_prob(**params):
     # compute karr with smoluchowski
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
     c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
-    cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
+    mol = 6.022e23 # Avogrado
+    cmol = c * 1e3 * mol # concentration [1/m**3]
     D = rw.phys.DTargetBulk
     r = (rw.rstart - rw.params.rMolecule)*1e-9
     karr = (2.*rw.phys.pi * r * D * cmol) * s # arrival rate [1/s]
@@ -282,7 +283,9 @@ def compute_success_prob(**params):
 def fit_ka_p26(rw, Vbind):
     karr = 13629.
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
-    kb = 180e-9 * kon / karr # bindings per event [1]
+
+    c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
+    kb = c * kon / karr # bindings per event [1]
     ta = 1e-9*rw.attempt_times.mean()
     ka = kb * Vbind / ta
     print "naive ka", kon
@@ -292,7 +295,7 @@ def fit_ka_p26(rw, Vbind):
 
 if compute_event_rate:
     geop = dict(dp = 26., Hbot=2000, Htop=120, R=2000, Nmax=3e5)
-    N = 602
+    N = 1500
     params_ = dict(params,
         dt=100.,
         N=N, 
@@ -302,7 +305,7 @@ if compute_event_rate:
     )
     base_rates = []
     rates = []
-    rstarts = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]
+    rstarts = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700] # 800, 900, 1000]
     for rstart in rstarts:
         #rw = randomwalk.get_rw("rw_wei_outside", dict(params_, rstart=rstart), setup=setup_rw_outside)
         #s = float(np.count_nonzero(rw.success))/len(rw.success)
@@ -313,11 +316,17 @@ if compute_event_rate:
     print "karr best guess", max(rates)
     #rates = [r*p for r, p in zip(rstarts, success_probs)]
     plt.figure("event_rate", figsize=(2.5, 1.65))
-    plt.plot(rstarts, rates, 'o')
-    plt.plot(rstarts, rates, '-')
-    plt.plot(rstarts, base_rates, '--')
+    #plt.plot(rstarts, rates, 'o', color=colors.medium)
+    plt.plot(rstarts, rates, 'o-', color=colors.medium, label="Sim. (-200mV)")
+    plt.plot(rstarts, base_rates, '--', color=color_lata, label="Pure diffusion")
+    plt.xlabel("Starting distance [nm]")
+    plt.ylabel("Arrival rate [1/s]")
+    plt.legend(frameon=False)
+    plots.removeTopRightFrame()
     #base_rate.append(rw.rbot)
-    plt.ylim(ymin=0)
+    plt.xlim(xmin=0)
+    plt.ylim(ymin=0, ymax=15000)
+    plt.yticks([0, 5000, 10000, 15000])
 
 ##### compute current
 if compute_current:
@@ -595,7 +604,9 @@ if plot_distribution:
     plt.ylim(ymin=1.)
     ax = plt.gca()
     ax.set_xticks([1e-6, 1e-3, 1.])
+    ax.set_xticks([], minor=True)
     ax.set_yticks([1, 1e3, 1e6])
+    ax.set_yticks([], minor=True)
     #ax.set_xticks([1e-5, 1e-4, 1e-2, 1e-2, 1e-1, 1e1, 1e2], minor=True)
     ax.set_xticklabels(["$\mathregular{10^{-3}}$", "1", "$\mathregular{10^3}$"])
     ax.set_yticklabels(["1", "$\mathregular{10^{3}}$", "$\mathregular{10^6}$"])
