@@ -20,6 +20,19 @@ def removeTopRightFrame():
   ax.spines['top'].set_visible(False)
   ax.spines['right'].set_visible(False)
 
+def hex2rgb(hex):
+  return tuple(int(hex[i:i+2], 16) for i in (1, 3, 5))
+def rgb2hex(rgb):
+  return '#%02x%02x%02x' % rgb
+
+def applyAlpha(color, alpha):
+  print(color)
+  rgb = hex2rgb(color)
+  print(rgb)
+  rgb = tuple(map(lambda r: r*alpha + 255.*(1.-alpha), rgb))
+  print(rgb)
+  return rgb2hex(rgb)
+
 rotateRed = lambda blue: "#" + blue[5:7] + blue[1:5]
 rotateGreen = lambda blue: "#" + blue[3:7] + blue[1:3]
 
@@ -36,9 +49,10 @@ class Colors:
   orange = '#cc9c43'
   
   pink = '#be40c7'
+  lightpink = applyAlpha(pink, 0.4)
 
-  simulation = medium
-  experiment = rotateRed(simulation)
+  simulation = muted
+  experiment = rotateRed(medium)
 
   protein = muted
   receptor = gold

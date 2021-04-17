@@ -75,9 +75,9 @@ run_test_outside = False
 compute_event_rate = False
 compute_current = False
 plot_attempt_time = False
-plot_distribution = True
+plot_distribution = False
 plot_cdf = False
-voltage_dependence = False
+voltage_dependence = True
 determine_delta = False
 fit_koff0 = False
 
@@ -90,9 +90,9 @@ kd = 25e-3
 ka = 1.5e5
 
 #### color code
-color_lata = "C0" #"#0066ff"
-color_wei = "#00cc00"
-color_exp = "red"
+color_lata = colors.lightpink #"C0" #"#0066ff"
+color_wei = colors.lightmuted #"#00cc00"
+color_exp = colors.experiment #"red"
 
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
@@ -580,14 +580,14 @@ if plot_distribution:
     tsuccess_wei = tsuccess2#[tsuccess2 > 1e-4]
     plt.figure("hist_all", figsize=(2.75, 1.83333333333))
     plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
-             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=50)
+             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=-50)
     
     plt.hist(tsuccess_wei, bins=bins, color=color_wei, log=True,
              #histtype="step", linestyle="--", 
-             alpha=0.5, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=90)
+             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=-10)
     plt.hist(fake, bins=bins, histtype="step", log=True,
              linewidth=1.75,
-             color=color_exp, label="Experiment", zorder=100)
+             color=color_exp, label="Experiment", zorder=-1)
     plt.xscale("log")
     #plt.yscale("log")
     plt.ylabel("Count")
@@ -595,9 +595,12 @@ if plot_distribution:
     plt.ylim(ymin=1.)
     ax = plt.gca()
     ax.set_xticks([1e-6, 1e-3, 1.])
-    ax.set_xticks([1e-5, 1e-4, 1e-2, 1e-2, 1e-1, 1e1, 1e2], minor=True)
+    ax.set_yticks([1, 1e3, 1e6])
+    #ax.set_xticks([1e-5, 1e-4, 1e-2, 1e-2, 1e-1, 1e1, 1e2], minor=True)
     ax.set_xticklabels(["$\mathregular{10^{-3}}$", "1", "$\mathregular{10^3}$"])
-    ax.set_xticklabels([], minor=True)
+    ax.set_yticklabels(["1", "$\mathregular{10^{3}}$", "$\mathregular{10^6}$"])
+    plots.removeTopRightFrame()
+    #ax.set_xticklabels([], minor=True)
     #plt.xlim(xmin=.3e-6, xmax=1e2)
     #plt.xlim(xmin=0.2e-4, xmax=0.9e2)
     plt.legend(loc="best", frameon=False)
@@ -668,7 +671,7 @@ if voltage_dependence:
     koff = data[:, 1]
     c0, k0 = regression(np.abs(v), koff)
     vv = np.linspace(0., 370., 10)
-    plt.plot(vv, k0 * np.exp(c0*vv), "-r", lw=1.75)
+    plt.plot(vv, k0 * np.exp(c0*vv), "-", lw=1.75, color=color_exp)
     
     v = np.array([-0., -0.05, -0.1, -0.15, -0.2, -0.25, -0.3, -0.35])
     #v = np.array([-0.2, -0.25, -0.3, -0.35])
@@ -698,30 +701,45 @@ if voltage_dependence:
 
     plt.yscale("log")
     plt.ylim(ymax=.9e3)
+    ax = plt.gca()
+    ax.set_yticks([1e-2, 1, 1e2])
+    ax.set_yticks([], minor=True)
+    ax.set_yticklabels(["$\mathregular{10^{-2}}$", "1", "$\mathregular{10^2}$"])
+
     plt.xlabel("Voltage [mV]")
     plt.ylabel(r"$k_\mathrm{off}$ [1/s]")
+    plots.removeTopRightFrame()
     plt.legend(frameon=False, loc="upper left")
+    
     
     plt.figure("koff_simple", figsize=(1.7, 1.6))
     plt.plot(mv, koff1, "o", markersize=7, label=r"Simulation", color=color_wei)
     plt.plot(v, koff2, "s", markersize=6, mew=1.75,
              label=r"Experiment", mec=color_exp, mfc="None")
     plt.yscale("log")
-    #plt.xlabel("Voltage [mV]")
-    #plt.ylabel("k off [1/s]")
-    plt.ylabel(ur"$\log(k_\mathrm{off})$")
+    plt.ylim(ymax=9e1)
+
+    ax = plt.axes()
+    ax.set_yticks([1e-2, 1e-1, 1, 1e1])
+    ax.set_yticks([], minor=True)
+    ax.set_yticklabels(["$\mathregular{10^{-2}}$", "$\mathregular{10^{-1}}$", "1", "$\mathregular{10^1}$"])
+
+    plt.xlabel("Voltage [mV]")
+    plt.ylabel(ur"$k_\mathrm{off}$ [1/s]")
+    #plt.ylabel(ur"$\log(k_\mathrm{off})$")
     plt.xlabel("Voltage")
 
-    plt.tick_params(
-        axis="both",          # changes apply to the x-axis
-        which="both",      # both major and minor ticks are affected
-        bottom=False,      # ticks along the bottom edge are off
-        top=False,         # ticks along the top edge are off
-        left=False,
-        right=False,
-        labelleft=False,
-        labelbottom=False)
-    plt.legend(frameon=False)
+    # plt.tick_params(
+    #     axis="both",          # changes apply to the x-axis
+    #     which="both",      # both major and minor ticks are affected
+    #     bottom=False,      # ticks along the bottom edge are off
+    #     top=False,         # ticks along the top edge are off
+    #     left=False,
+    #     right=False,
+    #     labelleft=False,
+    #     labelbottom=False)
+    plots.removeTopRightFrame()
+    plt.legend(frameon=False, loc="upper left")
     plt.title("Reaction kinetics")
     
     
