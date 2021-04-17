@@ -166,9 +166,12 @@ class Domain(object):
 
     def binary_search_inside(self, x0, x1, radius):
         if self.domain.inside_single(x0, radius=radius):
+            #print self.rw.domains
+            #print self
+            print self.domain
             print "ERROR: x0 is in domain despite having been excluded before."
             print "x0", x0, "x1", x1
-            #raise Exception
+            raise Exception
         if np.sum((x0 - x1)**2) < self.minsize**2:
             return x0
         x05 = .5*(x0 + x1)
@@ -334,7 +337,7 @@ class RandomWalk(object):
             xstart = 0.
         if zstart is None:
             if bottom:
-                zstart = self.zbot + self.params.rMolecule*self.params.walldist
+                zstart = self.zbot - self.params.rMolecule*self.params.walldist
             else:
                 zstart = self.ztop + self.params.rMolecule*self.params.walldist
         self.rstart = rstart
@@ -561,15 +564,15 @@ class RandomWalk(object):
 
     def finalize(self):
         print "finished!"
-        print "mean # of attempts:", self.attempts.mean()
+        #print "mean # of attempts:", self.attempts.mean()
         tdwell = self.times.mean()
         tbind = self.bind_times.mean()
         ta = self.attempt_times.mean()
-        print "mean attempt time: %s ns (fraction of total time: %s)" % (
-                ta, ta/tdwell)
-        print "mean # of bindings:", self.bindings.mean()
-        print "mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell))
-        print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
+        #print "mean attempt time: %s ns (fraction of total time: %s)" % (
+        #        ta, ta/tdwell)
+        #print "mean # of bindings:", self.bindings.mean()
+        #print "mean dwell time with binding: %.3f mus"%(1e-3*(tbind + tdwell))
+        #print "mean dwell time without binding: %.3f mus" % (1e-3*tdwell)
         self.walk_times = np.copy(self.times)
         self.times += self.bind_times
         
@@ -593,14 +596,14 @@ class RandomWalk(object):
             # effective association rate
             frac = karr * ta_ / Vbind # fraction of time spent in binding zone
             # in simulation, relative to bulk = keff / ka
-            print("Dbulk", Dbulk)
-            print("karr", karr)
+            #print("Dbulk", Dbulk)
+            #print("karr", karr)
             #print("ta", ta)
             #print("Vbind", Vbind)
             #print "kbind", kbind
-            print("nbind: %.3f (bindings per event)" % nbind)
-            print("ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
-                    keff, ka, frac))
+            #print("nbind: %.3f (bindings per event)" % nbind)
+            #print("ka [1/Ms]. Effective: %.3g, bulk: %.3g, fraction: %.3g" % (
+            #        keff, ka, frac))
         print('\n==============\n\n')
         
         if self.record_positions:

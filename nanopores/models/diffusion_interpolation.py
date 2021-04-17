@@ -27,7 +27,7 @@ def preprocess_Dr(data, r, normalize=True):
     Dn = [d[0][0] for d in data["D"]]
 
     eps = 1e-2
-    x = [-1., -eps, r] + x + [1000.]
+    x = [-1., -eps, r] + x + [10000.]
     if normalize:
         Dn = [d/Dn[-1] for d in Dn]
         Dt = [d/Dt[-1] for d in Dt]

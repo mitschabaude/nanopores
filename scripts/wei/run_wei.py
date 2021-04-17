@@ -48,7 +48,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 20000, # number of (simultaneous) random walks
+    N = 1000, # number of (simultaneous) random walks
     dt = 1., # time step [ns] # .5
     walldist = 1.0, # in multiples of radius, should be >= 1
     margtop = 20.,
@@ -71,6 +71,8 @@ NAME = "rw_wei_reverse_"
 print_calculations = False
 print_rw = False
 run_test = False
+run_test_outside = False
+compute_event_rate = False
 compute_current = False
 plot_attempt_time = False
 plot_distribution = True
@@ -195,6 +197,18 @@ def setup_rw(params, kd=None):
 
     return rw
 
+def setup_rw_outside(params):
+    pore = nanopores.get_pore(**params)
+    rw = randomwalk.RandomWalk(pore, **params) # no receptor needed 
+    # custom stopping
+    def success(self, r, z):
+        return self.in_channel(r, z)
+    def fail(self, r, z):
+        return (r**2 + (z - self.zbot)**2 > self.params.margbot**2) & (
+               self.below_channel(r, z))
+    rw.set_stopping_criteria(success, fail)
+    return rw
+
 ##### log stuff about rw
 if print_rw:
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
@@ -220,6 +234,89 @@ if print_rw:
 if run_test:
     rw = setup_rw(dict(params, bV=0., dt=10., N=500))
     randomwalk.run(rw)
+
+##### run test rw
+if run_test_outside:
+    geop = dict(dp = 26., Hbot=1000, Htop=120, R=1000, Nmax=3e5)
+    params_ = dict(params,
+        dt=100.,
+        N=100, 
+        margbot=900,
+        initial="bottom-sphere",
+        rstart=200.,
+        geop=geop, **geop
+    )
+    #rw = setup_rw_outside(params_)
+    pore = nanopores.get_pore(**params_)
+    rw = randomwalk.RandomWalk(pore, **params_) # no receptor needed 
+    # custom stopping
+    def success(self, r, z):
+        return self.in_channel(r, z) #(r**2 + (z - self.zbot)**2 <= 200.**2)
+    def fail(self, r, z):
+        return (r**2 + (z - self.zbot)**2 > self.params.margbot**2) & (
+               self.below_channel(r, z))
+    rw.set_stopping_criteria(success, fail)
+
+    randomwalk.run(rw)
+    print "success", np.count_nonzero(rw.success)
+    print "fail", np.count_nonzero(rw.fail)
+
+@fields.cache("wei_karr", default=dict(params))
+def compute_success_prob(**params):
+    rw = randomwalk.get_rw("rw_wei_outside", params, setup=setup_rw_outside)
+    s = float(np.count_nonzero(rw.success))/len(rw.success)
+    # compute karr with smoluchowski
+    kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
+    c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
+    cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
+    D = rw.phys.DTargetBulk
+    r = (rw.rstart - rw.params.rMolecule)*1e-9
+    karr = (2.*rw.phys.pi * r * D * cmol) * s # arrival rate [1/s]
+
+    rbase = rw.rbot*1e-9
+    karr_base = 2.*rw.phys.pi * rbase * D * cmol
+    karr_rel = karr / karr_base
+
+    return dict(success_prob=s, rstart=rw.rstart, karr=karr, karr_base=karr_base, karr_rel=karr_rel)
+
+def fit_ka_p26(rw, karr, Vbind):
+    kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
+    kb = 180e-9 * kon / karr # bindings per event [1]
+    ta = 1e-9*rw.attempt_times.mean()
+    ka = kb * Vbind / ta
+    print "naive ka", kon
+    print "determined ka", ka
+    print "rel. increase", ka / kon
+    return ka
+
+if compute_event_rate:
+    geop = dict(dp = 26., Hbot=2000, Htop=120, R=2000, Nmax=3e5)
+    N = 602
+    params_ = dict(params,
+        dt=100.,
+        N=N, 
+        margbot=1900,
+        initial="bottom-sphere",
+        geop=geop, **geop
+    )
+    base_rates = []
+    rates = []
+    rstarts = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]
+    for rstart in rstarts:
+        #rw = randomwalk.get_rw("rw_wei_outside", dict(params_, rstart=rstart), setup=setup_rw_outside)
+        #s = float(np.count_nonzero(rw.success))/len(rw.success)
+        res = compute_success_prob(**dict(params_, rstart=rstart))
+        rates.append(res["karr"])
+        base_rates.append(res["karr_base"])
+        print "results", res
+    print "karr best guess", max(rates)
+    #rates = [r*p for r, p in zip(rstarts, success_probs)]
+    plt.figure("event_rate", figsize=(2.5, 1.65))
+    plt.plot(rstarts, rates, 'o')
+    plt.plot(rstarts, rates, '-')
+    plt.plot(rstarts, base_rates, '--')
+    #base_rate.append(rw.rbot)
+    plt.ylim(ymin=0)
 
 ##### compute current
 if compute_current:
@@ -257,22 +354,24 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True, determine_ka=False):
 
     ka = domain.ka
     if determine_ka:
-        kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
-        c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
-        cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
-        print "Number of bindings per second: %.1f (inverse of mean tau_on)" % (c*kon,) # 3.8
-        # Smoluchowski rate equation
-        D = rw.phys.DTargetBulk
-        r = ((params.dp - 6.)/2. - params.rMolecule)*1e-9
-        if rw.params.initial == "bottom-disc":
-            r = (rw.rbot - rw.params.rMolecule)*1e-9
-        karr = 2.*rw.phys.pi * r * D * cmol # arrival rate [1/s]
-        kb = c * kon / karr # bindings per event [1]
-        print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
-        print "=> number of bindings per event: %.1f / %.1f = %.5f" % (c*kon, karr, kb)
-        ta = 1e-9*rw.attempt_times.mean()
-        ka = kb * Vbind / ta
-        print "determined ka", ka
+        karr = 13629.
+        ka = fit_ka(rw, karr, Vbind)
+        # kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
+        # c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
+        # cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
+        # print "Number of bindings per second: %.1f (inverse of mean tau_on)" % (c*kon,) # 3.8
+        # # Smoluchowski rate equation
+        # D = rw.phys.DTargetBulk
+        # r = ((params.dp - 6.)/2. - params.rMolecule)*1e-9
+        # if rw.params.initial == "bottom-disc":
+        #     r = (rw.rbot - rw.params.rMolecule)*1e-9
+        # karr = 2.*rw.phys.pi * r * D * cmol # arrival rate [1/s]
+        # kb = c * kon / karr # bindings per event [1]
+        # print "Number of events per second: %.1f (from Smoluchowski rate equation)" % karr
+        # print "=> number of bindings per event: %.1f / %.1f = %.5f" % (c*kon, karr, kb)
+        # ta = 1e-9*rw.attempt_times.mean()
+        # ka = kb * Vbind / ta
+        # print "determined ka", ka
 
     Ra = ka / Vbind
     print "multiplying attempt times with Ra * ns = %.3g" % (Ra*1e-9,)
