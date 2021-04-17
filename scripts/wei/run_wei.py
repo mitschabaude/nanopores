@@ -48,7 +48,7 @@ params = nanopores.user_params(
     posDTarget = True,
 
     # random walk params
-    N = 1000, # number of (simultaneous) random walks
+    N = 20000, # number of (simultaneous) random walks
     dt = 1., # time step [ns] # .5
     walldist = 1.0, # in multiples of radius, should be >= 1
     margtop = 20.,
@@ -62,7 +62,7 @@ params = nanopores.user_params(
     tbind = 40e9, # from Lata, = 1/kd = 1/(25e-3)s [ns]
     # tbind = 286e9, from Wei, = 1/kd = 1/(3.5e-3)s [ns]
     ka = 1.5e5, # from Lata
-    # ka = 3.362e8 from Wei (complicated inferred)
+    # ka = 5.1e6 from Wei (complicated inferred)
     # kon = 2.09e7 from Wei (simple taken)
     zreceptor = .95, # receptor location relative to pore length (1 = top)
 )
@@ -75,9 +75,9 @@ run_test_outside = False
 compute_event_rate = False
 compute_current = False
 plot_attempt_time = False
-plot_distribution = False
+plot_distribution = True
 plot_cdf = False
-voltage_dependence = True
+voltage_dependence = False
 determine_delta = False
 fit_koff0 = False
 
@@ -90,8 +90,8 @@ kd = 25e-3
 ka = 1.5e5
 
 #### color code
-color_lata = colors.lightpink #"C0" #"#0066ff"
-color_wei = colors.lightmuted #"#00cc00"
+color_lata = plots.applyAlpha(colors.lightpink, 0.8) # <- this kind of works
+color_wei = colors.intense #colors.medium
 color_exp = colors.experiment #"red"
 
 def receptor_params(params):
@@ -279,7 +279,8 @@ def compute_success_prob(**params):
 
     return dict(success_prob=s, rstart=rw.rstart, karr=karr, karr_base=karr_base, karr_rel=karr_rel)
 
-def fit_ka_p26(rw, karr, Vbind):
+def fit_ka_p26(rw, Vbind):
+    karr = 13629.
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
     kb = 180e-9 * kon / karr # bindings per event [1]
     ta = 1e-9*rw.attempt_times.mean()
@@ -354,8 +355,7 @@ def draw_empirically(rw, N=1e8, nmax=1000, success=True, determine_ka=False):
 
     ka = domain.ka
     if determine_ka:
-        karr = 13629.
-        ka = fit_ka(rw, karr, Vbind)
+        ka = fit_ka_p26(rw, Vbind)
         # kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
         # c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]
         # cmol = c * 1e3 * rw.phys.mol # concentration [1/m**3]
@@ -580,11 +580,11 @@ if plot_distribution:
     tsuccess_wei = tsuccess2#[tsuccess2 > 1e-4]
     plt.figure("hist_all", figsize=(2.75, 1.83333333333))
     plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
-             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=-50)
+             alpha=1, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=-50)
     
     plt.hist(tsuccess_wei, bins=bins, color=color_wei, log=True,
              #histtype="step", linestyle="--", 
-             alpha=0.8, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=-10)
+             alpha=0.55, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=-10)
     plt.hist(fake, bins=bins, histtype="step", log=True,
              linewidth=1.75,
              color=color_exp, label="Experiment", zorder=-1)
