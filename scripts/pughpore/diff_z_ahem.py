@@ -55,7 +55,7 @@ zNoskov = np.linspace(zbottom, 0, 100)
 
 r = params['rMolecule']
 Dr_ = [Dr(zz, r) for zz in z]
-plt.plot(z, Dr_, "-", label="r-dependent", color=plots.colors.darkintense)
+plt.plot(z, Dr_, "-", label="r-dependent", color=plots.colors.dark, lw=1.5)
 
 Dfit_ = [Dfit(zz) for zz in zNoskov]
 plt.plot(zNoskov, Dfit_, "-", lw=1.5, color=plots.colors.experiment, alpha=0.8, label="Noskov et al.")
@@ -64,7 +64,7 @@ data = diff_profile_z_ahem(a=-12, b=2, N=100, **params)
 z1 = [x0[2] for x0 in data["x"]]
 Dz = data["D"]
 #plt.plot(z1, Dz, "-g", alpha=0.6)
-plt.plot(z1, Dz, "o", label="LRNH", zorder=-5, color=plots.colors.medium)
+plt.plot(z1, Dz, "o", label="LRNH", zorder=-5, color=plots.colors.mediumintense)
 
 plt.ylabel("Rel. diffusivity")
 plt.xlabel("Height of ion relative to pore top [nm]")
