@@ -69,10 +69,10 @@ params = nanopores.user_params(
 ##### what to do
 NAME = "rw_wei_reverse_"
 print_calculations = False
-print_rw = False
+print_rw = True
 run_test = False
 run_test_outside = False
-compute_event_rate = True
+compute_event_rate = False
 compute_current = False
 plot_attempt_time = False
 plot_distribution = False
@@ -209,25 +209,47 @@ def setup_rw_outside(params):
     rw.set_stopping_criteria(success, fail)
     return rw
 
+def binding_volume(rw):
+    domain = rw.domains[1]
+    Rbind = rw.params.rMolecule + domain.ra
+    sin70 = np.sin(70 * np.pi / 180)
+    hdist = distrec * sin70
+    hseg = domain.ra + hdist # < Rbind = ra + rMolec in our case
+    Vbind = (np.pi / 3.) * hseg**2 * (3*Rbind - hseg) # sphere segment volume
+    Vbind *= (1e-8)**3 * nanopores.mol # [dm**3/mol = 1/M]
+    return Vbind
+
 ##### log stuff about rw
 if print_rw:
     rw = randomwalk.get_rw(NAME, params, setup=setup_rw)
     print("rMolecule", params.rMolecule)
     D = rw.phys.DTargetBulk
     print("Dbulk", D)
-    rporeeff = (params.dp - 6.)/2. - params.rMolecule
-    print("rpore", rporeeff)
-    rporeeff *= 1e-9
-    # rporeeff = 6e-9 # WHY
-    cmol = 180e-9 * (1e3*rw.phys.mol)
-    karr = 2.*rw.phys.pi* rporeeff *D*cmol # events/s
-    print("karr", karr)
+    # rporeeff = (params.dp - 6.)/2. - params.rMolecule # this would be pore top
+    print("rpore", rw.rbot)
+    rporeeff = rw.rbot * 1e-9
+    c = 180e-9
+    cmol = c * (1e3*rw.phys.mol)
+    karr_naive = 2.*rw.phys.pi* rporeeff *D*cmol # events/s
+    print("karr (naive)", karr_naive)
+    karr_sim = 13728.
+    print("karr (simulated)", karr_sim)
     for domain in rw.domains:
         if not domain.binding or not domain.bind_type == "zone":
             continue
-        print("Vbind", domain.Vbind)
-
-    print( "percentage no attempt", 1. * np.count_nonzero(rw.attempt_times == 0) / len(rw.attempt_times) )
+        print("Vb (naive)", domain.Vbind)
+    Vb = binding_volume(rw)
+    print("Vb", Vb)
+    tb = 1e-9*rw.attempt_times.mean()
+    print("tb", tb)
+    print("percentage no attempt", 1. * np.count_nonzero(rw.attempt_times == 0) / len(rw.attempt_times))
+    print("tb / Vb", tb / Vb)
+    kon = 20.9e6
+    print("1/tauon", c * kon)
+    print("binding fraction (ka = 1.5e5)", 1.5e5 * tb / Vb)
+    print("binding fraction (exp. + naive theory)", c * kon / karr_naive)
+    print("binding fraction (exp. + sim.)", c * kon / karr_sim)
+    print("implied ka (exp. + sim.)", c * kon / karr_sim * Vb / tb)
     print('\n==============\n\n')
 
 ##### run test rw
@@ -281,7 +303,7 @@ def compute_success_prob(**params):
     return dict(success_prob=s, rstart=rw.rstart, karr=karr, karr_base=karr_base, karr_rel=karr_rel)
 
 def fit_ka_p26(rw, Vbind):
-    karr = 13629.
+    karr = 13728.
     kon = 20.9e6 # association rate constant [1/Ms] = binding events per second
 
     c = 180e-9 # concentration [M = mol/l = 1000 mol/m**3]

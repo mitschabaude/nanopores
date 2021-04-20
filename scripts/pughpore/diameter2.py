@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*
 # (c) 2017 Gregor Mitscha-Baude
-from matplotlib import rcParams, rc
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 5,
-})
+import nanopores.plots as plots
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolor
@@ -24,15 +16,18 @@ from nanopores.tools import fields
 fields.set_dir_mega()
 
 #### color code
-color_open = "C0" #"#0066ff"
+colors = plots.colors
+color_open = colors.mediumdark #"#0066ff"
 color_open_light = mcolor.to_rgb(color_open) + (0.3,)
-color_closed = "#66cc66"
+color_closed = colors.experiment
 color_closed_light = mcolor.to_rgb(color_closed) + (0.3,)
-color_drop = "red"
+color_drop = colors.mediumdark
 color_drop_light = mcolor.to_rgb(color_drop) + (0.3,)
+color_drop_exp = colors.experiment
+color_drop_exp_light = mcolor.to_rgb(color_drop_exp) + (0.3,)
 
 msize = 4.
-msize2 = 4.2
+msize2 = 4.
 
 figsize1 = (1.73, 1.53)
 figsize2 = (1.73, 1.37)
@@ -174,7 +169,7 @@ for dim in 2, 3:
     plt.ylim(0., 1.250)
     #locx, _ = plt.xticks()
     plt.yticks([0, 0.5, 1], [0, 0.5, 1])
-    plt.gca().set_yticks([.1,.2,.3,.4,.6,.7,.8,.9,1.1,1.2], minor=True)
+    #plt.gca().set_yticks([.1,.2,.3,.4,.6,.7,.8,.9,1.1,1.2], minor=True)
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
     plt.annotate(u"Protein Ø", (2*2.0779, 1.15),
                  xytext=(2*2.0779 + 0.6, 1.15-.02), color="#666666",
@@ -182,6 +177,7 @@ for dim in 2, 3:
     plt.text(4.5, .82, "W/o protein", color=color_open)
     plt.text(6., .58, "W/ protein", color=color_closed)
     #plt.title("influence of pore diameter on current (%dD)" %dim)
+    plots.removeTopRightFrame()
     plt.legend([(sim1[0], sim2[0]), lc],
                 ["Sim.", "Exp."],
     #plt.legend([sim1[0], sim2[0], lc],
@@ -190,6 +186,7 @@ for dim in 2, 3:
                 handler_map={tuple: HandlerTuple(ndivide=None),
                              type(lc): HandlerDashedLines()},
                 loc="lower right",
+                bbox_to_anchor=(1.04, 0.)
                 #borderaxespad=0.1, borderpad=0.3,
                 #handletextpad=0.4
                 )
@@ -198,11 +195,12 @@ for dim in 2, 3:
 
     fig = plt.figure("drop_%dD" % dim, figsize=figsize2)
     drop = (1. - Joff/Jon)*100
-    plt.plot(d, drop, "o", markersize=msize, color=color_drop, label="Sim.")
+    plt.plot(d, drop, "o", markersize=msize, color=color_drop, label="Sim.",
+            zorder=200)
     plt.plot(d, drop, "-", color=color_drop_light)
-    plt.plot([0,10], [26.2]*2, "--r", label="Exp.")
+    plt.plot([0,10], [26.2]*2, "--", label="Exp.", color=color_drop_exp)
     plt.fill_between([0,10], [26.2 - 0.7]*2, [26.2 + 0.7]*2,
-                     color=color_drop, alpha=0.3, lw=0)
+                     color=color_drop_exp, alpha=0.3, lw=0)
     plt.xlim(4., 7.6)
     #plt.xticks([4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5])
     #plt.ylim(ymin=0., ymax=50.)
@@ -215,6 +213,7 @@ for dim in 2, 3:
     ymax = 100. if dim==2 else 40.
     htext = ymax*0.9
     plt.ylim(ymin=0., ymax=ymax)
+    plt.yticks([0, 20, 40])
 
     #loc, _ = plt.xticks()
     #plt.xticks(locx, [])
@@ -229,7 +228,7 @@ for dim in 2, 3:
     plt.scatter([fit[dim]], [26.2], s=200, c=color_drop_light, linewidths=0)
     plt.annotate("%.1f nm" % (fit[dim],), (fit[dim], 26.2),
              xytext=(fit[dim] + 0.16, 26.2 + 5.5*(ymax/40.)),
-             color=color_drop_light)
+             color=color_drop)
 
     plt.axvline(x=2*2.0779, linestyle="--", color="#666666")
     #htext = 45 # 2
@@ -243,8 +242,9 @@ for dim in 2, 3:
 #                 xytext=(2*2.0779 + 0.2, 2-0.2), color="#666666",
 #                 arrowprops=dict(arrowstyle="->", color="#666666"))
 #
+    plots.removeTopRightFrame()
     if dim==3:
-        plt.legend(loc="center right", bbox_to_anchor=(1., .58))
+        plt.legend(loc="center right", bbox_to_anchor=(1.04, .58))
     else:
         plt.legend(loc="lower right")
     #fig.tight_layout()
@@ -254,5 +254,5 @@ for dim in 2, 3:
 
 
 import folders
-pugh.nano.savefigs("new", folders.FIGDIR_HOWORKA + "/Idiam2", ending=".pdf")
+pugh.nano.savefigs("Idiam", folders.FIGDIR_CWD + "/pugh", ending=".pdf")
 #plt.show()

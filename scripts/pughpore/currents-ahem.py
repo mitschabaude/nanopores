@@ -8,6 +8,25 @@ colors = plots.colors
 from collections import OrderedDict
 from matplotlib import pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
+adam1 = '#3069ab'
+adam2 = '#5993d0'
+adam3 = '#93cbf2'
+intense = '#0224bd'
+
+blue = colors.pure
+#pink = "#9900ff" #plots.pure(colors.pink)
+
+colors_list_hue = ['k',
+               plots.set_sl("#0000ff", .7, .5),
+               plots.set_sl("#00aaff", .8, .6),
+               plots.set_sl("#00ffaa", .9, .8),]
+
+colors_list = [plots.set_sl("#6600ff", .8, .7),
+               plots.set_sl(blue, 1., .15),
+               plots.set_sl(blue, 1., .6),
+               plots.set_sl(blue, 1., .85),]
+
+line_width = 1.5 # 1 normal, 1.5 thicker
 
 ddsimplerough = dict(name="Dalphahem", dim=2, Nmax=.1e5, h=1.,
              ahemqsuniform=True, rMolecule=0.11)
@@ -98,7 +117,7 @@ def compare_D_models(calc=True, **params):
         ("r- and z-dep.", ddcoupled),
     ])
     #colors = ["k", "b", "g", "c"]
-    colors_ = ["k", colors.pink, colors.darkintense, colors.muted]
+    #colors_ = ["k", colors.pink, colors.darkintense, colors.muted]
     #dashes = [[1000,1], [6,2], [6,1,1,1], [6,1,1,1,1,1]]
     #lines = ["--", "-", ":", "-."]
     lines = ["-", "-", "-", "-"]
@@ -111,8 +130,8 @@ def compare_D_models(calc=True, **params):
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, "-", color=colors_[i], linestyle=lines[i],
-                 label=model)
+        plt.plot(Vplot, I, "-", color=colors_list[i], linestyle=lines[i],
+                 label=model, lw=line_width)
 
         # print conductivities
         #G[i] = 1e-3*I[V.index(-0.04)]/(-0.04) # -40
@@ -138,7 +157,7 @@ def compare_D_models(calc=True, **params):
     for i, g in enumerate(G):
         y -= 36
         change = int(100*(g/gexp - 1.))
-        plt.text(x, y, "+%d%%" % change, color=colors_[i])
+        plt.text(x, y, "+%d%%" % change, color=colors_list[i])
         
 def compare_D_models_simple(calc=True, **params):
     params["ahemuniformqs"] = False

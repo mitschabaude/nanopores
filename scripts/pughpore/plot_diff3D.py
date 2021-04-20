@@ -1,8 +1,15 @@
 # (c) 2016 Gregor Mitscha-Baude
 import nanopores
+import nanopores.plots as plots
+import numpy as np
 from matplotlib import pyplot as plt
 from itertools import product
-from folders import fields, FIGDIR
+from folders import fields, FIGDIR, FIGDIR_CWD
+
+import matplotlib.collections as mcol
+from matplotlib.legend_handler import HandlerTuple, HandlerLineCollection
+from matplotlib.lines import Line2D
+
 #fields.update()
 r = 0.11
 #D2D = fields.get_field("pugh_diff2D_test", "D")[0]
@@ -63,37 +70,102 @@ x = [t+r for t in x]
 
 from nanopores.models.diffusion_interpolation import Dn_plane, Dt_plane
 from numpy import linspace
-fields.set_dir_default()
-X, D = fields.get("diffz_pugh", "x", "D", diamPore=6.)
-zmin = min([x1[2] for x1 in X], key=lambda x: abs(x))
-i = X.index([0., 0., zmin])
-D0 = D[i]
+
+fig, ax = plt.subplots(figsize=(1.73, 1.53))
+colors = plots.colors
+cx = colors.mediumlight
+cy = colors.mediumdark
+cz = colors.lightpink
+
 Dxx1 = max(Dxx)
 Dzz1 = max(Dzz)
 xlin = linspace(r+1e-3, 3., 100)
 dn = [Dn_plane(t, r, N=20) for t in xlin]
 dn = [d*Dxx1/dn[-1] for d in dn]
-plt.plot(xlin, dn, "-b")
+
 dt = [Dt_plane(t, r) for t in xlin]
 dt = [d*Dzz1/dt[-1] for d in dt]
-plt.plot(xlin, dt, "-g")
 plt.xlim(0., 1.5)
 plt.xticks([0, 0.5, 1., 1.5])
 
-plt.plot(x, Dxx, "ob", label=r"$D_{xx}$")
-plt.plot(x, Dyy, "sg", label=r"$D_{yy}$")
-plt.plot(x, Dzz, ".r", label=r"$D_{zz}$")
+plt.axvline(x=0.11, linestyle="--", color="#666666")
+
+plt.plot(xlin, dn, "-", color=cx, label=r"D$_{xx}$ (r-dep.)")
+plt.plot(xlin, dt, "-", color=cy, label=r"D$_{yy}$ (r-dep.)")
+
+dysym = plt.plot(x, Dyy, "o", label=r"D$_{yy}$", color=cy, markersize=3)
+dxsym = plt.plot(x, Dxx, "o", label=r"D$_{xx}$", color=cx, markersize=3)
+#dzsym = plt.plot(x, Dzz, ".r", label=r"$D_{zz}$", color=cz)
+
 
 #plt.plot(x, [D2D]*len(x), "--k", label="2D cyl.")
-plt.xlabel("x distance from pore wall [nm]")
+plt.xlabel("Ion distance from pore wall [nm]")
 plt.ylabel("Rel. diffusivity")
 plt.ylim(0, 1)
-plt.axvline(x=0.11, linestyle="--", color="#666666")
-plt.annotate("Ion radius", (0.11, 0.94),
-                 xytext=(0.25, 0.94-0.002), color="#666666",
-                 arrowprops=dict(arrowstyle="->", color="#666666"))
-plt.yticks([i/10. for i in range(0, 11, 2)])
-plt.legend(loc="lower right") #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
-plt.gcf().set_size_inches(3.2, 3.2)
-nanopores.savefigs("pugh_Dions", FIGDIR)
+plt.xlim(xmax=1.53)
+# plt.annotate("Ion radius", (0.11, 0.94),
+#                xytext=(0.32, 0.94+0.002), color="#666666",
+#                arrowprops=dict(arrowstyle="->", color="#666666"))
+plt.yticks([0, 0.5, 1])
+plots.removeTopRightFrame(ax)
+
+plt.text(.26, .88, r"D$_{\parallel}$", color=cy, size=8)
+plt.text(.8, .66, r"D$_{\bot}$", color=cx, size=8)
+#plt.text(.53, .92, r"D$_{zz}$", color=cz)
+
+# legend!!
+class HandlerDashedLines(HandlerLineCollection):
+    "Custom Handler for LineCollection instances."
+    def create_artists(self, legend, orig_handle,
+                       xdescent, ydescent, width, height, fontsize, trans):
+        # figure out how many lines there are
+        numlines = len(orig_handle.get_segments())
+        xdata, xdata_marker = self.get_xdata(legend, xdescent, ydescent,
+                                             width, height, fontsize)
+        leglines = []
+        # divide the vertical space where the lines will go
+        # into equal parts based on the number of lines
+        ydata = ((height) / (numlines + 1)) * np.ones(xdata.shape, float)
+        # for each line, create the line at the proper location
+        # and set the dash pattern
+        for i in range(numlines):
+            legline = Line2D(xdata, ydata * (numlines - i) - ydescent)
+            self.update_prop(legline, orig_handle, legend)
+            # set color, dash pattern, and linewidth to that
+            # of the lines in linecollection
+            try:
+                color = orig_handle.get_colors()[i]
+            except IndexError:
+                color = orig_handle.get_colors()[0]
+            try:
+                dashes = orig_handle.get_dashes()[i]
+            except IndexError:
+                dashes = orig_handle.get_dashes()[0]
+            try:
+                lw = orig_handle.get_linewidths()[i]
+            except IndexError:
+                lw = orig_handle.get_linewidths()[0]
+            if dashes[0] is not None:
+                legline.set_dashes(dashes[1])
+            legline.set_color(color)
+            legline.set_transform(trans)
+            legline.set_linewidth(lw)
+            leglines.append(legline)
+        return leglines
+
+lc = mcol.LineCollection(2 * [[(0, 0)]], linestyles=["-", "-"],
+     colors=[cy, cx])
+
+plt.legend([(dysym[0], dxsym[0]), lc], ["LRNH", "r- and z-dep."],
+          handler_map={tuple: HandlerTuple(2),
+                    type(lc): HandlerDashedLines()},
+          loc="lower right",
+          frameon=False
+          #borderaxespad=0.1, borderpad=0.3,
+          #handletextpad=0.4
+)
+
+#plt.legend(loc="lower right", frameon=False) #bbox_to_anchor=(1.05, 1.), loc="upper left", borderaxespad=0.,)
+
+nanopores.savefigs("pugh/Dions", FIGDIR_CWD, ending=".pdf")
 plt.show()

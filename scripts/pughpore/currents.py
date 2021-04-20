@@ -1,15 +1,16 @@
 # (c) 2016 Gregor Mitscha-Baude
 import numpy as np
-from matplotlib import rcParams, rc
+import nanopores.plots as plots
+# from matplotlib import rcParams, rc
 import matplotlib.colors as mcolor
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : 1,
-    "lines.markersize" : 5,
-})
+# rcParams.update({
+#     "font.size" : 7,
+#     "axes.titlesize" : 7,
+#     "font.family" : "sans-serif",
+#     "font.sans-serif" : ["CMU Sans Serif"],
+#     "lines.linewidth" : 1,
+#     "lines.markersize" : 5,
+# })
 import matplotlib.pyplot as plt
 import nanopores.models.pughpore as pugh
 import folders
@@ -51,11 +52,12 @@ params = {2: dict(dim=2, diamPore=None, dnaqsdamp=0.5, h=1., Nmax=2e4, rDPore=0.
 Rho = np.linspace(.1, .8, 8)
 Rho = list(-Rho)[::-1] + [0.001] + list(Rho)
 
-colors = {True: "#ffbbdd", False: "blue"}
+
+colors = {True: plots.colors.mediumlight, False: plots.colors.mediumdark}
 dnaqs = {3: -0.7353, 2: -0.7353}
 figsize = (1.73, 1.37)
 
-color_exp = "#66cc66"
+color_exp = plots.colors.experiment
 color_exp_light = mcolor.to_rgb(color_exp) + (0.3,)
 
 for dim in 2, 3:
@@ -68,7 +70,7 @@ for dim in 2, 3:
         label = "Simple diff." if data is None else "Pos.-dep. diff."
         marker = "s" if data is None else "o"
         plt.plot(Rho, J, marker, label=label, color=colors[data is None],
-                 markersize=4)
+                 markersize=3)
 
     plt.plot([-1, 1], [2.29*0.1]*2, "--", color=color_exp, label="Experiment")
     plt.fill_between([-1, 1], [(2.29 - 0.26)*0.1]*2,
@@ -83,18 +85,19 @@ for dim in 2, 3:
     #         arrowprops=dict(arrowstyle="->", color="#666666"))
     plt.ylabel("Current [nA]")
 
-    plt.xlim(-.82, .82)
+    plt.xlim(-.85, .85)
     plt.ylim(0, 1.5)
     #plt.yticks([0, 500, 1000])
     plt.yticks([0, 0.5, 1], [0, 0.5, 1])
     plt.xticks([-0.5, 0, 0.5])
+    plots.removeTopRightFrame()
 
     #plt.title("influence of surf. charge on current (%dD)" %dim)
     if dim==2:
         plt.legend(loc="lower right") #, frameon=False)
     if dim==3:
-        plt.legend(loc="lower right") #, frameon=False)
+        plt.legend(loc="lower right", bbox_to_anchor=(1.04, 0.))
         #plt.legend(loc="center")
 
-pugh.nano.savefigs("Irho/", folders.FIGDIR_HOWORKA, ending=".pdf")
+pugh.nano.savefigs("pugh/Irho", folders.FIGDIR_CWD, ending=".pdf")
 #plt.show()
