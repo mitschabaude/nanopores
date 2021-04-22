@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*
 # (c) 2018 Gregor Mitscha-Baude
-from matplotlib import rcParams
-rcParams.update({
-    "font.size" : 7,
-    "axes.titlesize" : 7,
-    "font.family" : "sans-serif",
-    "font.sans-serif" : ["CMU Sans Serif"],
-    "lines.linewidth" : .5,
-    "lines.markersize" : 5,
-})
+import nanopores.plots as plots
 
 import matplotlib.pyplot as plt
 #plt.rc("font", **{"sans-serif": ["cmss10"]})
@@ -47,8 +39,9 @@ x, y, z, j, t, b1, b2 = fields.get(
 
 ind = [424, 316] # indices
 loc = [8, 9]
-colors = ["red", "green"]
+colors = [plots.set_sl(plots.colors.pure, 1., .8), plots.colors.mediumdark]
 
+extra_lines = [(0.5*16, -0.5*hpore), (0.5*16, -0.5*hpore + hmem)]
 
 for m in 0, 1:
     i = ind[m]
@@ -70,41 +63,52 @@ for m in 0, 1:
     
     fig=plt.figure(figsize=figsize1)
         
-    color2='#ff0000'
-    color1='#ff9900'
-    color3='C0'
+    #color2='#ff0000'
+    #color1='#ff9900'
+    color3='#aaaaaa'
     
-    #b1 = [[[l1/2.,17.],[l1/2.,19.]],[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,14.]]]
-    for seq in b1:
-        x= [p[0] for p in seq]
-        xm=[-p[0] for p in seq]
-        y= [p[1] for p in seq]
-        plt.plot(x,y,color=color1,linewidth=2.)
-        plt.plot(xm,y,color=color1,linewidth=2.)
-    #b2 = [[[l3/2.-.5,-3.],[l3/2.-.5,11.]]]
-    for seq in b2:
-        x= [p[0] for p in seq]
-        xm=[-p[0] for p in seq]
-        y= [p[1] for p in seq]
-        plt.plot(x,y,color=color2,linewidth=2.)
-        plt.plot(xm,y,color=color2,linewidth=2.)
+    # #b1 = [[[l1/2.,17.],[l1/2.,19.]],[[l3/2.,-hpore/2.],[l3/2.,hpore/2.-h2],[l2/2.,hpore/2.-h2],[l2/2.,14.]]]
+    # for seq in b1:
+    #     x= [p[0] for p in seq]
+    #     xm=[-p[0] for p in seq]
+    #     y= [p[1] for p in seq]
+    #     plt.plot(x,y,color=color1,linewidth=2.)
+    #     plt.plot(xm,y,color=color1,linewidth=2.)
+    # #b2 = [[[l3/2.-.5,-3.],[l3/2.-.5,11.]]]
+    # for seq in b2:
+    #     x= [p[0] for p in seq]
+    #     xm=[-p[0] for p in seq]
+    #     y= [p[1] for p in seq]
+    #     plt.plot(x,y,color=color2,linewidth=2.)
+    #     plt.plot(xm,y,color=color2,linewidth=2.)
     
     plt.plot(X, Z, linewidth=lw, c=colors[m])
-    longer = plt.scatter(X[bind1],Z[bind1],s=50,marker='h',c=color2,linewidth=0.)
-    shorter = plt.scatter(X[bind2],Z[bind2],s=25,marker='h',c=color1,linewidth=0.)
-    start = plt.scatter([X[0]],[Z[0]],s=30,marker='x',c=color3,linewidth=2.)
+    #longer = plt.scatter(X[bind1],Z[bind1],s=50,marker='h',c=color2,linewidth=0.)
+    #shorter = plt.scatter(X[bind2],Z[bind2],s=25,marker='h',c=color1,linewidth=0.)
+    #start = plt.scatter([X[0]],[Z[0]],s=30,marker='x',c=color3,linewidth=2.)
     
-    patches=[start]
-    labels=['Start']
+    #patches=[start]
+    # labels=['Start']
     
-    if len(bind1)>0:
-        patches=patches+[longer]
-        labels+=['Longer bindings']
-    if len(bind2)>0:
-        patches=patches+[shorter]
-        labels+=['Shorter bindings']
+    # if len(bind1)>0:
+    #     patches=patches+[longer]
+    #     labels+=['Longer bindings']
+    # if len(bind2)>0:
+    #     patches=patches+[shorter]
+    #     labels+=['Shorter bindings']
+
+    c = 1 - 2*m
+    plt.annotate("", (X[0], Z[0]),
+                xytext=(X[0] + c*4, Z[0] + 4), 
+                color=color3, horizontalalignment='left',
+                arrowprops=dict(arrowstyle="->", color=color3,
+                patchA=None,
+                shrinkA=0,
+                shrinkB=0))
+    plt.text(X[0] + c*4, Z[0] + 5, "Start", color=color3,
+        ha=("left" if m == 0 else "right"))
     
-    plt.legend(patches, labels, scatterpoints=1, loc=(.43,.12))
+    #plt.legend(patches, labels, scatterpoints=1, loc=(.43,.12))
     ax = plt.gca()
     ax.set_aspect("equal")
     
@@ -120,6 +124,7 @@ for m in 0, 1:
     #plt.axis('off')
     
     plot_polygon(ax, pughpolygon(rmem=100.), linewidth=lw)
+    plot_polygon(ax, extra_lines, linewidth=lw)
     
     plt.axes([.6, .45, .3, .3])
     #plt.title('Current  $A/I_0$')
@@ -152,11 +157,11 @@ for m in 0, 1:
     plt.xticks([], [])
     ax.invert_yaxis()
     
-    scalebar = AnchoredSizeBar(ax.transData, 1, u"1µs", loc[m], 
+    scalebar = AnchoredSizeBar(ax.transData, 1, ur"1$\,$µs", loc[m], 
                    pad=0.2,
                    color="#999999",
                    frameon=False,
-                   size_vertical=1,
+                   size_vertical=0.5,
                    fontproperties = fm.FontProperties(size=7)
                    )
     ax.add_artist(scalebar)
@@ -166,7 +171,7 @@ for m in 0, 1:
     #ax.xaxis.set_major_formatter(xfmt)
     #ax.set_xlim([-4e-2*tau_off*fac,(1.+4e-2)*tau_off*fac])
     
-    fig.tight_layout()
+    #fig.tight_layout()
     
 ##### plot binding types
 from matplotlib import transforms
@@ -194,9 +199,11 @@ def rainbow_text(x, y, strings, colors, ax=None, **kw):
         text.draw(canvas.get_renderer())
         ex = text.get_window_extent()
         t = transforms.offset_copy(text._transform, x=ex.width, units='dots')
-        
+
 def configure_ax(ax):
     plot_polygon(ax, pughpolygon(rmem=100.), linewidth=lw)
+    plot_polygon(ax, extra_lines, linewidth=lw)
+
     ax.set_aspect("equal")
     ax.set_xlim([-20., 20.])
     ax.set_ylim([-33., 40])
@@ -219,31 +226,33 @@ blong2 = [(p[0] - .5, p[1]) for p in blong2]
     
 texty = 32
 line = 6
-clong = "C0"
-cshort = "C1"
+clong = plots.set_sl(plots.colors.experiment, 1., 0.3)
+cshort = plots.set_sl(plots.colors.experiment, .7, 0.8)
 lw2 = 3*lw
 
 # no binding
 fig, ax = plt.subplots(num="bindzones_0", figsize=figsize2)
 configure_ax(ax)
-rainbow_text(-9.5, texty, ["No binding"], ["k"],)
+plt.text(-11, texty, "No binding", color="k")
 
 # one binding
 fig, ax = plt.subplots(num="bindzones_1", figsize=figsize2)
 configure_ax(ax)
-rainbow_text(-11.5, texty, "Long binding".split(), [clong, "k"],)
+plt.text(-12.5, texty, "Long", color=clong)
+plt.text(-1, texty, "binding", color='k')
 plot_seq(ax, blong1, clong, 5*lw)
 
 # two bindings
 fig, ax = plt.subplots(num="bindzones_2", figsize=figsize2)
 configure_ax(ax)
-rainbow_text(-13.5, texty + .5*line, "Long and short".split(),
-             [clong, "k", cshort])
-rainbow_text(-6.5, texty - .5*line, ["binding"], ["k"],)
+plt.text(-14.5, texty + .5*line, 'Long', color=clong)
+plt.text(-3.3, texty + .5*line, 'and', color='k')
+plt.text(5.5, texty + .5*line, 'short', color=cshort)
+plt.text(-7.5, texty - .5*line, 'binding', color='k')
 plot_seq(ax, bshort, cshort, lw2)
 plot_seq(ax, blong2, clong, lw2)
 
 
-#figdir = nanopores.dirnames.DROPBOX_FIGDIR
-figdir = nanopores.dirnames.HOME + "/Dropbox/Paper Howorka/figures/"
-nanopores.savefigs("rw/trace", figdir, ending=".pdf", pad_inches=0)
+import folders
+figdir = folders.FIGDIR_CWD + "/traces"
+nanopores.savefigs("trace", figdir, ending=".pdf", pad_inches=0)

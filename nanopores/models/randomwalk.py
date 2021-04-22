@@ -667,7 +667,7 @@ class RandomWalk(object):
         #coll.set(widths=sizes, heights=sizes)
 
     def polygon_patches(self, cyl=False):
-        poly_settings = dict(closed=True, facecolor="#eeeeee", linewidth=1.,
+        poly_settings = dict(closed=True, facecolor="#eeeeee", linewidth=.75,
                         edgecolor="k")
         ball_settings = dict(facecolor="#aaaaaa", linewidth=1., edgecolor="k",
                              alpha=0.5)
@@ -725,7 +725,7 @@ class RandomWalk(object):
         Htop = self.params.Htop
         Hbot = self.params.Hbot
         
-        xlim = (-R, R) if not cyl else (0., R)
+        xlim = (-R*1.01, R*1.01) if not cyl else (0., R)
         ax = plt.axes(xlim=xlim, ylim=(-Hbot, Htop))
         patches = self.polygon_patches(cyl)
         for p in patches:

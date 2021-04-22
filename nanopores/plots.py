@@ -101,6 +101,10 @@ class Colors:
   mediumdark = set_sl(pure, .9, .3)
   mediumlight = set_sl(pure, .7, .7)
 
+  # for overlap with .experiment
+  lightmediumlight = set_sl(pure, .8, .8)
+
+  purepurple = "#6600ff"
   purple = set_sl("#6600ff", .8, .7)
   
   #light = applyAlpha(intense, 0.5)

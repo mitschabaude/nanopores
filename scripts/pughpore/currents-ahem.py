@@ -176,11 +176,16 @@ def compare_D_models_simple(calc=True, **params):
             mod_params["rDPore"] = 1.
         results = IV(V, nproc=3, name="IV-ahem", calc=calc, **mod_params)
         I = 1e12*np.array(results["J"])
-        plt.plot(Vplot, I, "-", color=colors.simulation, label=model)
+        plt.plot(Vplot, I, "-", color=colors.mediumlight, label=model,
+                lw=1.5, zorder=-200)
 
     plt.xlabel("Voltage [mV]")
     plt.ylabel("Current [pA]")
-    plt.yticks([-100, 0, 100])
+    plt.xlim(-115, 125)
+    ax = plt.gca()
+    ax.set_yticks([-100, 0, 100])
+    ax.tick_params(axis="y", direction='in', length=2, pad=-5)
+    ax.set_yticklabels(["", 0, 100], fontdict={"ha": "left"})
     # plt.tick_params(
     #     axis="both",          # changes apply to the x-axis
     #     which="both",      # both major and minor ticks are affected
@@ -192,9 +197,10 @@ def compare_D_models_simple(calc=True, **params):
     #     labelbottom=False)
     #plt.ylim(-100, 100)
     #plt.ylim(-200, 200)
-    plots.removeTopRightFrame()
+    plots.removeTopRightFrame(ax)
     plot_experiment_simple()
-    plt.legend(loc="best", frameon=False)
+    
+    plt.legend(loc="lower right", frameon=False, bbox_to_anchor=(1.07, 0))
     plt.title("IV curve")
 
 calc = False

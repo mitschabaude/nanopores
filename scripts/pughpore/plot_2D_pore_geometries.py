@@ -6,8 +6,9 @@ import matplotlib.patches as mpatches
 from nanopores import get_pore, savefigs
 from nanopores.models.randomwalk import RandomWalk, Ball
 
-cprot = plots.colors.protein
-crec = plots.colors.receptor
+cprot = plots.colors.mediumlight
+cprot_text = "#5175e0"
+crec = plots.colors.mediumdark
 
 # for plotting proteins andreceptors
 ball_settings = dict(facecolor="#eeeeee", edgecolor="k", linewidth=1.)
@@ -47,7 +48,7 @@ add_ball(ax, xrec, zrec, rrec, facecolor=crec, linewidth=0)
 add_ball(ax, xprot, zprot, rprot, facecolor=cprot, linewidth=0)
 
 plt.text(xrec - 57., zrec - 22., "Receptor", fontdict=dict(color=crec))
-plt.text(xprot - 60., zprot + 14., "Protein", fontdict=dict(color=cprot))
+plt.text(xprot - 60., zprot + 14., "Protein", fontdict=dict(color=cprot_text))
 
 ax.get_xaxis().set_visible(False)
 ax.get_yaxis().set_visible(False)
@@ -67,7 +68,7 @@ xprot = -3.
 
 ax = rw.plot_pore()
 add_ball(ax, xprot, zprot, rprot, facecolor=cprot, linewidth=0)
-plt.text(xprot - 20., zprot + 3., "Protein", fontdict=dict(color=cprot))
+plt.text(xprot - 20., zprot + 3., "Protein", fontdict=dict(color=cprot_text))
 
 ax.get_xaxis().set_visible(False)
 ax.get_yaxis().set_visible(False)

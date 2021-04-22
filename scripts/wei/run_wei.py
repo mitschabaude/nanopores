@@ -69,7 +69,7 @@ params = nanopores.user_params(
 ##### what to do
 NAME = "rw_wei_reverse_"
 print_calculations = False
-print_rw = True
+print_rw = False
 run_test = False
 run_test_outside = False
 compute_event_rate = False
@@ -77,7 +77,7 @@ compute_current = False
 plot_attempt_time = False
 plot_distribution = False
 plot_cdf = False
-voltage_dependence = False
+voltage_dependence = True
 determine_delta = False
 fit_koff0 = False
 
@@ -90,9 +90,14 @@ kd = 25e-3
 ka = 1.5e5
 
 #### color code
-color_lata = plots.applyAlpha(colors.lightpink, 0.8) # <- this kind of works
-color_wei = colors.intense #colors.medium
-color_exp = colors.experiment #"red"
+#color_lata = plots.applyAlpha(colors.lightpink, 0.8) # <- this kind of works
+color_lata = colors.light
+l_wei = 0.6
+alpha = 0.6
+l_alpha = 1 - (1/alpha) * (1 - l_wei)
+color_wei = plots.set_sl(colors.pure, 0.6, l_wei) # mediumintense
+color_wei_alpha = plots.set_sl(colors.pure, 1., l_alpha)
+color_exp = plots.set_sl(colors.experiment, 0.7, 0.6) #"red"
 
 def receptor_params(params):
     dx0 = params["dx"] if "dx" in params else dx
@@ -613,9 +618,9 @@ if plot_distribution:
     plt.hist(tsuccess_lata, bins=bins, color=color_lata, log=True,
              alpha=1, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Lata)", zorder=-50)
     
-    plt.hist(tsuccess_wei, bins=bins, color=color_wei, log=True,
+    plt.hist(tsuccess_wei, bins=bins, color=color_wei_alpha, log=True,
              #histtype="step", linestyle="--", 
-             alpha=0.55, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=-10)
+             alpha=alpha, rwidth=0.9, label=r"Sim. ($k_a$, $k_d$ from Wei)", zorder=-10)
     plt.hist(fake, bins=bins, histtype="step", log=True,
              linewidth=1.75,
              color=color_exp, label="Experiment", zorder=-1)
@@ -746,21 +751,24 @@ if voltage_dependence:
     
     
     plt.figure("koff_simple", figsize=(1.7, 1.6))
-    plt.plot(mv, koff1, "o", markersize=7, label=r"Simulation", color=color_wei)
+    plt.plot(mv, koff1, "o", markersize=7, label=r"Sim.",
+            color=colors.lightmediumlight, zorder=-100)
     plt.plot(v, koff2, "s", markersize=6, mew=1.75,
-             label=r"Experiment", mec=color_exp, mfc="None")
+             label=r"Exp.", mec=colors.experiment, mfc="None")
     plt.yscale("log")
-    plt.ylim(ymax=9e1)
+    plt.ylim(2e-3, 30)
+    plt.xlim(xmin=-30)
 
     ax = plt.axes()
     ax.set_yticks([1e-2, 1e-1, 1, 1e1])
     ax.set_yticks([], minor=True)
-    ax.set_yticklabels(["$\mathregular{10^{-2}}$", "$\mathregular{10^{-1}}$", "1", "$\mathregular{10^1}$"])
+    ax.tick_params(axis="y", direction='in', length=2, pad=-5)
+    ax.set_yticklabels(["", "0.1", "1", "10"], fontdict={"ha": "left"})
 
     plt.xlabel("Voltage [mV]")
     plt.ylabel(ur"$k_\mathrm{off}$ [1/s]")
     #plt.ylabel(ur"$\log(k_\mathrm{off})$")
-    plt.xlabel("Voltage")
+    #plt.xlabel("Voltage")
 
     # plt.tick_params(
     #     axis="both",          # changes apply to the x-axis
@@ -772,7 +780,7 @@ if voltage_dependence:
     #     labelleft=False,
     #     labelbottom=False)
     plots.removeTopRightFrame()
-    plt.legend(frameon=False, loc="upper left")
+    plt.legend(frameon=False, loc="lower right", bbox_to_anchor=(1.05, 0))
     plt.title("Reaction kinetics")
     
     
